@@ -223,6 +223,60 @@ geqrf<hmat::Z_t>(int m, int n, hmat::Z_t* a, int lda, hmat::Z_t* tau, hmat::Z_t*
 #undef _CGEQRF_
 #undef _ZGEQRF_
 
+/*      SUBROUTINE SGESDD( JOBZ, M, N, A, LDA, S, U, LDU, VT, LDVT,*/
+/*                         WORK, LWORK, IWORK, INFO )                     */
+/*      ZGESDD computes the singular value decomposition (SVD) of a complex */
+/*      M-by-N matrix A, optionally computing the left and/or right singular */
+/*      vectors   */
+#define _SGESDD_ F77_FUNC(sgesdd,SGESDD)
+#define _DGESDD_ F77_FUNC(dgesdd,DGESDD)
+#define _CGESDD_ F77_FUNC(cgesdd,CGESDD)
+#define _ZGESDD_ F77_FUNC(zgesdd,ZGESDD)
+extern "C" void _SGESDD_(char*, int*, int*, S_t*, int*,  float*, S_t*, int*, S_t*, int*, S_t*, int*, int*, int*);
+extern "C" void _DGESDD_(char*, int*, int*, D_t*, int*, double*, D_t*, int*, D_t*, int*, D_t*, int*, int*, int*);
+extern "C" void _CGESDD_(char*, int*, int*, C_t*, int*,  float*, C_t*, int*, C_t*, int*, C_t*, int*, float*, int*, int*);
+extern "C" void _ZGESDD_(char*, int*, int*, Z_t*, int*, double*, Z_t*, int*, Z_t*, int*, Z_t*, int*, double*, int*, int*);
+
+template<typename T, typename Treal>
+int gesdd(char jobz, int m, int n, T* a, int lda,  Treal* s, T* u, int ldu, T* vt, int ldvt, T* work, int lwork, int* iwork);
+
+template<>
+inline int
+gesdd<S_t, S_t>(char jobz, int m, int n, S_t* a, int lda,  S_t* s, S_t* u, int ldu, S_t* vt, int ldvt, S_t* work, int lwork, int* iwork) {
+  int info = 0;
+  _SGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, &info);
+  return info;
+}
+template<>
+inline int
+gesdd<D_t, D_t>(char jobz, int m, int n, D_t* a, int lda,  D_t* s, D_t* u, int ldu, D_t* vt, int ldvt, D_t* work, int lwork, int* iwork) {
+  int info = 0;
+  _DGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, &info);
+  return info;
+}
+template<>
+inline int
+gesdd<C_t, S_t>(char jobz, int m, int n, C_t* a, int lda,  S_t* s, C_t* u, int ldu, C_t* vt, int ldvt, C_t* work, int lwork, int* iwork) {
+  int info = 0;
+  S_t* rwork = (lwork == -1 ? NULL : new S_t[5 * std::min(m, n)]);
+  _CGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, iwork, &info);
+  if (rwork) delete [] rwork;
+  return info;
+}
+template<>
+inline int
+gesdd<Z_t, D_t>(char jobz, int m, int n, Z_t* a, int lda,  D_t* s, Z_t* u, int ldu, Z_t* vt, int ldvt, Z_t* work, int lwork, int* iwork) {
+  int info = 0;
+  D_t* rwork = (lwork == -1 ? NULL : new D_t[5 * std::min(m, n)]);
+  _ZGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, iwork, &info);
+  if (rwork) delete [] rwork;
+  return info;
+}
+#undef _SGESDD_
+#undef _DGESDD_
+#undef _CGESDD_
+#undef _ZGESDD_
+
 /*      SUBROUTINE SGESVD( JOBU, JOBVT, M, N, A, LDA, S, U, LDU, VT, LDVT,*/
 /*                         WORK, LWORK, INFO )                     */
 /*      ZGESVD computes the singular value decomposition (SVD) of a complex */
