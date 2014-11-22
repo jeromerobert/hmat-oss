@@ -298,5 +298,7 @@ endif()
 # ========================
 # final LOG
 # ========================
-include(FeatureSummary)
-feature_summary(WHAT ALL)
+if (CMAKE_VERSION VERSION_GREATER 2.8.5)
+    include(FeatureSummary)
+    feature_summary(WHAT ALL)
+endif ()
