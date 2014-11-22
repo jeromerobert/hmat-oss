@@ -721,7 +721,7 @@ template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const ClusterData* ro
 template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const ClusterData* rows, const ClusterData* cols);
 template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const ClusterData* rows, const ClusterData* cols);
 
-template RkMatrix<typename Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const AssemblyFunction<S_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<typename Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const AssemblyFunction<D_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<typename Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const AssemblyFunction<C_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<typename Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const AssemblyFunction<Z_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const AssemblyFunction<S_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const AssemblyFunction<D_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const AssemblyFunction<C_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const AssemblyFunction<Z_t>& f, const ClusterData* rows, const ClusterData* cols);
