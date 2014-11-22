@@ -218,7 +218,8 @@ endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_NAME_DIR ${INSTALL_LIB_DIR}    )
 
-if(BUILD_SHARED_LIBS )
+# LINK_PRIVATE and LINK_PUBLIC keywords were introduced in 2.8.7
+if(BUILD_SHARED_LIBS AND CMAKE_VERSION VERSION_GREATER 2.8.6)
     # Programs using hmat do not need to link directly with second level dependencies so we strip them all
     set(_LINK_PRIVATE LINK_PRIVATE)
     set(_LINK_PUBLIC LINK_PUBLIC)
