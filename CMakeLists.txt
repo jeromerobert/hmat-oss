@@ -46,10 +46,10 @@ git_version(HMAT 1.0.0)
 set(HMAT_SO_VERSION 1)
 
 # Offer the user the choice of overriding the installation directories
-set(INSTALL_LIB_DIR     lib        CACHE PATH "Installation directory for libraries")
-set(INSTALL_BIN_DIR     bin        CACHE PATH "Installation directory for executables")
-set(INSTALL_INCLUDE_DIR include    CACHE PATH "Installation directory for header files")
-set(INSTALL_DATA_DIR    share/hmat CACHE PATH "Installation directory for data files")
+set(INSTALL_LIB_DIR     lib${LIB_SUFFIX} CACHE PATH "Installation directory for libraries")
+set(INSTALL_BIN_DIR     bin              CACHE PATH "Installation directory for executables")
+set(INSTALL_INCLUDE_DIR include          CACHE PATH "Installation directory for header files")
+set(INSTALL_DATA_DIR    share/hmat       CACHE PATH "Installation directory for data files")
 
 
 # Make relative paths absolute (needed later on)
