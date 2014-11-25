@@ -26,7 +26,6 @@
 
 #include "hmat_cpp_interface.hpp"
 #include "default_engine.hpp"
-#include "my_chrono.hpp"
 
 /** This is a simple example showing how to use the HMatrix library.
 
@@ -154,12 +153,8 @@ void go(std::vector<Point>& points, double k) {
     TestAssemblyFunction<T> f(points, k);
     HMatInterface<T, E> hmat(ct, ct);
     Configuration<T, E>().configure(hmat);
-    Time tick = now();
     hmat.assemble(f, kNotSymmetric, false);
     hmat.factorize();
-    Time tock = now();
-    double duration = time_diff_in_nanos(tick, tock);
-    std::cout << std::endl << "Assembly/LU time = " << duration / 1e9 << std::endl;
     std::pair<size_t, size_t> compressionRatio = hmat.compressionRatio();
     std::cout << "Compression Ratio = "
               << 100 * ((double) compressionRatio.first) / compressionRatio.second

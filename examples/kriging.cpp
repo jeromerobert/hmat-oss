@@ -25,7 +25,6 @@
 #include "full_matrix.hpp"
 #include "interaction.hpp"
 #include "data_types.hpp"
-#include "my_chrono.hpp"
 #include "hmat_cpp_interface.hpp"
 #include <cstring>
 #include <iostream>
@@ -150,10 +149,7 @@ int go(const char* pointsFilename) {
   std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
   HMatInterface<D_t, E> hmat(ct, ct);
 
-  Time tick = now();
   hmat.assemble(f, kLowerSymmetric);
-  Time tock = now();
-  std::cout << "Assembly time = " << 1e-9 * time_diff_in_nanos(tick, tock) << std::endl;
 
 
   std::pair<size_t, size_t> compressionRatio = hmat.compressionRatio();
@@ -162,11 +158,7 @@ int go(const char* pointsFilename) {
             << "%" << std::endl;
 
   std::cout << "done.\nFactorisation...";
-
-  tick = now();
   hmat.factorize();
-  tock = now();
-  std::cout << "done\nLU time = " << 1e-9 * time_diff_in_nanos(tick, tock) << std::endl;
 
   std::cout << "Resolution...";
   hmat.solve(*rhs);
