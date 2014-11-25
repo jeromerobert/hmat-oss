@@ -22,35 +22,18 @@
 
 /*! \file
   \ingroup HMatrix
-  \brief Context manager used for the tracing functionnality provided by MPF.
+  \brief Context manager used for the tracing functionnality.
 */
 #ifndef _CONTEXT_HPP
 #define _CONTEXT_HPP
 
 #include "hmat/config.h"
 
-#if defined(__GNUC__)
-#define MPF_FUNC __PRETTY_FUNCTION__
-#elif defined(_MSC_VER)
-#define MPF_FUNC __FUNCTION__ // or perhaps __FUNCDNAME__ + __FUNCSIG__
-#else
-#define MPF_FUNC __func__
-#endif
-
 #if (__cplusplus > 199711L) || defined(HAVE_CPP11)
 #include <chrono>
 #include <vector>
 #include <fstream>
 
-#ifdef HAVE_STARPU
-#include <starpu.h>
-#endif
-
-/** New StarPU-aware tracing contexts.
-
-    A tracing tree root is associated with each parallel worker, plus one for the
-    rest of the code (outside the parallel regions).
- */
 namespace trace {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> Time;
 
@@ -66,11 +49,8 @@ namespace trace {
     Time lastCommInitiationTime;
   };
 
-#ifdef HAVE_STARPU
-#define MAX_ROOTS (STARPU_NMAXWORKERS + 1)
-#else
-  // 128 workers ought to be enough for anybody... or not
-#define MAX_ROOTS 128
+#ifndef MAX_ROOTS
+  #define MAX_ROOTS 128
 #endif
 
   /** Set the function tasked with returning the current root index.
@@ -100,17 +80,6 @@ namespace trace {
     std::vector<Node*> children;
     /// List of trace trees.
     static Node* currentNodes[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
-
-#ifdef HAVE_STARPU
-  public:
-    /// True if StarPU has been initialized. Must be set by the application.
-    static bool starpuIsInitialized;
-#endif
-#ifdef HAVE_RUNTIME
-  public:
-    /// True if the toy runtime has been initialized. Must be set by the application.
-    static bool runtimeIsInitialized;
-#endif
 
   public:
     /** Enter a context noted by a name.
@@ -179,5 +148,13 @@ public:
     leave_context();
   }
 };
-#define DECLARE_CONTEXT Context __reserved_ctx((MPF_FUNC))
+
+#if defined(__GNUC__)
+#define DECLARE_CONTEXT Context __reserved_ctx(__PRETTY_FUNCTION__)
+#elif defined(_MSC_VER)
+#define DECLARE_CONTEXT Context __reserved_ctx(__FUNCTION__)
+#else
+#define DECLARE_CONTEXT Context __reserved_ctx(__func__)
+#endif
+
 #endif

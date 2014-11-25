@@ -93,12 +93,6 @@ public:
   }
 };
 
-
-#ifdef PARALLEL_BUILD
-template<typename T> class HMatrix;
-template<typename T> HMatrix<T>* unpackHMatrix(HMatrix<T>* h, void* ptr, size_t count);
-#endif
-
 /*! \brief The HMatrix class, representing a HMatrix.
 
   It is a tree of arity arity(ClusterTree)^2, 4 in this case.
