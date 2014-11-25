@@ -248,6 +248,59 @@ if (HAVE_LIBRT)
     target_link_libraries(${PROJECT_NAME} ${_LINK_PUBLIC} rt)
 endif (HAVE_LIBRT)
 
+# Examples
+include_directories(${PROJECT_SOURCE_DIR}/src)
+
+if (MSVC OR WINTEL)
+    set_source_files_properties("examples/cylinder.cpp" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
+    set_source_files_properties("examples/c-cylinder.c" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
+    set_source_files_properties("examples/c-simple-cylinder.c" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
+endif()
+
+add_executable(kriging ${PROJECT_SOURCE_DIR}/examples/kriging.cpp)
+target_link_libraries(kriging ${PROJECT_NAME})
+
+add_executable(cylinder ${PROJECT_SOURCE_DIR}/examples/cylinder.cpp)
+target_link_libraries(cylinder ${PROJECT_NAME})
+
+add_executable(c-cylinder ${PROJECT_SOURCE_DIR}/examples/c-cylinder.c)
+target_link_libraries(c-cylinder ${PROJECT_NAME} ${M_LIBRARY})
+
+add_executable(c-simple-cylinder ${PROJECT_SOURCE_DIR}/examples/c-simple-cylinder.c)
+target_link_libraries(c-simple-cylinder ${PROJECT_NAME} ${M_LIBRARY})
+
+add_executable(c-simple-kriging ${PROJECT_SOURCE_DIR}/examples/c-simple-kriging.c)
+target_link_libraries(c-simple-kriging ${PROJECT_NAME} ${M_LIBRARY})
+
+install(TARGETS kriging
+    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
+    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
+    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
+    )
+
+install(TARGETS cylinder
+    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
+    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
+    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
+    )
+
+install(TARGETS c-cylinder
+    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
+    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
+    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
+    )
+
+install(TARGETS c-simple-cylinder
+    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
+    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
+    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
+    )
+
+install(TARGETS c-simple-kriging
+    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
+    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
+    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
+    )
 
 install(DIRECTORY include/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
