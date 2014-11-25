@@ -263,46 +263,46 @@ if("${isSystemDir}" STREQUAL "-1")
     set(CMAKE_INSTALL_RPATH "${INSTALL_LIB_DIR}")
 endif("${isSystemDir}" STREQUAL "-1")
 
-add_executable(kriging ${PROJECT_SOURCE_DIR}/examples/kriging.cpp)
-target_link_libraries(kriging ${PROJECT_NAME})
+add_executable(example-kriging ${PROJECT_SOURCE_DIR}/examples/kriging.cpp)
+target_link_libraries(example-kriging ${PROJECT_NAME})
 
-add_executable(cylinder ${PROJECT_SOURCE_DIR}/examples/cylinder.cpp)
-target_link_libraries(cylinder ${PROJECT_NAME})
+add_executable(example-cylinder ${PROJECT_SOURCE_DIR}/examples/cylinder.cpp)
+target_link_libraries(example-cylinder ${PROJECT_NAME})
 
-add_executable(c-cylinder ${PROJECT_SOURCE_DIR}/examples/c-cylinder.c)
-target_link_libraries(c-cylinder ${PROJECT_NAME} ${M_LIBRARY})
+add_executable(example-c-cylinder ${PROJECT_SOURCE_DIR}/examples/c-cylinder.c)
+target_link_libraries(example-c-cylinder ${PROJECT_NAME} ${M_LIBRARY})
 
-add_executable(c-simple-cylinder ${PROJECT_SOURCE_DIR}/examples/c-simple-cylinder.c)
-target_link_libraries(c-simple-cylinder ${PROJECT_NAME} ${M_LIBRARY})
+add_executable(example-c-simple-cylinder ${PROJECT_SOURCE_DIR}/examples/c-simple-cylinder.c)
+target_link_libraries(example-c-simple-cylinder ${PROJECT_NAME} ${M_LIBRARY})
 
-add_executable(c-simple-kriging ${PROJECT_SOURCE_DIR}/examples/c-simple-kriging.c)
-target_link_libraries(c-simple-kriging ${PROJECT_NAME} ${M_LIBRARY})
+add_executable(example-c-simple-kriging ${PROJECT_SOURCE_DIR}/examples/c-simple-kriging.c)
+target_link_libraries(example-c-simple-kriging ${PROJECT_NAME} ${M_LIBRARY})
 
-install(TARGETS kriging
+install(TARGETS example-kriging
     RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
     LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
     ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
     )
 
-install(TARGETS cylinder
+install(TARGETS example-cylinder
     RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
     LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
     ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
     )
 
-install(TARGETS c-cylinder
+install(TARGETS example-c-cylinder
     RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
     LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
     ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
     )
 
-install(TARGETS c-simple-cylinder
+install(TARGETS example-c-simple-cylinder
     RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
     LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
     ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
     )
 
-install(TARGETS c-simple-kriging
+install(TARGETS example-c-simple-kriging
     RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
     LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
     ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
