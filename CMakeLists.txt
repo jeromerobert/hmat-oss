@@ -257,6 +257,12 @@ if (MSVC OR WINTEL)
     set_source_files_properties("examples/c-simple-cylinder.c" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
 endif()
 
+# Install examples with RPATH
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${INSTALL_LIB_DIR}" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+    set(CMAKE_INSTALL_RPATH "${INSTALL_LIB_DIR}")
+endif("${isSystemDir}" STREQUAL "-1")
+
 add_executable(kriging ${PROJECT_SOURCE_DIR}/examples/kriging.cpp)
 target_link_libraries(kriging ${PROJECT_NAME})
 
