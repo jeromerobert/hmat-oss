@@ -290,7 +290,7 @@ hmat
     /*! \brief C <- alpha * A * B + beta * C
 
 
-      In this version, a,b: Full hmat_runtime_nonematrices, c: HMatrix.
+      In this version, a, c: FullMatrix, b: HMatrix.
 
       \param trans_a
       \param trans_b

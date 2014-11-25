@@ -134,9 +134,8 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
     h->data.m = NULL;
     if (isRkMatrix()) {
       // We have to create a RkMatrix <T> because
-      // isRkMatrix () returns false otherwise. This can
-      // be a problem for some operations in
-      // starpu_operations.cpp.
+      // h->isRkMatrix () returns false otherwise,
+      // which may cause trouble for some operations.
       h->data.rk = new RkMatrix<T>(NULL, data.rk->rows, NULL, data.rk->cols);
     }
   } else {
