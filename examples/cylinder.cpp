@@ -98,17 +98,17 @@ public:
 
 
 template<>
-typename Types<S_t>::dp TestAssemblyFunction<S_t>::interaction(int i, int j) const {
+Types<S_t>::dp TestAssemblyFunction<S_t>::interaction(int i, int j) const {
   double distance = points[i].distanceTo(points[j]) + 1e-10;
   return 1. / distance;
 }
 template<>
-typename Types<D_t>::dp TestAssemblyFunction<D_t>::interaction(int i, int j) const {
+Types<D_t>::dp TestAssemblyFunction<D_t>::interaction(int i, int j) const {
   double distance = points[i].distanceTo(points[j]) + 1e-10;
   return 1. / distance;
 }
 template<>
-typename Types<C_t>::dp TestAssemblyFunction<C_t>::interaction(int i, int j) const {
+Types<C_t>::dp TestAssemblyFunction<C_t>::interaction(int i, int j) const {
   double distance = points[i].distanceTo(points[j]) + 1e-10;
   Z_t result = Constants<Z_t>::zero;
   result.real(cos(k * distance) / (4 * M_PI * distance));
@@ -116,7 +116,7 @@ typename Types<C_t>::dp TestAssemblyFunction<C_t>::interaction(int i, int j) con
   return result;
 }
 template<>
-typename Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
+Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
   double distance = points[i].distanceTo(points[j]) + 1e-10;
   Z_t result = Constants<Z_t>::zero;
   result.real(cos(k * distance) / (4 * M_PI * distance));
