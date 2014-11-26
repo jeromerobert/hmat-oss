@@ -263,50 +263,21 @@ if("${isSystemDir}" STREQUAL "-1")
     set(CMAKE_INSTALL_RPATH "${INSTALL_LIB_DIR}")
 endif("${isSystemDir}" STREQUAL "-1")
 
-add_executable(example-kriging ${PROJECT_SOURCE_DIR}/examples/kriging.cpp)
-target_link_libraries(example-kriging ${PROJECT_NAME})
+option(BUILD_EXAMPLES "build examples" ON)
+macro(hmat_add_example name source)
+  if (BUILD_EXAMPLES)
+    add_executable(${name} ${PROJECT_SOURCE_DIR}/examples/${source})
+    target_link_libraries(${name} ${PROJECT_NAME})
+    install(TARGETS ${name} DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime)
+  endif ()
+endmacro()
 
-add_executable(example-cylinder ${PROJECT_SOURCE_DIR}/examples/cylinder.cpp)
-target_link_libraries(example-cylinder ${PROJECT_NAME})
+hmat_add_example(example-kriging kriging.cpp)
+hmat_add_example(example-cylinder cylinder.cpp)
+hmat_add_example(example-c-cylinder c-cylinder.c)
+hmat_add_example(example-c-simple-cylinder c-simple-cylinder.c)
+hmat_add_example(example-c-simple-kriging c-simple-kriging.c)
 
-add_executable(example-c-cylinder ${PROJECT_SOURCE_DIR}/examples/c-cylinder.c)
-target_link_libraries(example-c-cylinder ${PROJECT_NAME} ${M_LIBRARY})
-
-add_executable(example-c-simple-cylinder ${PROJECT_SOURCE_DIR}/examples/c-simple-cylinder.c)
-target_link_libraries(example-c-simple-cylinder ${PROJECT_NAME} ${M_LIBRARY})
-
-add_executable(example-c-simple-kriging ${PROJECT_SOURCE_DIR}/examples/c-simple-kriging.c)
-target_link_libraries(example-c-simple-kriging ${PROJECT_NAME} ${M_LIBRARY})
-
-install(TARGETS example-kriging
-    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
-    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
-    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
-    )
-
-install(TARGETS example-cylinder
-    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
-    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
-    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
-    )
-
-install(TARGETS example-c-cylinder
-    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
-    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
-    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
-    )
-
-install(TARGETS example-c-simple-cylinder
-    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
-    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
-    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
-    )
-
-install(TARGETS example-c-simple-kriging
-    RUNTIME DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime
-    LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Runtime
-    ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}/examples" COMPONENT Development
-    )
 
 install(DIRECTORY include/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
