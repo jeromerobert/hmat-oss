@@ -40,7 +40,7 @@ namespace mem_instr {
 
     \param size positive or negative integer, size in bytes.
    */
-  void addAlloc(int64_t size);
+  void addAlloc(void* ptr, int64_t size);
   /*! \brief Dumps the data to filename.
    */
   void toFile(const std::string& filename);
@@ -49,14 +49,14 @@ namespace mem_instr {
   void disable();
 }
 
-#define REGISTER_ALLOC(size) mem_instr::addAlloc(+(size))
-#define REGISTER_FREE(size) mem_instr::addAlloc(-(size))
+#define REGISTER_ALLOC(ptr, size) mem_instr::addAlloc(ptr, +(size))
+#define REGISTER_FREE(ptr, size) mem_instr::addAlloc(ptr, -(size))
 #define MEMORY_INSTRUMENTATION_TO_FILE(filename) mem_instr::toFile(filename)
 #define MEMORY_INSTRUMENTATION_ENABLE mem_instr::enable()
 #define MEMORY_INSTRUMENTATION_DISABLE mem_instr::disable()
 #else
-#define REGISTER_ALLOC(size) do {} while (0)
-#define REGISTER_FREE(size) do { (void)(size); } while (0)
+#define REGISTER_ALLOC(ptr, size) do {} while (0)
+#define REGISTER_FREE(ptr, size) do {} while (0)
 #define MEMORY_INSTRUMENTATION_TO_FILE(filename) do {} while (0)
 #define MEMORY_INSTRUMENTATION_ENABLE do {} while (0)
 #define MEMORY_INSTRUMENTATION_DISABLE do {} while (0)

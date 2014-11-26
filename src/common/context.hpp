@@ -33,6 +33,7 @@
 #include <chrono>
 #include <vector>
 #include <fstream>
+#include <unordered_map>
 
 namespace trace {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> Time;
@@ -79,7 +80,8 @@ namespace trace {
     /// Ordered list of children nodes.
     std::vector<Node*> children;
     /// List of trace trees.
-    static Node* currentNodes[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
+    static std::unordered_map<void*, Node*> currentNodes[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
+    static void* enclosingContext[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
 
   public:
     /** Enter a context noted by a name.
@@ -88,6 +90,14 @@ namespace trace {
     /** Leave the current context.
      */
     static void leaveContext();
+    /** Get a unique reference to the current context. */
+    static void* currentReference();
+    /** Set the current as being relative to a given enclosong one.
+
+        The enclosing context is identified through the pointer returned by \a
+        currentReference().
+     */
+    static void setEnclosingContext(void* enclosing);
     static void enable() {enabled = true;}
     static void disable() {enabled = false;}
     static void incrementFlops(int64_t flops);

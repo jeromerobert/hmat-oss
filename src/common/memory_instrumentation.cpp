@@ -30,17 +30,19 @@
 #include "data_recorder.hpp"
 #include "../system_types.h"
 
+#include <algorithm>
+
 namespace mem_instr {
-  TimedDataRecorder<int64_t> allocs;
+  TimedDataRecorder<std::pair<void*, int64_t> > allocs;
 
   /// True if the memory tracking is enabled.
   static bool enabled = false;
 
-  void addAlloc(int64_t size) {
+  void addAlloc(void* ptr, int64_t size) {
     if (!enabled) {
       return;
     }
-    allocs.recordSynchronized(size);
+    allocs.recordSynchronized(std::make_pair(ptr, size));
   }
 
   void toFile(const std::string& filename) {

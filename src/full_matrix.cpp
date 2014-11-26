@@ -115,8 +115,8 @@ FullMatrix<T>::FullMatrix(size_t _rows, size_t _cols)
   : ownsMemory(true), rows(_rows), cols(_cols), lda(_rows), pivots(NULL),
     diagonal(NULL), isTriUpper(false), isTriLower(false) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
-  REGISTER_ALLOC(size);
   m = (T*) calloc(size, 1);
+  REGISTER_ALLOC(m, size);
   strongAssert(m);
 #ifdef POISON_ALLOCATION
   // This memory is not initialized, fill it with NaNs to force a
@@ -138,7 +138,7 @@ FullMatrix<T>* FullMatrix<T>::Zero(size_t rows, size_t cols) {
 template<typename T> FullMatrix<T>::~FullMatrix() {
   if (ownsMemory) {
     size_t size = ((size_t) rows) * cols * sizeof(T);
-    REGISTER_FREE(size);
+    REGISTER_FREE(m, size);
     free(m);
     m = NULL;
   }
@@ -728,16 +728,16 @@ template<typename T> Vector<T>::Vector(T* _v, size_t _rows)
 template<typename T> Vector<T>::Vector(size_t _rows)
   : ownsMemory(true), rows(_rows) {
   size_t size = ((size_t) rows) * sizeof(T);
-  REGISTER_ALLOC(size);
   v = (T*) calloc(size, 1);
+  REGISTER_ALLOC(v, size);
   strongAssert(v);
 }
 
 template<typename T> Vector<T>::~Vector() {
   if (ownsMemory) {
     size_t size = ((size_t) rows) * sizeof(T);
-    REGISTER_FREE(size);
     free(v);
+    REGISTER_FREE(v, size);
   }
   v = NULL;
 }

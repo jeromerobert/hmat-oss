@@ -29,6 +29,12 @@
 #include <mutex>
 #include <fstream>
 
+template<typename T, typename U>
+std::ostream& operator<<(std::ostream& os, const std::pair<T, U>& p) {
+  os << p.first << " " << p.second;
+  return os;
+}
+
 /** Helper class to record arbitrary timed data to a file.
 
     Data points are provided through the \a record() method adding a timestamped

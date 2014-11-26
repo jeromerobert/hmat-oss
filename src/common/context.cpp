@@ -53,7 +53,8 @@ namespace trace {
   }
 
   bool Node::enabled = true;
-  Node* Node::currentNodes[MAX_ROOTS] = {};
+  std::unordered_map<void*, Node*> Node::currentNodes[MAX_ROOTS];
+  void* Node::enclosingContext[MAX_ROOTS] = {};
 
   Node::Node(const char* _name, Node* _parent)
     : name(_name), data(), parent(_parent), children() {}
@@ -69,13 +70,14 @@ namespace trace {
     myAssert(current);
     Node* child = current->findChild(name);
     int index = currentNodeIndex();
+    void* enclosing = enclosingContext[index];
 
     if (!child) {
       child = new Node(name, current);
       current->children.push_back(child);
     }
     myAssert(child);
-    currentNodes[index] = child;
+    currentNodes[index][enclosing] = child;
     current = child;
     current->data.lastEnterTime = std::chrono::high_resolution_clock::now();
     current->data.n += 1;
@@ -83,7 +85,8 @@ namespace trace {
 
   void Node::leaveContext() {
     int index = currentNodeIndex();
-    Node* current = currentNodes[index];
+    void* enclosing = enclosingContext[index];
+    Node* current = currentNodes[index][enclosing];
     myAssert(current);
 
     Time now = std::chrono::high_resolution_clock::now();
@@ -93,8 +96,17 @@ namespace trace {
     if (!(current->parent)) {
       std::cout << "Warning! Closing root node." << std::endl;
     } else {
-      currentNodes[index] = current->parent;
+      currentNodes[index][enclosing] = current->parent;
     }
+  }
+
+  void* Node::currentReference() {
+    return (void*) Node::currentNode();
+  }
+
+  void Node::setEnclosingContext(void* enclosing) {
+    int index = currentNodeIndex();
+    enclosingContext[index] = enclosing;
   }
 
   void Node::incrementFlops(int64_t flops) {
@@ -128,6 +140,7 @@ namespace trace {
   void Node::dump(std::ofstream& f) const {
     f << "{"
       << "\"name\": \"" << name << "\", "
+      << "\"id\": \"" << this << "\", "
       << "\"n\": " << data.n << ", "
       << "\"totalTime\": " << data.totalTime / 1e9 << ", "
       << "\"totalFlops\": " << data.totalFlops << ", "
@@ -151,10 +164,13 @@ namespace trace {
     f << "[";
     std::string delimiter("");
     for (int i = 0; i < MAX_ROOTS; i++) {
-      if (currentNodes[i]) {
-	f << delimiter << std::endl;
-	currentNodes[i]->dump(f);
-	delimiter = ", ";
+      if (!currentNodes[i].empty()) {
+        for (auto p : currentNodes[i]) {
+          Node* root = p.second;
+          f << delimiter << std::endl;
+          root->dump(f);
+          delimiter = ", ";
+        }
       }
     }
     f << std::endl << "]" << std::endl;
@@ -164,17 +180,20 @@ namespace trace {
    */
   Node* Node::currentNode() {
     int id = currentNodeIndex();
-    Node* current = currentNodes[id];
-
-    if (!current) {
-      char* name = const_cast<char*>("root");
+    void* enclosing = enclosingContext[id];
+    auto it = currentNodes[id].find(enclosing);
+    Node* current;
+    if (it == currentNodes[id].end()) {
+      char *name = const_cast<char*>("root");
       if (id != 0) {
-        name = strdup("Worker #XXX");
+        name = strdup("Worker #XXX - 0xXXXXXXXXXXXXXXXX"); // Worker ID - enclosing
         strongAssert(name);
-        sprintf(name, "Worker %3d", id);
+        sprintf(name, "Worker #%03d - %p", id, enclosing);
       }
       current = new Node(name, NULL);
-      currentNodes[id] = current;
+      currentNodes[id][enclosing] = current;
+    } else {
+      current = it->second;
     }
     return current;
   }
