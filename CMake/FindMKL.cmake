@@ -101,7 +101,7 @@ if (MKL_FOUND)
   # We want MKL link flags to be added at the end of the command line
   # else static compilation will fail, so we use CMAKE_REQUIRED_LIBRARIES
   # instead of CMAKE_REQUIRED_FLAGS
-  set(CMAKE_REQUIRED_LIBRARIES ${MKL_LINKER_FLAGS})
+  list(APPEND CMAKE_REQUIRED_LIBRARIES ${MKL_LINKER_FLAGS})
   include(CheckIncludeFile)
   check_include_file("mkl_cblas.h"   HAVE_MKL_CBLAS_H)
   check_include_file("mkl_lapacke.h" HAVE_MKL_LAPACKE_H)
