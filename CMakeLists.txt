@@ -50,16 +50,16 @@ set(INSTALL_LIB_DIR     lib${LIB_SUFFIX} CACHE PATH "Installation directory for 
 set(INSTALL_BIN_DIR     bin              CACHE PATH "Installation directory for executables")
 set(INSTALL_INCLUDE_DIR include          CACHE PATH "Installation directory for header files")
 set(INSTALL_DATA_DIR    share/hmat       CACHE PATH "Installation directory for data files")
-
+set(INSTALL_CMAKE_DIR   ${INSTALL_LIB_DIR}/cmake/hmat CACHE PATH "Installation directory for cmake config files")
 
 # Make relative paths absolute (needed later on)
-foreach(p LIB BIN INCLUDE DATA)
+foreach(p LIB BIN INCLUDE DATA CMAKE)
     set(var INSTALL_${p}_DIR)
     set(RELATIVE_INSTALL_${p}_DIR ${INSTALL_${p}_DIR})
     if(NOT IS_ABSOLUTE "${${var}}")
         set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
     endif()
-endforeach(p LIB BIN INCLUDE DATA)
+endforeach()
 
 # CMake 2.x does not define MSVC when using Intel compiler on Windows, see
 # http://public.kitware.com/Bug/view.php?id=14476
@@ -310,12 +310,12 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     #
     # Install the export set for use with the install-tree
     install(EXPORT HMATLibraryDepends DESTINATION
-        "${RELATIVE_INSTALL_DATA_DIR}/CMake"
+      "${RELATIVE_INSTALL_CMAKE_DIR}"
         COMPONENT    Development)
 
     # Create a HMATConfig.cmake file for the use from the install tree
     # and install it
-    set(HMAT_CMAKE_DIR "${INSTALL_DATA_DIR}/CMake")
+    set(HMAT_CMAKE_DIR "${INSTALL_CMAKE_DIR}")
     file(RELATIVE_PATH rel_include_dir "${HMAT_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
     list(APPEND RELATIVE_HMAT_INCLUDE_DIRS ${rel_include_dir})
 
