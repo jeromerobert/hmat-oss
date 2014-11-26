@@ -86,14 +86,14 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 set(EXTRA_LIBS "")
 
 include(CheckLibraryExists)
+
 check_library_exists("m" sqrt "" HAVE_LIBM)
 if(HAVE_LIBM)
-    set(CMAKE_REQUIRED_LIBRARIES m;${CMAKE_REQUIRED_LIBRARIES})
     set(M_LIBRARY m)
 endif()
+
 check_library_exists("rt" clock_gettime "" HAVE_LIBRT)
 if(HAVE_LIBRT)
-    set(CMAKE_REQUIRED_LIBRARIES rt;${CMAKE_REQUIRED_LIBRARIES})
     set(RT_LIBRARY rt)
 endif()
 
@@ -142,8 +142,6 @@ if (NOT MKL_FOUND)
     message(STATUS "LAPACK_LIBRARIES = ${LAPACK_LIBRARIES}")
     link_directories(${BLAS_LIBRARY_DIRS})
     include_directories(${BLAS_INCLUDE_DIRS})
-    set(CMAKE_REQUIRED_LIBRARIES ${BLAS_LIBRARIES};${CMAKE_REQUIRED_LIBRARIES})
-    message(STATUS "CMAKE_REQUIRED_LIBRARIES = ${CMAKE_REQUIRED_LIBRARIES}")
     # MKL_INCLUDE_DIRS is written into HMATConfig.cmake, fake it
     set(MKL_INCLUDE_DIRS "${BLAS_INCLUDE_DIRS}")
 endif()
@@ -198,7 +196,7 @@ add_definitions(-UNDEBUG)
 if (MSVC)
     add_definitions(-D__func__=__FUNCTION__)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif (MSVC)
+endif ()
 
 # lib HMAT
 if(HMAT_OSS_STATIC AND BUILD_SHARED_LIBS)
@@ -245,17 +243,15 @@ endif()
 
 if (HAVE_LIBRT)
     # rt is needed by my_chrono.hpp
-    target_link_libraries(${PROJECT_NAME} ${_LINK_PUBLIC} rt)
-endif (HAVE_LIBRT)
+    target_link_libraries(${PROJECT_NAME} ${_LINK_PUBLIC} ${RT_LIBRARY})
+endif ()
+
+if (HAVE_LIBM)
+    target_link_libraries(${PROJECT_NAME} ${_LINK_PUBLIC} ${M_LIBRARY})
+endif()
 
 # Examples
 include_directories(${PROJECT_SOURCE_DIR}/src)
-
-if (MSVC OR WINTEL)
-    set_source_files_properties("examples/cylinder.cpp" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
-    set_source_files_properties("examples/c-cylinder.c" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
-    set_source_files_properties("examples/c-simple-cylinder.c" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
-endif()
 
 # Install examples with RPATH
 list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${INSTALL_LIB_DIR}" isSystemDir)
@@ -266,6 +262,9 @@ endif("${isSystemDir}" STREQUAL "-1")
 option(BUILD_EXAMPLES "build examples" ON)
 macro(hmat_add_example name source)
   if (BUILD_EXAMPLES)
+    if (MSVC OR WINTEL)
+      set_source_files_properties("examples/${source}" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
+    endif ()
     add_executable(${name} ${PROJECT_SOURCE_DIR}/examples/${source})
     target_link_libraries(${name} ${PROJECT_NAME})
     install(TARGETS ${name} DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime)
