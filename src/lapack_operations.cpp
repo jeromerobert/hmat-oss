@@ -31,6 +31,7 @@
 #include "common/my_assert.h"
 #include "lapack_overloads.hpp"
 #include "blas_overloads.hpp"
+#include "lapack_exception.hpp"
 
 using namespace std;
 
@@ -49,12 +50,14 @@ template<> int svdCall<S_t>(int order, char jobu, char jobv, int m, int n, S_t* 
   S_t workSize_S;
 
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_S, -1);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_S + 1;
   S_t* work = new S_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   delete[] work;
 
   for (int i = 0; i < p; i++) {
@@ -72,12 +75,14 @@ template<> int svdCall<D_t>(int order, char jobu, char jobv, int m, int n, D_t* 
 
   // We request the right size for WORK
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_D, -1);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_D + 1;
   D_t* work = new D_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   delete[] work;
   return result;
 }
@@ -92,12 +97,14 @@ template<> int svdCall<C_t>(int order, char jobu, char jobv, int m, int n, C_t* 
 
   // We request the right size for WORK
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_C, -1);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_C.real() + 1;
   C_t* work = new C_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   delete[] work;
 
   for (int i = 0; i < p; i++) {
@@ -115,12 +122,14 @@ template<> int svdCall<Z_t>(int order, char jobu, char jobv, int m, int n, Z_t* 
 
   // We request the right size for WORK
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_Z, -1);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_Z.real() + 1;
   Z_t* work = new Z_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
-  strongAssert(!result);
+  if(result != 0)
+      throw new hmat::LapackException("gesvd", result);
   delete[] work;
   return result;
 }
