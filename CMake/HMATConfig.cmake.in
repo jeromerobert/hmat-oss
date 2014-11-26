@@ -41,4 +41,4 @@ set(HMAT_DEFINITIONS @HMAT_DEFINITIONS@)
 include("${CMAKE_CURRENT_LIST_DIR}/HMATLibraryDepends.cmake")
 
 # These are IMPORTED targets created by HMATLibraryDepends.cmake
-set(HMAT_LIBRARIES hmat)
+set(HMAT_LIBRARIES hmat-oss)
