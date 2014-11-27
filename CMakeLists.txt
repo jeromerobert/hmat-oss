@@ -262,7 +262,7 @@ if("${isSystemDir}" STREQUAL "-1")
     set(CMAKE_INSTALL_RPATH "${INSTALL_LIB_DIR}")
 endif("${isSystemDir}" STREQUAL "-1")
 
-option(BUILD_EXAMPLES "build examples" ON)
+option(BUILD_EXAMPLES "build examples" OFF)
 macro(hmat_add_example name source)
   if (BUILD_EXAMPLES)
     if (MSVC OR WINTEL)
