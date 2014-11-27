@@ -150,6 +150,18 @@ IF(NOT CBLAS_LIBRARIES)
     TRUE )
 ENDIF(NOT CBLAS_LIBRARIES)
 
+# CBLAS in BLAS library
+IF(NOT CBLAS_LIBRARIES)
+  CHECK_ALL_LIBRARIES(
+    CBLAS_LIBRARIES
+    CBLAS
+    cblas_dgemm
+    ""
+    "blas"
+    "cblas.h"
+    TRUE )
+ENDIF()
+
 # Generic CBLAS library
 IF(NOT CBLAS_LIBRARIES)
   CHECK_ALL_LIBRARIES(
