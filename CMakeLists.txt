@@ -39,7 +39,7 @@ endif()
 
 project(hmat-oss C CXX)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMake)
 
 include(GitVersion)
 git_version(HMAT 1.0.0)
