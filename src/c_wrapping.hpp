@@ -66,6 +66,8 @@ static int assemble(hmat_matrix_t * holder,
   HMatInterface<T, E>* hmat = (HMatInterface<T, E>*) holder;
   BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute, free_data);
   hmat->assemble(f, lower_symmetric ? kLowerSymmetric : kNotSymmetric, true);
+  std::pair<size_t, size_t> p =  hmat->compressionRatio();
+  std::cout << "Compression ratio = " << (100. * p.first) / p.second << "%" << std::endl;
   return 0;
 }
 
@@ -81,6 +83,8 @@ static int assemble_factor(hmat_matrix_t * holder,
   BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute, free_data);
   hmat->assemble(f, lower_symmetric ? kLowerSymmetric : kNotSymmetric, false);
   hmat->factorize();
+  std::pair<size_t, size_t> p =  hmat->compressionRatio();
+  std::cout << "Compression ratio = " << (100. * p.first) / p.second << "%" << std::endl;
   return 0;
 }
 
@@ -93,6 +97,8 @@ static int assemble_simple_interaction(hmat_matrix_t * holder,
   HMatInterface<T, E>* hmat = (HMatInterface<T, E>*) holder;
   SimpleCAssemblyFunction<T> f(user_context, compute);
   hmat->assemble(f, lower_symmetric ? kLowerSymmetric : kNotSymmetric);
+  std::pair<size_t, size_t> p =  hmat->compressionRatio();
+  std::cout << "Compression ratio = " << (100. * p.first) / p.second << "%" << std::endl;
   return 0;
 }
 
