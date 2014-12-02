@@ -115,28 +115,17 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES _prefix _name _flags _list _include _search_
   ENDIF(NOT _libraries_work)
 ENDMACRO(CHECK_ALL_LIBRARIES)
 
-# Apple CBLAS library?
+# Generic CBLAS library
 IF(NOT CBLAS_LIBRARIES)
   CHECK_ALL_LIBRARIES(
     CBLAS_LIBRARIES
     CBLAS
     cblas_dgemm
     ""
-    "Accelerate"
-    "Accelerate/Accelerate.h"
-    FALSE )
-ENDIF(NOT CBLAS_LIBRARIES)
-
-IF( NOT CBLAS_LIBRARIES )
-  CHECK_ALL_LIBRARIES(
-    CBLAS_LIBRARIES
-    CBLAS
-    cblas_dgemm
-    ""
-    "vecLib"
-    "vecLib/vecLib.h"
-    FALSE )
-ENDIF( NOT CBLAS_LIBRARIES )
+    "cblas"
+    "cblas.h"
+    TRUE )
+ENDIF()
 
 # CBLAS in ATLAS library? (http://math-atlas.sourceforge.net/)
 IF(NOT CBLAS_LIBRARIES)
@@ -148,33 +137,44 @@ IF(NOT CBLAS_LIBRARIES)
     "cblas;atlas"
     "cblas.h"
     TRUE )
-ENDIF(NOT CBLAS_LIBRARIES)
+ENDIF()
 
-# Generic CBLAS library
+# CBLAS in BLAS library
 IF(NOT CBLAS_LIBRARIES)
   CHECK_ALL_LIBRARIES(
     CBLAS_LIBRARIES
     CBLAS
     cblas_dgemm
     ""
-    "cblas"
+    "blas"
     "cblas.h"
     TRUE )
-ENDIF(NOT CBLAS_LIBRARIES)
+ENDIF()
 
-IF(CBLAS_LIBRARIES)
-  SET(CBLAS_FOUND TRUE)
-ELSE(CBLAS_LIBRARIES)
-  SET(CBLAS_FOUND FALSE)
-ENDIF(CBLAS_LIBRARIES)
+# Apple CBLAS library?
+IF(NOT CBLAS_LIBRARIES)
+  CHECK_ALL_LIBRARIES(
+    CBLAS_LIBRARIES
+    CBLAS
+    cblas_dgemm
+    ""
+    "Accelerate"
+    "Accelerate/Accelerate.h"
+    FALSE )
+ENDIF()
 
-IF(NOT CBLAS_FOUND AND CBLAS_FIND_REQUIRED)
-  MESSAGE(FATAL_ERROR "CBLAS library not found. Please specify library location")
-ENDIF(NOT CBLAS_FOUND AND CBLAS_FIND_REQUIRED)
-IF(NOT CBLAS_FIND_QUIETLY)
-  IF(CBLAS_FOUND)
-    MESSAGE(STATUS "CBLAS library found")
-  ELSE(CBLAS_FOUND)
-    MESSAGE(STATUS "CBLAS library not found.")
-  ENDIF(CBLAS_FOUND)
-ENDIF(NOT CBLAS_FIND_QUIETLY)
+IF( NOT CBLAS_LIBRARIES )
+  CHECK_ALL_LIBRARIES(
+    CBLAS_LIBRARIES
+    CBLAS
+    cblas_dgemm
+    ""
+    "vecLib"
+    "vecLib/vecLib.h"
+    FALSE )
+ENDIF()
+
+include ( FindPackageHandleStandardArgs )
+find_package_handle_standard_args ( CBLAS DEFAULT_MSG CBLAS_LIBRARIES
+)
+
