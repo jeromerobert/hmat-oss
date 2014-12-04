@@ -190,3 +190,10 @@ template<typename T, template <typename> class E>
 void HMatInterface<T, E>::dumpTreeToFile(const char* filename) const {
     engine.dumpTreeToFile(filename);
 }
+
+template<typename T, template <typename> class E>
+int HMatInterface<T, E>::nodesCount() const {
+  DISABLE_THREADING_IN_BLOCK;
+  return engine.hmat->nodesCount();
+}
+

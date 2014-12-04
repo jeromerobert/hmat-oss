@@ -209,6 +209,17 @@ static int transpose(hmat_matrix_t* hmat) {
   return 0;
 }
 
+template<typename T, template <typename> class E>
+static int hmat_get_info(hmat_matrix_t* holder, hmat_info_t* info) {
+  DECLARE_CONTEXT;
+  HMatInterface<T, E>* hmat = (HMatInterface<T, E>*) holder;
+  std::pair<size_t, size_t> p =  hmat->compressionRatio();
+  info->hmat_info_nnz     = p.first;
+  info->hmat_info_ntot    = p.second;
+  info->hmat_info_nbnodes = hmat->nodesCount();
+  return 0;
+}
+
 template<typename T, template <typename> class E> static void createCInterface(hmat_interface_t * i)
 {
     i->assemble = assemble<T, E>;
@@ -229,6 +240,7 @@ template<typename T, template <typename> class E> static void createCInterface(h
     i->solve_systems = solve_systems<T, E>;
     i->transpose = transpose<T, E>;
     i->internal = NULL;
+    i->hmat_get_info = hmat_get_info<T, E>;
 }
 
 #endif  // _C_WRAPPING_HPP

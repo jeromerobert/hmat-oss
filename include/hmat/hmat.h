@@ -150,6 +150,19 @@ hmat_cluster_tree_t * create_cluster_tree(DofCoordinate* dls, int n);
  */
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
 
+/** Information on the HMatrix */
+typedef struct
+{
+  /*! Number of non-zero elements in the HMatrix */
+  size_t hmat_info_nnz;
+
+  /*! Number of elements in the HMatrix */
+  size_t hmat_info_ntot;
+
+  /*! Number of block cluster tree nodes in the HMatrix */
+  int    hmat_info_nbnodes;
+} hmat_info_t;
+
 typedef struct hmat_matrix_struct hmat_matrix_t;
 
 typedef struct
@@ -313,8 +326,15 @@ hmat
      */
     int (*finalize)();
 
+    /*! \brief Get current informations
+        \param hmatrix A hmatrix
+        \param info A structure to fill with current informations
+     */
+    int (*hmat_get_info)(hmat_matrix_t *hmatrix, hmat_info_t* info);
+
     /** For internal use only */
     void * internal;
+
 }  hmat_interface_t;
 
 void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);

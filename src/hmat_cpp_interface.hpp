@@ -288,6 +288,9 @@ public:
     \param filename path to the output file.
    */
   void dumpTreeToFile(const char* filename) const;
+  /** Return the number of block cluster tree nodes.
+   */
+  int nodesCount() const;
 
   typename E<T>::Settings & engineSettings() { return engine.settings; }
 private:
