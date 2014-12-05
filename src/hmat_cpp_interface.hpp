@@ -64,6 +64,10 @@ public:
   bool cholesky;
   bool coarsening; ///< Coarsen the matrix structure after assembly.
   bool recompress; ////< Recompress the matrix after assembly.
+  bool validateCompression; ///< Validate the rk-matrices after compression
+  bool validationReRun; ///< For blocks above error threshold, re-run the compression algorithm
+  bool validationDump; ///< For blocks above error threshold, dump the faulty block to disk
+  double validationErrorThreshold; ///< Error threshold for the compression validation
 
 private:
   /** This constructor sets the default values.
@@ -78,7 +82,8 @@ private:
                    useLdlt(false),
                    cholesky(false),
                    coarsening(false),
-                   recompress(true) {}
+                   recompress(true), validateCompression(true),
+                   validationReRun(true), validationDump(true), validationErrorThreshold(0.) {}
   // Disable the copy.
   HMatSettings(const HMatSettings&);
   void operator=(const HMatSettings&);

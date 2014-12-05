@@ -93,6 +93,10 @@ void hmat_get_parameters(hmat_settings_t* settings)
     settings->useLdlt = settingsCxx.useLdlt;
     settings->coarsening = settingsCxx.coarsening;
     settings->recompress = settingsCxx.recompress;
+    settings->validateCompression = settingsCxx.validateCompression;
+    settings->validationErrorThreshold = settingsCxx.validationErrorThreshold;
+    settings->validationReRun = settingsCxx.validationReRun;
+    settings->validationDump = settingsCxx.validationDump;
 }
 
 int hmat_set_parameters(hmat_settings_t* settings)
@@ -143,6 +147,10 @@ int hmat_set_parameters(hmat_settings_t* settings)
     settingsCxx.useLdlt = settings->useLdlt;
     settingsCxx.coarsening = settings->coarsening;
     settingsCxx.recompress = settings->recompress;
+    settingsCxx.validateCompression = settings->validateCompression;
+    settingsCxx.validationErrorThreshold = settings->validationErrorThreshold;
+    settingsCxx.validationReRun = settings->validationReRun;
+    settingsCxx.validationDump = settings->validationDump;
     settingsCxx.setParameters();
     settingsCxx.printSettings();
     return rc;

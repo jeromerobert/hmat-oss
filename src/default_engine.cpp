@@ -30,6 +30,10 @@ static void setTemplatedParameters(const HMatSettings& s) {
   RkMatrix<T>::approx.assemblyEpsilon = s.assemblyEpsilon;
   RkMatrix<T>::approx.recompressionEpsilon = s.recompressionEpsilon;
   RkMatrix<T>::approx.method = s.compressionMethod;
+  HMatrix<T>::validateCompression = s.validateCompression;
+  HMatrix<T>::validationErrorThreshold = s.validationErrorThreshold;
+  HMatrix<T>::validationReRun = s.validationReRun;
+  HMatrix<T>::validationDump = s.validationDump;
   HMatrix<T>::coarsening = s.coarsening;
   HMatrix<T>::recompress = s.recompress;
 }
@@ -39,6 +43,7 @@ void HMatSettings::setParameters() const {
   strongAssert(assemblyEpsilon > 0.);
   strongAssert(recompressionEpsilon > 0.);
   strongAssert(admissibilityFactor >= 0.);
+  strongAssert(validationErrorThreshold >= 0.);
   setTemplatedParameters<S_t>(*this);
   setTemplatedParameters<D_t>(*this);
   setTemplatedParameters<C_t>(*this);
@@ -51,10 +56,11 @@ void HMatSettings::setParameters() const {
 void HMatSettings::printSettings(std::ostream& out) const {
   std::ios_base::fmtflags savedIosFlags = out.flags();
   out << std::scientific;
-  out << "Assembly Epsilon     = " << assemblyEpsilon << std::endl;
-  out << "Resolution Epsilon   = " << recompressionEpsilon << std::endl;
-  out << "Admissibility factor = " << admissibilityFactor << std::endl;
-  out << "Max Leaf Size        = " << maxLeafSize << std::endl;
+  out << "Assembly Epsilon           = " << assemblyEpsilon << std::endl;
+  out << "Resolution Epsilon         = " << recompressionEpsilon << std::endl;
+  out << "Admissibility factor       = " << admissibilityFactor << std::endl;
+  out << "Max Leaf Size              = " << maxLeafSize << std::endl;
+  out << "Validation Error Threshold = " << validationErrorThreshold << std::endl;
   switch (clustering) {
   case kGeometric:
     out << "Geometric Clustering" << std::endl;

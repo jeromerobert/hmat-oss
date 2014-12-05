@@ -383,6 +383,14 @@ typedef struct
   int coarsening;
   /*! \brief Recompress the matrix after assembly. */
   int recompress;
+  /*! \brief Validate the rk-matrices after compression */
+  int validateCompression;
+  /*! \brief For blocks above error threshold, re-run the compression algorithm */
+  int validationReRun;
+  /*! \brief For blocks above error threshold, dump the faulty block to disk */
+  int validationDump;
+  /*! \brief Error threshold for the compression validation */
+  double validationErrorThreshold;
 } hmat_settings_t;
 
 /*! \brief Get current settings
