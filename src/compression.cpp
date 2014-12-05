@@ -695,8 +695,8 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     // If I meet a NaN, I save & leave
     // TODO : improve this behaviour
     if (std::isnan(approxNorm)) {
-      rkFull->toFile("approx");
-      full->toFile("full");
+      rkFull->toFile("Rk");
+      full->toFile("Full");
       strongAssert(false);
     }
 
@@ -735,9 +735,16 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
         delete rk_bis ;
       }
 
-      if (HMatrix<T>::validationReRun) {
-        rkFull->toFile("approx");
-        full->toFile("full");
+      if (HMatrix<T>::validationDump) {
+        std::string filename;
+        ostringstream convert;   // stream used for the conversion
+        convert << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]" ;
+
+        filename = "Rk_";
+        filename += convert.str(); // set 'Result' to the contents of the stream
+        rkFull->toFile(filename.c_str());
+        filename = "Full_"+convert.str(); // set 'Result' to the contents of the stream
+        full->toFile(filename.c_str());
       }
     }
 
