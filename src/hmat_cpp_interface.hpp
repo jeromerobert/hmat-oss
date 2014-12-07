@@ -82,8 +82,8 @@ private:
                    useLdlt(false),
                    cholesky(false),
                    coarsening(false),
-                   recompress(true), validateCompression(true),
-                   validationReRun(true), validationDump(true), validationErrorThreshold(0.) {}
+                   recompress(true), validateCompression(false),
+                   validationReRun(false), validationDump(false), validationErrorThreshold(0.) {}
   // Disable the copy.
   HMatSettings(const HMatSettings&);
   void operator=(const HMatSettings&);
