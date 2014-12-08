@@ -604,7 +604,7 @@ template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
   ierr = (mmapedFile == MAP_FAILED) ? 1 : 0;
   strongAssert(!ierr);
   int *asIntArray = (int*) mmapedFile;
-  asIntArray[0] = 0;
+  asIntArray[0] = Constants<T>::code;
   asIntArray[1] = (int) rows;
   asIntArray[2] = (int) cols;
   asIntArray[3] = sizeof(T);
