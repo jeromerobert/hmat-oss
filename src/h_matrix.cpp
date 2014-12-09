@@ -94,7 +94,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag symFlag
     isTriUpper(false), isTriLower(false) {
   if (_rows->isLeaf() || _cols->isLeaf() || _rows->isAdmissibleWith(_cols)) {
     if (_rows->isAdmissibleWith(_cols)) {
-      data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols());
+      data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
     }
     return;
   } else {
@@ -136,7 +136,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
       // We have to create a RkMatrix <T> because
       // h->isRkMatrix () returns false otherwise,
       // which may cause trouble for some operations.
-      h->data.rk = new RkMatrix<T>(NULL, data.rk->rows, NULL, data.rk->cols);
+      h->data.rk = new RkMatrix<T>(NULL, data.rk->rows, NULL, data.rk->cols, data.rk->method);
     }
   } else {
     for (int i = 0; i < 4; ++i) {
@@ -163,7 +163,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
 
   if (o->isLeaf()) {
     if (o->isRkMatrix()) {
-      h->data.rk = new RkMatrix<T>(NULL, h->rows(), NULL, h->cols());
+      h->data.rk = new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), o->data.rk->method);
       h->data.m = NULL;
     } else {
       h->data.rk = NULL;
@@ -190,7 +190,7 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols) {
 
   if (rows->isLeaf() || cols->isLeaf() || h->data.isAdmissibleLeaf()) {
     if (h->data.isAdmissibleLeaf()) {
-      h->data.rk = new RkMatrix<T>(NULL, h->rows(), NULL, h->cols());
+      h->data.rk = new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression);
       h->data.m = NULL;
     } else {
       h->data.rk = NULL;
@@ -222,13 +222,7 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
       RkMatrix<T>* rk = fromDoubleRk<T>(rkDp);
 
       data.m = NULL;
-      data.rk->a = rk->a;
-      data.rk->b = rk->b;
-      data.rk->k = rk->k;
-      // menage
-      rk->a = NULL;
-      rk->b = NULL;
-      rk->k = 0;
+      swap(data.rk, rk);
       delete rk;
     } else {
       FullMatrix<T>* mat = fromDoubleFull<T>(f.assemble(rows(), cols()));
@@ -262,7 +256,7 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
         }
       }
       if (allRkLeaves) {
-        RkMatrix<T> dummy(NULL, rows(), NULL, cols());
+        RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
         T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
         RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
         size_t elements = (candidate->rows->n + candidate->cols->n) * candidate->k;
@@ -303,7 +297,7 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f, HMatrix<T>* upp
       if ((!onlyLower) && (upper != this)) {
         // Admissible leaf: a matrix represented by AB^t is transposed by exchanging A and B.
         RkMatrix<T>* rk = new RkMatrix<T>(NULL, upper->rows(),
-                                          NULL, upper->cols());
+                                          NULL, upper->cols(), this->data.rk->method);
         rk->k = this->data.rk->k;
         rk->a = (data.rk->b ? data.rk->b->copy() : NULL);
         rk->b = (data.rk->a ? data.rk->a->copy() : NULL);
@@ -364,7 +358,7 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f, HMatrix<T>* upp
           }
           if (allRkLeaves) {
             T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
-            RkMatrix<T> dummy(NULL, rows(), NULL, cols());
+            RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
             RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
             size_t elements = (candidate->rows->n + candidate->cols->n) * candidate->k;
             if (elements < childrenElements) {
@@ -382,8 +376,8 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f, HMatrix<T>* upp
               data.rk = candidate;
               upper->data.m = NULL;
               upper->data.rk = new RkMatrix<T>(NULL, upper->rows(),
-                                               NULL, upper->cols());
-              upper->data.rk->k = this->data.rk->k;
+                                               NULL, upper->cols(), data.rk->method);
+              upper->data.rk->k = data.rk->k;
               upper->data.rk->a = data.rk->b->copy();
               upper->data.rk->b = data.rk->a->copy();
 
@@ -1028,7 +1022,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       const RkMatrix<T>* oRk = o->data.rk;
       FullMatrix<T>* newA = oRk->b->copy();
       FullMatrix<T>* newB = oRk->a->copy();
-      data.rk = new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows);
+      data.rk = new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method);
     } else {
       myAssert(o->isFullMatrix());
       if (data.m) {
@@ -1141,7 +1135,8 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
     } else {
       myAssert(isRkMatrix());
       f << endl << prefix << " \"leaf_type\": \"Rk\", \"k\": " << data.rk->k << ",";
-      f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols);
+      f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
+      f << endl << prefix << " \"method\": " << this->data.rk->method;
     }
   }
   f << "}";
@@ -1168,7 +1163,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
     if (o->isFullMatrix() && (!data.m)) {
       data.m = FullMatrix<T>::Zero(o->data.m->rows, o->data.m->cols);
     } else if (o->isRkMatrix() && (!data.rk)) {
-      data.rk = new RkMatrix<T>(NULL, o->data.rk->rows, NULL, o->data.rk->cols);
+      data.rk = new RkMatrix<T>(NULL, o->data.rk->rows, NULL, o->data.rk->cols, o->data.rk->method);
     }
     myAssert((isRkMatrix() == o->isRkMatrix())
            && (isFullMatrix() == o->isFullMatrix()));
@@ -1210,7 +1205,7 @@ void HMatrix<T>::clear() {
     } else {
       myAssert(isRkMatrix());
       delete data.rk;
-      data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols());
+      data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
     }
   } else {
     for (int i = 0; i < 4; i++) {

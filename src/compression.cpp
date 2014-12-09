@@ -242,7 +242,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
     if (!zeroMatrix) break;
   }
   if (zeroMatrix) {
-    return new RkMatrix<T>(NULL, rows, NULL, cols);
+    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
   }
   // In the case of non-square matrix, we don't calculated singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
@@ -274,7 +274,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
   delete vt;
   delete sigma;
   FullMatrix<T>* a = uTilde;
-  return new RkMatrix<T>(a, rows, vTilde, cols);
+  return new RkMatrix<T>(a, rows, vTilde, cols, Svd);
 }
 
 
@@ -362,7 +362,7 @@ compressAcaFull(const AssemblyFunction<T>& f,
   delete m;
 
   if (nu == 0) {
-    return new RkMatrix<dp_t>(NULL, rows, NULL, cols);
+    return new RkMatrix<dp_t>(NULL, rows, NULL, cols, AcaFull);
   }
 
   FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(tmpA.rows, nu);
@@ -372,7 +372,7 @@ compressAcaFull(const AssemblyFunction<T>& f,
   newB->clear();
   memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
 
-  return new RkMatrix<dp_t>(newA, rows, newB, cols);
+  return new RkMatrix<dp_t>(newA, rows, newB, cols, AcaFull);
 }
 
 
@@ -490,10 +490,10 @@ compressAcaPartial(const AssemblyFunction<T>& f,
     }
   } else {
     // If k == 0, block is only made of zeros.
-    return new RkMatrix<dp_t>(NULL, rows, NULL, cols);
+    return new RkMatrix<dp_t>(NULL, rows, NULL, cols, AcaPartial);
   }
 
-  return new RkMatrix<dp_t>(newA, rows, newB, cols);
+  return new RkMatrix<dp_t>(newA, rows, newB, cols, AcaPartial);
 }
 
 
@@ -514,7 +514,7 @@ compressAcaPlus(const AssemblyFunction<T>& f,
   j_ref = findCol(block, colFree, aRef);
   if (j_ref == -1) {
 	// The block is completely zero.
-    return new RkMatrix<dp_t>(NULL, rows, NULL, cols);
+    return new RkMatrix<dp_t>(NULL, rows, NULL, cols, AcaPlus);
   }
 
   // The reference row is chosen such that it intersects the reference
@@ -648,7 +648,7 @@ compressAcaPlus(const AssemblyFunction<T>& f,
     delete bCols[i];
     bCols[i] = NULL;
   }
-  return new RkMatrix<dp_t>(newA, rows, newB, cols);
+  return new RkMatrix<dp_t>(newA, rows, newB, cols, AcaPlus);
 }
 
 // #define DEBUG_COMPRESSION
@@ -685,6 +685,9 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
       break;
     case AcaPlus:
       rk = compressAcaPlus(f, rows, cols);
+      break;
+    case NoCompression:
+      // Should not happen
       break;
     }
   }

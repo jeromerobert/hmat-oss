@@ -73,10 +73,11 @@ template<typename T> class RkMatrix {
 public:
   const ClusterData *rows;
   const ClusterData *cols;
-  int k;
   // A B^t
   FullMatrix<T>* a;
   FullMatrix<T>* b;
+  int k; /// Rank
+  CompressionMethod method; /// Method used to compress this RkMatrix
 
 public:
   /// Control of the approximation. See \a RkApproximationControl for more
@@ -99,8 +100,16 @@ public:
        \param _cols indices of the columns (of size k)
    */
   RkMatrix(FullMatrix<T>* _a, const ClusterData* _rows,
-           FullMatrix<T>* _b, const ClusterData* _cols);
+           FullMatrix<T>* _b, const ClusterData* _cols,
+           CompressionMethod _method);
   ~RkMatrix();
+  /**  Swaps members of two RkMatrix instances.
+       Since rows and cols are constant, they cannot be swaped and
+       the other instance must have the same members.
+
+       \param other  other RkMatrix instance.
+   */
+  void swap(RkMatrix<T>& other);
   /**  Gives a pointer to a RkMatrix representing a subset of indices.
        The pointer is supposed to be read-only (for efficiency reasons).
 

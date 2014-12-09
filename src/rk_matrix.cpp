@@ -59,12 +59,15 @@ int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
 
 /** RkMatrix */
 template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const ClusterData* _rows,
-                                           FullMatrix<T>* _b, const ClusterData* _cols)
+                                           FullMatrix<T>* _b, const ClusterData* _cols,
+                                           CompressionMethod _method)
   : rows(_rows),
     cols(_cols),
-    k(0),
     a(_a),
-    b(_b) {
+    b(_b),
+    k(0),
+    method(_method)
+{
 
   // We make a special case for empty matrices.
   if ((!a) && (!b)) {
@@ -137,7 +140,7 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const ClusterData* s
                                           subRows->n, k, a->lda);
 
   FullMatrix<T>* subB = new FullMatrix<T>(b->m + colsOffset, subCols->n, k, b->lda);
-  return new RkMatrix<T>(subA, subRows, subB, subCols);
+  return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
 
 template<typename T> pair<size_t, size_t> RkMatrix<T>::compressionRatio() {
@@ -165,9 +168,7 @@ template<typename T> void RkMatrix<T>::truncate() {
     FullMatrix<T>* tmp = eval();
     RkMatrix<T>* rk = compressMatrix(tmp, rows, cols);
     // "Move" rk into this, and delete the old "this".
-    std::swap(k, rk->k);
-    std::swap(a, rk->a);
-    std::swap(b, rk->b);
+    swap(*rk);
     delete rk;
   }
 
@@ -273,19 +274,27 @@ template<typename T> void RkMatrix<T>::truncate() {
   k = newK;
 }
 
+// Swap members with members from another instance.
+// Since rows and cols are constant, they must not be swapped.
+template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
+{
+  myAssert(rows == other.rows);
+  myAssert(cols == other.cols);
+  std::swap(a, other.a);
+  std::swap(b, other.b);
+  std::swap(k, other.k);
+  std::swap(method, other.method);
+}
+
 template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
   RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, &rows, &cols, 1);
-  std::swap(k, tmp->k);
-  std::swap(a, tmp->a);
-  std::swap(b, tmp->b);
+  swap(*tmp);
   delete tmp;
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
   RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
-  std::swap(k, tmp->k);
-  std::swap(a, tmp->a);
-  std::swap(b, tmp->b);
+  swap(*tmp);
   delete tmp;
 }
 
@@ -311,6 +320,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // get exactly the same result.
   int notNullParts = (k == 0 ? 0 : 1);
   int kTotal = k;
+  CompressionMethod minMethod = method;
   for (int i = 0; i < n; i++) {
     // Check that partial RkMatrix indices are subsets of their global indices set.
     // According to the indices organization, it is necessary to check that the indices
@@ -322,6 +332,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     myAssert(parts[i]->rows->isSubset(*rows));
     myAssert(parts[i]->cols->isSubset(*cols));
     kTotal += parts[i]->k;
+    minMethod = std::min(minMethod, parts[i]->method);
     if (parts[i]->k != 0) {
       notNullParts += 1;
     }
@@ -384,7 +395,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     resultB->copyMatrixAtOffset(parts[i]->b, rowOffset, kOffset);
     kOffset += parts[i]->k;
   }
-  RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols);
+  RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
   if (notNullParts > 1) {
     rk->truncate();
   }
@@ -426,8 +437,8 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   myAssert((transR == 'N') || (transM == 'N'));// we do not manage the case R^T*M^T
   myAssert(((transR == 'N') ? rk->cols->n : rk->rows->n) == ((transM == 'N') ? m->rows : m->cols));
 
-  RkMatrix<T>* rkCopy = (transR == 'N' ? new RkMatrix<T>(rk->a, rk->rows, rk->b, rk->cols)
-                         : new RkMatrix<T>(rk->b, rk->cols, rk->a, rk->rows));
+  RkMatrix<T>* rkCopy = (transR == 'N' ? new RkMatrix<T>(rk->a, rk->rows, rk->b, rk->cols, rk->method)
+                         : new RkMatrix<T>(rk->b, rk->cols, rk->a, rk->rows, rk->method));
 
   FullMatrix<T>* newB = new FullMatrix<T>((transM == 'N')? m->cols : m->rows, rkCopy->b->cols);
   if (transM == 'N') {
@@ -443,7 +454,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   }
 
   FullMatrix<T>* newA = rkCopy->a->copy();
-  RkMatrix<T>* result =  new RkMatrix<T>(newA, rkCopy->rows, newB, mCols);
+  RkMatrix<T>* result =  new RkMatrix<T>(newA, rkCopy->rows, newB, mCols, rkCopy->method);
   rkCopy->a = NULL;
   rkCopy->b = NULL;
   delete rkCopy;
@@ -463,7 +474,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
   FullMatrix<T>* a = rk->a;
   FullMatrix<T>* b = rk->b;
   if (transR == 'T') { // permutation to transpose the matrix Rk
-    swap(a, b);
+    std::swap(a, b);
   }
   const ClusterData *rkCols = ((transR == 'N')? rk->cols : rk->rows);
 
@@ -476,7 +487,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
     newA->gemm('T', 'N',Constants<T>::pone, m, a, Constants<T>::zero);
   }
   FullMatrix<T>* newB = b->copy();
-  return new RkMatrix<T>(newA, mRows, newB, rkCols);
+  return new RkMatrix<T>(newA, mRows, newB, rkCols, rk->method);
 }
 
 template<typename T>
@@ -504,7 +515,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
   h->gemv(transH == 'N' ? 'T' : 'N', Constants<T>::pone, b, Constants<T>::zero, resB);
   FullMatrix<T>* newA = a->copy();
   const ClusterData *newCols = ((transH == 'N' )? h->cols() : h->rows());
-  return new RkMatrix<T>(newA, rkRows, resB, newCols);
+  return new RkMatrix<T>(newA, rkRows, resB, newCols, rk->method);
 }
 
 template<typename T>
@@ -515,7 +526,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   if (rk->k == 0) {
     const ClusterData* newRows = ((transH == 'N') ? h-> rows() : h->cols());
     const ClusterData* newCols = ((transR == 'N') ? rk->cols : rk->rows);
-    return new RkMatrix<T>(NULL, newRows, NULL, newCols);
+    return new RkMatrix<T>(NULL, newRows, NULL, newCols, rk->method);
   }
   // M R = (M A) B^t
   // The size of the HMatrix is n x m
@@ -527,7 +538,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   FullMatrix<T>* a = rk->a;
   FullMatrix<T>* b = rk->b;
   if (transR == 'T') { // permutation of a and b to transpose the matrix Rk
-    swap(a, b);
+    std::swap(a, b);
   }
   const ClusterData *rkCols = ((transR == 'N' )? rk->cols : rk->rows);
   int n = ((transH == 'N')? h->rows()->n : h->cols()->n);
@@ -541,9 +552,9 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   // If this base been transposed earlier, back in the right direction.
 
   if (transR == 'T') {
-    swap(a, b);
+    std::swap(a, b);
   }
-  return new RkMatrix<T>(resA, newRows, newB, rkCols);
+  return new RkMatrix<T>(resA, newRows, newB, rkCols, rk->method);
 }
 
 template<typename T>
@@ -573,7 +584,8 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
   delete tmp;
   FullMatrix<T>* newB = Bb->copy();
 
-  return new RkMatrix<T>(newA, ((transA == 'N') ? a->rows : a->cols), newB, ((transB == 'N') ? b->cols : b->rows));
+  CompressionMethod combined = std::min(a->method, b->method);
+  return new RkMatrix<T>(newA, ((transA == 'N') ? a->rows : a->cols), newB, ((transB == 'N') ? b->cols : b->rows), combined);
 }
 
 template<typename T>
@@ -612,7 +624,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       for (int j = 0; j < 2; j++) {
         const ClusterData* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
         const ClusterData* subCols = (transHB == 'N' ? hb->get(i, j)->cols() : hb->get(j, i)->rows());
-        subRks[i + j * 2] = new RkMatrix<T>(NULL, subRows, NULL, subCols);
+        subRks[i + j * 2] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
         for (int k = 0; k < 2; k++) {
           // C_ij = A_ik * B_kj
           const HMatrix<T>* a_ik = (transHA == 'N' ? ha->get(i, k) : ha->get(k, i));
@@ -624,18 +636,10 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     // Reconstruction of C by adding the parts
     T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
     RkMatrix<T>* rk = formattedAddParts(alpha, (const RkMatrix<T>**) subRks, 2 * 2);
+    swap(*rk);
     for (int i = 0; i < 4; i++) {
       delete subRks[i];
     }
-    delete a;
-    delete b;
-    this->a = rk->a;
-    rk->a = NULL;
-    this->b = rk->b;
-    rk->b = NULL;
-    this->k = rk->k;
-    myAssert(*rows == *rk->rows);
-    myAssert(*cols == *rk->cols);
     delete rk;
   } else {
     RkMatrix<T>* rk = NULL;
