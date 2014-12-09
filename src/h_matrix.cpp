@@ -222,7 +222,7 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
       RkMatrix<T>* rk = fromDoubleRk<T>(rkDp);
 
       data.m = NULL;
-      swap(data.rk, rk);
+      data.rk->swap(*rk);
       delete rk;
     } else {
       FullMatrix<T>* mat = fromDoubleFull<T>(f.assemble(rows(), cols()));
