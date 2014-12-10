@@ -153,14 +153,14 @@ int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
 /** Information on the HMatrix */
 typedef struct
 {
-  /*! Number of non-zero elements in the HMatrix */
-  size_t hmat_info_nnz;
+  /*! Number of elements */
+  size_t compressed_size;
 
-  /*! Number of elements in the HMatrix */
-  size_t hmat_info_ntot;
+  /*! Number of elements if HMatrix was not compressed */
+  size_t uncompressed_size;
 
   /*! Number of block cluster tree nodes in the HMatrix */
-  int    hmat_info_nbnodes;
+  int nr_block_clusters;
 } hmat_info_t;
 
 typedef struct hmat_matrix_struct hmat_matrix_t;

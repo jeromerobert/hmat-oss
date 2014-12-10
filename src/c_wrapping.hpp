@@ -214,9 +214,9 @@ static int hmat_get_info(hmat_matrix_t* holder, hmat_info_t* info) {
   DECLARE_CONTEXT;
   HMatInterface<T, E>* hmat = (HMatInterface<T, E>*) holder;
   std::pair<size_t, size_t> p =  hmat->compressionRatio();
-  info->hmat_info_nnz     = p.first;
-  info->hmat_info_ntot    = p.second;
-  info->hmat_info_nbnodes = hmat->nodesCount();
+  info->compressed_size    = p.first;
+  info->uncompressed_size  = p.second;
+  info->nr_block_clusters  = hmat->nodesCount();
   return 0;
 }
 
