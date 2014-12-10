@@ -53,7 +53,7 @@ HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols)
   const HMatSettings& settings = HMatSettings::getInstance();
   SymmetryFlag sym = (settings.useLdlt ? kLowerSymmetric : kNotSymmetric);
   engine.hmat = new HMatrix<T>(rows, cols, sym);
-  std::cout << "HMatrix node count = " << engine.hmat->nodesCount() << std::endl;
+  //std::cout << "HMatrix node count = " << engine.hmat->nodesCount() << std::endl;
 }
 
 template<typename T, template <typename> class E>
