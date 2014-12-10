@@ -152,6 +152,7 @@ void go(std::vector<Point>& points, double k) {
     std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
     TestAssemblyFunction<T> f(points, k);
     HMatInterface<T, E> hmat(ct, ct);
+    std::cout << "HMatrix node count = " << hmat.nodesCount() << std::endl;
     Configuration<T, E>().configure(hmat);
     hmat.assemble(f, kNotSymmetric, false);
     hmat.factorize();

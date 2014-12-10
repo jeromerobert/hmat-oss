@@ -200,6 +200,7 @@ int main(int argc, char **argv) {
   hmat_settings_t settings;
   hmat_interface_t hmat;
   hmat_value_t scalar_type;
+  hmat_info_t mat_info;
   int n;
   char arithmetic;
   void* cluster_tree;
@@ -264,6 +265,8 @@ int main(int argc, char **argv) {
   cluster_tree = create_cluster_tree(points, n);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
+  hmat.hmat_get_info(hmatrix, &mat_info);
+  printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
   rc = hmat.assemble(hmatrix, &problem_data, prepare_hmat, compute_hmat, free_hmat, 0);
   if (rc) {
     fprintf(stderr, "Error in assembly, return code is %d, exiting...\n", rc);

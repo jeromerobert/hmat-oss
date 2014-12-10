@@ -115,6 +115,7 @@ int main(int argc, char **argv) {
   void* hmatrix;
   hmat_interface_t hmat;
   hmat_value_t type;
+  hmat_info_t mat_info;
   int rc;
   problem_data_t problem_data;
   int is_parallel_run = 0;
@@ -173,6 +174,8 @@ int main(int argc, char **argv) {
   cluster_tree = create_cluster_tree(points, n);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
+  hmat.hmat_get_info(hmatrix, &mat_info);
+  printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
   if (type == HMAT_SIMPLE_PRECISION || type == HMAT_DOUBLE_PRECISION)
     rc = hmat.assemble_simple_interaction(hmatrix, &problem_data, interaction_real, 0);
   else

@@ -72,6 +72,7 @@ HMatrix<T>* createHMatrix(AssemblyFunction<T>& f, std::vector<Point>& points) {
   ClusterTree* ct = createClusterTree(points);
   std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
   HMatrix<T>* hmat = new HMatrix<T>(ct, ct, kNotSymmetric);
+  std::cout << "HMatrix node count = " << hmat->nodesCount() << std::endl;
   hmat->assembleSymmetric(f);
   return hmat;
 }
