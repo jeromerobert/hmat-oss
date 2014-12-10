@@ -651,10 +651,8 @@ compressAcaPlus(const AssemblyFunction<T>& f,
   return new RkMatrix<dp_t>(newA, rows, newB, cols, AcaPlus);
 }
 
-// #define DEBUG_COMPRESSION
-#ifdef DEBUG_COMPRESSION
 #include <iostream>
-#endif
+/* Appele par HMatrix<T>::assemble() */
 template<typename T>
 RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
                                           const AssemblyFunction<T>& f,
@@ -662,9 +660,6 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
                                           const ClusterData* cols) {
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
-#ifdef DEBUG_COMPRESSION
-  FullMatrix<dp_t>* full = f.assemble(rows, cols);
-#endif
 
   // Always compress the smallest blocks using an SVD. Small blocks tend to have
   // a bad compression ratio anyways, and the SVD is not very costly in this
@@ -692,29 +687,73 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     }
   }
 
-#ifdef DEBUG_COMPRESSION
-  if (rk->a) rk->a->checkNan();
-  if (rk->b) rk->b->checkNan();
-  FullMatrix<dp_t>* rkFull = rk->eval();
-  double approxNorm = rkFull->norm();
-  double fullNorm = full->norm();
+  if (HMatrix<T>::validateCompression) {
+    FullMatrix<dp_t>* full = f.assemble(rows, cols);
+    if (rk->a) rk->a->checkNan();
+    if (rk->b) rk->b->checkNan();
+    FullMatrix<dp_t>* rkFull = rk->eval();
+    double approxNorm = rkFull->norm();
+    double fullNorm = full->norm();
 
-  if (std::isnan(approxNorm)) {
-    rkFull->toFile("approx");
-    full->toFile("full");
-    strongAssert(false);
+    // If I meet a NaN, I save & leave
+    // TODO : improve this behaviour
+    if (std::isnan(approxNorm)) {
+      rkFull->toFile("Rk");
+      full->toFile("Full");
+      strongAssert(false);
+    }
+
+    rkFull->axpy(Constants<T>::mone, full);
+    double diffNorm = rkFull->norm();
+    if (diffNorm > HMatrix<T>::validationErrorThreshold * fullNorm ) {
+      cout << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]"<<endl
+           << scientific
+           << "|M|  = " << fullNorm << endl
+           << "|Rk| = " << approxNorm << endl
+           << "|M - Rk| / |Rk| = " << diffNorm / fullNorm << endl
+           << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << endl << endl;
+
+      if (HMatrix<T>::validationReRun) {
+        // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
+        RkMatrix<dp_t>* rk_bis = NULL;
+
+        if (max(rows->n, cols->n) < 100) {
+          rk_bis = compressSvd(f, rows, cols);
+        } else {
+          switch (method) {
+            case Svd:
+              rk_bis = compressSvd(f, rows, cols);
+              break;
+            case AcaFull:
+              rk_bis = compressAcaFull(f, rows, cols);
+              break;
+            case AcaPartial:
+              rk_bis = compressAcaPartial(f, rows, cols);
+              break;
+            case AcaPlus:
+              rk_bis = compressAcaPlus(f, rows, cols);
+              break;
+          }
+        }
+        delete rk_bis ;
+      }
+
+      if (HMatrix<T>::validationDump) {
+        std::string filename;
+        ostringstream convert;   // stream used for the conversion
+        convert << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]" ;
+
+        filename = "Rk_";
+        filename += convert.str(); // set 'Result' to the contents of the stream
+        rkFull->toFile(filename.c_str());
+        filename = "Full_"+convert.str(); // set 'Result' to the contents of the stream
+        full->toFile(filename.c_str());
+      }
+    }
+
+    delete rkFull;
+    delete full;
   }
-
-  rkFull->axpy(Constants<T>::mone, full);
-  double diffNorm = rkFull->norm();
-  cout << scientific
-       << "|M|  = " << fullNorm << endl
-       << "|Rk| = " << approxNorm << endl
-       << "|M - Rk| / |Rk| = " << diffNorm / fullNorm << endl
-       << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << endl;
-  delete rkFull;
-  delete full;
-#endif
   return rk;
 }
 

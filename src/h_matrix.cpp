@@ -43,8 +43,13 @@
 
 using namespace std;
 
+// The default values below will be overwritten in default_engine.cpp by HMatSettings values
 template<typename T> bool HMatrix<T>::coarsening = false;
 template<typename T> bool HMatrix<T>::recompress = false;
+template<typename T> bool HMatrix<T>::validateCompression = false;
+template<typename T> bool HMatrix<T>::validationReRun = false;
+template<typename T> bool HMatrix<T>::validationDump = false;
+template<typename T> double HMatrix<T>::validationErrorThreshold = 0;
 
 template<typename T> HMatrixData<T>::~HMatrixData() {
   if (rk) {

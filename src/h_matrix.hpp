@@ -439,6 +439,14 @@ public:
   static bool coarsening;
   /// Should recompress the matrix after assembly
   static bool recompress;
+  /// Validate the rk-matrices after compression
+  static bool validateCompression;
+  /// For blocks above error threshold, re-run the compression algorithm
+  static bool validationReRun;
+  /// For blocks above error threshold, dump the faulty block to disk
+  static bool validationDump;
+  /// Error threshold for the compression validation
+  static double validationErrorThreshold;
   HMatrixData<T> data;
   bool isUpper, isLower;       /// symmetric, upper or lower stored
   bool isTriUpper, isTriLower; /// upper/lower triangular
