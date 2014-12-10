@@ -27,7 +27,7 @@
 #  HMAT_DEFINITIONS  - List of compilation flags -DTOTO to export
 
 # defined since 2.8.3
-if (NOT DEFINED CMAKE_CURRENT_LIST_DIR)
+if (NOT CMAKE_CURRENT_LIST_DIR)
   get_filename_component(CMAKE_CURRENT_LIST_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
 endif ()
 
