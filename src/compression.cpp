@@ -332,19 +332,21 @@ compressAcaFull(const AssemblyFunction<T>& f,
 
     // Update the estimate norm
     // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
-    //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <u_l, u_k> <b_l, b_k>))
+    //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <a_l, a_k> <b_l, b_k>))
     //              + ||a_k||^2 ||b_k||^2
     {
       Vector<dp_t> va_nu(tmpA.m + nu * tmpA.rows, tmpA.rows);
       Vector<dp_t> vb_nu(tmpB.m + nu * tmpB.rows, tmpB.rows);
+      Vector<dp_t> a_l(tmpA.m, tmpA.rows);
+      Vector<dp_t> b_l(tmpB.m, tmpB.rows);
       // The sum
+      double newEstimate = 0.0;
       for (int l = 0; l < nu - 1; l++) {
-        Vector<dp_t> a_l(tmpA.m + l * tmpA.rows, tmpA.rows);
-        Vector<dp_t> b_l(tmpB.m + l * tmpB.rows, tmpB.rows);
-        dp_t tmp = (Vector<dp_t>::dot(&va_nu, &a_l) * Vector<dp_t>::dot(&vb_nu, &b_l))
-          + (Vector<dp_t>::dot(&a_l, &va_nu) * Vector<dp_t>::dot(&b_l, &vb_nu));
-        estimateSquaredNorm += hmat::real(complex<double>(tmp));
+        a_l.v = tmpA.m + l * tmpA.rows;
+        b_l.v = tmpB.m + l * tmpB.rows;
+        newEstimate += hmat::real(Vector<dp_t>::dot(&va_nu, &a_l) * Vector<dp_t>::dot(&vb_nu, &b_l));
       }
+      estimateSquaredNorm += 2.0 * newEstimate;
       double a_nu_norm = va_nu.norm();
       double b_nu_norm = vb_nu.norm();
       double ab_norm_2 = (a_nu_norm * a_nu_norm) * (b_nu_norm * b_nu_norm);
@@ -449,15 +451,13 @@ compressAcaPartial(const AssemblyFunction<T>& f,
 
       // Update the estimated norm
       // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
-      //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <u_l, u_k> <b_l, b_k>))
+      //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <a_l, a_k> <b_l, b_k>))
       //              + ||a_k||^2 ||b_k||^2
+      double newEstimate = 0.0;
       for (int l = 0; l < k; l++) {
-        Vector<dp_t>* a_l = aCols[l];
-        Vector<dp_t>* b_l = bCols[l];
-        dp_t tmp = (Vector<dp_t>::dot(aCol, a_l) * Vector<dp_t>::dot(bCol, b_l))
-          + (Vector<dp_t>::dot(a_l, aCol) * Vector<dp_t>::dot(b_l, bCol));
-        estimateSquaredNorm += hmat::real((Z_t) tmp);
+        newEstimate += hmat::real(Vector<dp_t>::dot(aCol, aCols[l]) * Vector<dp_t>::dot(bCol, bCols[l]));
       }
+      estimateSquaredNorm += 2.0 * newEstimate;
       double aColNorm = aCol->norm();
       double bColNorm = bCol->norm();
       double ab_norm_2 = (aColNorm * aColNorm) * (bColNorm * bColNorm);
@@ -568,13 +568,11 @@ compressAcaPlus(const AssemblyFunction<T>& f,
     // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
     //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <u_l, u_k> <b_l, b_k>))
     //              + ||a_k||^2 ||b_k||^2
+    double newEstimate = 0.0;
     for (int l = 0; l < k; l++) {
-      Vector<dp_t>* a_l = aCols[l];
-      Vector<dp_t>* b_l = bCols[l];
-      dp_t tmp = (Vector<dp_t>::dot(aVec, a_l) * Vector<dp_t>::dot(bVec, b_l))
-        + (Vector<dp_t>::dot(a_l, aVec) * Vector<dp_t>::dot(b_l, bVec));
-      estimateSquaredNorm += hmat::real(complex<double>(tmp));
+      newEstimate += hmat::real(Vector<dp_t>::dot(aVec, aCols[l]) * Vector<dp_t>::dot(bVec, bCols[l]));
     }
+    estimateSquaredNorm += 2.0 * newEstimate;
     double aVecNorm = aVec->norm();
     double bVecNorm = bVec->norm();
     double ab_norm_2 = (aVecNorm * aVecNorm) * (bVecNorm * bVecNorm);
