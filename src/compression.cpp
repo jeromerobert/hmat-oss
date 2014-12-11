@@ -22,6 +22,12 @@
 
 #include "compression.hpp"
 
+#ifdef __INTEL_COMPILER
+#include <mathimf.h>
+#else
+#include <cmath>
+#endif
+
 #include <vector>
 #include <cfloat>
 #include <cstring>
