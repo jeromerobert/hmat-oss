@@ -46,6 +46,7 @@ public:
   void transpose() {}
   void createPostcriptFile(const char* filename) const;
   void dumpTreeToFile(const char* filename) const;
+  double norm() const;
 };
 
 #endif

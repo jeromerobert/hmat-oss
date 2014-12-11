@@ -166,7 +166,7 @@ void HMatInterface<T, E>::transpose() {
 template<typename T, template <typename> class E>
 double HMatInterface<T, E>::norm() const {
   DISABLE_THREADING_IN_BLOCK;
-  return engine.hmat->norm();
+  return engine.norm();
 }
 
 template<typename T, template <typename> class E>

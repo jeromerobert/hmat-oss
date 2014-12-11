@@ -191,6 +191,10 @@ void DefaultEngine<T>::dumpTreeToFile(const char* filename) const {
     hmat->dumpTreeToFile(filename);
 }
 
+template<typename T> double DefaultEngine<T>::norm() const {
+    return hmat->norm();
+}
+
 #include "hmat_cpp_interface.cpp"
 
 // Explicit template instantiation
