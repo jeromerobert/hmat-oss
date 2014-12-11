@@ -36,6 +36,12 @@
 #include "common/my_assert.h"
 
 using namespace std;
+#ifdef _MSC_VER
+#define MY_ISNAN isnan
+#else
+#define MY_ISNAN std::isnan
+#endif
+
 
 /** Convenience class to lighten the getRow() / getCol() calls.
 */
@@ -695,7 +701,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 
     // If I meet a NaN, I save & leave
     // TODO : improve this behaviour
-    if (std::isnan(approxNorm)) {
+    if (MY_ISNAN(approxNorm)) {
       rkFull->toFile("Rk");
       full->toFile("Full");
       strongAssert(false);
