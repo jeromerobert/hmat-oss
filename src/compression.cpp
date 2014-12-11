@@ -731,6 +731,9 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
             case AcaPlus:
               rk_bis = compressAcaPlus(f, rows, cols);
               break;
+            case NoCompression:
+              // Should not happen
+              break;
           }
         }
         delete rk_bis ;
