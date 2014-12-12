@@ -22,7 +22,7 @@
 
 /*! \file
   \ingroup HMatrix
-  \brief Interface between the HMatrix library and MPF.
+  \brief C interface to the HMatrix library.
 */
 #ifndef _HMAT_H
 #define _HMAT_H

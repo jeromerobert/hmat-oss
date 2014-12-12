@@ -33,13 +33,13 @@ typedef std::complex<float> C_t;
 typedef std::complex<double> Z_t;
 
 typedef enum {
-  /*! \brief Simple real type (float in C, REAL in fortran, S_type in MPF) */
+  /*! \brief Simple real type (float in C, REAL in fortran) */
   S_TYPE = 0,
-  /*! \brief Double real type (double in C, REAL*8 in fortran, D_type in MPF) */
+  /*! \brief Double real type (double in C, REAL*8 in fortran) */
   D_TYPE = 1,
-  /*! \brief Simple complex type (doesn't exist in C, COMPLEX in fortran, C_type in MPF) */
+  /*! \brief Simple complex type (doesn't exist in C, COMPLEX in fortran) */
   C_TYPE = 2,
-  /*! \brief Double complex type (doesn't exist in C, DOUBLE COMPLEX in fortran, Z_type in MPF) */
+  /*! \brief Double complex type (doesn't exist in C, DOUBLE COMPLEX in fortran) */
   Z_TYPE = 3,
   // /*! \brief Number of scalar types available. */
   // nbScalarType = 4

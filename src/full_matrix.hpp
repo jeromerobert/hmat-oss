@@ -201,9 +201,7 @@ public:
     \return the matrix norm.
    */
   double norm() const;
-  /*! \brief Write the matrix to a .res file.
-
-    The file format is the one used by MPF.
+  /*! \brief Write the matrix to a binary file.
 
     \param filename output filename
    */
