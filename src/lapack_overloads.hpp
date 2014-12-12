@@ -258,7 +258,8 @@ template<>
 inline int
 gesvd<C_t, S_t>(char jobu, char jobvt, int m, int n, C_t* a, int lda,  S_t* s, C_t* u, int ldu, C_t* vt, int ldvt, C_t* work, int lwork) {
   int info = 0;
-  S_t* rwork = (lwork == -1 ? NULL : new S_t[5 * std::min(m, n)]);
+  const int mn = (m < n ? m : n);
+  S_t* rwork = (lwork == -1 ? NULL : new S_t[5 * mn]);
   _CGESVD_(&jobu, &jobvt, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, &info);
   if (rwork) delete [] rwork;
   return info;
@@ -267,7 +268,8 @@ template<>
 inline int
 gesvd<Z_t, D_t>(char jobu, char jobvt, int m, int n, Z_t* a, int lda,  D_t* s, Z_t* u, int ldu, Z_t* vt, int ldvt, Z_t* work, int lwork) {
   int info = 0;
-  D_t* rwork = (lwork == -1 ? NULL : new D_t[5 * std::min(m, n)]);
+  const int mn = (m < n ? m : n);
+  D_t* rwork = (lwork == -1 ? NULL : new D_t[5 * mn]);
   _ZGESVD_(&jobu, &jobvt, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, &info);
   if (rwork) delete [] rwork;
   return info;
