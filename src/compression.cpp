@@ -20,13 +20,13 @@
   http://github.com/jeromerobert/hmat-oss
 */
 
-#include "compression.hpp"
-
 #ifdef __INTEL_COMPILER
 #include <mathimf.h>
 #else
 #include <cmath>
 #endif
+
+#include "compression.hpp"
 
 #include <vector>
 #include <cfloat>
