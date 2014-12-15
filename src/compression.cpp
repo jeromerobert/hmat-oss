@@ -681,31 +681,23 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
 
-  // Always compress the smallest blocks using an SVD. Small blocks tend to have
-  // a bad compression ratio anyways, and the SVD is not very costly in this
-  // case.
-  // TODO: allow the setting of the size limit ?
-  if (max(rows->n, cols->n) < 100) {
+  switch (method) {
+  case Svd:
     rk = compressSvd(f, rows, cols);
-  } else {
-    switch (method) {
-    case Svd:
-      rk = compressSvd(f, rows, cols);
-      break;
-    case AcaFull:
-      rk = compressAcaFull(f, rows, cols);
-      break;
-    case AcaPartial:
-      rk = compressAcaPartial(f, rows, cols);
-      break;
-    case AcaPlus:
-      rk = compressAcaPlus(f, rows, cols);
-      break;
-    case NoCompression:
-      // Must not happen
-      strongAssert(false);
-      break;
-    }
+    break;
+  case AcaFull:
+    rk = compressAcaFull(f, rows, cols);
+    break;
+  case AcaPartial:
+    rk = compressAcaPartial(f, rows, cols);
+    break;
+  case AcaPlus:
+    rk = compressAcaPlus(f, rows, cols);
+    break;
+  case NoCompression:
+    // Must not happen
+    strongAssert(false);
+    break;
   }
 
   if (HMatrix<T>::validateCompression) {

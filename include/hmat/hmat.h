@@ -372,6 +372,8 @@ typedef struct
   /*! \brief Tolerance for the recompression (using SVD) */
   double recompressionEpsilon;
   int compressionMethod;
+  /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
+   int compressionMinLeafSize;
   /** \f$\eta\f$ in the admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
       \f[
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)

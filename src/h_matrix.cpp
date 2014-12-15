@@ -230,8 +230,14 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
     // If the leaf is admissible, matrix assembly and compression.
     // if not we keep the matrix.
     if (data.isAdmissibleLeaf(localSettings.global)) {
-      RkMatrix<typename Types<T>::dp>* rkDp =
-        compress(RkMatrix<T>::approx.method, f, rows(), cols());
+      // Always compress the smallest blocks using an SVD. Small blocks tend to have
+      // a bad compression ratio anyways, and the SVD is not very costly in this
+      // case.
+      CompressionMethod method = RkMatrix<T>::approx.method;
+      if (max(rows()->n, cols()->n) < RkMatrix<T>::approx.compressionMinLeafSize) {
+        method = Svd;
+      }
+      RkMatrix<typename Types<T>::dp>* rkDp = compress(method, f, rows(), cols());
       if (recompress) {
         rkDp->truncate();
       }

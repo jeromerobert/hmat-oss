@@ -30,6 +30,7 @@ static void setTemplatedParameters(const HMatSettings& s) {
   RkMatrix<T>::approx.assemblyEpsilon = s.assemblyEpsilon;
   RkMatrix<T>::approx.recompressionEpsilon = s.recompressionEpsilon;
   RkMatrix<T>::approx.method = s.compressionMethod;
+  RkMatrix<T>::approx.compressionMinLeafSize = s.compressionMinLeafSize;
   HMatrix<T>::validateCompression = s.validateCompression;
   HMatrix<T>::validationErrorThreshold = s.validationErrorThreshold;
   HMatrix<T>::validationReRun = s.validationReRun;
@@ -57,6 +58,7 @@ void HMatSettings::printSettings(std::ostream& out) const {
   out << "Assembly Epsilon           = " << assemblyEpsilon << std::endl;
   out << "Resolution Epsilon         = " << recompressionEpsilon << std::endl;
   out << "Admissibility factor       = " << admissibilityFactor << std::endl;
+  out << "Compression Min Leaf Size  = " << compressionMinLeafSize << std::endl;
   out << "Max Leaf Size              = " << maxLeafSize << std::endl;
   out << "Validation Error Threshold = " << validationErrorThreshold << std::endl;
   switch (clustering) {

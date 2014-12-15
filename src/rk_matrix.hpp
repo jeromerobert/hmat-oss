@@ -47,11 +47,12 @@ public:
   double assemblyEpsilon; /// Tolerance for the assembly
   double recompressionEpsilon; /// Tolerance for the recompressions
   CompressionMethod method;
+  int compressionMinLeafSize;
 
   /** Initialization with impossible values by default
    */
   RkApproximationControl() : k(0), assemblyEpsilon(-1.),
-                             recompressionEpsilon(-1.), method(Svd) {}
+                             recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
   /** Returns the number of singular values to keep.
 
        The stop criterion is (assuming that the singular value

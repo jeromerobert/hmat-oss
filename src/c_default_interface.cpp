@@ -94,6 +94,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
       settings->clustering = hmat_cluster_median;
       break;
     }
+    settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
     settings->elementsPerBlock = settingsCxx.elementsPerBlock;
@@ -132,6 +133,7 @@ int hmat_set_parameters(hmat_settings_t* settings)
       rc = 1;
       break;
     }
+    settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
     settingsCxx.admissibilityFactor = settings->admissibilityFactor;
     switch (settings->clustering) {
     case hmat_cluster_geometric:

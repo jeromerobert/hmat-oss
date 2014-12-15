@@ -50,6 +50,7 @@ public:
   double assemblyEpsilon; ///< Tolerance for the assembly.
   double recompressionEpsilon; ///< Tolerance for the recompression (using SVD)
   CompressionMethod compressionMethod; ///< Compression method
+  int compressionMinLeafSize; ///< Force SVD compression if max(rows->n, cols->n) < compressionMinLeafSize
   /** \f$\eta\f$ in the admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
       \f[
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
@@ -74,7 +75,8 @@ private:
   /** This constructor sets the default values.
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
-                   compressionMethod(Svd), admissibilityFactor(2.),
+                   compressionMethod(Svd),  compressionMinLeafSize(100),
+                   admissibilityFactor(2.),
                    clustering(kMedian),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
