@@ -26,6 +26,11 @@
 #  HMAT_EXECUTABLE   - the bar executable
 #  HMAT_DEFINITIONS  - List of compilation flags -DTOTO to export
 
+# defined since 2.8.3
+if (NOT CMAKE_CURRENT_LIST_DIR)
+  get_filename_component (CMAKE_CURRENT_LIST_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
+endif ()
+
 # Tell the user project where to find our headers and libraries
 
 set(HMAT_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/@RELATIVE_HMAT_INCLUDE_DIRS@;@MPI_INCLUDE_PATH@")
