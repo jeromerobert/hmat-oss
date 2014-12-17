@@ -28,15 +28,19 @@
 #define _CONTEXT_HPP
 
 #include "hmat/config.h"
-
-#if (__cplusplus > 199711L) || defined(HAVE_CPP11)
-#include <chrono>
+#include "common/chrono.h"
 #include <vector>
 #include <fstream>
-#include <unordered_map>
+
+#if (__cplusplus > 199711L) || defined(HAVE_CPP11) || defined(_MSC_VER)
+  #include <unordered_map>
+  #define UM_NS std
+#else
+  #include <tr1/unordered_map>
+  #define UM_NS std::tr1
+#endif
 
 namespace trace {
-  typedef std::chrono::time_point<std::chrono::high_resolution_clock> Time;
 
   class NodeData {
   public:
@@ -80,7 +84,7 @@ namespace trace {
     /// Ordered list of children nodes.
     std::vector<Node*> children;
     /// List of trace trees.
-    static std::unordered_map<void*, Node*> currentNodes[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
+    static UM_NS::unordered_map<void*, Node*> currentNodes[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
     static void* enclosingContext[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
 
   public:
@@ -137,15 +141,6 @@ public:
 #define leave_context() trace::Node::leaveContext()
 #define increment_flops(x) trace::Node::incrementFlops(x)
 #define tracing_dump(x) trace::Node::jsonDump(x)
-
-#else // C++11
-#define tracing_set_worker_index_func(f) do {} while (0)
-#define enter_context(x) do {} while(0)
-#define leave_context()  do {} while(0)
-#define increment_flops(x) do { (void)(x); } while(0)
-#define tracing_dump(x) do {} while(0)
-#define DISABLE_CONTEXT_IN_BLOCK do {} while (0)
-#endif
 
 /*! \brief Simple wrapper around enter/leave_context() to avoid
 having to put leave_context() before each return statement. */

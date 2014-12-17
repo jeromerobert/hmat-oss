@@ -20,7 +20,6 @@
   http://github.com/jeromerobert/hmat-oss
 */
 
-#if (__cplusplus > 199711L) || defined(HAVE_CPP11)
 #include "hmat/config.h"
 
 #include "context.hpp"
@@ -29,13 +28,11 @@
 #include <cstring>
 #include <cstdio>
 #include <vector>
-#include <chrono>
 #include <iostream>
 #include <fstream>
 #include <string>
 
 namespace trace {
-  typedef std::chrono::nanoseconds ns;
 
   int (*nodeIndexFunction)() = NULL;
 
@@ -53,14 +50,14 @@ namespace trace {
   }
 
   bool Node::enabled = true;
-  std::unordered_map<void*, Node*> Node::currentNodes[MAX_ROOTS];
+  UM_NS::unordered_map<void*, Node*> Node::currentNodes[MAX_ROOTS];
   void* Node::enclosingContext[MAX_ROOTS] = {};
 
   Node::Node(const char* _name, Node* _parent)
     : name(_name), data(), parent(_parent), children() {}
 
   Node::~Node() {
-    for (auto it = children.begin(); it != children.end(); ++it) {
+    for (std::vector<Node*>::iterator it = children.begin(); it != children.end(); ++it) {
       delete *it;
     }
   }
@@ -79,7 +76,7 @@ namespace trace {
     myAssert(child);
     currentNodes[index][enclosing] = child;
     current = child;
-    current->data.lastEnterTime = std::chrono::high_resolution_clock::now();
+    current->data.lastEnterTime = now();
     current->data.n += 1;
   }
 
@@ -89,9 +86,7 @@ namespace trace {
     Node* current = currentNodes[index][enclosing];
     myAssert(current);
 
-    Time now = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<ns>(now - current->data.lastEnterTime);
-    current->data.totalTime += duration.count();
+    current->data.totalTime += time_diff_in_nanos(current->data.lastEnterTime, now());
 
     if (!(current->parent)) {
       std::cout << "Warning! Closing root node." << std::endl;
@@ -114,19 +109,16 @@ namespace trace {
   }
 
   void Node::startComm() {
-    currentNode()->data.lastCommInitiationTime =
-      std::chrono::high_resolution_clock::now();
+    currentNode()->data.lastCommInitiationTime = now();
   }
 
   void Node::endComm() {
     Node* current = currentNode();
-    Time now = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<ns>(now - current->data.lastEnterTime);
-    current->data.totalCommTime += duration.count();
+    current->data.totalCommTime += time_diff_in_nanos(current->data.lastEnterTime, now());
   }
 
   Node* Node::findChild(const char* name) const {
-    for (auto it = children.begin(); it != children.end(); ++it) {
+    for (std::vector<Node*>::const_iterator it = children.begin(); it != children.end(); ++it) {
       // On cherche la correspondance avec le pointeur. Puisqu'on demande que
       // tous les noms soient des pointeurs qui existent tout le long de
       // l'execution, on peut forcer l'unicite.
@@ -150,7 +142,7 @@ namespace trace {
       << "\"totalCommTime\": " << data.totalCommTime / 1e9 << "," << std::endl;
     f << "\"children\": [";
     std::string delimiter("");
-    for (auto it = children.begin(); it != children.end(); ++it) {
+    for (std::vector<Node*>::const_iterator it = children.begin(); it != children.end(); ++it) {
       f << delimiter;
       (*it)->dump(f);
       delimiter = ", ";
@@ -165,8 +157,9 @@ namespace trace {
     std::string delimiter("");
     for (int i = 0; i < MAX_ROOTS; i++) {
       if (!currentNodes[i].empty()) {
-        for (auto p : currentNodes[i]) {
-          Node* root = p.second;
+        UM_NS::unordered_map<void*, Node*>::iterator p = currentNodes[i].begin();
+        for(; p != currentNodes[i].end(); ++p) {
+          Node* root = p->second;
           f << delimiter << std::endl;
           root->dump(f);
           delimiter = ", ";
@@ -181,7 +174,7 @@ namespace trace {
   Node* Node::currentNode() {
     int id = currentNodeIndex();
     void* enclosing = enclosingContext[id];
-    auto it = currentNodes[id].find(enclosing);
+    UM_NS::unordered_map<void*, Node*>::iterator it = currentNodes[id].find(enclosing);
     Node* current;
     if (it == currentNodes[id].end()) {
       char *name = const_cast<char*>("root");
@@ -198,4 +191,3 @@ namespace trace {
     return current;
   }
 }
-#endif

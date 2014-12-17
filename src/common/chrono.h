@@ -20,30 +20,11 @@
   http://github.com/jeromerobert/hmat-oss
 */
 
-// Wrapper around the usual chrono functions.
-// This is is unfortunately required as the <chrono> header requires C++11 support.)
-#ifndef MY_CHRONO_HPP
-#define MY_CHRONO_HPP
+#ifndef _CHRONO_H
+#define _CHRONO_H
 
 #include "config.h"
 #include <stdint.h>
-
-#if (__cplusplus > 199711L) || defined(HAVE_CPP11)
-#include <chrono>
-
-typedef std::chrono::time_point<std::chrono::high_resolution_clock> Time;
-typedef std::chrono::nanoseconds ns;
-
-static Time now() {
-  return std::chrono::high_resolution_clock::now();
-}
-
-static int64_t time_diff_in_nanos(Time tick, Time tock) {
-  auto duration = std::chrono::duration_cast<ns>(tock - tick);
-  return duration.count();
-}
-
-#else // No C++11 for you, here comes the ugly mess
 
 /* We use the realtime extension of libc */
 #ifdef HAVE_TIME_H
@@ -70,7 +51,7 @@ typedef struct my_timespec Time;
 typedef struct timespec Time;
 #endif // Windows
 
-static Time now() {
+inline static Time now() {
   Time result;
 #ifdef _WIN32
   LARGE_INTEGER frequency;
@@ -98,8 +79,7 @@ static Time now() {
   return result;
 }
 
-static int64_t time_diff_in_nanos(Time tick, Time tock) {
+inline static int64_t time_diff_in_nanos(Time tick, Time tock) {
   return (tock.tv_sec - tick.tv_sec) * 1000000000 + (tock.tv_nsec - tick.tv_nsec);
 }
-#endif // C++11
 #endif
