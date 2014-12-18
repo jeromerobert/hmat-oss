@@ -80,6 +80,19 @@ check_include_file("unistd.h" HAVE_UNISTD_H)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+# Enable gcc vectorization
+function(opt_flag flag)
+  include(CheckCCompilerFlag)
+  string(MAKE_C_IDENTIFIER ${flag} label)
+  check_c_compiler_flag(${flag} ${label})
+  if(${label})
+     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${flag}" PARENT_SCOPE)
+     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${flag}" PARENT_SCOPE)
+  endif()
+endfunction()
+opt_flag("-ffast-math")
+opt_flag("-funsafe-math-optimizations")
+
 # ========================
 # SYSTEM & EXTERNAL LIBS
 # ========================
