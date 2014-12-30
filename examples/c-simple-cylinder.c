@@ -23,7 +23,17 @@
 // Cylinder
 #include <stdio.h>
 #include <math.h>
+#ifdef __cplusplus
+#include <complex>
+typedef std::complex<double> double_complex;
+#define make_complex(realPart, imagPart) \
+    std::complex<double>(realPart, imagPart)
+#else
 #include <complex.h>
+typedef double complex double_complex;
+#define make_complex(realPart, imagPart) \
+    realPart + imagPart * _Complex_I
+#endif
 
 #include "hmat/hmat.h"
 
@@ -102,7 +112,7 @@ void interaction_complex(void* data, int i, int j, void* result)
   double distance = sqrt(dx*dx + dy*dy + dz*dz) + 1e-10;
   double realPart = cos(k * distance) / (4 * M_PI * distance);
   double imagPart = sin(k * distance) / (4 * M_PI * distance);
-  *((double complex*)result) = realPart + imagPart * _Complex_I;
+  *((double_complex*)result) = make_complex(realPart, imagPart);
 }
 
 int main(int argc, char **argv) {
@@ -111,8 +121,8 @@ int main(int argc, char **argv) {
   hmat_settings_t settings;
   int n;
   char arithmetic;
-  void* cluster_tree;
-  void* hmatrix;
+  hmat_cluster_tree_t* cluster_tree;
+  hmat_matrix_t* hmatrix;
   hmat_interface_t hmat;
   hmat_value_t type;
   hmat_info_t mat_info;
@@ -160,7 +170,7 @@ int main(int argc, char **argv) {
   printf("Generating the point cloud...\n");
 
   radius = 1.;
-  step = 1.75 * M_PI * radius / sqrt(n);
+  step = 1.75 * M_PI * radius / sqrt((double)n);
   k = 2 * M_PI / (10. * step); // 10 points / lambda
   points = createCylinder(radius, step, n);
   printf("done.\n");

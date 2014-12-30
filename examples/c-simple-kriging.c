@@ -22,7 +22,13 @@
 
 #include <stdio.h>
 #include <math.h>
+#ifdef __cplusplus
+#include <complex>
+typedef std::complex<double> double_complex;
+#else
 #include <complex.h>
+typedef double complex double_complex;
+#endif
 #include "hmat/hmat.h"
 
 #ifdef _MSC_VER
@@ -56,7 +62,7 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
         return -1;
     }
     if (bufptr == NULL) {
-        bufptr = malloc(128);
+        bufptr = (char*) malloc(128);
         if (bufptr == NULL) {
                 return -1;
         }
@@ -66,7 +72,7 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
     while(c != EOF) {
         if ((p - bufptr) > (size - 1)) {
                 size = size + 128;
-                bufptr = realloc(bufptr, size);
+                bufptr = (char*) realloc(bufptr, size);
                 if (bufptr == NULL) {
                         return -1;
                 }
@@ -116,10 +122,10 @@ void readPointsFromFile(const char* filename, DofCoordinate **points, int *size)
   double x = 0, y = 0, z = 0;
   size_t np = 1000000, rnp = 500000;
   fp = fopen(filename, "r");
-  *points = malloc(np * sizeof(DofCoordinate));
+  *points = (DofCoordinate*) malloc(np * sizeof(DofCoordinate));
   k = 0;
   while ((read = getline(&line, &len, fp)) != -1) {
-      if(k>=np) *points = realloc(*points, (k+rnp) * sizeof(DofCoordinate));
+      if(k>=np) *points = (DofCoordinate*) realloc(*points, (k+rnp) * sizeof(DofCoordinate));
       sscanf(line, "%lf %lf %lf\n", &x, &y, &z);
       (*points)[k].globalIndex = k;
       (*points)[k].x = x;
@@ -127,7 +133,7 @@ void readPointsFromFile(const char* filename, DofCoordinate **points, int *size)
       (*points)[k].z = z;
       k++;
   }
-   *points = realloc(*points, k * sizeof(DofCoordinate));
+   *points = (DofCoordinate*) realloc(*points, k * sizeof(DofCoordinate));
   fclose(fp);
   free(line);
   *size = k;
@@ -143,7 +149,7 @@ double distanceTo(DofCoordinate center, DofCoordinate points){
 }
 
 double* createRhs(DofCoordinate *points, int n, double l) {
-  double* rhs = calloc(n,  sizeof(double));
+  double* rhs = (double*) calloc(n,  sizeof(double));
   int i;
   DofCoordinate center;
   center.x = 0.;
@@ -287,7 +293,7 @@ int main(int argc, char **argv) {
   hmat_info_t mat_info;
   int n;
   char arithmetic;
-  void* cluster_tree;
+  hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t * hmatrix;
   int kLowerSymmetric = 1; /* =0 if not Symmetric */
   int rc;
@@ -348,8 +354,8 @@ int main(int argc, char **argv) {
   if(type == HMAT_SIMPLE_PRECISION){
     drhs = createRhs(points, n, l);
     drhsCopy = createRhs(points, n, l);
-    frhs     =  calloc(n, sizeof(float));
-    frhsCopy =  calloc(n, sizeof(float));
+    frhs     =  (float*) calloc(n, sizeof(float));
+    frhsCopy =  (float*) calloc(n, sizeof(float));
     for(i=0;i<n;i++) {
       frhs[i] = drhs[i];
       frhsCopy[i] = drhsCopy[i];

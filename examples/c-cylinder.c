@@ -23,7 +23,17 @@
 // Cylinder
 #include <stdio.h>
 #include <math.h>
+#ifdef __cplusplus
+#include <complex>
+typedef std::complex<double> double_complex;
+#define make_complex(realPart, imagPart) \
+    std::complex<double>(realPart, imagPart)
+#else
 #include <complex.h>
+typedef double complex double_complex;
+#define make_complex(realPart, imagPart) \
+    realPart + imagPart * _Complex_I
+#endif
 
 #include "hmat/hmat.h"
 
@@ -83,7 +93,8 @@ double interaction_real(DofCoordinate* points, int i, int j)
 /**
   Define interaction between 2 degrees of freedoms  (complex case)
 */
-double complex interaction_complex(DofCoordinate* points, double k, int i, int j)
+double_complex
+interaction_complex(DofCoordinate* points, double k, int i, int j)
 {
   double dx = points[i].x - points[j].x;
   double dy = points[i].y - points[j].y;
@@ -91,7 +102,7 @@ double complex interaction_complex(DofCoordinate* points, double k, int i, int j
   double distance = sqrt(dx*dx + dy*dy + dz*dz) + 1e-10;
   double realPart = cos(k * distance) / (4 * M_PI * distance);
   double imagPart = sin(k * distance) / (4 * M_PI * distance);
-  return realPart + imagPart * _Complex_I;
+  return make_complex(realPart, imagPart);
 }
 
 /**
@@ -162,7 +173,7 @@ compute_hmat(void *data,
 {
   int i, j;
   double *dValues = (double *) values;
-  double complex *zValues = (double complex *) values;
+  double_complex *zValues = (double_complex *) values;
   block_data_t* bdata = (block_data_t*) data;
 
   int type = bdata->user_context->type;
@@ -203,7 +214,7 @@ int main(int argc, char **argv) {
   hmat_info_t mat_info;
   int n;
   char arithmetic;
-  void* cluster_tree;
+  hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t* hmatrix;
   int rc;
   problem_data_t problem_data;
@@ -250,7 +261,7 @@ int main(int argc, char **argv) {
   printf("Generating the point cloud...\n");
 
   radius = 1.;
-  step = 1.75 * M_PI * radius / sqrt(n);
+  step = 1.75 * M_PI * radius / sqrt((double)n);
   k = 2 * M_PI / (10. * step); // 10 points / lambda
   points = createCylinder(radius, step, n);
   printf("done.\n");
