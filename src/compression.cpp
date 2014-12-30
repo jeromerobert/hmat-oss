@@ -41,12 +41,19 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 
-using namespace std;
 #ifdef _MSC_VER
-#define MY_ISNAN isnan
+// Intel compiler defines isnan in global namespace
+// MSVC defines _isnan
+# ifndef __INTEL_COMPILER
+#  define isnan _isnan
+# endif
 #else
-#define MY_ISNAN std::isnan
+using std::isnan;
 #endif
+
+using std::vector;
+using std::min;
+using std::max;
 
 
 /** Convenience class to lighten the getRow() / getCol() calls.
@@ -707,7 +714,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 
     // If I meet a NaN, I save & leave
     // TODO : improve this behaviour
-    if (MY_ISNAN(approxNorm)) {
+    if (isnan(approxNorm)) {
       rkFull->toFile("Rk");
       full->toFile("Full");
       strongAssert(false);
@@ -716,12 +723,12 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     rkFull->axpy(Constants<T>::mone, full);
     double diffNorm = rkFull->norm();
     if (diffNorm > HMatrix<T>::validationErrorThreshold * fullNorm ) {
-      cout << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]"<<endl
-           << scientific
-           << "|M|  = " << fullNorm << endl
-           << "|Rk| = " << approxNorm << endl
-           << "|M - Rk| / |Rk| = " << diffNorm / fullNorm << endl
-           << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << endl << endl;
+      std::cout << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]"<< std::endl
+           << std::scientific
+           << "|M|  = " << fullNorm << std::endl
+           << "|Rk| = " << approxNorm << std::endl
+           << "|M - Rk| / |Rk| = " << diffNorm / fullNorm << std::endl
+           << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << std::endl << std::endl;
 
       if (HMatrix<T>::validationReRun) {
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
@@ -753,7 +760,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 
       if (HMatrix<T>::validationDump) {
         std::string filename;
-        ostringstream convert;   // stream used for the conversion
+        std::ostringstream convert;   // stream used for the conversion
         convert << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]" ;
 
         filename = "Rk_";

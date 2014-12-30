@@ -62,11 +62,14 @@
 
 #include <stdlib.h>
 
-using namespace std;
 #ifdef _MSC_VER
-#define MY_ISNAN isnan
+// Intel compiler defines isnan in global namespace
+// MSVC defines _isnan
+# ifndef __INTEL_COMPILER
+#  define isnan _isnan
+# endif
 #else
-#define MY_ISNAN std::isnan
+using std::isnan;
 #endif
 
 /** FullMatrix */
@@ -202,7 +205,7 @@ template<typename T> void FullMatrix<T>::transpose() {
   } else {
     FullMatrix<T> tmp(rows, cols);
     tmp.copyMatrixAtOffset(this, 0, 0);
-    swap(rows, cols);
+    std::swap(rows, cols);
     lda = rows;
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < cols; j++) {
@@ -627,7 +630,7 @@ template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
 template<typename T> void checkNanReal(const FullMatrix<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
-      strongAssert(!MY_ISNAN(m->get(row, col)));
+      strongAssert(!isnan(m->get(row, col)));
     }
   }
 }
@@ -635,8 +638,8 @@ template<typename T> void checkNanReal(const FullMatrix<T>* m) {
 template<typename T> void checkNanComplex(const FullMatrix<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
-      strongAssert(!MY_ISNAN(m->get(row, col).real()));
-      strongAssert(!MY_ISNAN(m->get(row, col).imag()));
+      strongAssert(!isnan(m->get(row, col).real()));
+      strongAssert(!isnan(m->get(row, col).imag()));
     }
   }
 }
