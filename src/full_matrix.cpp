@@ -615,7 +615,11 @@ template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
   close(fd);
   munmap(mmapedFile, size);
 #else
+#ifdef __GNUC__
 #warning MMAP: TO BE REMOVED OR FIXED
+#else
+#pragma message("Warning: MMAP: TO BE REMOVED OR FIXED")
+#endif
 #endif
 
 }
