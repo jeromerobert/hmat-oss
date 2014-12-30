@@ -42,7 +42,7 @@
 
 #if defined(_WIN32) && \
     !(defined (__MINGW64__) || defined(__MINGW32__))
-typedef struct my_timespec {
+struct my_timespec {
 	int64_t tv_sec;
 	int64_t tv_nsec;
 };
