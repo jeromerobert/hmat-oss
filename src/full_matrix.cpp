@@ -188,7 +188,7 @@ template<typename T> void FullMatrix<T>::transpose() {
   myAssert(m);
 #ifdef HAVE_MKL_IMATCOPY
   proxy_mkl::imatcopy((size_t) rows, (size_t) cols, m);
-  swap(rows, cols);
+  std::swap(rows, cols);
   lda = rows;
 #else
   if (rows == cols) {
