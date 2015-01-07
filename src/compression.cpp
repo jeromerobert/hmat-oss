@@ -66,18 +66,21 @@ class ClusterAssemblyFunction {
   const ClusterData* cols;
 
 public:
+  hmat_block_info_t info;
   ClusterAssemblyFunction(const AssemblyFunction<T>& _f,
                         const ClusterData* _rows, const ClusterData* _cols)
     : f(_f), handle(NULL), rows(_rows), cols(_cols) {
-    f.prepareBlock(rows, cols, &handle);
+    f.prepareBlock(rows, cols, &handle, &info);
   }
   ~ClusterAssemblyFunction() {
     f.releaseBlock(handle);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
+    //TODO use block_info to optimize
     f.getRow(rows, cols, index, handle, &result);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
+    //TODO use block_info to optimize
     f.getCol(rows, cols, index, handle, &result);
   }
 private:

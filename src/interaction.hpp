@@ -54,7 +54,7 @@ public:
     \param handle The handle that is storing the associated data.
   */
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            void** handle) const {}
+                            void** handle, hmat_block_info_t * block_info) const {}
   /*! \brief Release a block prepared with \a AssemblyFunction::releaseBlock().
 
     \param handle the handle passed to \a AssemblyFunction::releaseBlock().
@@ -169,7 +169,7 @@ public:
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols) const;
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            void** handle) const;
+                            void** handle, hmat_block_info_t * block_info) const;
   virtual void releaseBlock(void* handle) const;
   virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
                                                 const ClusterData* cols,

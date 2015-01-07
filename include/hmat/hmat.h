@@ -68,6 +68,17 @@ typedef struct {
   double z;
 } DofCoordinate;
 
+typedef enum {
+    hmat_block_full,
+    hmat_block_null,
+    hmat_block_sparse
+} hmat_block_t;
+
+typedef struct {
+    hmat_block_t block_type;
+    void (*get_sparse_columns) (char * columns);
+} hmat_block_info_t;
+
 /*! \brief Prepare block assembly.
 
  \param row_start starting row
@@ -91,7 +102,8 @@ typedef void (*prepare_func)(int row_start,
     int *col_hmat2client,
     int *col_client2hmat,
     void *context,
-    void **data);
+    void **data,
+    hmat_block_info_t * block_info);
 
 /*! \brief Compute a sub-block.
 
