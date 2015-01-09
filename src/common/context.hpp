@@ -134,6 +134,7 @@ public:
   }
 };
 
+#ifdef HAVE_CONTEXT
 #define DISABLE_CONTEXT_IN_BLOCK DisableContextInBlock dummyDisableContextInBlock
 
 #define tracing_set_worker_index_func(f) trace::setNodeIndexFunction(f)
@@ -141,6 +142,16 @@ public:
 #define leave_context() trace::Node::leaveContext()
 #define increment_flops(x) trace::Node::incrementFlops(x)
 #define tracing_dump(x) trace::Node::jsonDump(x)
+
+#else
+#define tracing_set_worker_index_func(f) do {} while (0)
+#define enter_context(x) do {} while(0)
+#define leave_context()  do {} while(0)
+#define increment_flops(x) do { (void)(x); } while(0)
+#define tracing_dump(x) do {} while(0)
+#define DISABLE_CONTEXT_IN_BLOCK do {} while (0)
+#endif
+
 
 /*! \brief Simple wrapper around enter/leave_context() to avoid
 having to put leave_context() before each return statement. */
