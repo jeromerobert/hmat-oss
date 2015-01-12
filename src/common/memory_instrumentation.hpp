@@ -27,7 +27,7 @@
 #ifndef _MEMORY_INSTRUMENTATION_H
 #define _MEMORY_INSTRUMENTATION_H
 // We use things from C++11, so test for the standard level.
-#if (__cplusplus > 199711L) || defined(HAVE_CPP11)
+#if ((__cplusplus > 199711L) || defined(HAVE_CPP11)) && HAVE_MEM_INSTR
 #include <cstdint>
 #include <string>
 
