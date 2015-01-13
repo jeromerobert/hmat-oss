@@ -76,7 +76,7 @@ typedef enum {
 
 typedef struct {
     hmat_block_t block_type;
-    void (*get_sparse_columns) (char * columns);
+    char *rowMask, *colMask ; // 1 for null rows/cols, 0 otherwise (default=0)
 } hmat_block_info_t;
 
 /*! \brief Prepare block assembly.

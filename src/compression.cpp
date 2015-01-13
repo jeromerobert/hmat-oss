@@ -73,7 +73,7 @@ public:
     f.prepareBlock(rows, cols, &handle, &info);
   }
   ~ClusterAssemblyFunction() {
-    f.releaseBlock(handle);
+    f.releaseBlock(handle, &info);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
     //TODO use block_info to optimize

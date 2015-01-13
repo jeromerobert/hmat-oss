@@ -128,12 +128,13 @@ BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
     FullMatrix<typename Types<T>::dp>::Zero(rows->n, cols->n);
 
   void* data;
-  hmat_block_info_t local_block_info;
-  prepare(rows->offset, rows->n, cols->offset, cols->n, rowMapping, rowReverseMapping,
-          colMapping, colReverseMapping, user_context, &data, &local_block_info);
-  //TODO optimize using local_block_info
-  compute(data, 0, rows->n, 0, cols->n, (void*) result->m);
-  free_data(data);
+  hmat_block_info_t local_block_info ;
+  prepareBlock(rows, cols, &data, &local_block_info);
+
+  if (local_block_info.block_type != hmat_block_null)
+    compute(data, 0, rows->n, 0, cols->n, (void*) result->m);
+
+  releaseBlock(data, &local_block_info);
 
   return result;
 }
@@ -142,12 +143,16 @@ template<typename T>
 void BlockAssemblyFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
     void** handle, hmat_block_info_t * block_info) const {
   block_info->block_type = hmat_block_full;
+  block_info->rowMask = (char*)calloc(rows->n, sizeof(char)) ;
+  block_info->colMask = (char*)calloc(cols->n, sizeof(char)) ;
   prepare(rows->offset, rows->n, cols->offset, cols->n, rowMapping, rowReverseMapping,
           colMapping, colReverseMapping, user_context, handle, block_info);
 }
 
 template<typename T>
-void BlockAssemblyFunction<T>::releaseBlock(void* handle) const {
+void BlockAssemblyFunction<T>::releaseBlock(void* handle, hmat_block_info_t * block_info) const {
+  if (block_info->colMask) free(block_info->colMask) ;
+  if (block_info->rowMask) free(block_info->rowMask) ;
   free_data(handle);
 }
 

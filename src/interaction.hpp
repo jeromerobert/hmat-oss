@@ -59,7 +59,7 @@ public:
 
     \param handle the handle passed to \a AssemblyFunction::releaseBlock().
   */
-  virtual void releaseBlock(void* handle) const {}
+  virtual void releaseBlock(void* handle, hmat_block_info_t *) const {}
   /*! \brief Return a row of a matrix block.
 
     This functions returns a \a Vector representing the row of index
@@ -170,7 +170,7 @@ public:
                                               const ClusterData* cols) const;
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
                             void** handle, hmat_block_info_t * block_info) const;
-  virtual void releaseBlock(void* handle) const;
+  virtual void releaseBlock(void* handle, hmat_block_info_t * block_info) const;
   virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
                                                 const ClusterData* cols,
                                                 int rowIndex, void* handle=NULL) const;
