@@ -440,6 +440,12 @@ int hmat_set_parameters(hmat_settings_t*);
  */
 const char * hmat_get_version();
 
+/*!
+ * \brief hmat_get_build_date
+ * \return The build date of this library
+ */
+const char * hmat_get_build_date();
+
 #ifdef __cplusplus
 }
 #endif
