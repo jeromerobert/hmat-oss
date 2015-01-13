@@ -675,9 +675,9 @@ compressAcaPlus(const AssemblyFunction<T>& f,
 }
 
 #include <iostream>
-/* Appele par HMatrix<T>::assemble() */
+
 template<typename T>
-RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
+RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod method,
                                           const AssemblyFunction<T>& f,
                                           const ClusterData* rows,
                                           const ClusterData* cols) {
@@ -702,6 +702,21 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     strongAssert(false);
     break;
   }
+
+  return rk;
+}
+
+
+/* Appele par HMatrix<T>::assemble() */
+template<typename T>
+RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
+                                          const AssemblyFunction<T>& f,
+                                          const ClusterData* rows,
+                                          const ClusterData* cols) {
+  typedef typename Types<T>::dp dp_t;
+  RkMatrix<dp_t>* rk = NULL;
+
+  rk = compressWithoutValidation(method, f, rows, cols);
 
   if (HMatrix<T>::validateCompression) {
     FullMatrix<dp_t>* full = f.assemble(rows, cols);
@@ -733,27 +748,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
         RkMatrix<dp_t>* rk_bis = NULL;
 
-        if (max(rows->n, cols->n) < 100) {
-          rk_bis = compressSvd(f, rows, cols);
-        } else {
-          switch (method) {
-            case Svd:
-              rk_bis = compressSvd(f, rows, cols);
-              break;
-            case AcaFull:
-              rk_bis = compressAcaFull(f, rows, cols);
-              break;
-            case AcaPartial:
-              rk_bis = compressAcaPartial(f, rows, cols);
-              break;
-            case AcaPlus:
-              rk_bis = compressAcaPlus(f, rows, cols);
-              break;
-            case NoCompression:
-              // Should not happen
-              break;
-          }
-        }
+        rk_bis = compressWithoutValidation(method, f, rows, cols);
         delete rk_bis ;
       }
 
