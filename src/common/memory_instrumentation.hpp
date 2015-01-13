@@ -28,9 +28,8 @@
 #define _MEMORY_INSTRUMENTATION_H
 // We use things from C++11, so test for the standard level.
 #if ((__cplusplus > 199711L) || defined(HAVE_CPP11)) && HAVE_MEM_INSTR
-#include <cstdint>
 #include <string>
-
+#include <stddef.h>
 /*! \brief Memory Tracking.
 
   This system is only suited for the specific purpose of the \a HMatrix code.
@@ -40,7 +39,7 @@ namespace mem_instr {
 
     \param size positive or negative integer, size in bytes.
    */
-  void addAlloc(void* ptr, int64_t size);
+  void addAlloc(void* ptr, ptrdiff_t size);
   /*! \brief Dumps the data to filename.
    */
   void toFile(const std::string& filename);

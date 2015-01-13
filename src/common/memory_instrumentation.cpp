@@ -24,7 +24,7 @@
   \ingroup HMatrix
   \brief Memory Allocation tracking.
 */
-#if (__cplusplus > 199711L) || defined(HAVE_CPP11)
+#if ((__cplusplus > 199711L) || defined(HAVE_CPP11)) && HAVE_MEM_INSTR
 #include "memory_instrumentation.hpp"
 
 #include "data_recorder.hpp"
@@ -33,16 +33,42 @@
 #include <algorithm>
 
 namespace mem_instr {
-  TimedDataRecorder<std::pair<void*, int64_t> > allocs;
+
+  static size_t get_res_mem()
+  {
+      size_t resident = 0;
+#ifdef __linux__
+      FILE * statm_file = fopen("/proc/self/statm", "r");
+      fscanf(statm_file, "%*s %lu", &resident);
+      fclose(statm_file);
+#endif
+      return resident;
+  }
+  struct Event
+  {
+      ptrdiff_t size;
+      size_t rss;
+      Event(ptrdiff_t size) : size(size)
+      {
+          rss = get_res_mem();
+      }
+  };
+
+  std::ostream& operator<< (std::ostream& stream, const Event & event)
+  {
+      return stream << event.size << " " << event.rss;
+  }
+
+  TimedDataRecorder<Event> allocs;
 
   /// True if the memory tracking is enabled.
   static bool enabled = false;
 
-  void addAlloc(void* ptr, int64_t size) {
+  void addAlloc(void* ptr, ptrdiff_t size) {
     if (!enabled) {
       return;
     }
-    allocs.recordSynchronized(std::make_pair(ptr, size));
+    allocs.recordSynchronized(Event(size));
   }
 
   void toFile(const std::string& filename) {
