@@ -68,6 +68,8 @@
 # ifndef __INTEL_COMPILER
 #  define isnan _isnan
 # endif
+#else
+  using std::isnan;
 #endif
 
 /** FullMatrix */
