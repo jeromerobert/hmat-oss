@@ -47,12 +47,13 @@
 # ifndef __INTEL_COMPILER
 #  define isnan _isnan
 # endif
+#else
+  using std::isnan;
 #endif
 
 using std::vector;
 using std::min;
 using std::max;
-
 
 /** Convenience class to lighten the getRow() / getCol() calls.
 */
