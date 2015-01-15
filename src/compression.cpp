@@ -56,7 +56,8 @@ using std::min;
 using std::max;
 
 
-/** Convenience class to lighten the getRow() / getCol() calls.
+/* Convenience class to lighten the getRow() / getCol() / assemble calls
+   and use information from block_info_t to speed up things for sparse and null blocks.
 */
 template<typename T>
 class ClusterAssemblyFunction {
@@ -69,7 +70,7 @@ public:
   hmat_block_info_t info;
   ClusterAssemblyFunction(const AssemblyFunction<T>& _f,
                         const ClusterData* _rows, const ClusterData* _cols)
-    : f(_f), handle(NULL), rows(_rows), cols(_cols) {
+    : f(_f), handle(NULL), rows(_rows), cols(_cols), info({hmat_block_full, NULL, NULL}) {
     f.prepareBlock(rows, cols, &handle, &info);
   }
   ~ClusterAssemblyFunction() {
@@ -82,6 +83,10 @@ public:
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
     //TODO use block_info to optimize
     f.getCol(rows, cols, index, handle, &result);
+  }
+  FullMatrix<typename Types<T>::dp>* assemble() const {
+    if (info.block_type != hmat_block_null)
+      return f.assemble(rows, cols, handle, &info) ;
   }
 private:
   ClusterAssemblyFunction(ClusterAssemblyFunction&o) {}; // No copy
@@ -309,6 +314,7 @@ compressSvd(const AssemblyFunction<T>& f,
             const ClusterData* rows, const ClusterData* cols) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
+  // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = f.assemble(rows, cols);
   RkMatrix<dp_t>* result = compressMatrix(m, rows, cols);
   delete m;
@@ -322,6 +328,7 @@ compressAcaFull(const AssemblyFunction<T>& f,
                 const ClusterData* rows, const ClusterData* cols) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
+  // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = f.assemble(rows, cols);
 
   double estimateSquaredNorm = 0;

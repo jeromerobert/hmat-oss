@@ -30,7 +30,9 @@
 template<typename T>
 FullMatrix<typename Types<T>::dp>*
 SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
-                                    const ClusterData* cols) const {
+                                    const ClusterData* cols,
+                                    void *handle,
+                                    hmat_block_info_t * block_info) const {
   FullMatrix<typename Types<T>::dp>* result =
     new FullMatrix<typename Types<T>::dp>(rows->n, cols->n);
   for (int i = 0; i < rows->n; ++i) {
@@ -122,19 +124,25 @@ typename Types<T>::dp BlockAssemblyFunction<T>::interaction(int i, int j) const 
 template<typename T>
 FullMatrix<typename Types<T>::dp>*
 BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
-                                    const ClusterData* cols) const {
+                                   const ClusterData* cols,
+                                   void *handle,
+                                   hmat_block_info_t * block_info) const {
   DECLARE_CONTEXT;
   FullMatrix<typename Types<T>::dp>* result =
     FullMatrix<typename Types<T>::dp>::Zero(rows->n, cols->n);
 
-  void* data;
   hmat_block_info_t local_block_info ;
-  prepareBlock(rows, cols, &data, &local_block_info);
+
+  if (!block_info)
+    prepareBlock(rows, cols, &handle, &local_block_info);
+  else
+    local_block_info = *block_info ;
 
   if (local_block_info.block_type != hmat_block_null)
-    compute(data, 0, rows->n, 0, cols->n, (void*) result->m);
+    compute(handle, 0, rows->n, 0, cols->n, (void*) result->m);
 
-  releaseBlock(data, &local_block_info);
+  if (!block_info)
+    releaseBlock(handle, &local_block_info);
 
   return result;
 }

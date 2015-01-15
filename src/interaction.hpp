@@ -42,7 +42,9 @@ public:
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
   virtual ~AssemblyFunction() {};
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
-                                                      const ClusterData* cols) const = 0;
+                                                      const ClusterData* cols,
+                                                      void *handle=NULL,
+                                                      hmat_block_info_t * block_info=NULL) const = 0;
   /*! \brief Prepare the Assembly function to optimize getRow() and getCol().
 
     In some cases, it is more efficient to tell the client code that a
@@ -132,7 +134,9 @@ public:
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
   virtual ~SimpleAssemblyFunction() {};
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
-                                                      const ClusterData* cols) const;
+                                                      const ClusterData* cols,
+                                                      void *handle=NULL,
+                                                      hmat_block_info_t * block_info=NULL) const;
   virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
                                                 const ClusterData* cols,
                                                 int rowIndex, void* handle=NULL) const;
@@ -167,7 +171,9 @@ public:
   ~BlockAssemblyFunction();
   typename Types<T>::dp interaction(int i, int j) const;
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
-                                              const ClusterData* cols) const;
+                                              const ClusterData* cols,
+                                              void *handle=NULL,
+                                              hmat_block_info_t * block_info=NULL) const;
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
                             void** handle, hmat_block_info_t * block_info) const;
   virtual void releaseBlock(void* handle, hmat_block_info_t * block_info) const;
