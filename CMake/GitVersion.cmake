@@ -26,7 +26,7 @@ function(git_version label default_version)
         find_package(Git)
         if(GIT_FOUND)
             execute_process(COMMAND "${GIT_EXECUTABLE}"
-                describe --dirty=-dirty --always --tags
+                --git-dir ${CMAKE_CURRENT_SOURCE_DIR}/.git describe --dirty=-dirty --always --tags
                 OUTPUT_VARIABLE _GIT_DESCRIBE ERROR_QUIET)
             if(_GIT_DESCRIBE)
                 string(STRIP ${_GIT_DESCRIBE} ${label}_VERSION)
