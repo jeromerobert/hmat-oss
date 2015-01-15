@@ -47,6 +47,8 @@
 # ifndef __INTEL_COMPILER
 #  define isnan _isnan
 # endif
+#elif defined(__MINGW32__)
+using std::isnan;
 #endif
 
 using std::vector;
