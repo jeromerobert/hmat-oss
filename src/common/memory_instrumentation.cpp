@@ -48,7 +48,8 @@ namespace mem_instr {
   {
       ptrdiff_t size;
       size_t rss;
-      Event(ptrdiff_t size) : size(size)
+      char type;
+      Event(ptrdiff_t size, char type) : size(size), type(type)
       {
           rss = get_res_mem();
       }
@@ -56,7 +57,7 @@ namespace mem_instr {
 
   std::ostream& operator<< (std::ostream& stream, const Event & event)
   {
-      return stream << event.size << " " << event.rss;
+      return stream << event.size << " " << event.rss << " " << (int)event.type;
   }
 
   TimedDataRecorder<Event> allocs;
@@ -64,11 +65,11 @@ namespace mem_instr {
   /// True if the memory tracking is enabled.
   static bool enabled = false;
 
-  void addAlloc(void* ptr, ptrdiff_t size) {
+  void addAlloc(void* ptr, ptrdiff_t size, char type) {
     if (!enabled) {
       return;
     }
-    allocs.recordSynchronized(Event(size));
+    allocs.recordSynchronized(Event(size, type));
   }
 
   void toFile(const std::string& filename) {

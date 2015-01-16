@@ -49,7 +49,7 @@ template<typename T> class TimedDataRecorder {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> TimePoint;
   typedef std::pair<TimePoint, T> DataPoint;
   typedef std::pair<TimePoint, std::string> Tag;
-  std::deque<DataPoint> data;
+  std::vector<DataPoint> data;
   std::deque<Tag> tags;
   std::mutex mutex;
 

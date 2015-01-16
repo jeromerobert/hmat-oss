@@ -39,7 +39,7 @@ namespace mem_instr {
 
     \param size positive or negative integer, size in bytes.
    */
-  void addAlloc(void* ptr, ptrdiff_t size);
+  void addAlloc(void* ptr, ptrdiff_t size, char type = 0);
   /*! \brief Dumps the data to filename.
    */
   void toFile(const std::string& filename);
@@ -50,6 +50,8 @@ namespace mem_instr {
 
 #define REGISTER_ALLOC(ptr, size) mem_instr::addAlloc(ptr, +(size))
 #define REGISTER_FREE(ptr, size) mem_instr::addAlloc(ptr, -(size))
+#define REGISTER_T_ALLOC(ptr, size, type) mem_instr::addAlloc(ptr, +(size), type)
+#define REGISTER_T_FREE(ptr, size, type) mem_instr::addAlloc(ptr, -(size), type)
 #define MEMORY_INSTRUMENTATION_TO_FILE(filename) mem_instr::toFile(filename)
 #define MEMORY_INSTRUMENTATION_ENABLE mem_instr::enable()
 #define MEMORY_INSTRUMENTATION_DISABLE mem_instr::disable()
