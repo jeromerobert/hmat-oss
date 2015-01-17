@@ -77,7 +77,7 @@ private:
                    clustering(kMedian),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
-                   elementsPerBlock(2000000000),
+                   elementsPerBlock(5000000),
                    useLu(true),
                    useLdlt(false),
                    cholesky(false),
