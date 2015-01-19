@@ -44,7 +44,7 @@ public:
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
                                                       void *handle=NULL,
-                                                      hmat_block_info_t * block_info=NULL) const = 0;
+                                                      const hmat_block_info_t * block_info=NULL) const = 0;
   /*! \brief Prepare the Assembly function to optimize getRow() and getCol().
 
     In some cases, it is more efficient to tell the client code that a
@@ -136,7 +136,7 @@ public:
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
                                                       void *handle=NULL,
-                                                      hmat_block_info_t * block_info=NULL) const;
+                                                      const hmat_block_info_t * block_info=NULL) const;
   virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
                                                 const ClusterData* cols,
                                                 int rowIndex, void* handle=NULL) const;
@@ -173,7 +173,7 @@ public:
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,
                                               void *handle=NULL,
-                                              hmat_block_info_t * block_info=NULL) const;
+                                              const hmat_block_info_t * block_info=NULL) const;
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
                             void** handle, hmat_block_info_t * block_info) const;
   virtual void releaseBlock(void* handle, hmat_block_info_t * block_info) const;

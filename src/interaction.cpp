@@ -32,7 +32,7 @@ FullMatrix<typename Types<T>::dp>*
 SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
                                     const ClusterData* cols,
                                     void *handle,
-                                    hmat_block_info_t * block_info) const {
+                                    const hmat_block_info_t * block_info) const {
   FullMatrix<typename Types<T>::dp>* result =
     new FullMatrix<typename Types<T>::dp>(rows->n, cols->n);
   for (int i = 0; i < rows->n; ++i) {
@@ -126,7 +126,7 @@ FullMatrix<typename Types<T>::dp>*
 BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
                                    const ClusterData* cols,
                                    void *handle,
-                                   hmat_block_info_t * block_info) const {
+                                   const hmat_block_info_t * block_info) const {
   DECLARE_CONTEXT;
   FullMatrix<typename Types<T>::dp>* result =
     FullMatrix<typename Types<T>::dp>::Zero(rows->n, cols->n);
