@@ -699,7 +699,8 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
       rk = compressAcaPlus(f, rows, cols);
       break;
     case NoCompression:
-      // Should not happen
+      // Must not happen
+      strongAssert(false);
       break;
     }
   }
