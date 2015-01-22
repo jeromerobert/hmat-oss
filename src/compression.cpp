@@ -78,15 +78,19 @@ public:
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
     //TODO use block_info to optimize
+    if (!info.rowMask[index])
     f.getRow(rows, cols, index, handle, &result);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
     //TODO use block_info to optimize
+    if (!info.colMask[index])
     f.getCol(rows, cols, index, handle, &result);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
     if (info.block_type != hmat_block_null)
       return f.assemble(rows, cols, handle, &info) ;
+    else
+      return FullMatrix<typename Types<T>::dp>::Zero(rows->n, cols->n);
   }
 private:
   ClusterAssemblyFunction(ClusterAssemblyFunction&o) {}; // No copy
