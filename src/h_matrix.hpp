@@ -44,6 +44,21 @@ template<typename T> class RkMatrix;
  */
 enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 
+namespace hmat {
+  /** Settings global to a whole matrix */
+  struct MatrixSettings {
+     virtual double getAdmissibilityFactor() const = 0;
+     virtual int getMaxElementsPerBlock() const = 0;
+  };
+
+  /** Settings local to a matrix bloc */
+  struct LocalSettings {
+      const MatrixSettings * global;
+      explicit LocalSettings(const MatrixSettings * s): global(s) {}
+      //TODO add epsilons
+  };
+}
+
 /** Degrees of freedom permutation of a vector required in HMatrix context.
 
      In order that the subsets of rows and columns are
@@ -88,9 +103,7 @@ public:
   ~HMatrixData();
   /*! \brief Return true if the block is admissible.
    */
-  bool isAdmissibleLeaf() const {
-    return (rows->isAdmissibleWith(cols));
-  }
+  bool isAdmissibleLeaf(const hmat::MatrixSettings * settings) const;
 };
 
 /*! \brief The HMatrix class, representing a HMatrix.
@@ -110,7 +123,8 @@ public:
     \param _rows The row cluster tree
     \param _cols The column cluster tree
    */
-  HMatrix(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag symFlag = kNotSymmetric);
+  HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
+       SymmetryFlag symmetryFlag = kNotSymmetric);
   /*! \brief HMatrix assembly.
    */
   void assemble(const AssemblyFunction<T>& f);
@@ -121,7 +135,8 @@ public:
                  that upper=this (that is, the current block is on the diagonal)
     \param onlyLower if true, only assemble the lower part of the matrix, ie don't copy.
    */
-  void assembleSymmetric(const AssemblyFunction<T>& f, HMatrix<T>* upper=NULL, bool onlyLower=false);
+  void assembleSymmetric(const AssemblyFunction<T>& f,
+     HMatrix<T>* upper=NULL, bool onlyLower=false);
   /*! \brief Evaluate the HMatrix, ie converts it to a full matrix.
 
     This conversion does the reorderng of the unknowns such that the resulting
@@ -197,7 +212,7 @@ public:
       \param cols the column ClusterTree.
       \return a 0 HMatrix.
    */
-  static HMatrix<T>* Zero(const ClusterTree* rows, const ClusterTree* cols);
+  static HMatrix<T>* Zero(const ClusterTree* rows, const ClusterTree* cols, const hmat::MatrixSettings * settings);
   /*! \brief Create a Postscript file representing the HMatrix.
 
     The result .ps file shows the matrix structure and the compression ratio. In
@@ -279,7 +294,7 @@ private:
 public:
   /*! \brief Build a "fake" HMatrix for internal use only
    */
-  HMatrix();
+  HMatrix(const hmat::MatrixSettings * settings);
   /** This <- This + alpha * b
 
       \param alpha
@@ -450,6 +465,7 @@ public:
   HMatrixData<T> data;
   bool isUpper, isLower;       /// symmetric, upper or lower stored
   bool isTriUpper, isTriLower; /// upper/lower triangular
+  hmat::LocalSettings localSettings;
 
 private:
   /* \brief Resolution de X * D = B, avec D = this (matrice dont on ne tient compte que de la diagonale)

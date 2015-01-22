@@ -48,8 +48,6 @@ void HMatSettings::setParameters() const {
   setTemplatedParameters<D_t>(*this);
   setTemplatedParameters<C_t>(*this);
   setTemplatedParameters<Z_t>(*this);
-  ClusterTree::eta = admissibilityFactor;
-  maxElementsPerBlock = elementsPerBlock;
 }
 
 

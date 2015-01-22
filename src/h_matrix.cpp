@@ -60,6 +60,11 @@ template<typename T> HMatrixData<T>::~HMatrixData() {
   }
 }
 
+template<typename T> bool HMatrixData<T>::isAdmissibleLeaf(const hmat::MatrixSettings * settings) const {
+   return rows->isAdmissibleWith(cols, settings->getAdmissibilityFactor(),
+                                 settings->getMaxElementsPerBlock());
+}
+
 template<typename T>
 void reorderVector(FullMatrix<T>* v, int* indices) {
   DECLARE_CONTEXT;
@@ -92,13 +97,14 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
 
 
 template<typename T>
-HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag symFlag)
+HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings, SymmetryFlag symFlag)
   : Tree<4>(NULL),
     data(HMatrixData<T>(_rows, _cols)),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false) {
-  if (_rows->isLeaf() || _cols->isLeaf() || _rows->isAdmissibleWith(_cols)) {
-    if (_rows->isAdmissibleWith(_cols)) {
+    isTriUpper(false), isTriLower(false), localSettings(settings) {
+  bool adm = _rows->isAdmissibleWith(_cols, settings->getAdmissibilityFactor(), settings->getMaxElementsPerBlock());
+  if (_rows->isLeaf() || _cols->isLeaf() || adm) {
+    if (adm) {
       data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
     }
     return;
@@ -112,7 +118,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag symFlag
       for (int j = 0; j < 2; ++j) {
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           ClusterTree* colChild = static_cast<ClusterTree*>(_cols->getChild(j));
-          this->insertChild(i + j * 2, new HMatrix<T>(rowChild, colChild, (i == j ? symFlag : kNotSymmetric)));
+          this->insertChild(i + j * 2, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric)));
          }
        }
      }
@@ -120,12 +126,13 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag symFlag
 }
 
 template<typename T>
-HMatrix<T>::HMatrix() : Tree<4>(NULL), data(HMatrixData<T>()),
-                        isUpper(false), isLower(false) {}
+HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
+    Tree<4>(NULL), data(HMatrixData<T>()), isUpper(false),
+    isLower(false), localSettings(settings) {}
 
 template<typename T>
 HMatrix<T>* HMatrix<T>::copyStructure() const {
-  HMatrix<T>* h = new HMatrix<T>();
+  HMatrix<T>* h = new HMatrix<T>(localSettings.global);
   h->data.rows = data.rows;
   h->data.cols = data.cols;
 
@@ -157,7 +164,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
 template<typename T>
 HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   // leaves are filled by 0
-  HMatrix<T> *h = new HMatrix<T>();
+  HMatrix<T> *h = new HMatrix<T>(o->localSettings.global);
   h->data.rows = o->data.rows;
   h->data.cols = o->data.cols;
 
@@ -187,14 +194,14 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
 }
 
 template<typename T>
-HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols) {
+HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols, const hmat::MatrixSettings * settings) {
   // Leaves are filled by 0
-  HMatrix<T> *h = new HMatrix<T>();
+  HMatrix<T> *h = new HMatrix<T>(settings);
   h->data.rows = (ClusterTree *) rows;
   h->data.cols = (ClusterTree *) cols;
 
-  if (rows->isLeaf() || cols->isLeaf() || h->data.isAdmissibleLeaf()) {
-    if (h->data.isAdmissibleLeaf()) {
+  if (rows->isLeaf() || cols->isLeaf() || h->data.isAdmissibleLeaf(settings)) {
+    if (h->data.isAdmissibleLeaf(settings)) {
       h->data.rk = new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression);
       h->data.m = NULL;
     } else {
@@ -206,7 +213,7 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols) {
       const ClusterTree* rowChild = static_cast<const ClusterTree*>(h->data.rows->getChild(i));
       for (int j = 0; j < 2; ++j) {
         const ClusterTree* colChild = static_cast<const ClusterTree*>(h->data.cols->getChild(j));
-        h->insertChild(i + j * 2, HMatrix<T>::Zero(rowChild, colChild));
+        h->insertChild(i + j * 2, HMatrix<T>::Zero(rowChild, colChild, settings));
       }
     }
   }
@@ -218,7 +225,7 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
   if (isLeaf()) {
     // If the leaf is admissible, matrix assembly and compression.
     // if not we keep the matrix.
-    if (data.isAdmissibleLeaf()) {
+    if (data.isAdmissibleLeaf(localSettings.global)) {
       RkMatrix<typename Types<T>::dp>* rkDp =
         compress(RkMatrix<T>::approx.method, f, rows(), cols());
       if (recompress) {
@@ -285,7 +292,8 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
 }
 
 template<typename T>
-void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f, HMatrix<T>* upper, bool onlyLower) {
+void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f,
+   HMatrix<T>* upper, bool onlyLower) {
   if (!onlyLower) {
     if (!upper){
       upper = this;
@@ -297,7 +305,7 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f, HMatrix<T>* upp
   if (isLeaf()) {
     // If the leaf is admissible, matrix assembly and compression.
     // if not we keep the matrix.
-    if (data.isAdmissibleLeaf()) {
+    if (data.isAdmissibleLeaf(localSettings.global)) {
       this->assemble(f);
       if ((!onlyLower) && (upper != this)) {
         // Admissible leaf: a matrix represented by AB^t is transposed by exchanging A and B.
@@ -1923,6 +1931,11 @@ template<typename T> void HMatrix<T>::setTriLower(bool value)
 }
 
 // Templates declaration
+template class HMatrixData<S_t>;
+template class HMatrixData<D_t>;
+template class HMatrixData<C_t>;
+template class HMatrixData<Z_t>;
+
 template class HMatrix<S_t>;
 template class HMatrix<D_t>;
 template class HMatrix<C_t>;

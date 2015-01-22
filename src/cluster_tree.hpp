@@ -30,9 +30,6 @@
 #include <vector>
 #include <cmath>
 
-
-extern size_t maxElementsPerBlock;
-
 /*! \brief Class representing a 3D point.
  */
 class Point {
@@ -143,8 +140,6 @@ class ClusterTree : public Tree<2> {
 public:
   /*! min and max points */
   Point boundingBox[2];
-  /*! Admissibility criteria for the tree nodes. */
-  static double eta;
   /*! Data */
   ClusterData data;
 
@@ -171,16 +166,15 @@ public:
     In the default implementation in the base class, the criterion kept is:
        min (diameter (), other-> diameter ()) <= eta * distanceTo (other);
 
-    There is also a criterion of size on the resulting block, which
-    should not exceed 10000000 elements (160MB for double complex precision).
-    TODO: making the criterion adjustable.
-
     \param other  the other node of the couple.
     \param eta    a parameter used in the evaluation of the admissibility.
+    \param max_size should be used with AcaFull and Svd compression to limit
+           memory size of a block. A value of 0 will be ignored and should be
+           used with AcaPlus.
     \return true  if 2 nodes are admissible.
 
    */
-  bool isAdmissibleWith(const ClusterTree* other, double eta = 10.) const;
+  bool isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const;
   /*! \brief Returns the admissibility parameter eta corresponding to two clusters.
 
     As described in \a ClusterTree::isAdmissibleWith documentation,

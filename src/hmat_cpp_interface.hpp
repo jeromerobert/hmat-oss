@@ -44,7 +44,8 @@ enum ClusteringType {kGeometric, kMedian, kHybrid};
     sufficient for the settings to take effect. One must call \a
     HMatSettings::setParameters().
 */
-class HMatSettings {
+//TODO remove all global settings
+class HMatSettings: public hmat::MatrixSettings {
 public:
   double assemblyEpsilon; ///< Tolerance for the assembly.
   double recompressionEpsilon; ///< Tolerance for the recompression (using SVD)
@@ -105,6 +106,13 @@ private:
       @param out The output stream, std::cout by default.
    */
   void printSettings(std::ostream& out = std::cout) const;
+
+  virtual double getAdmissibilityFactor() const {
+      return admissibilityFactor;
+  }
+  virtual int getMaxElementsPerBlock() const {
+      return elementsPerBlock;
+  }
 };
 
 /** Create a ClusterTree.

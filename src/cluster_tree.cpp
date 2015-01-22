@@ -36,8 +36,6 @@
 
 using namespace std;
 
-size_t maxElementsPerBlock = 10000000;
-
 bool ClusterData::operator==(const ClusterData& o) const {
   // Attention ! On ne fait pas de verification sur les indices, pour
   // pouvoir parler d'egalite entre des noeuds ayant ete generes
@@ -89,9 +87,6 @@ void ClusterData::computeBoundingBox(Point boundingBox[2]) const {
   boundingBox[1] = maxPoint;
 }
 
-
-// ClusterTree
-double ClusterTree::eta = 2.;
 ClusterTree::ClusterTree(Point _boundingBox[2], const ClusterData& _data,
                          int _threshold = 100) : Tree<2>(NULL),
                                                  data(_data),
@@ -105,12 +100,12 @@ ClusterTree::ClusterTree(Point _boundingBox[2], const ClusterData& _data,
 
 /* Implemente la condition d'admissibilite des bounding box.
  */
-bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta) const {
+bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {
   size_t elements = ((size_t) data.n) * other->data.n;
-  if (elements > maxElementsPerBlock) {
+  if (elements > max_size) {
     return false;
   }
-  return min(diameter(), other->diameter()) <= ClusterTree::eta * distanceTo(other);
+  return min(diameter(), other->diameter()) <= eta * distanceTo(other);
 }
 
 double ClusterTree::getEta(const ClusterTree* other) const {

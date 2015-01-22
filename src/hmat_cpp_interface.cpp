@@ -52,7 +52,7 @@ HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols)
   DECLARE_CONTEXT;
   const HMatSettings& settings = HMatSettings::getInstance();
   SymmetryFlag sym = (settings.useLdlt ? kLowerSymmetric : kNotSymmetric);
-  engine.hmat = new HMatrix<T>(rows, cols, sym);
+  engine.hmat = new HMatrix<T>(rows, cols, &HMatSettings::getInstance(), sym);
 }
 
 template<typename T, template <typename> class E>
@@ -149,7 +149,7 @@ template<typename T, template <typename> class E>
 HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
   ClusterTree* rowsCopy = rows->copy();
   ClusterTree* colsCopy = (rows == cols ? rowsCopy : cols->copy());
-  HMatrix<T>* hCopy = HMatrix<T>::Zero(rowsCopy, colsCopy);
+  HMatrix<T>* hCopy = HMatrix<T>::Zero(rowsCopy, colsCopy, &HMatSettings::getInstance());
   hCopy->copy(engine.hmat);
   HMatInterface<T, E>* result = new HMatInterface<T, E>(hCopy);
   engine.copy(result->engine);
