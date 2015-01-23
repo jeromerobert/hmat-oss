@@ -78,12 +78,12 @@ public:
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
     //TODO use block_info to optimize
-    if (!info.rowMask[index])
+    if (!info.rowMask || !info.rowMask[index])
     f.getRow(rows, cols, index, handle, &result);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
     //TODO use block_info to optimize
-    if (!info.colMask[index])
+    if (!info.colMask || !info.colMask[index])
     f.getCol(rows, cols, index, handle, &result);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
