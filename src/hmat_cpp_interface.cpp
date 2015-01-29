@@ -135,9 +135,7 @@ void HMatInterface<T, E>::solve(HMatInterface<T, E>& b) const {
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
-  ClusterTree* rowsCopy = rows->copy();
-  ClusterTree* colsCopy = (rows == cols ? rowsCopy : cols->copy());
-  HMatrix<T>* hCopy = HMatrix<T>::Zero(rowsCopy, colsCopy, &HMatSettings::getInstance());
+  HMatrix<T>* hCopy = HMatrix<T>::Zero(engine.hmat);
   hCopy->copy(engine.hmat);
   HMatInterface<T, E>* result = new HMatInterface<T, E>(hCopy);
   engine.copy(result->engine);
