@@ -25,8 +25,12 @@
 #include "default_engine.hpp"
 #include "c_wrapping.hpp"
 #include "common/my_assert.h"
-hmat_cluster_tree_t * create_cluster_tree(DofCoordinate* dls, int n) {
+hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n) {
     return (hmat_cluster_tree_t*) createClusterTree(dls, n);
+}
+
+void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree) {
+    delete ((ClusterTree*)tree);
 }
 
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree)

@@ -157,6 +157,9 @@ public:
       \param _threshold max number of indices in a leaf. Used for the recursive division.
    */
   ClusterTree(Point _boundingBox[2], const ClusterData& _data, int _threshold);
+
+  virtual ~ClusterTree();
+
   /*! \brief Returns true if 2 nodes are admissible together.
 
     This is used for the tree construction on which we develop the HMatrix.

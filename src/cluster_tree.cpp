@@ -98,6 +98,14 @@ ClusterTree::ClusterTree(Point _boundingBox[2], const ClusterData& _data,
   myAssert(data.n > 0);
 }
 
+ClusterTree::~ClusterTree() {
+  if(father == NULL)
+  {
+    delete[] data.indices;
+    delete data.points;
+  }
+}
+
 /* Implemente la condition d'admissibilite des bounding box.
  */
 bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {

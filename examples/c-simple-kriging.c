@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
     drhsCopy = createRhs(points, n, l);
   }
 
-  cluster_tree = create_cluster_tree(points, n);
+  cluster_tree = hmat_create_cluster_tree(points, n);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
   hmat.hmat_get_info(hmatrix, &mat_info);
@@ -413,6 +413,7 @@ int main(int argc, char **argv) {
   }
 
   hmat.finalize();
+  hmat_delete_cluster_tree(cluster_tree);
   return 0;
 
 }

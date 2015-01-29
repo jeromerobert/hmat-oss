@@ -57,20 +57,8 @@ HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols)
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>::~HMatInterface() {
-  const ClusterTree* rows = engine.hmat->data.rows;
-  const ClusterTree* cols = engine.hmat->data.cols;
-  bool deleteCols = !(rows == cols);
   engine.destroy();
   delete engine.hmat;
-  delete[] rows->data.indices;
-  delete rows->data.points;
-  delete rows;
-
-  if (deleteCols) {
-    delete[] cols->data.indices;
-    delete cols->data.points;
-    delete cols;
-  }
 }
 
 template<typename T, template <typename> class E>

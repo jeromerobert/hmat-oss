@@ -143,7 +143,9 @@ typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
   \param n the number of DoFs
   \return an opaque pointer to a ClusterTree, or NULL in case of error.
 */
-hmat_cluster_tree_t * create_cluster_tree(DofCoordinate* dls, int n);
+hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n);
+
+void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
 
 /*!
  * Return the number of nodes in a cluster tree
