@@ -559,7 +559,7 @@ void HMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullM
     // TODO: make this work with symmetric lower-stored matrices.
     for (int i = 0; i < 4; i++) {
       HMatrix<T>* child = static_cast<HMatrix<T>*>(getChild(i));
-      if(isTriLower && !child)
+      if((isTriLower || isLower) && !child)
           continue;
       const ClusterData* childRows = child->rows();
       const ClusterData* childCols = child->cols();
