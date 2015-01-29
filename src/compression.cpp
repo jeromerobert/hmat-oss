@@ -278,6 +278,9 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
   int maxK = min(rowCount, colCount);
   int k = RkMatrix<T>::approx.findK(sigma->v, maxK, RkMatrix<T>::approx.assemblyEpsilon);
 
+  if(k == 0)
+    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+
   for (int col = 0; col < k; col++) {
     for (int row = 0; row < rowCount; row++) {
       u->get(row, col) *= sigma->v[col];
