@@ -232,6 +232,7 @@ public:
     If a NaN is found, an assertion is triggered.
    */
   void checkNan() const;
+  size_t memorySize() const;
 
 private:
   /// Disallow the copy

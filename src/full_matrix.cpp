@@ -627,6 +627,10 @@ template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
 
 }
 
+template<typename T> size_t FullMatrix<T>::memorySize() const {
+   return rows * cols * sizeof(T);
+}
+
 template<typename T> void checkNanReal(const FullMatrix<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
