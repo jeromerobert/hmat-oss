@@ -731,7 +731,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
            << std::scientific
            << "|M|  = " << fullNorm << std::endl
            << "|Rk| = " << approxNorm << std::endl
-           << "|M - Rk| / |Rk| = " << diffNorm / fullNorm << std::endl
+           << "|M - Rk| / |M| = " << diffNorm / fullNorm << std::endl
            << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << std::endl << std::endl;
 
       if (HMatrix<T>::validationReRun) {
@@ -769,6 +769,8 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 
         filename = "Rk_";
         filename += convert.str(); // set 'Result' to the contents of the stream
+        delete rkFull;
+        rkFull = rk->eval();
         rkFull->toFile(filename.c_str());
         filename = "Full_"+convert.str(); // set 'Result' to the contents of the stream
         full->toFile(filename.c_str());
