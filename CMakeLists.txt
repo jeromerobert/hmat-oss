@@ -201,6 +201,7 @@ endif ()
 # Configuration file
 # ========================
 configure_file("${PROJECT_SOURCE_DIR}/CMake/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+configure_file("${PROJECT_SOURCE_DIR}/CMake/hmat-config-oss.h.in" "${CMAKE_CURRENT_BINARY_DIR}/hmat/config-oss.h")
 configure_file("${PROJECT_SOURCE_DIR}/CMake/hmat-config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/hmat/config.h")
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -308,8 +309,9 @@ hmat_add_example(c-simple-kriging c-simple-kriging.c)
 
 
 install(DIRECTORY include/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hmat/config-oss.h DESTINATION "${INSTALL_INCLUDE_DIR}/hmat" COMPONENT Development)
 if(NOT HMAT_SKIP_CONFIG)
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hmat/config.h DESTINATION "${INSTALL_INCLUDE_DIR}/hmat" COMPONENT Development)
 endif()
 set(CXX_HMAT_HEADERS "full_matrix;hmat_cpp_interface;compression;h_matrix;"
     "default_engine;cluster_tree;tree;interaction;data_types")
