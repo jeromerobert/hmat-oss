@@ -308,7 +308,9 @@ hmat_add_example(c-simple-kriging c-simple-kriging.c)
 
 
 install(DIRECTORY include/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
+if(NOT HMAT_SKIP_CONFIG)
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
+endif()
 set(CXX_HMAT_HEADERS "full_matrix;hmat_cpp_interface;compression;h_matrix;"
     "default_engine;cluster_tree;tree;interaction;data_types")
 foreach(header ${CXX_HMAT_HEADERS})
