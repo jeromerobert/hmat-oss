@@ -161,6 +161,12 @@ typedef struct
   /*! Number of elements if HMatrix was not compressed */
   size_t uncompressed_size;
 
+  /* ! Number of elements stored in full leaves */
+  size_t full_size;
+
+  /* ! Number of elements stored in rk leaves */
+  size_t rk_size;
+
   /*! Number of block cluster tree nodes in the HMatrix */
   int nr_block_clusters;
 } hmat_info_t;

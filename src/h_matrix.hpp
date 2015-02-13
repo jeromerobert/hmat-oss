@@ -163,6 +163,11 @@ public:
     \return the pair (elements_stored, total_elements).
    */
   std::pair<size_t, size_t> compressionRatio() const;
+  /*! Compute the full/rk ratio of the HMatrix.
+
+    \return the pair (full_elements, rk_elements).
+   */
+  std::pair<size_t, size_t> fullrkRatio() const;
   /** This *= alpha
 
       \param alpha scaling factor

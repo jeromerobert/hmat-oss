@@ -438,6 +438,33 @@ pair<size_t, size_t> HMatrix<T>::compressionRatio() const {
 }
 
 template<typename T>
+pair<size_t, size_t> HMatrix<T>::fullrkRatio() const {
+  pair<size_t, size_t> result = pair<size_t, size_t>(0, 0);
+  if (isLeaf()) {
+    if (data.m) {
+      result.first  = data.m->rows * data.m->cols;
+      result.second = 0;
+    } else {
+      if (data.rk) {
+        result        = data.rk->compressionRatio();
+        result.second = result.first;
+        result.first  = 0;
+      }
+    }
+    return result;
+  }
+  for (int i = 0; i < 4; i++) {
+    HMatrix<T> *child = static_cast<HMatrix<T>*>(getChild(i));
+    if (child) {
+      pair<size_t, size_t> p = child->fullrkRatio();
+      result.first += p.first;
+      result.second += p.second;
+    }
+  }
+  return result;
+}
+
+template<typename T>
 void HMatrix<T>::eval(FullMatrix<T>* result, bool renumber) const {
   if (isLeaf()) {
     FullMatrix<T> *mat = data.m;

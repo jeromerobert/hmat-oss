@@ -167,6 +167,11 @@ std::pair<size_t, size_t> HMatInterface<T, E>::compressionRatio() const {
 }
 
 template<typename T, template <typename> class E>
+std::pair<size_t, size_t> HMatInterface<T, E>::fullrkRatio() const {
+  return engine.hmat->fullrkRatio();
+}
+
+template<typename T, template <typename> class E>
 void HMatInterface<T, E>::createPostcriptFile(const char* filename) const {
     engine.createPostcriptFile(filename);
 }
