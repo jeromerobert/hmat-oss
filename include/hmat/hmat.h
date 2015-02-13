@@ -155,19 +155,20 @@ int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
 /** Information on the HMatrix */
 typedef struct
 {
-  /*! Number of elements */
-  size_t compressed_size;
-
-  /*! Number of elements if HMatrix was not compressed */
-  size_t uncompressed_size;
-
-  /* ! Number of elements stored in full leaves */
+  /* ! Total number of terms stored in the full leaves of the HMatrix */
   size_t full_size;
 
-  /* ! Number of elements stored in rk leaves */
+  /* ! Total number of terms stored in the rk leaves of the HMatrix */
   size_t rk_size;
 
-  /*! Number of block cluster tree nodes in the HMatrix */
+  /* ! Total number of terms stored in the HMatrix */
+  /* ! => compressed_size = full_size + rk_size */
+  size_t compressed_size;
+
+  /*! Total number of terms that would be stored if the matrix was not compressed */
+  size_t uncompressed_size;
+
+  /*! Total number of block cluster tree nodes in the HMatrix */
   int nr_block_clusters;
 } hmat_info_t;
 
