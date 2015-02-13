@@ -318,6 +318,8 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f,
         rk->k = this->data.rk->k;
         rk->a = (data.rk->b ? data.rk->b->copy() : NULL);
         rk->b = (data.rk->a ? data.rk->a->copy() : NULL);
+        if(upper->data.rk != NULL)
+            delete upper->data.rk;
         upper->data.rk = rk;
         upper->data.m = NULL;
       }
