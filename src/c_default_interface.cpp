@@ -33,6 +33,10 @@ void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree) {
     delete ((ClusterTree*)tree);
 }
 
+hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree) {
+    return (hmat_cluster_tree_t*)((ClusterTree*)tree)->copy();
+}
+
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree)
 {
     return ((ClusterTree*)tree)->nodesCount();

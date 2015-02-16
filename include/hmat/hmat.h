@@ -147,6 +147,8 @@ hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n);
 
 void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
 
+hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
+
 /*!
  * Return the number of nodes in a cluster tree
  */
