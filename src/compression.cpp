@@ -70,7 +70,10 @@ public:
   hmat_block_info_t info;
   ClusterAssemblyFunction(const AssemblyFunction<T>& _f,
                         const ClusterData* _rows, const ClusterData* _cols)
-    : f(_f), handle(NULL), rows(_rows), cols(_cols), info({hmat_block_full, NULL, NULL}) {
+    : f(_f), handle(NULL), rows(_rows), cols(_cols) {
+    info.block_type = hmat_block_full;
+    info.rowMask = NULL;
+    info.colMask = NULL;
     f.prepareBlock(rows, cols, &handle, &info);
   }
   ~ClusterAssemblyFunction() {
