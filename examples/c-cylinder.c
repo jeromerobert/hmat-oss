@@ -142,7 +142,8 @@ prepare_hmat(int row_start,
              int *col_hmat2client,
              int *col_client2hmat,
              void *user_context,
-             void **data)
+             void **data,
+             hmat_block_info_t * block_info)
 {
   *data = calloc(1, sizeof(block_data_t));
   block_data_t* bdata = (block_data_t*) *data;
