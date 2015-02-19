@@ -1178,11 +1178,12 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
     // It's a leaf
     if (isFullMatrix()) {
       f << endl << prefix << " \"leaf_type\": \"Full\"";
-    } else {
-      myAssert(isRkMatrix());
+    } else if (isRkMatrix()) {
       f << endl << prefix << " \"leaf_type\": \"Rk\", \"k\": " << data.rk->k << ",";
       f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
       f << endl << prefix << " \"method\": " << this->data.rk->method;
+    } else {
+      f << endl << prefix << " \"leaf_type\": \"N/A\"";
     }
   }
   f << "}";
