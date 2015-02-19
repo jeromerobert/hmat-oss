@@ -25,13 +25,17 @@
 
 #include "common/context.hpp"
 #include "full_matrix.hpp"
+#include "h_matrix.hpp"
 
 template<typename T, template <typename> class E> static hmat_matrix_t * create_empty_hmatrix(
         void* rows_tree, void* cols_tree)
 {
+    const HMatSettings& settings = HMatSettings::getInstance();
+    SymmetryFlag sym = (settings.useLdlt ? kLowerSymmetric : kNotSymmetric);
     return (hmat_matrix_t*) new HMatInterface<T, E>(
             static_cast<ClusterTree*>(rows_tree),
-            static_cast<ClusterTree*>(cols_tree));
+            static_cast<ClusterTree*>(cols_tree),
+            sym);
 }
 
 template<typename T>

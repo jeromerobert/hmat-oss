@@ -47,11 +47,9 @@ void HMatInterface<T, E>::finalize() {
 }
 
 template<typename T, template <typename> class E>
-HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols)
+HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym)
   : rows(_rows), cols(_cols) {
   DECLARE_CONTEXT;
-  const HMatSettings& settings = HMatSettings::getInstance();
-  SymmetryFlag sym = (settings.useLdlt ? kLowerSymmetric : kNotSymmetric);
   engine.hmat = new HMatrix<T>(rows, cols, &HMatSettings::getInstance(), sym);
 }
 
