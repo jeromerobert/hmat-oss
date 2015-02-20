@@ -131,9 +131,8 @@ ClusterTree* createClusterTree(DofCoordinate* dls, int n) {
 template<typename T>
 void DefaultEngine<T>::assembly(AssemblyFunction<T>& f, SymmetryFlag sym,
                                 bool synchronize) {
-  const HMatSettings& settings = HMatSettings::getInstance();
-  if (sym == kLowerSymmetric) {
-    hmat->assembleSymmetric(f, NULL, settings.useLdlt);
+  if (sym == kLowerSymmetric || hmat->isLower || hmat->isUpper) {
+    hmat->assembleSymmetric(f, NULL, hmat->isLower || hmat->isUpper);
   } else {
     hmat->assemble(f);
   }
