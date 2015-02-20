@@ -33,6 +33,7 @@
 #include "default_engine.hpp"
 
 class ClusterTree;
+class AdmissibilityCondition;
 
 /** Type of ClusterTree */
 enum ClusteringType {kGeometric, kMedian, kHybrid};
@@ -56,7 +57,7 @@ public:
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
       \f]
    */
-  double admissibilityFactor;
+  AdmissibilityCondition * admissibilityCondition; ///< Formula for cluster admissibility
   ClusteringType clustering; ///< Type of ClusterTree
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
@@ -76,7 +77,7 @@ private:
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(Svd),  compressionMinLeafSize(100),
-                   admissibilityFactor(2.),
+                   admissibilityCondition(new StandardAdmissibilityCondition(2.0)),
                    clustering(kMedian),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
@@ -109,11 +110,14 @@ private:
    */
   void printSettings(std::ostream& out = std::cout) const;
 
-  virtual double getAdmissibilityFactor() const {
-      return admissibilityFactor;
-  }
   virtual int getMaxElementsPerBlock() const {
       return elementsPerBlock;
+  }
+  virtual AdmissibilityCondition * getAdmissibilityCondition() const {
+      return admissibilityCondition;
+  }
+  virtual void setAdmissibilityCondition(AdmissibilityCondition* condition) {
+      admissibilityCondition = condition;
   }
 };
 

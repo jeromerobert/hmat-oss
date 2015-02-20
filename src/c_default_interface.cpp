@@ -23,6 +23,7 @@
 #include "hmat/hmat.h"
 #include "hmat_cpp_interface.hpp"
 #include "default_engine.hpp"
+#include "admissibility.hpp"
 #include "c_wrapping.hpp"
 #include "common/my_assert.h"
 hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n) {
@@ -40,6 +41,20 @@ hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree) {
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree)
 {
     return ((ClusterTree*)tree)->nodesCount();
+}
+
+hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
+{
+    return static_cast<hmat_admissibility_t*>((void*) new StandardAdmissibilityCondition(eta));
+}
+
+hmat_admissibility_t* hmat_create_admissibility_influence_radius(int length, double* radii)
+{
+    return static_cast<hmat_admissibility_t*>((void*) new InfluenceRadiusCondition(length, radii));
+}
+
+void hmat_delete_admissibility(hmat_admissibility_t * cond) {
+    delete static_cast<AdmissibilityCondition*>((void*)cond);
 }
 
 void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
@@ -71,13 +86,17 @@ void hmat_get_parameters(hmat_settings_t* settings)
     case AcaPlus:
       settings->compressionMethod = hmat_compress_aca_plus;
       break;
+    case RkNull:
+      settings->compressionMethod = hmat_compress_rk_null;
+      break;
     default:
       std::cerr << "Internal error: invalid value for compression method: \"" << settingsCxx.compressionMethod << "\"." << std::endl;
       std::cerr << "Internal error: using SVD" << std::endl;
       settings->compressionMethod = hmat_compress_svd;
       break;
     }
-    settings->admissibilityFactor = settingsCxx.admissibilityFactor;
+    settings->admissibilityCondition = static_cast<hmat_admissibility_t*>((void*)settingsCxx.admissibilityCondition);
+    settings->admissibilityFactor = 0.0;
     switch (settingsCxx.clustering) {
     case kGeometric:
       settings->clustering = hmat_cluster_geometric;
@@ -128,13 +147,19 @@ int hmat_set_parameters(hmat_settings_t* settings)
     case hmat_compress_aca_plus:
       settingsCxx.compressionMethod = AcaPlus;
       break;
+    case hmat_compress_rk_null:
+      settingsCxx.compressionMethod = RkNull;
+      break;
     default:
       std::cerr << "Invalid value for compression method: \"" << settings->compressionMethod << "\"." << std::endl;
       rc = 1;
       break;
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
-    settingsCxx.admissibilityFactor = settings->admissibilityFactor;
+    if (settings->admissibilityFactor != 0.0)
+      settingsCxx.admissibilityCondition = new StandardAdmissibilityCondition(settings->admissibilityFactor);
+    else
+      settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
     switch (settings->clustering) {
     case hmat_cluster_geometric:
       settingsCxx.clustering = kGeometric;

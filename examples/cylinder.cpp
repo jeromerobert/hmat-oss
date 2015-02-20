@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
   char arithmetic = argv[2][0];
 
   settings.compressionMethod = AcaPlus;
-  settings.admissibilityFactor = 3.;
+  settings.admissibilityCondition = new StandardAdmissibilityCondition(3.);
 
   settings.setParameters();
   settings.printSettings();

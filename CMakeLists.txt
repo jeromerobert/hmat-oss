@@ -314,7 +314,7 @@ if(NOT HMAT_SKIP_CONFIG)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hmat/config.h DESTINATION "${INSTALL_INCLUDE_DIR}/hmat" COMPONENT Development)
 endif()
 set(CXX_HMAT_HEADERS "full_matrix;hmat_cpp_interface;compression;h_matrix;"
-    "default_engine;cluster_tree;tree;interaction;data_types")
+    "admissibility;default_engine;cluster_tree;tree;interaction;data_types")
 foreach(header ${CXX_HMAT_HEADERS})
     set(HMAT_HEADERS src/${header}.hpp;${HMAT_HEADERS})
 endforeach()

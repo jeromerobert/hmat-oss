@@ -61,12 +61,7 @@ template<typename T> HMatrixData<T>::~HMatrixData() {
 }
 
 template<typename T> bool HMatrixData<T>::isAdmissibleLeaf(const hmat::MatrixSettings * settings) const {
-   size_t max_size;
-   if(RkMatrix<T>::approx.method == AcaPartial || RkMatrix<T>::approx.method == AcaPlus)
-       max_size = 2E9;
-   else
-       max_size = settings->getMaxElementsPerBlock();
-   return rows->isAdmissibleWith(cols, settings->getAdmissibilityFactor(), max_size);
+   return settings->getAdmissibilityCondition()->isAdmissible(*rows, *cols);
 }
 
 template<typename T>

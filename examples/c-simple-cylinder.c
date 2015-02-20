@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
   hmat_get_parameters(&settings);
   hmat_init_default_interface(&hmat, type);
   settings.compressionMethod = hmat_compress_aca_plus;
-  settings.admissibilityFactor = 3.;
+  settings.admissibilityCondition = hmat_create_admissibility_standard(3.0);
 
   hmat_set_parameters(&settings);
   if (0 != hmat.init())

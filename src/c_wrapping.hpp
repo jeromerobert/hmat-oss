@@ -30,8 +30,10 @@
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
 
-template<typename T, template <typename> class E> static hmat_matrix_t * create_empty_hmatrix(
-        void* rows_tree, void* cols_tree)
+namespace
+{
+template<typename T, template <typename> class E>
+hmat_matrix_t * create_empty_hmatrix(void* rows_tree, void* cols_tree)
 {
     const HMatSettings& settings = HMatSettings::getInstance();
     SymmetryFlag sym = (settings.useLdlt ? kLowerSymmetric : kNotSymmetric);
@@ -39,6 +41,22 @@ template<typename T, template <typename> class E> static hmat_matrix_t * create_
             static_cast<ClusterTree*>(rows_tree),
             static_cast<ClusterTree*>(cols_tree),
             sym);
+}
+
+template<typename T, template <typename> class E>
+hmat_matrix_t * create_empty_hmatrix_admissibility(
+  hmat_cluster_tree_t* rows_tree,
+  hmat_cluster_tree_t* cols_tree,
+  hmat_admissibility_t* condition)
+{
+    HMatSettings& settings = HMatSettings::getInstance();
+    settings.setAdmissibilityCondition(static_cast<AdmissibilityCondition*>((void*)condition));
+    SymmetryFlag sym = (settings.useLdlt ? kLowerSymmetric : kNotSymmetric);
+    return (hmat_matrix_t*) new HMatInterface<T, E>(
+            static_cast<ClusterTree*>(static_cast<void*>(rows_tree)),
+            static_cast<ClusterTree*>(static_cast<void*>(cols_tree)),
+            sym);
+}
 }
 
 template<typename T>
@@ -264,6 +282,7 @@ template<typename T, template <typename> class E> static void createCInterface(h
     i->assemble_simple_interaction = assemble_simple_interaction<T, E>;
     i->copy = copy<T, E>;
     i->create_empty_hmatrix = create_empty_hmatrix<T, E>;
+    i->create_empty_hmatrix_admissibility = create_empty_hmatrix_admissibility<T, E>;
     i->destroy = destroy<T, E>;
     i->factor = factor<T, E>;
     i->finalize = finalize<T, E>;
