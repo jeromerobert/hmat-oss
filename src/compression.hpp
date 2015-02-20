@@ -28,7 +28,7 @@
 /** Choice of the compression method.
  */
 enum CompressionMethod {
-  Svd, AcaFull, AcaPartial, AcaPlus, NoCompression
+  Svd, AcaFull, AcaPartial, AcaPlus, RkNull, NoCompression
 };
 
 // Forward declarations

@@ -60,7 +60,8 @@ typedef enum {
   hmat_compress_svd,
   hmat_compress_aca_full,
   hmat_compress_aca_partial,
-  hmat_compress_aca_plus
+  hmat_compress_aca_plus,
+  hmat_compress_rk_null
 } hmat_compress_t;
 
 /*! \brief Coordinates of a degree of freedom

@@ -92,6 +92,9 @@ void HMatSettings::printSettings(std::ostream& out) const {
   case AcaPlus:
     out << "ACA+ compression" << std::endl;
     break;
+  case RkNull:
+    out << "RkNull compression : set admissible blocks to 0" << std::endl;
+    break;
   case NoCompression:
     // Should not happen
     break;

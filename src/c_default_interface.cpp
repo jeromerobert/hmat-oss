@@ -71,6 +71,9 @@ void hmat_get_parameters(hmat_settings_t* settings)
     case AcaPlus:
       settings->compressionMethod = hmat_compress_aca_plus;
       break;
+    case RkNull:
+      settings->compressionMethod = hmat_compress_rk_null;
+      break;
     default:
       std::cerr << "Internal error: invalid value for compression method: \"" << settingsCxx.compressionMethod << "\"." << std::endl;
       std::cerr << "Internal error: using SVD" << std::endl;
@@ -139,6 +142,9 @@ int hmat_set_parameters(hmat_settings_t* settings)
       break;
     case hmat_compress_aca_plus:
       settingsCxx.compressionMethod = AcaPlus;
+      break;
+    case hmat_compress_rk_null:
+      settingsCxx.compressionMethod = RkNull;
       break;
     default:
       std::cerr << "Invalid value for compression method: \"" << settings->compressionMethod << "\"." << std::endl;

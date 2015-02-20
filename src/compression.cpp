@@ -685,101 +685,106 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
   // a bad compression ratio anyways, and the SVD is not very costly in this
   // case.
   // TODO: allow the setting of the size limit ?
-  if (max(rows->n, cols->n) < 100) {
-    rk = compressSvd(f, rows, cols);
+  if (method == RkNull) {
+    rk = new RkMatrix<dp_t>(NULL, rows, NULL, cols, NoCompression);
   } else {
-    switch (method) {
-    case Svd:
+    if (max(rows->n, cols->n) < 100) {
       rk = compressSvd(f, rows, cols);
-      break;
-    case AcaFull:
-      rk = compressAcaFull(f, rows, cols);
-      break;
-    case AcaPartial:
-      rk = compressAcaPartial(f, rows, cols);
-      break;
-    case AcaPlus:
-      rk = compressAcaPlus(f, rows, cols);
-      break;
-    case NoCompression:
-      // Must not happen
-      strongAssert(false);
-      break;
+    } else {
+      switch (method) {
+      case Svd:
+        rk = compressSvd(f, rows, cols);
+        break;
+      case AcaFull:
+        rk = compressAcaFull(f, rows, cols);
+        break;
+      case AcaPartial:
+        rk = compressAcaPartial(f, rows, cols);
+        break;
+      case AcaPlus:
+        rk = compressAcaPlus(f, rows, cols);
+        break;
+      case RkNull:
+      case NoCompression:
+        // Must not happen
+        strongAssert(false);
+        break;
+      }
     }
-  }
-
-  if (HMatrix<T>::validateCompression) {
-    FullMatrix<dp_t>* full = f.assemble(rows, cols);
-    if (rk->a) rk->a->checkNan();
-    if (rk->b) rk->b->checkNan();
-    FullMatrix<dp_t>* rkFull = rk->eval();
-    double approxNorm = rkFull->norm();
-    double fullNorm = full->norm();
-
-    // If I meet a NaN, I save & leave
-    // TODO : improve this behaviour
-    if (isnan(approxNorm)) {
-      rkFull->toFile("Rk");
-      full->toFile("Full");
-      strongAssert(false);
-    }
-
-    rkFull->axpy(Constants<T>::mone, full);
-    double diffNorm = rkFull->norm();
-    if (diffNorm > HMatrix<T>::validationErrorThreshold * fullNorm ) {
-      std::cout << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]"<< std::endl
-           << std::scientific
-           << "|M|  = " << fullNorm << std::endl
-           << "|Rk| = " << approxNorm << std::endl
-           << "|M - Rk| / |M| = " << diffNorm / fullNorm << std::endl
-           << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << std::endl << std::endl;
-
-      if (HMatrix<T>::validationReRun) {
-        // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
-        RkMatrix<dp_t>* rk_bis = NULL;
-
-        if (max(rows->n, cols->n) < 100) {
-          rk_bis = compressSvd(f, rows, cols);
-        } else {
-          switch (method) {
-            case Svd:
-              rk_bis = compressSvd(f, rows, cols);
-              break;
-            case AcaFull:
-              rk_bis = compressAcaFull(f, rows, cols);
-              break;
-            case AcaPartial:
-              rk_bis = compressAcaPartial(f, rows, cols);
-              break;
-            case AcaPlus:
-              rk_bis = compressAcaPlus(f, rows, cols);
-              break;
-            case NoCompression:
-              // Should not happen
-              break;
+  
+    if (HMatrix<T>::validateCompression) {
+      FullMatrix<dp_t>* full = f.assemble(rows, cols);
+      if (rk->a) rk->a->checkNan();
+      if (rk->b) rk->b->checkNan();
+      FullMatrix<dp_t>* rkFull = rk->eval();
+      double approxNorm = rkFull->norm();
+      double fullNorm = full->norm();
+  
+      // If I meet a NaN, I save & leave
+      // TODO : improve this behaviour
+      if (isnan(approxNorm)) {
+        rkFull->toFile("Rk");
+        full->toFile("Full");
+        strongAssert(false);
+      }
+  
+      rkFull->axpy(Constants<T>::mone, full);
+      double diffNorm = rkFull->norm();
+      if (diffNorm > HMatrix<T>::validationErrorThreshold * fullNorm ) {
+        std::cout << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]"<< std::endl
+             << std::scientific
+             << "|M|  = " << fullNorm << std::endl
+             << "|Rk| = " << approxNorm << std::endl
+             << "|M - Rk| / |M| = " << diffNorm / fullNorm << std::endl
+             << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << std::endl << std::endl;
+  
+        if (HMatrix<T>::validationReRun) {
+          // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
+          RkMatrix<dp_t>* rk_bis = NULL;
+  
+          if (max(rows->n, cols->n) < 100) {
+            rk_bis = compressSvd(f, rows, cols);
+          } else {
+            switch (method) {
+              case Svd:
+                rk_bis = compressSvd(f, rows, cols);
+                break;
+              case AcaFull:
+                rk_bis = compressAcaFull(f, rows, cols);
+                break;
+              case AcaPartial:
+                rk_bis = compressAcaPartial(f, rows, cols);
+                break;
+              case AcaPlus:
+                rk_bis = compressAcaPlus(f, rows, cols);
+                break;
+              case NoCompression:
+                // Should not happen
+                break;
+            }
           }
+          delete rk_bis ;
         }
-        delete rk_bis ;
+  
+        if (HMatrix<T>::validationDump) {
+          std::string filename;
+          std::ostringstream convert;   // stream used for the conversion
+          convert << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]" ;
+  
+          filename = "Rk_";
+          filename += convert.str(); // set 'Result' to the contents of the stream
+          delete rkFull;
+          rkFull = rk->eval();
+          rkFull->toFile(filename.c_str());
+          filename = "Full_"+convert.str(); // set 'Result' to the contents of the stream
+          full->toFile(filename.c_str());
+        }
       }
-
-      if (HMatrix<T>::validationDump) {
-        std::string filename;
-        std::ostringstream convert;   // stream used for the conversion
-        convert << "["<< rows->offset<<","<<rows->offset+rows->n -1 <<"]x["<< cols->offset<<","<<cols->offset+cols->n-1 <<"]" ;
-
-        filename = "Rk_";
-        filename += convert.str(); // set 'Result' to the contents of the stream
-        delete rkFull;
-        rkFull = rk->eval();
-        rkFull->toFile(filename.c_str());
-        filename = "Full_"+convert.str(); // set 'Result' to the contents of the stream
-        full->toFile(filename.c_str());
-      }
+  
+      delete rkFull;
+      delete full;
     }
-
-    delete rkFull;
-    delete full;
-  }
+  } // method != RkNull 
   return rk;
 }
 
