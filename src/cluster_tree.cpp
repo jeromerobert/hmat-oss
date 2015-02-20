@@ -123,17 +123,19 @@ ClusterTree::~ClusterTree() {
  */
 bool ClusterTree::isAdmissibleWith(const ClusterTree* other, AdmissibilityFormulaType admissibilityFormula, double eta, size_t max_size ) const {
   size_t elements = ((size_t) data.n) * other->data.n;
+  bool cond = false;
   switch(admissibilityFormula) {
   case(fHackbusch) :
     if (elements > max_size) {
       return false;
     }
-    return min(diameter(), other->diameter()) <= eta * distanceTo(other);
+    cond = min(diameter(), other->diameter()) <= eta * distanceTo(other);
     break;
   case(fInfluenceRadius) :
-    return ( (influenceRadius() + other->influenceRadius()) < distanceTo(other) );
+    cond = (influenceRadius() + other->influenceRadius()) < distanceTo(other);
     break;
   }
+  return cond;
 }
 
 double ClusterTree::getEta(const ClusterTree* other) const {
