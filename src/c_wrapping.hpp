@@ -23,6 +23,9 @@
 #ifndef _C_WRAPPING_HPP
 #define _C_WRAPPING_HPP
 
+#include <string>
+#include <cstring>
+
 #include "common/context.hpp"
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
@@ -243,6 +246,19 @@ static int hmat_get_info(hmat_matrix_t* holder, hmat_info_t* info) {
   return 0;
 }
 
+template<typename T, template <typename> class E>
+static int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
+  DECLARE_CONTEXT;
+  HMatInterface<T, E>* hmat   = (HMatInterface<T, E>*) holder;
+  std::string fileps(prefix);
+  fileps += ".ps";
+  std::string filejson(prefix);
+  filejson += ".json";
+  hmat->createPostcriptFile( fileps.c_str());
+  hmat->dumpTreeToFile( filejson.c_str() );
+  return 0;
+}
+
 template<typename T, template <typename> class E> static void createCInterface(hmat_interface_t * i)
 {
     i->assemble = assemble<T, E>;
@@ -263,7 +279,8 @@ template<typename T, template <typename> class E> static void createCInterface(h
     i->solve_systems = solve_systems<T, E>;
     i->transpose = transpose<T, E>;
     i->internal = NULL;
-    i->hmat_get_info = hmat_get_info<T, E>;
+    i->hmat_get_info  = hmat_get_info<T, E>;
+    i->hmat_dump_info = hmat_dump_info<T, E>;
 }
 
 #endif  // _C_WRAPPING_HPP

@@ -343,6 +343,11 @@ hmat
      */
     int (*hmat_get_info)(hmat_matrix_t *hmatrix, hmat_info_t* info);
 
+    /*! \brief Dump json & postscript informations about matrix
+        \param hmatrix A hmatrix
+        \param prefix A string to prefix files output */
+    int (*hmat_dump_info)(hmat_matrix_t *hmatrix, char* prefix);
+
     /** For internal use only */
     void * internal;
 
