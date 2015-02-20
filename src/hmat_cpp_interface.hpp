@@ -37,7 +37,6 @@ class ClusterTree;
 /** Type of ClusterTree */
 enum ClusteringType {kGeometric, kMedian, kHybrid};
 
-
 /** Settings for the HMatrix library.
 
     A single static instance of this class exist, but settings the values is not
@@ -55,7 +54,8 @@ public:
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
       \f]
    */
-  double admissibilityFactor;
+  AdmissibilityFormulaType admissibilityFormula; ///< Formula for cluster admissibility
+  double admissibilityFactor; ///< Eta for Hackbusch admissibility formula
   ClusteringType clustering; ///< Type of ClusterTree
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
@@ -74,7 +74,8 @@ private:
   /** This constructor sets the default values.
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
-                   compressionMethod(Svd), admissibilityFactor(2.),
+                   compressionMethod(Svd), 
+                   admissibilityFormula(fHackbusch), admissibilityFactor(2.),
                    clustering(kMedian),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
@@ -112,6 +113,9 @@ private:
   }
   virtual int getMaxElementsPerBlock() const {
       return elementsPerBlock;
+  }
+  virtual AdmissibilityFormulaType getAdmissibilityFormula() const {
+      return admissibilityFormula;
   }
 };
 

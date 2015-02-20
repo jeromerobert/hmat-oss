@@ -49,6 +49,12 @@ typedef enum {
   hmat_cluster_hybrid
 } hmat_cluster_t;
 
+/** Formula for admissibility criterion */
+typedef enum {
+  hmat_admissibility_hackbusch,
+  hmat_admissibility_influence_radius
+} hmat_admissibility_formula_t;
+
 /** Choice of the compression method */
 typedef enum {
   hmat_compress_svd,
@@ -66,6 +72,7 @@ typedef struct {
   double x;
   double y;
   double z;
+  double R; // (optional) : influence radius [default=0]
 } DofCoordinate;
 
 /*! \brief Prepare block assembly.
@@ -372,7 +379,9 @@ typedef struct
   /*! \brief Tolerance for the recompression (using SVD) */
   double recompressionEpsilon;
   int compressionMethod;
-  /** \f$\eta\f$ in the admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
+  /*! \brief Type of admissibility formula */
+  hmat_admissibility_formula_t admissibilityFormula;
+  /** \f$\eta\f$ in the Hackbusch admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
       \f[
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
       \f]

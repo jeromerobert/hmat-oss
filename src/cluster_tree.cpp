@@ -87,6 +87,19 @@ void ClusterData::computeBoundingBox(Point boundingBox[2]) const {
   boundingBox[1] = maxPoint;
 }
 
+double ClusterData::influenceRadius() const {
+  int* myIndices = indices + offset;
+  double radius  = 0.0;
+
+  for (int i = 0; i < n; i++) {
+    int index = myIndices[i];
+    const Point& p = (*points)[index];
+    radius = max( p.R, radius );
+  }
+  return radius;
+}
+
+
 ClusterTree::ClusterTree(Point _boundingBox[2], const ClusterData& _data,
                          int _threshold = 100) : Tree<2>(NULL),
                                                  data(_data),
@@ -108,12 +121,19 @@ ClusterTree::~ClusterTree() {
 
 /* Implemente la condition d'admissibilite des bounding box.
  */
-bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {
+bool ClusterTree::isAdmissibleWith(const ClusterTree* other, AdmissibilityFormulaType admissibilityFormula, double eta, size_t max_size ) const {
   size_t elements = ((size_t) data.n) * other->data.n;
-  if (elements > max_size) {
-    return false;
+  switch(admissibilityFormula) {
+  case(fHackbusch) :
+    if (elements > max_size) {
+      return false;
+    }
+    return min(diameter(), other->diameter()) <= eta * distanceTo(other);
+    break;
+  case(fInfluenceRadius) :
+    return ( (influenceRadius() + other->influenceRadius()) < distanceTo(other) );
+    break;
   }
-  return min(diameter(), other->diameter()) <= eta * distanceTo(other);
 }
 
 double ClusterTree::getEta(const ClusterTree* other) const {
@@ -122,6 +142,10 @@ double ClusterTree::getEta(const ClusterTree* other) const {
 
 double ClusterTree::diameter() const {
   return boundingBox[0].distanceTo(boundingBox[1]);
+}
+
+double ClusterTree::influenceRadius() const {
+  return data.influenceRadius();
 }
 
 double ClusterTree::distanceTo(const ClusterTree* other) const {

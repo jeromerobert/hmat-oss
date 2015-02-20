@@ -66,7 +66,9 @@ template<typename T> bool HMatrixData<T>::isAdmissibleLeaf(const hmat::MatrixSet
        max_size = 2E9;
    else
        max_size = settings->getMaxElementsPerBlock();
-   return rows->isAdmissibleWith(cols, settings->getAdmissibilityFactor(), max_size);
+   return rows->isAdmissibleWith(cols, settings->getAdmissibilityFormula(), 
+                                       settings->getAdmissibilityFactor(), 
+                                       max_size);
 }
 
 template<typename T>
@@ -106,7 +108,9 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     data(HMatrixData<T>(_rows, _cols)),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), localSettings(settings) {
-  bool adm = _rows->isAdmissibleWith(_cols, settings->getAdmissibilityFactor(), settings->getMaxElementsPerBlock());
+  bool adm = _rows->isAdmissibleWith(_cols, settings->getAdmissibilityFormula(),
+                                            settings->getAdmissibilityFactor(), 
+                                            settings->getMaxElementsPerBlock() );
   if (_rows->isLeaf() || _cols->isLeaf() || adm) {
     if (adm) {
       data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);

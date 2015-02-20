@@ -56,8 +56,17 @@ void HMatSettings::printSettings(std::ostream& out) const {
   out << std::scientific;
   out << "Assembly Epsilon           = " << assemblyEpsilon << std::endl;
   out << "Resolution Epsilon         = " << recompressionEpsilon << std::endl;
-  out << "Admissibility factor       = " << admissibilityFactor << std::endl;
-  out << "Max Leaf Size              = " << maxLeafSize << std::endl;
+  switch( admissibilityFormula ) {
+  case( fHackbusch ) :
+    out << "Hackbusch admissibility formula" << std::endl;
+    out << "  Admissibility factor     = " << admissibilityFactor << std::endl;
+    out << "  Max Leaf Size            = " << maxLeafSize << std::endl;
+    break;
+  case( fInfluenceRadius ) :
+    out << "Influence radius admissibility formula" << std::endl;
+    break;
+  // Else error
+  }
   out << "Validation Error Threshold = " << validationErrorThreshold << std::endl;
   switch (clustering) {
   case kGeometric:
@@ -95,7 +104,7 @@ ClusterTree* createClusterTree(DofCoordinate* dls, int n) {
   std::vector<Point>* points = new std::vector<Point>(n);
 
   for (int i = 0; i < n; i++) {
-    (*points)[i] = Point(dls[i].x, dls[i].y, dls[i].z);
+    (*points)[i] = Point(dls[i].x, dls[i].y, dls[i].z, dls[i].R);
   }
   int *indices = new int[n];
   for (int i = 0; i < n; i++) {

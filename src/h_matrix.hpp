@@ -49,6 +49,7 @@ namespace hmat {
   struct MatrixSettings {
      virtual double getAdmissibilityFactor() const = 0;
      virtual int getMaxElementsPerBlock() const = 0;
+     virtual AdmissibilityFormulaType getAdmissibilityFormula() const = 0;
   };
 
   /** Settings local to a matrix bloc */

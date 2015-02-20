@@ -30,6 +30,9 @@
 #include <vector>
 #include <cmath>
 
+/** Type of AdmissibilityFormula */
+enum AdmissibilityFormulaType {fHackbusch, fInfluenceRadius};
+
 /*! \brief Class representing a 3D point.
  */
 class Point {
@@ -40,7 +43,8 @@ public:
     };
     double xyz[3]; /// Idem
   };
-  Point(double _x = 0., double _y = 0., double _z = 0.) : x(_x), y(_y), z(_z) {}
+  double R; /// (optional) influence radius
+  Point(double _x = 0., double _y = 0., double _z = 0., double _R = 0.) : x(_x), y(_y), z(_z), R(_R) {}
   /*! \brief Return d(this, other)
    */
   inline double distanceTo(const Point &other) const {
@@ -105,6 +109,9 @@ public:
 
   ClusterData(int* _indices, size_t _offset, size_t _n, const std::vector<Point>* _points)
     : indices(_indices), offset(_offset), n(_n), points(_points) {}
+
+  /*! Compute the influence radius of the node */
+  double influenceRadius() const;
 };
 
 /*! \brief Comparateur pour deux indices selon une de leur coordonnee.
@@ -166,9 +173,12 @@ public:
     Two leaves are admissible if they satisfy the criterion allowing the
     compression of the resulting matrix block.
 
-    In the default implementation in the base class, the criterion kept is:
+    In the default implementation in the base class, the criterion kept 
+    is Hackbusch formula :
        min (diameter (), other-> diameter ()) <= eta * distanceTo (other);
-
+    For close interaction matrix computation, the influence radius formula
+    is also available :
+      influenceRadius() + other->influenceRadius() <= distanceTo (other);
     \param other  the other node of the couple.
     \param eta    a parameter used in the evaluation of the admissibility.
     \param max_size should be used with AcaFull and Svd compression to limit
@@ -177,7 +187,7 @@ public:
     \return true  if 2 nodes are admissible.
 
    */
-  bool isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const;
+  bool isAdmissibleWith(const ClusterTree* other, AdmissibilityFormulaType admissibilityFormula, double eta, size_t max_size) const;
   /*! \brief Returns the admissibility parameter eta corresponding to two clusters.
 
     As described in \a ClusterTree::isAdmissibleWith documentation,
@@ -206,6 +216,8 @@ protected:
   double diameter() const;
   /*! Distance to an other node */
   double distanceTo(const ClusterTree* other) const;
+  /*! Influence radius of the node */
+  double influenceRadius() const;
   /*! Returns true if a point is inside a given children bounding box.
 
     \param p The points

@@ -77,7 +77,20 @@ void hmat_get_parameters(hmat_settings_t* settings)
       settings->compressionMethod = hmat_compress_svd;
       break;
     }
-    settings->admissibilityFactor = settingsCxx.admissibilityFactor;
+    switch (settingsCxx.admissibilityFormula) {
+    case fHackbusch:
+      settings->admissibilityFormula = hmat_admissibility_hackbusch;
+      break;
+    case fInfluenceRadius:
+      settings->admissibilityFormula = hmat_admissibility_influence_radius;
+      break;
+    default:
+      std::cerr << "Internal error: invalid value for admissibility formula: \"" << settingsCxx.admissibilityFormula << "\"." << std::endl;
+      std::cerr << "Internal error: using Hackbusch" << std::endl;
+      settings->admissibilityFormula = hmat_admissibility_hackbusch;
+      break;
+    }
+    settings->admissibilityFactor  = settingsCxx.admissibilityFactor;
     switch (settingsCxx.clustering) {
     case kGeometric:
       settings->clustering = hmat_cluster_geometric;
@@ -132,7 +145,19 @@ int hmat_set_parameters(hmat_settings_t* settings)
       rc = 1;
       break;
     }
-    settingsCxx.admissibilityFactor = settings->admissibilityFactor;
+    switch (settings->admissibilityFormula) {
+    case hmat_admissibility_hackbusch :
+      settingsCxx.admissibilityFormula = fHackbusch;
+      break;
+    case hmat_admissibility_influence_radius :
+      settingsCxx.admissibilityFormula = fInfluenceRadius;
+      break;
+    default:
+      std::cerr << "Invalid value for admissibility formula: \"" << settings->admissibilityFormula << "\"." << std::endl;
+      rc = 1;
+      break;
+    }
+    settingsCxx.admissibilityFactor  = settings->admissibilityFactor;
     switch (settings->clustering) {
     case hmat_cluster_geometric:
       settingsCxx.clustering = kGeometric;
