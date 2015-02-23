@@ -151,7 +151,7 @@ void go(std::vector<Point>& points, double k) {
     ClusterTree* ct = createClusterTree(points);
     std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
     TestAssemblyFunction<T> f(points, k);
-    HMatInterface<T, E> hmat(ct, ct);
+    HMatInterface<T, E> hmat(ct, ct, kNotSymmetric);
     std::cout << "HMatrix node count = " << hmat.nodesCount() << std::endl;
     Configuration<T, E>().configure(hmat);
     hmat.assemble(f, kNotSymmetric, false);

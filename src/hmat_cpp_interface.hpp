@@ -178,7 +178,7 @@ public:
       @param symmetric If kLowerSymmetric, only lower triangular structure is created
       @return a new HMatInterface instance.
    */
-  HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym = kNotSymmetric);
+  HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym);
   /** Destroy an HMatInterface instance.
 
       @note This destructor is *not* virtual, as this class is not meant to be subclassed.
