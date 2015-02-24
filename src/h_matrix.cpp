@@ -106,7 +106,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     data(HMatrixData<T>(_rows, _cols)),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), localSettings(settings) {
-  bool adm = _rows->isAdmissibleWith(_cols, settings->getAdmissibilityFactor(), settings->getMaxElementsPerBlock());
+  bool adm = data.isAdmissibleLeaf(settings);
   if (_rows->isLeaf() || _cols->isLeaf() || adm) {
     if (adm) {
       data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
