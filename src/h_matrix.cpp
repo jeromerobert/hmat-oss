@@ -582,7 +582,7 @@ void HMatrix<T>::gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>
 }
 
 template<typename T>
-void HMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
+void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
   if (beta != Constants<T>::pone) {
     y->scale(beta);
   }
@@ -591,11 +591,26 @@ void HMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullM
   if (!isLeaf()) {
     const ClusterData* myRows = rows();
     const ClusterData* myCols = cols();
-    // TODO: make this work with symmetric lower-stored matrices.
     for (int i = 0; i < 4; i++) {
       HMatrix<T>* child = static_cast<HMatrix<T>*>(getChild(i));
-      if((isTriLower || isLower) && !child)
+      char trans = matTrans;
+      if(!child)
+      {
+        if (isLower)
+        {
+          myAssert(i == 2);
+          child = static_cast<HMatrix<T>*>(getChild(1));
+          trans = (trans == 'N' ? 'T' : 'N');
+        }
+        else if (isUpper)
+        {
+          myAssert(i == 1);
+          child = static_cast<HMatrix<T>*>(getChild(2));
+          trans = (trans == 'N' ? 'T' : 'N');
+        }
+        else if (isTriLower || isTriUpper)
           continue;
+      }
       const ClusterData* childRows = child->rows();
       const ClusterData* childCols = child->cols();
       size_t rowsOffset = childRows->offset - myRows->offset;
@@ -617,9 +632,9 @@ void HMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullM
     }
   } else {
     if (data.m) {
-      y->gemm(trans, 'N', alpha, data.m, x, beta);
+      y->gemm(matTrans, 'N', alpha, data.m, x, beta);
     } else {
-      data.rk->gemv(trans, alpha, x, beta, y);
+      data.rk->gemv(matTrans, alpha, x, beta, y);
     }
   }
 }
