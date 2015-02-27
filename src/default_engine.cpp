@@ -194,6 +194,10 @@ template<typename T> double DefaultEngine<T>::norm() const {
     return hmat->norm();
 }
 
+template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result) const {
+    result.hmat = hmat->copyStructure();
+    result.hmat->copy(hmat);
+}
 #include "hmat_cpp_interface.cpp"
 
 // Explicit template instantiation

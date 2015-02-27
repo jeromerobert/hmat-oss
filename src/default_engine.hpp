@@ -42,7 +42,7 @@ public:
   void gemm(char transA, char transB, T alpha, const DefaultEngine<T> & a, const DefaultEngine<T>& b, T beta);
   void solve(FullMatrix<T>& b) const;
   void solve(DefaultEngine<T>& b) const;
-  void copy(DefaultEngine<T> & result) const {}
+  void copy(DefaultEngine<T> & result) const;
   void transpose() {}
   void createPostcriptFile(const char* filename) const;
   void dumpTreeToFile(const char* filename) const;

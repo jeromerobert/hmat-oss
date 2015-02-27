@@ -60,8 +60,10 @@ HMatInterface<T, E>::~HMatInterface() {
 }
 
 template<typename T, template <typename> class E>
-HMatInterface<T, E>::HMatInterface(HMatrix<T>* h)
-  : rows(h->data.rows), cols(h->data.cols), engine(h)
+HMatInterface<T, E>::HMatInterface(HMatrix<T>* h) :
+    rows(h == NULL ? NULL : h->data.rows),
+    cols(h == NULL ? NULL : h->data.cols),
+    engine(h)
 {}
 
 //TODO remove the synchronize parameter which is parallel specific
@@ -133,10 +135,11 @@ void HMatInterface<T, E>::solve(HMatInterface<T, E>& b) const {
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
-  HMatrix<T>* hCopy = HMatrix<T>::Zero(engine.hmat);
-  hCopy->copy(engine.hmat);
-  HMatInterface<T, E>* result = new HMatInterface<T, E>(hCopy);
-  engine.copy(result->engine);
+  HMatInterface<T, E>* result = new HMatInterface<T, E>(NULL);
+  result->rows = this->rows;
+  result->cols = this->cols;
+  engine.copy(result->engine);;
+  strongAssert(result->engine.hmat);
   return result;
 }
 
