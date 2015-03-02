@@ -70,6 +70,7 @@ public:
   ClusterAssemblyFunction(const AssemblyFunction<T>& _f,
                         const ClusterData* _rows, const ClusterData* _cols)
     : f(_f), rows(_rows), cols(_cols) {
+    // TODO factorize block_info init with BlockAssemblyFunction<T>::prepareBlock
     info.block_type = hmat_block_full;
     info.is_null_col = NULL;
     info.is_null_row = NULL;

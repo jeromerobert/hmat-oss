@@ -147,6 +147,7 @@ BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
 template<typename T>
 void BlockAssemblyFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
     hmat_block_info_t * block_info) const {
+  // TODO factorize block_info init with ClusterAssemblyFunction
   block_info->block_type = hmat_block_full;
   block_info->release_user_data = NULL;
   block_info->is_null_col = NULL;
