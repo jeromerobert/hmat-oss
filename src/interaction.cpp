@@ -31,7 +31,6 @@ template<typename T>
 FullMatrix<typename Types<T>::dp>*
 SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
                                     const ClusterData* cols,
-                                    void *handle,
                                     const hmat_block_info_t * block_info) const {
   FullMatrix<typename Types<T>::dp>* result =
     new FullMatrix<typename Types<T>::dp>(rows->n, cols->n);
@@ -91,11 +90,10 @@ void SimpleAssemblyFunction<T>::getCol(const ClusterData* rows, const ClusterDat
 template<typename T>
 BlockAssemblyFunction<T>::BlockAssemblyFunction(const ClusterData* rowData,
                                                   const ClusterData* colData,
-                                                  void* _user_context,
-                                                  prepare_func _prepare,
-                                                  compute_func _compute,
-                                                  release_func _free_data)
-  : prepare(_prepare), compute(_compute), free_data(_free_data), user_context(_user_context) {
+                                                  void* matrixUserData,
+                                                  hmat_prepare_func_t _prepare,
+                                                  compute_func _compute)
+  : prepare(_prepare), compute(_compute), matrixUserData(matrixUserData) {
   rowMapping = rowData->indices;
   colMapping = colData->indices;
   rowReverseMapping = new int[rowData->n];
@@ -125,7 +123,6 @@ template<typename T>
 FullMatrix<typename Types<T>::dp>*
 BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
                                    const ClusterData* cols,
-                                   void *handle,
                                    const hmat_block_info_t * block_info) const {
   DECLARE_CONTEXT;
   FullMatrix<typename Types<T>::dp>* result =
@@ -134,34 +131,34 @@ BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
   hmat_block_info_t local_block_info ;
 
   if (!block_info)
-    prepareBlock(rows, cols, &handle, &local_block_info);
+    prepareBlock(rows, cols, &local_block_info);
   else
     local_block_info = *block_info ;
 
   if (local_block_info.block_type != hmat_block_null)
-    compute(handle, 0, rows->n, 0, cols->n, (void*) result->m);
+    compute(local_block_info.user_data, 0, rows->n, 0, cols->n, (void*) result->m);
 
   if (!block_info)
-    releaseBlock(handle, &local_block_info);
+    releaseBlock(&local_block_info);
 
   return result;
 }
 
 template<typename T>
 void BlockAssemblyFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
-    void** handle, hmat_block_info_t * block_info) const {
+    hmat_block_info_t * block_info) const {
   block_info->block_type = hmat_block_full;
-  block_info->rowMask = (char*)calloc(rows->n, sizeof(char)) ;
-  block_info->colMask = (char*)calloc(cols->n, sizeof(char)) ;
+  block_info->release_user_data = NULL;
+  block_info->is_null_col = NULL;
+  block_info->is_null_row = NULL;
   prepare(rows->offset, rows->n, cols->offset, cols->n, rowMapping, rowReverseMapping,
-          colMapping, colReverseMapping, user_context, handle, block_info);
+          colMapping, colReverseMapping, matrixUserData, block_info);
 }
 
 template<typename T>
-void BlockAssemblyFunction<T>::releaseBlock(void* handle, hmat_block_info_t * block_info) const {
-  if (block_info->colMask) free(block_info->colMask) ;
-  if (block_info->rowMask) free(block_info->rowMask) ;
-  free_data(handle);
+void BlockAssemblyFunction<T>::releaseBlock(hmat_block_info_t * block_info) const {
+  if(block_info->release_user_data)
+    block_info->release_user_data(block_info->user_data);
 }
 
 template<typename T>

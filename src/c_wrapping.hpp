@@ -65,13 +65,12 @@ public:
 template<typename T, template <typename> class E>
 static int assemble(hmat_matrix_t * holder,
                               void* user_context,
-                              prepare_func prepare,
+                              hmat_prepare_func_t prepare,
                               compute_func compute,
-                              release_func free_data,
                               int lower_symmetric) {
   DECLARE_CONTEXT;
   HMatInterface<T, E>* hmat = (HMatInterface<T, E>*) holder;
-  BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute, free_data);
+  BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute);
   hmat->assemble(f, lower_symmetric ? kLowerSymmetric : kNotSymmetric, true);
   std::pair<size_t, size_t> p =  hmat->compressionRatio();
   std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
@@ -85,13 +84,12 @@ static int assemble(hmat_matrix_t * holder,
 template<typename T, template <typename> class E>
 static int assemble_factor(hmat_matrix_t * holder,
                               void* user_context,
-                              prepare_func prepare,
+                              hmat_prepare_func_t prepare,
                               compute_func compute,
-                              release_func free_data,
                               int lower_symmetric) {
   DECLARE_CONTEXT;
   HMatInterface<T, E>* hmat = (HMatInterface<T, E>*) holder;
-  BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute, free_data);
+  BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute);
   hmat->assemble(f, lower_symmetric ? kLowerSymmetric : kNotSymmetric, false);
   hmat->factorize();
   std::pair<size_t, size_t> p =  hmat->compressionRatio();

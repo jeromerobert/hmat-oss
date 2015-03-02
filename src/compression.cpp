@@ -62,7 +62,6 @@ using std::max;
 template<typename T>
 class ClusterAssemblyFunction {
   const AssemblyFunction<T>& f;
-  void* handle;
 
 public:
   const ClusterData* rows;
@@ -70,29 +69,29 @@ public:
   hmat_block_info_t info;
   ClusterAssemblyFunction(const AssemblyFunction<T>& _f,
                         const ClusterData* _rows, const ClusterData* _cols)
-    : f(_f), handle(NULL), rows(_rows), cols(_cols) {
+    : f(_f), rows(_rows), cols(_cols) {
     info.block_type = hmat_block_full;
-    info.rowMask = NULL;
-    info.colMask = NULL;
-    f.prepareBlock(rows, cols, &handle, &info);
+    info.is_null_col = NULL;
+    info.is_null_row = NULL;
+    info.release_user_data = NULL;
+    f.prepareBlock(rows, cols, &info);
   }
   ~ClusterAssemblyFunction() {
-    f.releaseBlock(handle, &info);
+    f.releaseBlock(&info);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
-    //TODO use block_info to optimize
-    if (!info.rowMask || !info.rowMask[index])
-    f.getRow(rows, cols, index, handle, &result);
+    if (!info.is_null_row || !info.is_null_row(&info, index))
+      f.getRow(rows, cols, index, info.user_data, &result);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
-    //TODO use block_info to optimize
-    if (!info.colMask || !info.colMask[index])
-    f.getCol(rows, cols, index, handle, &result);
+    if (!info.is_null_col || !info.is_null_col(&info, index))
+      f.getCol(rows, cols, index, info.user_data, &result);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
     if (info.block_type != hmat_block_null)
-      return f.assemble(rows, cols, handle, &info) ;
+      return f.assemble(rows, cols, &info) ;
     else
+      // TODO return
       return FullMatrix<typename Types<T>::dp>::Zero(rows->n, cols->n);
   }
 private:
@@ -269,6 +268,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
   myAssert((size_t) m->cols == cols->n);
   myAssert(m->lda >= m->rows);
 
+  //TODO replace with a case with m==NULL
   bool zeroMatrix = true;
   for (size_t col = 0; col < m->cols; col++) {
     Vector<T> v(m->m + m->rows * col, m->rows);

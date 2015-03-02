@@ -74,13 +74,22 @@ typedef enum {
     hmat_block_sparse
 } hmat_block_t;
 
-typedef struct {
+struct hmat_block_info_t_struct {
     hmat_block_t block_type;
-    char *rowMask, *colMask ; // 1 for null rows/cols, 0 otherwise (default=0)
-} hmat_block_info_t;
+    /**
+     * user data to pass from prepare function to compute function.
+     * Will also contains iser data required to execute is_null_row and
+     * is_null_col
+     */
+    void * user_data;
+    void (*release_user_data)(void* user_data);
+    char (*is_null_row)(const struct hmat_block_info_t_struct * block_info, int i);
+    char (*is_null_col)(const struct hmat_block_info_t_struct * block_info, int i);
+};
+
+typedef struct hmat_block_info_t_struct hmat_block_info_t;
 
 /*! \brief Prepare block assembly.
-
  \param row_start starting row
  \param row_count number of rows
  \param col_start starting column
@@ -90,10 +99,8 @@ typedef struct {
  \param col_hmat2client renumbered cols -> global col indices mapping
  \param col_client2hmat global col indices -> renumbered cols mapping
  \param context user provided data
- \param **data opaque pointer to data related to this block. Must be
-               freed using \a release_func().
  */
-typedef void (*prepare_func)(int row_start,
+typedef void (*hmat_prepare_func_t)(int row_start,
     int row_count,
     int col_start,
     int col_count,
@@ -102,7 +109,6 @@ typedef void (*prepare_func)(int row_start,
     int *col_hmat2client,
     int *col_client2hmat,
     void *context,
-    void **data,
     hmat_block_info_t * block_info);
 
 /*! \brief Compute a sub-block.
@@ -130,12 +136,6 @@ dimension (1 for a row). Column-major order is assumed.
  */
 typedef void (*compute_func)(void* v_data, int row_start, int row_count,
                              int col_start, int col_count, void* block);
-
-/*! \brief Release opaque pointer allocated by \a prepare_func().
-
-\param v_data opaque pointer
- */
-typedef void (*release_func)(void* v_data);
 
 /*! \brief Compute a single matrix term
 
@@ -212,9 +212,8 @@ typedef struct
       \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
       \return 0 for success.
     */
-    int (*assemble)(hmat_matrix_t* hmatrix, void* user_context, prepare_func prepare,
-                         compute_func compute, release_func free_data,
-                         int lower_symmetric);
+    int (*assemble)(hmat_matrix_t* hmatrix, void* user_context, hmat_prepare_func_t prepare,
+                         compute_func compute, int lower_symmetric);
 
     /*! Assemble a HMatrix then factorize it.
 
@@ -226,9 +225,8 @@ typedef struct
       \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
       \return 0 for success.
     */
-    int (*assemble_factor)(hmat_matrix_t* hmatrix, void* user_context, prepare_func prepare,
-                         compute_func compute, release_func free_data,
-                         int lower_symmetric);
+    int (*assemble_factor)(hmat_matrix_t* hmatrix, void* user_context, hmat_prepare_func_t prepare,
+                         compute_func compute, int lower_symmetric);
 
     /*! Assemble a HMatrix.  This is a simplified interface, a single function is provided to
       compute matrix terms.
