@@ -56,29 +56,46 @@ using std::min;
 using std::max;
 
 
-/** Convenience class to lighten the getRow() / getCol() calls.
+/* Convenience class to lighten the getRow() / getCol() / assemble calls
+   and use information from block_info_t to speed up things for sparse and null blocks.
 */
 template<typename T>
 class ClusterAssemblyFunction {
   const AssemblyFunction<T>& f;
-  void* handle;
-  const ClusterData* rows;
-  const ClusterData* cols;
 
 public:
+  const ClusterData* rows;
+  const ClusterData* cols;
+  hmat_block_info_t info;
   ClusterAssemblyFunction(const AssemblyFunction<T>& _f,
                         const ClusterData* _rows, const ClusterData* _cols)
-    : f(_f), handle(NULL), rows(_rows), cols(_cols) {
-    f.prepareBlock(rows, cols, &handle);
+    : f(_f), rows(_rows), cols(_cols) {
+    // TODO factorize block_info init with BlockAssemblyFunction<T>::prepareBlock
+    info.block_type = hmat_block_full;
+    info.release_user_data = NULL;
+    info.is_null_col = NULL;
+    info.is_null_row = NULL;
+    info.user_data = NULL;
+    f.prepareBlock(rows, cols, &info);
+    myAssert((info.user_data == NULL) == (info.release_user_data == NULL));
   }
   ~ClusterAssemblyFunction() {
-    f.releaseBlock(handle);
+    f.releaseBlock(&info);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
-    f.getRow(rows, cols, index, handle, &result);
+    if (info.block_type != hmat_block_sparse || !info.is_null_row(&info, index))
+      f.getRow(rows, cols, index, info.user_data, &result);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
-    f.getCol(rows, cols, index, handle, &result);
+    if (info.block_type != hmat_block_sparse || !info.is_null_col(&info, index))
+      f.getCol(rows, cols, index, info.user_data, &result);
+  }
+  FullMatrix<typename Types<T>::dp>* assemble() const {
+    if (info.block_type != hmat_block_null)
+      return f.assemble(rows, cols, &info) ;
+    else
+      // TODO return
+      return FullMatrix<typename Types<T>::dp>::Zero(rows->n, cols->n);
   }
 private:
   ClusterAssemblyFunction(ClusterAssemblyFunction&o) {}; // No copy
@@ -152,7 +169,7 @@ template<typename T> static void findMax(FullMatrix<T>* m, int& i, int& j) {
   \return the index of the chosen column, or -1 if no column can be found.
  */
 template<typename T>
-static int findCol(ClusterAssemblyFunction<T>& block, vector<bool>& colFree,
+static int findCol(const ClusterAssemblyFunction<T>& block, vector<bool>& colFree,
                    Vector<typename Types<T>::dp>& col) {
   int colCount = colFree.size();
   bool found = false;
@@ -173,7 +190,7 @@ static int findCol(ClusterAssemblyFunction<T>& block, vector<bool>& colFree,
 
 
 template<typename T>
-static int findMinRow(ClusterAssemblyFunction<T>& block,
+static int findMinRow(const ClusterAssemblyFunction<T>& block,
                       vector<bool>& rowFree,
                       const vector<Vector<typename Types<T>::dp>*>& aCols,
                       const vector<Vector<typename Types<T>::dp>*>& bCols,
@@ -210,7 +227,7 @@ static int findMinRow(ClusterAssemblyFunction<T>& block,
 }
 
 template<typename T>
-static int findMinCol(ClusterAssemblyFunction<T>& block,
+static int findMinCol(const ClusterAssemblyFunction<T>& block,
                       vector<bool>& colFree,
                       const vector<Vector<typename Types<T>::dp>*>& aCols,
                       const vector<Vector<typename Types<T>::dp>*>& bCols,
@@ -254,6 +271,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
   myAssert((size_t) m->cols == cols->n);
   myAssert(m->lda >= m->rows);
 
+  //TODO replace with a case with m==NULL
   bool zeroMatrix = true;
   for (size_t col = 0; col < m->cols; col++) {
     Vector<T> v(m->m + m->rows * col, m->rows);
@@ -302,12 +320,12 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressSvd(const AssemblyFunction<T>& f,
-            const ClusterData* rows, const ClusterData* cols) {
+compressSvd(const ClusterAssemblyFunction<T>& block) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
-  FullMatrix<dp_t>* m = f.assemble(rows, cols);
-  RkMatrix<dp_t>* result = compressMatrix(m, rows, cols);
+  // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
+  FullMatrix<dp_t>* m = block.assemble();
+  RkMatrix<dp_t>* result = compressMatrix(m, block.rows, block.cols);
   delete m;
   return result;
 }
@@ -315,11 +333,11 @@ compressSvd(const AssemblyFunction<T>& f,
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaFull(const AssemblyFunction<T>& f,
-                const ClusterData* rows, const ClusterData* cols) {
+compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
-  FullMatrix<dp_t>* m = f.assemble(rows, cols);
+  // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
+  FullMatrix<dp_t>* m = block.assemble();
 
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows, m->cols);
@@ -386,7 +404,7 @@ compressAcaFull(const AssemblyFunction<T>& f,
   delete m;
 
   if (nu == 0) {
-    return new RkMatrix<dp_t>(NULL, rows, NULL, cols, AcaFull);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaFull);
   }
 
   FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(tmpA.rows, nu);
@@ -396,20 +414,18 @@ compressAcaFull(const AssemblyFunction<T>& f,
   newB->clear();
   memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
 
-  return new RkMatrix<dp_t>(newA, rows, newB, cols, AcaFull);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaFull);
 }
 
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaPartial(const AssemblyFunction<T>& f,
-                   const ClusterData* rows, const ClusterData* cols) {
+compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   double estimateSquaredNorm = 0;
-  ClusterAssemblyFunction<T> block(f, rows, cols);
 
-  const int rowCount = rows->n;
-  const int colCount = cols->n;
+  const int rowCount = block.rows->n;
+  const int colCount = block.cols->n;
   int maxK = min(rowCount, colCount);
   // Contains false for the rows that were already used as pivot
   vector<bool> rowFree(rowCount, true);
@@ -424,7 +440,7 @@ compressAcaPartial(const AssemblyFunction<T>& f,
   int k = 0;
 
   do {
-    Vector<dp_t>* bCol = new Vector<dp_t>(cols->n);
+    Vector<dp_t>* bCol = new Vector<dp_t>(block.cols->n);
     // Calculation of row I and its residue
     block.getRow(I, *bCol);
     updateRow(*bCol, I, bCols, aCols, k);
@@ -455,7 +471,7 @@ compressAcaPartial(const AssemblyFunction<T>& f,
       bCols.push_back(bCol);
 
       // Compute column J and residue
-      Vector<dp_t>* aCol = new Vector<dp_t>(rows->n);
+      Vector<dp_t>* aCol = new Vector<dp_t>(block.rows->n);
       block.getCol(J, *aCol);
       updateCol(*aCol, J, aCols, bCols, k);
       colFree[J] = false;
@@ -498,13 +514,13 @@ compressAcaPartial(const AssemblyFunction<T>& f,
 
   FullMatrix<dp_t> *newA, *newB;
   if (k != 0) {
-    newA = new FullMatrix<dp_t>(rows->n, k);
+    newA = new FullMatrix<dp_t>(block.rows->n, k);
     for (int i = 0; i < k; i++) {
       memcpy(newA->m + (i * newA->rows), aCols[i]->v, sizeof(dp_t) * newA->rows);
       delete aCols[i];
       aCols[i] = NULL;
     }
-    newB = new FullMatrix<dp_t>(cols->n, k);
+    newB = new FullMatrix<dp_t>(block.cols->n, k);
     for (int i = 0; i < k; i++) {
       memcpy(newB->m + (i * newB->rows), bCols[i]->v, sizeof(dp_t) * newB->rows);
       delete bCols[i];
@@ -512,31 +528,29 @@ compressAcaPartial(const AssemblyFunction<T>& f,
     }
   } else {
     // If k == 0, block is only made of zeros.
-    return new RkMatrix<dp_t>(NULL, rows, NULL, cols, AcaPartial);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaPartial);
   }
 
-  return new RkMatrix<dp_t>(newA, rows, newB, cols, AcaPartial);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaPartial);
 }
 
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaPlus(const AssemblyFunction<T>& f,
-                const ClusterData* rows, const ClusterData* cols) {
+compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   double estimateSquaredNorm = 0;
   int i_ref, j_ref;
-  int rowCount = rows->n, colCount = cols->n;
+  int rowCount = block.rows->n, colCount = block.cols->n;
   int maxK = min(rowCount, colCount);
   Vector<dp_t> bRef(colCount), aRef(rowCount);
   vector<bool> rowFree(rowCount, true), colFree(colCount, true);
   vector<Vector<dp_t>*> aCols, bCols;
-  ClusterAssemblyFunction<T> block(f, rows, cols);
 
   j_ref = findCol(block, colFree, aRef);
   if (j_ref == -1) {
 	// The block is completely zero.
-    return new RkMatrix<dp_t>(NULL, rows, NULL, cols, AcaPlus);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaPlus);
   }
 
   // The reference row is chosen such that it intersects the reference
@@ -656,22 +670,52 @@ compressAcaPlus(const AssemblyFunction<T>& f,
   } while (k < maxK);
 
   myAssert(k > 0);
-  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(rows->n, k);
+  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(block.rows->n, k);
   for (int i = 0; i < k; i++) {
     memcpy(newA->m + (i * newA->rows), aCols[i]->v, sizeof(dp_t) * newA->rows);
     delete aCols[i];
     aCols[i] = NULL;
   }
-  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(cols->n, k);
+  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(block.cols->n, k);
   for (int i = 0; i < k; i++) {
     memcpy(newB->m + (i * newB->rows), bCols[i]->v, sizeof(dp_t) * newB->rows);
     delete bCols[i];
     bCols[i] = NULL;
   }
-  return new RkMatrix<dp_t>(newA, rows, newB, cols, AcaPlus);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaPlus);
 }
 
 #include <iostream>
+
+template<typename T>
+RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod method,
+                                                           const ClusterAssemblyFunction<T>& block) {
+  typedef typename Types<T>::dp dp_t;
+  RkMatrix<dp_t>* rk = NULL;
+
+  switch (method) {
+  case Svd:
+    rk = compressSvd(block);
+    break;
+  case AcaFull:
+    rk = compressAcaFull(block);
+    break;
+  case AcaPartial:
+    rk = compressAcaPartial(block);
+    break;
+  case AcaPlus:
+    rk = compressAcaPlus(block);
+    break;
+  case NoCompression:
+    // Must not happen
+    strongAssert(false);
+    break;
+  }
+
+  return rk;
+}
+
+
 /* Appele par HMatrix<T>::assemble() */
 template<typename T>
 RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
@@ -680,28 +724,12 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
                                           const ClusterData* cols) {
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
+  ClusterAssemblyFunction<T> block(f, rows, cols);
 
-  switch (method) {
-  case Svd:
-    rk = compressSvd(f, rows, cols);
-    break;
-  case AcaFull:
-    rk = compressAcaFull(f, rows, cols);
-    break;
-  case AcaPartial:
-    rk = compressAcaPartial(f, rows, cols);
-    break;
-  case AcaPlus:
-    rk = compressAcaPlus(f, rows, cols);
-    break;
-  case NoCompression:
-    // Must not happen
-    strongAssert(false);
-    break;
-  }
+  rk = compressWithoutValidation(method, block);
 
   if (HMatrix<T>::validateCompression) {
-    FullMatrix<dp_t>* full = f.assemble(rows, cols);
+    FullMatrix<dp_t>* full = block.assemble();
     if (rk->a) rk->a->checkNan();
     if (rk->b) rk->b->checkNan();
     FullMatrix<dp_t>* rkFull = rk->eval();
@@ -730,27 +758,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
         RkMatrix<dp_t>* rk_bis = NULL;
 
-        if (max(rows->n, cols->n) < 100) {
-          rk_bis = compressSvd(f, rows, cols);
-        } else {
-          switch (method) {
-            case Svd:
-              rk_bis = compressSvd(f, rows, cols);
-              break;
-            case AcaFull:
-              rk_bis = compressAcaFull(f, rows, cols);
-              break;
-            case AcaPartial:
-              rk_bis = compressAcaPartial(f, rows, cols);
-              break;
-            case AcaPlus:
-              rk_bis = compressAcaPlus(f, rows, cols);
-              break;
-            case NoCompression:
-              // Should not happen
-              break;
-          }
-        }
+        rk_bis = compressWithoutValidation(method, block);
         delete rk_bis ;
       }
 

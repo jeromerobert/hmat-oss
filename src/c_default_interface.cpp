@@ -170,3 +170,8 @@ const char * hmat_get_version()
 {
     return HMAT_VERSION;
 }
+
+const char * hmat_get_build_date()
+{
+  return "Built on " __DATE__ " at " __TIME__ "" ;
+}

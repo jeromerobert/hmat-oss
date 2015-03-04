@@ -42,7 +42,8 @@ public:
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
   virtual ~AssemblyFunction() {};
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
-                                                      const ClusterData* cols) const = 0;
+                                                      const ClusterData* cols,
+                                                      const hmat_block_info_t * block_info=NULL) const = 0;
   /*! \brief Prepare the Assembly function to optimize getRow() and getCol().
 
     In some cases, it is more efficient to tell the client code that a
@@ -54,12 +55,12 @@ public:
     \param handle The handle that is storing the associated data.
   */
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            void** handle) const {}
+                            hmat_block_info_t * block_info) const {}
   /*! \brief Release a block prepared with \a AssemblyFunction::releaseBlock().
 
     \param handle the handle passed to \a AssemblyFunction::releaseBlock().
   */
-  virtual void releaseBlock(void* handle) const {}
+  virtual void releaseBlock(hmat_block_info_t *) const {}
   /*! \brief Return a row of a matrix block.
 
     This functions returns a \a Vector representing the row of index
@@ -132,7 +133,8 @@ public:
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
   virtual ~SimpleAssemblyFunction() {};
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
-                                                      const ClusterData* cols) const;
+                                                      const ClusterData* cols,
+                                                      const hmat_block_info_t * block_info=NULL) const;
   virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
                                                 const ClusterData* cols,
                                                 int rowIndex, void* handle=NULL) const;
@@ -150,10 +152,9 @@ public:
 
 template<typename T> class BlockAssemblyFunction : public AssemblyFunction<T> {
 private:
-  prepare_func prepare;
+  hmat_prepare_func_t prepare;
   compute_func compute;
-  release_func free_data;
-  void* user_context;
+  void* matrixUserData;
   int* rowMapping;
   int* rowReverseMapping;
   int* colMapping;
@@ -161,16 +162,16 @@ private:
 
 public:
   BlockAssemblyFunction(const ClusterData* _rowData, const ClusterData* _colData,
-                         void* _user_context,
-                         prepare_func _prepare, compute_func _compute,
-                         release_func _free_data);
+                         void* matrixUserData,
+                         hmat_prepare_func_t _prepare, compute_func _compute);
   ~BlockAssemblyFunction();
   typename Types<T>::dp interaction(int i, int j) const;
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
-                                              const ClusterData* cols) const;
+                                              const ClusterData* cols,
+                                              const hmat_block_info_t * block_info=NULL) const;
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            void** handle) const;
-  virtual void releaseBlock(void* handle) const;
+                            hmat_block_info_t * block_info) const;
+  virtual void releaseBlock(hmat_block_info_t * block_info) const;
   virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
                                                 const ClusterData* cols,
                                                 int rowIndex, void* handle=NULL) const;
