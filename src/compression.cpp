@@ -72,20 +72,22 @@ public:
     : f(_f), rows(_rows), cols(_cols) {
     // TODO factorize block_info init with BlockAssemblyFunction<T>::prepareBlock
     info.block_type = hmat_block_full;
+    info.release_user_data = NULL;
     info.is_null_col = NULL;
     info.is_null_row = NULL;
-    info.release_user_data = NULL;
+    info.user_data = NULL;
     f.prepareBlock(rows, cols, &info);
+    myAssert((info.user_data == NULL) == (info.release_user_data == NULL));
   }
   ~ClusterAssemblyFunction() {
     f.releaseBlock(&info);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
-    if (!info.is_null_row || !info.is_null_row(&info, index))
+    if (info.block_type != hmat_block_sparse || !info.is_null_row(&info, index))
       f.getRow(rows, cols, index, info.user_data, &result);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
-    if (!info.is_null_col || !info.is_null_col(&info, index))
+    if (info.block_type != hmat_block_sparse || !info.is_null_col(&info, index))
       f.getCol(rows, cols, index, info.user_data, &result);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {

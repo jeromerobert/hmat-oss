@@ -152,8 +152,11 @@ void BlockAssemblyFunction<T>::prepareBlock(const ClusterData* rows, const Clust
   block_info->release_user_data = NULL;
   block_info->is_null_col = NULL;
   block_info->is_null_row = NULL;
+  block_info->user_data = NULL;
   prepare(rows->offset, rows->n, cols->offset, cols->n, rowMapping, rowReverseMapping,
           colMapping, colReverseMapping, matrixUserData, block_info);
+  // check memory leak
+  myAssert((block_info->user_data == NULL) == (block_info->release_user_data == NULL));
 }
 
 template<typename T>

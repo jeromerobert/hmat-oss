@@ -127,6 +127,15 @@ typedef struct {
 } block_data_t;
 
 /**
+  Function to free our block_data_t structure.  As we only store pointers, there is no
+*/
+void
+free_hmat(void *data)
+{
+  free((block_data_t*) data);
+}
+
+/**
   prepare_hmat is called by hmat library to prepare assembly of
   a cluster block.  We allocate a block_data_t, which is then
   passed to the compute_hmat function.  We have to store all
@@ -142,11 +151,11 @@ prepare_hmat(int row_start,
              int *col_hmat2client,
              int *col_client2hmat,
              void *user_context,
-             void **data,
              hmat_block_info_t * block_info)
 {
-  *data = calloc(1, sizeof(block_data_t));
-  block_data_t* bdata = (block_data_t*) *data;
+  block_info->user_data = calloc(1, sizeof(block_data_t));
+  block_info->release_user_data = free_hmat;
+  block_data_t* bdata = (block_data_t*) block_info->user_data;
 
   bdata->row_start = row_start;
   bdata->col_start = col_start;
@@ -195,16 +204,6 @@ compute_hmat(void *data,
       }
   }
 }
-
-/**
-  Function to free our block_data_t structure.  As we only store pointers, there is no
-*/
-void
-free_hmat(void *data)
-{
-  free((block_data_t*) data);
-}
-
 
 int main(int argc, char **argv) {
   double radius, step, k;
@@ -279,7 +278,7 @@ int main(int argc, char **argv) {
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
   hmat.hmat_get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
-  rc = hmat.assemble(hmatrix, &problem_data, prepare_hmat, compute_hmat, free_hmat, 0);
+  rc = hmat.assemble(hmatrix, &problem_data, prepare_hmat, compute_hmat, 0);
   if (rc) {
     fprintf(stderr, "Error in assembly, return code is %d, exiting...\n", rc);
     hmat.finalize();
