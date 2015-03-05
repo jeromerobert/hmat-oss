@@ -157,6 +157,9 @@ template<typename T> void FullMatrix<T>::clear() {
   myAssert(lda == rows);
   size_t size = ((size_t) rows) * cols * sizeof(T);
   memset(m, 0, size);
+  if (diagonal) {
+    memset(diagonal->v, 0, rows * sizeof(T));
+  }
 }
 
 template<typename T> void FullMatrix<T>::scale(T alpha) {
@@ -182,6 +185,9 @@ template<typename T> void FullMatrix<T>::scale(T alpha) {
         x += lda;
       }
     }
+  }
+  if (diagonal) {
+    proxy_cblas::scal(rows, alpha, diagonal->v, 1);
   }
 }
 
