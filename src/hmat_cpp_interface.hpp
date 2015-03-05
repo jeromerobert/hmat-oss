@@ -177,10 +177,9 @@ public:
 
       @param _rows The row ClusterTree instance, built with \a createClusterTree()
       @param _cols The column ClusterTree instance, built with \a createClusterTree()
-      @param symmetric If true, matrix structure is symmetric
       @return a new HMatInterface instance.
    */
-  HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym = kNotSymmetric);
+  HMatInterface(ClusterTree* _rows, ClusterTree* _cols);
   /** Destroy an HMatInterface instance.
 
       @note This destructor is *not* virtual, as this class is not meant to be subclassed.
