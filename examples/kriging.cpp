@@ -137,22 +137,10 @@ int go(const char* pointsFilename) {
 
   ClusterTree* ct = createClusterTree(points);
   std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
-  // Either store lower triangular matrix and use LDLt (or LLt) factorization or
-  // store full matrix and use LU factorization.
-#if 0
-  HMatInterface<D_t, E> hmat(ct, ct, kLowerSymmetric);
-  settings.useLdlt = true;
-  settings.useLu = false;
-  settings.cholesky = false;
-#else
-  HMatInterface<D_t, E> hmat(ct, ct, kNotSymmetric);
-  settings.useLdlt = false;
-  settings.useLu = true;
-  settings.cholesky = false;
-#endif
-  settings.setParameters();
+  HMatInterface<D_t, E> hmat(ct, ct);
 
   hmat.assemble(f, kLowerSymmetric);
+
 
   std::pair<size_t, size_t> compressionRatio = hmat.compressionRatio();
   std::cout << "Compression Ratio = "
@@ -160,7 +148,6 @@ int go(const char* pointsFilename) {
             << "%" << std::endl;
 
   std::cout << "done.\nFactorisation...";
-
   hmat.factorize();
 
   std::cout << "Resolution...";
