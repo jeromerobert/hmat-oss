@@ -177,10 +177,9 @@ public:
 
       @param _rows The row ClusterTree instance, built with \a createClusterTree()
       @param _cols The column ClusterTree instance, built with \a createClusterTree()
-      @param symmetric If kLowerSymmetric, only lower triangular structure is created
       @return a new HMatInterface instance.
    */
-  HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym);
+  HMatInterface(ClusterTree* _rows, ClusterTree* _cols);
   /** Destroy an HMatInterface instance.
 
       @note This destructor is *not* virtual, as this class is not meant to be subclassed.
@@ -194,8 +193,7 @@ public:
       when \a HMatSettings::recompress is true.
 
       @param f The assembly function used to compute various matrix sub-parts
-      @param sym If kLowerSymmetric, compute only the lower triangular matrix, and transpose
-                 block to store upper counterpart.
+      @param sym Set the symmetry of the HMatrix
       @param synchronize
    */
   void assemble(AssemblyFunction<T>& f, SymmetryFlag sym, bool synchronize=true);
