@@ -2,6 +2,23 @@ language: cpp
 
 compiler:
   - gcc
+  - clang
+
+env:
+  - CMAKE_BUILD_TYPE=Release BUILD_SHARED_LIBS=ON
+
+matrix:
+  include:
+  - compiler: gcc
+  - compiler: clang
+  - compiler: gcc
+    env: CMAKE_BUILD_TYPE=Debug BUILD_SHARED_LIBS=ON
+  - compiler: gcc
+    env: CMAKE_BUILD_TYPE=Release BUILD_SHARED_LIBS=OFF
+  - compiler: gcc
+    env: CMAKE_BUILD_TYPE=Debug BUILD_SHARED_LIBS=OFF
+  exclude:
+  - env: CMAKE_BUILD_TYPE=Release BUILD_SHARED_LIBS=ON
 
 before_install:
  - sudo apt-get update -qq
@@ -10,6 +27,7 @@ before_install:
 before_script:
   - mkdir build
   - cd build
-  - cmake -DBUILD_EXAMPLES=ON ..
 
-script: make
+script:
+  - cmake -DBUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE ..
+  - make VERBOSE=1
