@@ -596,20 +596,21 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
       char trans = matTrans;
       if(!child)
       {
-        if (isLower)
+        if (isTriLower || isTriUpper)
+          continue;
+        else if (isLower)
         {
           myAssert(i == 2);
           child = static_cast<HMatrix<T>*>(getChild(1));
           trans = (trans == 'N' ? 'T' : 'N');
         }
-        else if (isUpper)
+        else
         {
+          myAssert(isUpper);
           myAssert(i == 1);
           child = static_cast<HMatrix<T>*>(getChild(2));
           trans = (trans == 'N' ? 'T' : 'N');
         }
-        else if (isTriLower || isTriUpper)
-          continue;
       }
       const ClusterData* childRows = child->rows();
       const ClusterData* childCols = child->cols();
