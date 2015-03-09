@@ -110,10 +110,10 @@ ClusterTree::~ClusterTree() {
  */
 bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {
   size_t elements = ((size_t) data.n) * other->data.n;
-  if (elements > max_size) {
+  if(elements < max_size && data.n > 1)
+    return min(diameter(), other->diameter()) <= eta * distanceTo(other);
+  else
     return false;
-  }
-  return min(diameter(), other->diameter()) <= eta * distanceTo(other);
 }
 
 double ClusterTree::getEta(const ClusterTree* other) const {
