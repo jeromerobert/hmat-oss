@@ -250,13 +250,13 @@ void ClusterTree::sortByDimension(int dim) {
   int* myIndices = data.indices + data.offset;
   switch (dim) {
   case 0:
-    sort(myIndices, myIndices + data.n, IndicesComparator<0>(data));
+    stable_sort(myIndices, myIndices + data.n, IndicesComparator<0>(data));
     break;
   case 1:
-    sort(myIndices, myIndices + data.n, IndicesComparator<1>(data));
+    stable_sort(myIndices, myIndices + data.n, IndicesComparator<1>(data));
     break;
   case 2:
-    sort(myIndices, myIndices + data.n, IndicesComparator<2>(data));
+    stable_sort(myIndices, myIndices + data.n, IndicesComparator<2>(data));
     break;
   default:
     strongAssert(false);
