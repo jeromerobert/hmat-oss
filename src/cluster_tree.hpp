@@ -64,9 +64,9 @@ public:
   /// Global indices array
   int *indices;
   /// offset of the start of this node's data in indices
-  size_t offset;
+  int offset;
   /// length of this node's data in indices
-  size_t n;
+  int n;
   const std::vector<Point>* points;
 
 public:
@@ -103,7 +103,7 @@ public:
    */
   void computeBoundingBox(Point boundingBox[2]) const;
 
-  ClusterData(int* _indices, size_t _offset, size_t _n, const std::vector<Point>* _points)
+  ClusterData(int* _indices, int _offset, int _n, const std::vector<Point>* _points)
     : indices(_indices), offset(_offset), n(_n), points(_points) {}
 };
 

@@ -28,7 +28,7 @@
 #define _TREE_HPP
 #include <vector>
 #include <list>
-#include <cstddef> // size_t
+#include <cstddef>
 
 /*! \brief Templated tree class.
 

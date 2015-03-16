@@ -74,7 +74,7 @@ using std::isnan;
 
 /** FullMatrix */
 template<typename T>
-FullMatrix<T>::FullMatrix(T* _m, size_t _rows, size_t _cols, int _lda)
+FullMatrix<T>::FullMatrix(T* _m, int _rows, int _cols, int _lda)
   : ownsMemory(false), m(_m), rows(_rows), cols(_cols), lda(_lda), pivots(NULL),
     diagonal(NULL), isTriUpper(false), isTriLower(false) {
   if (lda == -1) {
@@ -114,7 +114,7 @@ template<> static void poisonArray(Z_t* array, size_t n) {
 #endif
 
 template<typename T>
-FullMatrix<T>::FullMatrix(size_t _rows, size_t _cols)
+FullMatrix<T>::FullMatrix(int _rows, int _cols)
   : ownsMemory(true), rows(_rows), cols(_cols), lda(_rows), pivots(NULL),
     diagonal(NULL), isTriUpper(false), isTriLower(false) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
@@ -129,7 +129,7 @@ FullMatrix<T>::FullMatrix(size_t _rows, size_t _cols)
 }
 
 template<typename T>
-FullMatrix<T>* FullMatrix<T>::Zero(size_t rows, size_t cols) {
+FullMatrix<T>* FullMatrix<T>::Zero(int rows, int cols) {
   FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
 #ifdef POISON_ALLOCATION
   // The memory was poisoned in FullMatrix<T>::FullMatrix(), set it back to 0;
@@ -168,8 +168,13 @@ template<typename T> void FullMatrix<T>::scale(T alpha) {
     if (alpha == Constants<T>::zero) {
       this->clear();
     } else {
-      // TODO: be careful to overflow!
-      int nm = rows * cols;
+      // Warning: check for overflow
+      size_t nm = ((size_t) rows) * cols;
+      const size_t block_size_blas = 1 << 30;
+      while (nm > block_size_blas) {
+        proxy_cblas::scal(block_size_blas, alpha, m + nm - block_size_blas, 1);
+        nm -= block_size_blas;
+      }
       proxy_cblas::scal(nm, alpha, m, 1);
     }
   } else {
@@ -195,7 +200,7 @@ template<typename T> void FullMatrix<T>::transpose() {
   myAssert(lda == rows);
   myAssert(m);
 #ifdef HAVE_MKL_IMATCOPY
-  proxy_mkl::imatcopy((size_t) rows, (size_t) cols, m);
+  proxy_mkl::imatcopy(rows, cols, m);
   std::swap(rows, cols);
   lda = rows;
 #else
@@ -236,9 +241,9 @@ template<typename T> FullMatrix<T>* FullMatrix<T>::copy() const {
     size_t size = ((size_t) rows) * cols * sizeof(T);
     memcpy(result->m, m, size);
   } else {
-    for (size_t col = 0; col < cols; col++) {
-      size_t resultOffset = result->rows * col;
-      size_t offset = lda * col;
+    for (int col = 0; col < cols; col++) {
+      size_t resultOffset = ((size_t) result->rows) * col;
+      size_t offset = ((size_t) lda) * col;
       memcpy(result->m + resultOffset, m + offset, rows * sizeof(T));
     }
   }
@@ -253,9 +258,8 @@ template<typename T> FullMatrix<T>* FullMatrix<T>::copyAndTranspose() const {
     proxy_mkl::omatcopy(rows, cols, m, result->m);
   } else {
 #endif
-  const int _rows = rows, _cols = cols;
-  for (int i = 0; i < _rows; i++) {
-    for (int j = 0; j < _cols; j++) {
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
       result->get(j, i) = get(i, j);
     }
   }
@@ -311,7 +315,7 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
     // TODO: Test with scale to see if it is better.
     for (int j = 0; j < cols; j++) {
       for (int i = 0; i < rows; i++) {
-        m[i + j * lda] *= diag[i];
+        m[i + j * ((size_t) lda)] *= diag[i];
       }
     }
     if (inverse) {
@@ -319,7 +323,7 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
     }
   } else {
     for (int j = 0; j < cols; j++) {
-      proxy_cblas::scal(rows, diag[j], m + j * lda, 1);
+      proxy_cblas::scal(rows, diag[j], m + j * ((size_t) lda), 1);
     }
   }
 }
@@ -371,7 +375,7 @@ void FullMatrix<T>::ldltDecomposition() {
 
 template<typename T> void FullMatrix<T>::lltDecomposition() {
     // from http://www.netlib.org/lapack/lawnspdf/lawn41.pdf page 120
-    const size_t n2 = rows * rows;
+    const size_t n2 = ((size_t) rows) * rows;
     const size_t n3 = n2 * rows;
     const size_t muls = n3 / 6 + n2 / 2 + rows / 3;
     const size_t adds = n3 / 6 - rows / 6;
@@ -391,18 +395,16 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
 
 template<typename T>
 void FullMatrix<T>::luDecomposition() {
-  int mm = rows;
-  int n = cols;
   pivots = (int*) calloc(rows, sizeof(int));
   strongAssert(pivots);
   int info;
   {
-    const size_t _m = mm, _n = n;
+    const size_t _m = rows, _n = cols;
     const size_t muls = _m * _n *_n / 2 - _n *_n*_n / 6 + _m * _n / 2 - _n*_n / 2 + 2 * _n / 3;
     const size_t adds = _m * _n *_n / 2 - _n *_n*_n / 6 + _m * _n / 2 + _n / 6;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = proxy_lapack::getrf(mm, n, m, lda, pivots);
+  info = proxy_lapack::getrf(rows, cols, m, lda, pivots);
   strongAssert(!info);
 }
 
@@ -491,12 +493,10 @@ void FullMatrix<T>::inverse() {
 
   myAssert(rows == cols);
 
-  int mm = rows;
-  int n = cols;
   int *ipiv = new int[rows];
   int info;
   {
-    size_t vn = n, vm = n;
+    size_t vn = cols, vm = cols;
     // getrf
     size_t additions = (vm*vn*vn)/2 - (vn*vn*vn)/6 - (vm*vn)/2 + vn/6;
     size_t multiplications = (vm*vn*vn)/2 - (vn*vn*vn)/6 + (vm*vn)/2
@@ -507,17 +507,17 @@ void FullMatrix<T>::inverse() {
     multiplications = (2*vn*vn*vn)/3 + (vn*vn)/2 + (5*vn)/6;
     increment_flops(Multipliers<T>::add * additions + Multipliers<T>::mul * multiplications);
   }
-  info = proxy_lapack::getrf(mm, n, m, lda, ipiv);
+  info = proxy_lapack::getrf(rows, cols, m, lda, ipiv);
   strongAssert(!info);
   // We call it twice: the first time to know the optimal size of
   // temporary arrays, and the second time for real calculation.
   int workSize;
   T workSize_req;
-  info = proxy_lapack::getri(mm, m, lda, ipiv, &workSize_req, -1);
+  info = proxy_lapack::getri(rows, m, lda, ipiv, &workSize_req, -1);
   workSize = (int) hmat::real(workSize_req) + 1;
   T* work = new T[workSize];
   strongAssert(work);
-  info = proxy_lapack::getri(mm, m, lda, ipiv, work, workSize);
+  info = proxy_lapack::getri(rows, m, lda, ipiv, work, workSize);
   delete[] work;
   strongAssert(!info);
   delete[] ipiv;
@@ -562,7 +562,7 @@ template<typename T>
 void FullMatrix<T>::axpy(T alpha, const FullMatrix<T>* a) {
   myAssert(rows == a->rows);
   myAssert(cols == a->cols);
-  size_t size = rows * cols;
+  size_t size = ((size_t) rows) * cols;
 
   increment_flops(Multipliers<T>::add * size
 		  + (alpha == Constants<T>::pone ? 0 : Multipliers<T>::mul * size));
@@ -573,14 +573,13 @@ void FullMatrix<T>::axpy(T alpha, const FullMatrix<T>* a) {
   }
 
   for (int col = 0; col < cols; col++) {
-    proxy_cblas::axpy(rows, alpha, a->m + col * a->lda, 1, m + col * lda, 1);
+    proxy_cblas::axpy(rows, alpha, a->m + ((size_t) col) * a->lda, 1, m + ((size_t) col) * lda, 1);
   }
 }
 
 template<typename T>
 double FullMatrix<T>::norm() const {
-  size_t size;
-  size = rows * cols;
+  size_t size = ((size_t) rows) * cols;
   T result = Constants<T>::zero;
 
   // Fast path
@@ -598,7 +597,7 @@ double FullMatrix<T>::norm() const {
 template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
   int ierr;
   int fd;
-  size_t size = rows * cols * sizeof(T) + 5 * sizeof(int);
+  size_t size = ((size_t) rows) * cols * sizeof(T) + 5 * sizeof(int);
 
   strongAssert(lda == rows);
 
@@ -614,8 +613,8 @@ template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
   strongAssert(!ierr);
   int *asIntArray = (int*) mmapedFile;
   asIntArray[0] = Constants<T>::code;
-  asIntArray[1] = (int) rows;
-  asIntArray[2] = (int) cols;
+  asIntArray[1] = rows;
+  asIntArray[2] = cols;
   asIntArray[3] = sizeof(T);
   asIntArray[4] = 0;
   asIntArray += 5;
@@ -634,7 +633,7 @@ template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
 }
 
 template<typename T> size_t FullMatrix<T>::memorySize() const {
-   return rows * cols * sizeof(T);
+   return ((size_t) rows) * cols * sizeof(T);
 }
 
 template<typename T> void checkNanReal(const FullMatrix<T>* m) {
@@ -670,14 +669,14 @@ template<> void FullMatrix<Z_t>::checkNan() const {
 
 // MmapedFullMatrix
 template<typename T>
-MmapedFullMatrix<T>::MmapedFullMatrix(size_t rows, size_t cols, const char* filename)
+MmapedFullMatrix<T>::MmapedFullMatrix(int rows, int cols, const char* filename)
   : m(NULL, rows, cols), mmapedFile(NULL), fd(-1), size(0) {
 #ifdef _WIN32
   strongAssert(false); // no mmap() on Windows
 #else
   int ierr;
 
-  size = rows * cols * sizeof(T) + 5 * sizeof(int);
+  size = ((size_t) rows) * cols * sizeof(T) + 5 * sizeof(int);
   fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
   strongAssert(fd != -1);
   ierr = lseek(fd, size - 1, SEEK_SET);
@@ -689,8 +688,8 @@ MmapedFullMatrix<T>::MmapedFullMatrix(size_t rows, size_t cols, const char* file
   strongAssert(!ierr);
   int *asIntArray = (int*) mmapedFile;
   asIntArray[0] = 0;
-  asIntArray[1] = (int) rows;
-  asIntArray[2] = (int) cols;
+  asIntArray[1] = rows;
+  asIntArray[2] = cols;
   asIntArray[3] = sizeof(T);
   asIntArray[4] = 0;
   asIntArray += 5;
@@ -739,12 +738,12 @@ MmapedFullMatrix<T>* MmapedFullMatrix<T>::fromFile(const char* filename) {
 
 
 /** Vector */
-template<typename T> Vector<T>::Vector(T* _v, size_t _rows)
+template<typename T> Vector<T>::Vector(T* _v, int _rows)
   : ownsMemory(false), v(_v), rows(_rows) {}
 
-template<typename T> Vector<T>::Vector(size_t _rows)
+template<typename T> Vector<T>::Vector(int _rows)
   : ownsMemory(true), rows(_rows) {
-  size_t size = ((size_t) rows) * sizeof(T);
+  size_t size = rows * sizeof(T);
   v = (T*) calloc(size, 1);
   REGISTER_ALLOC(v, size);
   strongAssert(v);
@@ -752,14 +751,14 @@ template<typename T> Vector<T>::Vector(size_t _rows)
 
 template<typename T> Vector<T>::~Vector() {
   if (ownsMemory) {
-    size_t size = ((size_t) rows) * sizeof(T);
+    size_t size = rows * sizeof(T);
     free(v);
     REGISTER_FREE(v, size);
   }
   v = NULL;
 }
 
-template<typename T> Vector<T>* Vector<T>::Zero(size_t rows) {
+template<typename T> Vector<T>* Vector<T>::Zero(int rows) {
   Vector<T> *result = new Vector<T>(rows);
   return result;
 }
@@ -777,11 +776,11 @@ void Vector<T>::gemv(char trans, T alpha,
   increment_flops(ops);
 
   if (trans == 'N') {
-    myAssert(rows == (size_t) a->rows);
-    myAssert(x->rows == (size_t) a->cols);
+    myAssert(rows == a->rows);
+    myAssert(x->rows == a->cols);
   } else {
-    myAssert(rows == (size_t) a->cols);
-    myAssert(x->rows == (size_t) a->rows);
+    myAssert(rows == a->cols);
+    myAssert(x->rows == a->rows);
   }
   proxy_cblas::gemv(t, matRows, matCols, alpha, a->m, lda, x->v, 1, beta, v, 1);
 }
@@ -825,7 +824,7 @@ template<typename T> void Vector<T>::clear() {
 
 template<typename T> void Vector<T>::scale(T alpha) {
   if (alpha == Constants<T>::zero) {
-    memset(v, 0, sizeof(T) * ((size_t) rows));
+    memset(v, 0, sizeof(T) * rows);
   } else {
     proxy_cblas::scal(rows, alpha, v, 1);
   }

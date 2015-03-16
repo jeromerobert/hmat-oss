@@ -67,11 +67,11 @@ template<typename T> bool HMatrixData<T>::isAdmissibleLeaf(const hmat::MatrixSet
 template<typename T>
 void reorderVector(FullMatrix<T>* v, int* indices) {
   DECLARE_CONTEXT;
-  const size_t n = v->rows;
+  const int n = v->rows;
   Vector<T> tmp(n);
   for (int col = 0; col < v->cols; col++) {
-    T* column = v->m + (n * col);
-    for (size_t i = 0; i < n; i++) {
+    T* column = v->m + ((size_t) n) * col;
+    for (int i = 0; i < n; i++) {
       tmp.v[i] = column[indices[i]];
     }
     memcpy(column, tmp.v, sizeof(T) * n);
@@ -82,12 +82,12 @@ void reorderVector(FullMatrix<T>* v, int* indices) {
 template<typename T>
 void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
   DECLARE_CONTEXT;
-  const size_t n = v->rows;
+  const int n = v->rows;
   Vector<T> tmp(n);
 
   for (int col = 0; col < v->cols; col++) {
-    T* column = v->m + (n * col);
-    for (size_t i = 0; i < n; i++) {
+    T* column = v->m + ((size_t) n) * col;
+    for (int i = 0; i < n; i++) {
       tmp.v[indices[i]] = column[i];
     }
     memcpy(column, tmp.v, sizeof(T) * n);
@@ -276,7 +276,7 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
         RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
         T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
         RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
-        size_t elements = (candidate->rows->n + candidate->cols->n) * candidate->k;
+        size_t elements = (((size_t) candidate->rows->n) + candidate->cols->n) * candidate->k;
         if (elements < childrenElements) {
           cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
           for (int i = 0; i < 4; i++) {
@@ -380,7 +380,7 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f,
             T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
             RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
             RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
-            size_t elements = (candidate->rows->n + candidate->cols->n) * candidate->k;
+            size_t elements = (((size_t) candidate->rows->n) + candidate->cols->n) * candidate->k;
             if (elements < childrenElements) {
               cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
               for (int i = 0; i < 4; i++) {
@@ -473,11 +473,11 @@ void HMatrix<T>::eval(FullMatrix<T>* result, bool renumber) const {
       mat = data.rk->eval();
     }
     int *rowIndices = rows()->indices + rows()->offset;
-    size_t rowCount = rows()->n;
+    int rowCount = rows()->n;
     int *colIndices = cols()->indices + cols()->offset;
-    size_t colCount = cols()->n;
-    for (size_t i = 0; i < rowCount; i++) {
-      for (size_t j = 0; j < colCount; j++) {
+    int colCount = cols()->n;
+    for (int i = 0; i < rowCount; i++) {
+      for (int j = 0; j < colCount; j++) {
         if(renumber)
           result->get(rowIndices[i], colIndices[j]) = mat->get(i, j);
         else
@@ -609,18 +609,18 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
       }
       const ClusterData* childRows = child->rows();
       const ClusterData* childCols = child->cols();
-      size_t rowsOffset = childRows->offset - myRows->offset;
-      size_t colsOffset = childCols->offset - myCols->offset;
+      int rowsOffset = childRows->offset - myRows->offset;
+      int colsOffset = childCols->offset - myCols->offset;
       if (trans == 'N') {
-        myAssert(colsOffset + childCols->n <= (size_t) x->rows);
-        myAssert(rowsOffset + childRows->n <= (size_t) y->rows);
+        myAssert(colsOffset + childCols->n <= x->rows);
+        myAssert(rowsOffset + childRows->n <= y->rows);
         FullMatrix<T> subX(x->m + colsOffset, childCols->n, x->cols, x->lda);
         FullMatrix<T> subY(y->m + rowsOffset, childRows->n, y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
       } else {
         myAssert(trans == 'T');
-        myAssert(rowsOffset + childRows->n <= (size_t) x->rows);
-        myAssert(colsOffset + childCols->n <= (size_t) y->rows);
+        myAssert(rowsOffset + childRows->n <= x->rows);
+        myAssert(colsOffset + childCols->n <= y->rows);
         FullMatrix<T> subX(x->m + rowsOffset, childRows->n, x->cols, x->lda);
         FullMatrix<T> subY(y->m + colsOffset, childCols->n, y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
@@ -728,9 +728,9 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const ClusterData* rows,
       }
     }
   } else {
-    size_t rowOffset = this->rows()->offset - rows->offset;
-    size_t colOffset = this->cols()->offset - cols->offset;
-    FullMatrix<T> subMat(b->m + rowOffset + (colOffset * b->lda),
+    int rowOffset = this->rows()->offset - rows->offset;
+    int colOffset = this->cols()->offset - cols->offset;
+    FullMatrix<T> subMat(b->m + rowOffset + ((size_t) colOffset) * b->lda,
                          this->rows()->n, this->cols()->n, b->lda);
     if (isFullMatrix()) {
       data.m->axpy(alpha, &subMat);

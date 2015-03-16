@@ -120,7 +120,7 @@ void readPointsFromFile(const char* filename, DofCoordinate **points, int *size)
   ssize_t read;
 
   double x = 0, y = 0, z = 0;
-  size_t np = 1000000, rnp = 500000;
+  int np = 1000000, rnp = 500000;
   fp = fopen(filename, "r");
   *points = (DofCoordinate*) malloc(np * sizeof(DofCoordinate));
   k = 0;

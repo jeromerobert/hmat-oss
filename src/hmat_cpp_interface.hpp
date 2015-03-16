@@ -63,7 +63,7 @@ public:
   ClusteringType clustering; ///< Type of ClusterTree
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
-  int elementsPerBlock; ///< Maximum size of an admissible block. Should be size_t !
+  size_t elementsPerBlock; ///< Maximum size of an admissible block
   bool useLu; ///< Use an LU decomposition
   bool useLdlt; ///< Use an LDL^t decomposition if possible
   bool cholesky;

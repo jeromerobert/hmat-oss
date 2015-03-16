@@ -52,8 +52,8 @@ bool ClusterData::isSuperSet(const ClusterData& o) const {
 }
 
 bool ClusterData::intersects(const ClusterData& o) const {
-  size_t start = max(offset, o.offset);
-  size_t end = min(offset + n, o.offset + o.n);
+  int start = max(offset, o.offset);
+  int end = min(offset + n, o.offset + o.n);
   return (end > start);
 }
 
@@ -61,9 +61,9 @@ const ClusterData* ClusterData::intersection(const ClusterData& o) const {
   if (!intersects(o)) {
     return NULL;
   }
-  size_t start = max(offset, o.offset);
-  size_t end = min(offset + n, o.offset + o.n);
-  size_t interN = end - start;
+  int start = max(offset, o.offset);
+  int end = min(offset + n, o.offset + o.n);
+  int interN = end - start;
   ClusterData* result = new ClusterData(*this);
   result->offset = start;
   result->n = interN;
@@ -139,7 +139,7 @@ double ClusterTree::distanceTo(const ClusterTree* other) const {
 void ClusterTree::divide() {
   DECLARE_CONTEXT;
   myAssert(isLeaf());
-  if (data.n <= (size_t) threshold) {
+  if (data.n <= threshold) {
     return;
   }
 
@@ -171,8 +171,8 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   ClusterTree* result = NULL;
   if (!copyFather) {
     // La racine doit s'occuper le tableau des points et le mapping.
-    myAssert(data.n == data.points->size());
-    size_t n = data.points->size();
+    myAssert(data.n == (int) data.points->size());
+    int n = (int) data.points->size();
     int* copyIndices = new int[n];
     memcpy(copyIndices, data.indices, sizeof(int) * n);
     vector<Point>* copyPoints = new vector<Point>(n);

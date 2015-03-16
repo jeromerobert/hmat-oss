@@ -74,9 +74,9 @@ template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const ClusterData*
     return;
   }
   k = _a->cols;
-  myAssert((size_t) a->rows == rows->n);
+  myAssert(a->rows == rows->n);
   myAssert(a->cols == k);
-  myAssert((size_t) b->rows == cols->n);
+  myAssert(b->rows == cols->n);
   myAssert(b->cols == k);
 }
 
@@ -134,8 +134,8 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const ClusterData* s
   myAssert(subRows->isSubset(*rows));
   myAssert(subCols->isSubset(*cols));
   // The offset in the matrix, and not in all the indices
-  size_t rowsOffset = subRows->offset - rows->offset;
-  size_t colsOffset = subCols->offset - cols->offset;
+  int rowsOffset = subRows->offset - rows->offset;
+  int colsOffset = subCols->offset - cols->offset;
   FullMatrix<T>* subA = new FullMatrix<T>(a->m + rowsOffset,
                                           subRows->n, k, a->lda);
 
@@ -158,13 +158,13 @@ template<typename T> void RkMatrix<T>::truncate() {
     return;
   }
 
-  myAssert(rows->n >= (size_t) k);
+  myAssert(rows->n >= k);
   // Case: more columns than one dimension of the matrix.
   // In this case, the calculation of the SVD of the matrix "R_a R_b^t" is more
   // expensive than computing the full SVD matrix. We make then a full matrix conversion,
   // and compress it with RkMatrix::fromMatrix().
   // TODO: in this case, the epsilon of recompression is not respected
-  if ((size_t) k > min(rows->n, cols->n)) {
+  if (k > min(rows->n, cols->n)) {
     FullMatrix<T>* tmp = eval();
     RkMatrix<T>* rk = compressMatrix(tmp, rows, cols);
     // "Move" rk into this, and delete the old "this".
@@ -340,7 +340,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // In case the sum of the ranks of the sub-matrices is greater than
   // the matrix size, it is more efficient to put everything in a
   // full matrix.
-  if ((size_t) kTotal >= min(rows->n, cols->n)) {
+  if (kTotal >= min(rows->n, cols->n)) {
     const FullMatrix<T>** fullParts = new const FullMatrix<T>*[n];
     const ClusterData** rowsParts = new const ClusterData*[n];
     const ClusterData** colsParts = new const ClusterData*[n];
@@ -378,16 +378,16 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // Same for columns.
   int kOffset = k;
   for (int i = 0; i < n; i++) {
-    size_t rowOffset = parts[i]->rows->offset - rows->offset;
-    size_t rowCount = parts[i]->rows->n;
-    size_t colCount = parts[i]->k;
+    int rowOffset = parts[i]->rows->offset - rows->offset;
+    int rowCount = parts[i]->rows->n;
+    int colCount = parts[i]->k;
     if ((rowCount == 0) || (colCount == 0)) {
       continue;
     }
     resultA->copyMatrixAtOffset(parts[i]->a, rowOffset, kOffset);
     // Scaling the matrix already in place
     if (alpha[i] != Constants<T>::pone) {
-      FullMatrix<T> tmp(resultA->m + rowOffset + (kOffset * resultA->lda),
+      FullMatrix<T> tmp(resultA->m + rowOffset + ((size_t) kOffset) * resultA->lda,
                         parts[i]->a->rows, parts[i]->a->cols, resultA->lda);
       tmp.scale(alpha[i]);
     }

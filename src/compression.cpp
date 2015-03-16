@@ -267,14 +267,14 @@ template<typename T>
 RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
                             const ClusterData* cols) {
   DECLARE_CONTEXT;
-  myAssert((size_t) m->rows == rows->n);
-  myAssert((size_t) m->cols == cols->n);
+  myAssert(m->rows == rows->n);
+  myAssert(m->cols == cols->n);
   myAssert(m->lda >= m->rows);
 
   //TODO replace with a case with m==NULL
   bool zeroMatrix = true;
-  for (size_t col = 0; col < m->cols; col++) {
-    Vector<T> v(m->m + m->rows * col, m->rows);
+  for (int col = 0; col < m->cols; col++) {
+    Vector<T> v(m->m + ((size_t) m->rows) * col, m->rows);
     zeroMatrix = zeroMatrix && isZero(v);
     if (!zeroMatrix) break;
   }

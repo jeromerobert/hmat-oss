@@ -71,7 +71,7 @@ public:
       \param _cols Number of cols
       \param lda Leading dimension, as in BLAS
    */
-  FullMatrix(T* _m, size_t _rows, size_t _cols, int _lda=-1);
+  FullMatrix(T* _m, int _rows, int _cols, int _lda=-1);
   /* \brief Create an empty matrix, filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
@@ -79,7 +79,7 @@ public:
      \param _rows Number of rows
      \param _cols Number of columns
    */
-  FullMatrix(size_t _rows, size_t _cols);
+  FullMatrix(int _rows, int _cols);
   /** \brief Create a matrix filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
@@ -87,7 +87,7 @@ public:
      \param _rows Number of rows
      \param _cols Number of columns
    */
-  static FullMatrix* Zero(size_t rows, size_t cols);
+  static FullMatrix* Zero(int rows, int cols);
   ~FullMatrix();
   /** This <- 0.
    */
@@ -210,21 +210,21 @@ public:
 
       There are 2 types to allow matrix modification or not.
    */
-  T& get(size_t i, size_t j) {
-    return m[i + lda * j];
+  T& get(int i, int j) {
+    return m[i + ((size_t) lda) * j];
   }
-  T get(size_t i, size_t j) const {
-    return  m[i + lda * j];
+  T get(int i, int j) const {
+    return m[i + ((size_t) lda) * j];
   }
   /** Simpler accessors for the diagonal.
 
       \warning This will only work if the matrix has been factored
       with \a FullMatrix::ldltDecomposition() beforehand.
    */
-  T getD(size_t i) const {
+  T getD(int i) const {
     return diagonal->v[i];
   }
-  T& getD(size_t i) {
+  T& getD(int i) {
     return diagonal->v[i];
   }
   /*! Check the matrix for the presence of NaN numbers.
@@ -265,7 +265,7 @@ public:
       \param cols number of columns of the matrix.
       \param filename Filename. The file is not destroyed with the object.
    */
-  MmapedFullMatrix(size_t rows, size_t cols, const char* filename);
+  MmapedFullMatrix(int rows, int cols, const char* filename);
   ~MmapedFullMatrix();
 
 private:
@@ -286,15 +286,15 @@ public:
   /// Pointer to the data
   T* v;
   /// Rows count
-  size_t rows;
+  int rows;
 
 public:
-  Vector(T* _v, size_t _rows);
-  Vector(size_t _rows);
+  Vector(T* _v, int _rows);
+  Vector(int _rows);
   ~Vector();
   /** Create a vector filled with 0s.
    */
-  static Vector<T>* Zero(size_t rows);
+  static Vector<T>* Zero(int rows);
   /**  this = alpha * A * x + beta * this
 
        Wrapper around the 'GEMV' BLAS call.
