@@ -53,27 +53,26 @@ typedef double complex double_complex;
     \param n number of points
     \return a vector of points.
  */
-DofCoordinate* createCylinder(double radius, double step, int n) {
-  DofCoordinate* result = (DofCoordinate*) malloc(n * sizeof(DofCoordinate));
+double* createCylinder(double radius, double step, int n) {
+  double* result = (double*) malloc(3 * n * sizeof(double));
   double length = 2 * M_PI * radius;
   int pointsPerCircle = length / step;
   double angleStep = 2 * M_PI / pointsPerCircle;
   int i;
   for (i = 0; i < n; i++) {
-    result[i].x = radius * cos(angleStep * i);
-    result[i].y = radius * sin(angleStep * i),
-    result[i].z = (step * i) / pointsPerCircle;
-    result[i].globalIndex = i;
+    result[3*i+0] = radius * cos(angleStep * i);
+    result[3*i+1] = radius * sin(angleStep * i),
+    result[3*i+2] = (step * i) / pointsPerCircle;
   }
   return result;
 }
 
 /** Write points into file. */
-void pointsToFile(DofCoordinate* points, int size, const char* filename) {
+void pointsToFile(double* points, int size, const char* filename) {
   int i;
   FILE * fp = fopen(filename, "w");
   for (i = 0; i < size; i++) {
-    fprintf(fp, "%e %e %e\n", points[i].x, points[i].y, points[i].z);
+    fprintf(fp, "%e %e %e\n", points[3*i], points[3*i+1], points[3*i+2]);
   }
   fclose(fp);
 }
@@ -82,11 +81,11 @@ void pointsToFile(DofCoordinate* points, int size, const char* filename) {
 /**
   Define interaction between 2 degrees of freedoms  (real case)
 */
-double interaction_real(DofCoordinate* points, int i, int j)
+double interaction_real(double* points, int i, int j)
 {
-  double dx = points[i].x - points[j].x;
-  double dy = points[i].y - points[j].y;
-  double dz = points[i].z - points[j].z;
+  double dx = points[3*i+0] - points[3*j+0];
+  double dy = points[3*i+1] - points[3*j+1];
+  double dz = points[3*i+2] - points[3*j+2];
   return 1. / (sqrt(dx*dx + dy*dy + dz*dz) + 1e-10);
 }
 
@@ -94,11 +93,11 @@ double interaction_real(DofCoordinate* points, int i, int j)
   Define interaction between 2 degrees of freedoms  (complex case)
 */
 double_complex
-interaction_complex(DofCoordinate* points, double k, int i, int j)
+interaction_complex(double* points, double k, int i, int j)
 {
-  double dx = points[i].x - points[j].x;
-  double dy = points[i].y - points[j].y;
-  double dz = points[i].z - points[j].z;
+  double dx = points[3*i+0] - points[3*j+0];
+  double dy = points[3*i+1] - points[3*j+1];
+  double dz = points[3*i+2] - points[3*j+2];
   double distance = sqrt(dx*dx + dy*dy + dz*dz) + 1e-10;
   double realPart = cos(k * distance) / (4 * M_PI * distance);
   double imagPart = sin(k * distance) / (4 * M_PI * distance);
@@ -111,7 +110,7 @@ interaction_complex(DofCoordinate* points, double k, int i, int j)
 typedef struct {
   int type;
   int n;
-  DofCoordinate* points;
+  double* points;
   double k;
 } problem_data_t;
 
@@ -207,13 +206,15 @@ compute_hmat(void *data,
 
 int main(int argc, char **argv) {
   double radius, step, k;
-  DofCoordinate* points;
+  double* points;
   hmat_settings_t settings;
   hmat_interface_t hmat;
   hmat_value_t scalar_type;
   hmat_info_t mat_info;
   int n;
   char arithmetic;
+  hmat_coordinates_t* coordinates;
+  hmat_clustering_algorithm_t* clustering;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t* hmatrix;
   int rc;
@@ -273,7 +274,11 @@ int main(int argc, char **argv) {
   problem_data.k = k;
   problem_data.type = scalar_type;
 
-  cluster_tree = hmat_create_cluster_tree(points, n);
+  coordinates = hmat_create_coordinates(points, 3, n);
+  clustering = hmat_create_clustering_median();
+  cluster_tree = hmat_create_cluster_tree(coordinates, clustering);
+  hmat_delete_clustering(clustering);
+  hmat_delete_coordinates(coordinates);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
   hmat.hmat_get_info(hmatrix, &mat_info);

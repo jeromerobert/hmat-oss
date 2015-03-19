@@ -26,8 +26,8 @@
   \ingroup HMatrix
   \brief Spatial cluster tree implementation.
 */
-#include "tree.hpp"
 #include "cluster_tree.hpp"
+#include "coordinates.hpp"
 #include "common/my_assert.h"
 #include "common/context.hpp"
 
@@ -36,154 +36,145 @@
 
 namespace hmat {
 
-bool ClusterData::operator==(const ClusterData& o) const {
+bool IndexSet::operator==(const IndexSet& o) const {
   // Attention ! On ne fait pas de verification sur les indices, pour
   // pouvoir parler d'egalite entre des noeuds ayant ete generes
   // differemment (differentes matrices).
-  return (offset == o.offset) && (n == o.n);
+  return (offset_ == o.offset_) && (size_ == o.size_);
 }
 
-bool ClusterData::isSubset(const ClusterData& o) const {
-  return (offset >= o.offset) && (offset + n <= o.offset + o.n);
+bool IndexSet::isSubset(const IndexSet& o) const {
+  return (offset_ >= o.offset_) && (offset_ + size_ <= o.offset_ + o.size_);
 }
 
-bool ClusterData::isSuperSet(const ClusterData& o) const {
+bool IndexSet::isSuperSet(const IndexSet& o) const {
   return o.isSubset(*this);
 }
 
-bool ClusterData::intersects(const ClusterData& o) const {
-  int start = std::max(offset, o.offset);
-  int end = std::min(offset + n, o.offset + o.n);
+bool IndexSet::intersects(const IndexSet& o) const {
+  int start = std::max(offset_, o.offset_);
+  int end = std::min(offset_ + size_, o.offset_ + o.size_);
   return (end > start);
 }
 
-const ClusterData* ClusterData::intersection(const ClusterData& o) const {
+const IndexSet* IndexSet::intersection(const IndexSet& o) const {
   if (!intersects(o)) {
     return NULL;
   }
-  int start = std::max(offset, o.offset);
-  int end = std::min(offset + n, o.offset + o.n);
+  int start = std::max(offset_, o.offset_);
+  int end = std::min(offset_ + size_, o.offset_ + o.size_);
   int interN = end - start;
-  ClusterData* result = new ClusterData(*this);
-  result->offset = start;
-  result->n = interN;
+  IndexSet* result = new IndexSet(*this);
+  result->offset_ = start;
+  result->size_ = interN;
   return result;
 }
 
-void ClusterData::computeBoundingBox(Point boundingBox[2]) const {
-  int* myIndices = indices + offset;
-  Point tmp = (*points)[myIndices[0]];
-  Point minPoint(tmp.x, tmp.y, tmp.z), maxPoint(tmp.x, tmp.y, tmp.z);
-
-  for (int i = 0; i < n; i++) {
-    int index = myIndices[i];
-    const Point& p = (*points)[index];
-    for (int dim = 0; dim < 3; dim++) {
-      minPoint.xyz[dim] = std::min(minPoint.xyz[dim], p.xyz[dim]);
-      maxPoint.xyz[dim] = std::max(maxPoint.xyz[dim], p.xyz[dim]);
-    }
+DofData::DofData(const DofCoordinates& coordinates, int* group_index)
+{
+  const int size(coordinates.size());
+  perm_i2e_ = new int[size];
+  perm_e2i_ = new int[size];
+  for (int i = 0; i < size; ++i)
+  {
+    perm_i2e_[i] = i;
+    perm_e2i_[i] = i;
   }
-  boundingBox[0] = minPoint;
-  boundingBox[1] = maxPoint;
+  coordinates_ = new DofCoordinates(coordinates);
+  if (group_index)
+  {
+    group_index_ = new int[size];
+    memcpy(group_index_, group_index, sizeof(int) * size);
+  }
+  else
+  {
+    group_index_ = NULL;
+  }
 }
 
-ClusterTree::ClusterTree(Point _boundingBox[2], const ClusterData& _data,
-                         int _threshold = 100) : Tree<2>(NULL),
-                                                 data(_data),
-                                                 threshold(_threshold) {
-  DECLARE_CONTEXT;
-  boundingBox[0] = _boundingBox[0];
-  boundingBox[1] = _boundingBox[1];
-  memset(&childrenBoundingBoxes, 0, sizeof(Point) * 2 * 2);
-  myAssert(data.n > 0);
+DofData::~DofData()
+{
+  delete[] perm_i2e_;
+  delete[] perm_e2i_;
+  delete[] group_index_;
+  delete coordinates_;
+}
+
+
+DofData*
+DofData::copy() const
+{
+  DofData* result = new DofData(*coordinates_, group_index_);
+  memcpy(result->perm_i2e_, perm_i2e_, sizeof(int) * coordinates_->size());
+  memcpy(result->perm_e2i_, perm_e2i_, sizeof(int) * coordinates_->size());
+  return result;
+}
+
+const ClusterData*
+ClusterData::intersection(const ClusterData& o) const
+{
+  const IndexSet* idx = IndexSet::intersection(o);
+  ClusterData* result = new ClusterData(dofData_, idx->offset(), idx->size());
+  delete idx;
+
+  return result;
+}
+
+ClusterTree::ClusterTree(const DofData* dofData)
+  : Tree<2>(NULL)
+  , data_(dofData)
+  , clusteringAlgoData_(NULL)
+  , admissibilityAlgoData_(NULL)
+{
 }
 
 ClusterTree::~ClusterTree() {
   if(father == NULL)
   {
-    delete[] data.indices;
-    delete data.points;
+    delete data_.dofData_;
   }
 }
 
-double ClusterTree::getEta(const ClusterTree* other) const {
-  return std::min(diameter(), other->diameter()) / distanceTo(other);
+ClusterTree*
+ClusterTree::slice(int offset, int size) const
+{
+  ClusterTree* result = new ClusterTree(*this);
+  result->data_.offset_ = offset;
+  result->data_.size_ = size;
+  result->clusteringAlgoData_ = NULL;
+  result->admissibilityAlgoData_ = NULL;
+  return result;
 }
 
-double ClusterTree::diameter() const {
-  return boundingBox[0].distanceTo(boundingBox[1]);
-}
-
-double ClusterTree::distanceTo(const ClusterTree* other) const {
-  double result = 0.;
-  double difference = 0.;
-
-  difference = std::max(0., boundingBox[0].x - other->boundingBox[1].x);
-  result += difference * difference;
-  difference = std::max(0., other->boundingBox[0].x - boundingBox[1].x);
-  result += difference * difference;
-
-  difference = std::max(0., boundingBox[0].y - other->boundingBox[1].y);
-  result += difference * difference;
-  difference = std::max(0., other->boundingBox[0].y - boundingBox[1].y);
-  result += difference * difference;
-
-  difference = std::max(0., boundingBox[0].z - other->boundingBox[1].z);
-  result += difference * difference;
-  difference = std::max(0., other->boundingBox[0].z - boundingBox[1].z);
-  result += difference * difference;
-
-  return sqrt(result);
-}
-
-void ClusterTree::divide() {
-  DECLARE_CONTEXT;
-  myAssert(isLeaf());
-  if (data.n <= threshold) {
-    return;
+/* Implemente la condition d'admissibilite des bounding box.
+ */
+bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {
+  size_t elements = ((size_t) data_.size()) * other->data_.size();
+  if(elements >= max_size || data_.size() <= 1)
+    return false;
+  AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(admissibilityAlgoData_);
+  if (bbox == NULL)
+  {
+    bbox = new AxisAlignedBoundingBox(*this);
+    admissibilityAlgoData_ = bbox;
   }
-
-  int dim = largestDimension();
-  sortByDimension(dim);
-  int separatorIndex = findSeparatorIndex();
-  ClusterData leftData(data.indices, data.offset, separatorIndex, data.points);
-  ClusterData rightData(data.indices, data.offset + separatorIndex,
-			data.n - separatorIndex, data.points);
-  leftData.computeBoundingBox(childrenBoundingBoxes[0]);
-  rightData.computeBoundingBox(childrenBoundingBoxes[1]);
-
-  ClusterTree *leftChild = this->make(childrenBoundingBoxes[0], leftData,
-				      threshold);
-  ClusterTree *rightChild = this->make(childrenBoundingBoxes[1], rightData,
-				       threshold);
-  strongAssert(leftChild);
-  strongAssert(rightChild);
-  leftChild->depth = depth + 1;
-  rightChild->depth = depth + 1;
-  insertChild(0, leftChild);
-  insertChild(1, rightChild);
-
-  leftChild->divide();
-  rightChild->divide();
+  AxisAlignedBoundingBox* bbox_other = static_cast<AxisAlignedBoundingBox*>(other->admissibilityAlgoData_);
+  if (bbox_other == NULL)
+  {
+    bbox_other = new AxisAlignedBoundingBox(*other);
+    other->admissibilityAlgoData_ = bbox_other;
+  }
+  return std::min(bbox->diameter(), bbox_other->diameter()) <= eta * bbox->distanceTo(*bbox_other);
 }
 
 ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   ClusterTree* result = NULL;
   if (!copyFather) {
     // La racine doit s'occuper le tableau des points et le mapping.
-    myAssert(data.n == (int) data.points->size());
-    int n = (int) data.points->size();
-    int* copyIndices = new int[n];
-    memcpy(copyIndices, data.indices, sizeof(int) * n);
-    std::vector<Point>* copyPoints = new std::vector<Point>(n);
-    *copyPoints = *data.points;
-    ClusterData rootData(copyIndices, 0, n, copyPoints);
-    result = this->make((Point*) boundingBox, rootData, threshold);
+    result = new ClusterTree(data_.dofData_->copy());
     copyFather = result;
   } else {
-    ClusterData copyData(copyFather->data.indices, data.offset, data.n,
-                         copyFather->data.points);
-    result = this->make((Point*) boundingBox, copyData, threshold);
+    result = copyFather->slice(data_.offset(), data_.size());
   }
   if (!isLeaf()) {
     result->insertChild(0, ((ClusterTree*) getChild(0))->copy(copyFather));
@@ -192,113 +183,51 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   return result;
 }
 
+AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterTree& node)
+{
+  int* myIndices = node.data_.indices() + node.data_.offset();
+  const double* coord = &node.data_.coordinates()->get(0, 0);
+  bbMin = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
+  bbMax = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
 
-// GeometricBisectionClusterTree
-int GeometricBisectionClusterTree::findSeparatorIndex() const {
-  int dim = largestDimension();
-  double middle = .5 * (boundingBox[0].xyz[dim] + boundingBox[1].xyz[dim]);
-  int middleIndex = 0;
-  int* myIndices = data.indices + data.offset;
-  while ((*data.points)[myIndices[middleIndex]].xyz[dim] < middle) {
-    middleIndex++;
-  }
-  return middleIndex;
-}
-
-ClusterTree* GeometricBisectionClusterTree::make(Point _boundingBox[2],
-                                                 const ClusterData& _data,
-                                                 int _threshold) const {
-  return new GeometricBisectionClusterTree(_boundingBox, _data, _threshold);
-}
-
-
-// MedianBisectionClusterTree
-int MedianBisectionClusterTree::findSeparatorIndex() const {
-  return data.n / 2;
-}
-
-ClusterTree* MedianBisectionClusterTree::make(Point _boundingBox[2],
-                                              const ClusterData& _data,
-                                              int _threshold) const {
-  return new MedianBisectionClusterTree(_boundingBox, _data, _threshold);
-}
-
-int ClusterTree::largestDimension() const {
-  int maxDim = -1;
-  double maxSize = -1;
-  for (int i = 0; i < 3; i++) {
-    double size = (boundingBox[1].xyz[i] - boundingBox[0].xyz[i]);
-    if (size > maxSize) {
-      maxSize = size;
-      maxDim = i;
+  for (int i = 0; i < node.data_.size(); ++i) {
+    int index = myIndices[i];
+    const double* p = &coord[3*index];
+    for (int dim = 0; dim < 3; ++dim) {
+      bbMin.xyz[dim] = std::min(bbMin.xyz[dim], p[dim]);
+      bbMax.xyz[dim] = std::max(bbMax.xyz[dim], p[dim]);
     }
   }
-  return maxDim;
 }
 
-void ClusterTree::sortByDimension(int dim) {
-  int* myIndices = data.indices + data.offset;
-  switch (dim) {
-  case 0:
-    std::stable_sort(myIndices, myIndices + data.n, IndicesComparator<0>(data));
-    break;
-  case 1:
-    std::stable_sort(myIndices, myIndices + data.n, IndicesComparator<1>(data));
-    break;
-  case 2:
-    std::stable_sort(myIndices, myIndices + data.n, IndicesComparator<2>(data));
-    break;
-  default:
-    strongAssert(false);
-  }
+double
+AxisAlignedBoundingBox::diameter() const
+{
+  return bbMax.distanceTo(bbMin);
 }
 
+double
+AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) const
+{
+  double result = 0.;
+  double difference = 0.;
 
-static double volume(const Point boundingBox[2]) {
-  double result = 1.;
-  for (int dim = 0; dim < 3; dim++) {
-    result *= (boundingBox[1].xyz[dim] - boundingBox[0].xyz[dim]);
-  }
-  return result;
-}
+  difference = std::max(0., bbMin.xyz[0] - other.bbMax.xyz[0]);
+  result += difference * difference;
+  difference = std::max(0., other.bbMin.xyz[0] - bbMax.xyz[0]);
+  result += difference * difference;
 
-const double thresholdRatio = .8;
-int HybridBisectionClusterTree::findSeparatorIndex() const {
-  // Change de version de decoupage en fonction de la taille realtive des
-  // boites. On essaie de prendre le decoupage selon la mediane. Si celui-ci
-  // donne une reduction trop faible de la taille des boites englobantes, alors
-  // on passe sur le critere geometrique.
-  int index = data.n / 2;
-  Point leftBoundingBox[2], rightBoundingBox[2];
-  {
-    ClusterData leftData(data.indices, data.offset, index, data.points);
-    ClusterData rightData(data.indices, data.offset + index, data.n - index,
-			  data.points);
-    leftData.computeBoundingBox(leftBoundingBox);
-    rightData.computeBoundingBox(rightBoundingBox);
-  }
-  double currentVolume = volume(boundingBox);
-  double leftVolume = volume(leftBoundingBox);
-  double rightVolume = volume(rightBoundingBox);
-  double maxRatio = std::max(rightVolume / currentVolume, leftVolume / currentVolume);
-  if (maxRatio > thresholdRatio) {
-    int dim = largestDimension();
-    double middle = .5 * (boundingBox[0].xyz[dim] + boundingBox[1].xyz[dim]);
-    int middleIndex = 0;
-    int* myIndices = data.indices + data.offset;
-    while ((*data.points)[myIndices[middleIndex]].xyz[dim] < middle) {
-      middleIndex++;
-    }
-    return middleIndex;
-  } else {
-    return index;
-  }
-}
+  difference = std::max(0., bbMin.xyz[1] - other.bbMax.xyz[1]);
+  result += difference * difference;
+  difference = std::max(0., other.bbMin.xyz[1] - bbMax.xyz[1]);
+  result += difference * difference;
 
-ClusterTree* HybridBisectionClusterTree::make(Point _boundingBox[2],
-					      const ClusterData& _data,
-					      int _threshold) const {
-  return new HybridBisectionClusterTree(_boundingBox, _data, _threshold);
+  difference = std::max(0., bbMin.xyz[2] - other.bbMax.xyz[2]);
+  result += difference * difference;
+  difference = std::max(0., other.bbMin.xyz[2] - bbMax.xyz[2]);
+  result += difference * difference;
+
+  return sqrt(result);
 }
 
 }  // end namespace hmat

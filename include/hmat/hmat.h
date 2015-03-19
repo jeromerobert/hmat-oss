@@ -42,13 +42,6 @@ typedef enum {
   HMAT_DOUBLE_COMPLEX=3,
 } hmat_value_t;
 
-/** Type of ClusterTree */
-typedef enum {
-  hmat_cluster_geometric,
-  hmat_cluster_median,
-  hmat_cluster_hybrid
-} hmat_cluster_t;
-
 /** Choice of the compression method */
 typedef enum {
   hmat_compress_svd,
@@ -148,7 +141,20 @@ typedef void (*compute_func)(void* v_data, int row_start, int row_count,
 typedef void (*simple_interaction_compute_func)(void* user_context, int row, int col, void* result);
 
 /* Opaque pointer */
+typedef struct hmat_coordinates_struct hmat_coordinates_t;
+
+hmat_coordinates_t * hmat_create_coordinates(double* coord, int dim, int size);
+void hmat_delete_coordinates(hmat_coordinates_t *dls);
+
+typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
+
+/* Opaque pointer */
 typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
+
+hmat_clustering_algorithm_t* hmat_create_clustering_median();
+hmat_clustering_algorithm_t* hmat_create_clustering_geometric();
+hmat_clustering_algorithm_t* hmat_create_clustering_hybrid();
+void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
 
 /*! \brief Create a ClusterTree from the DoFs coordinates.
 
@@ -156,7 +162,7 @@ typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
   \param n the number of DoFs
   \return an opaque pointer to a ClusterTree, or NULL in case of error.
 */
-hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n);
+hmat_cluster_tree_t * hmat_create_cluster_tree(hmat_coordinates_t* dls, hmat_clustering_algorithm_t* algo);
 
 void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
 
@@ -416,8 +422,8 @@ typedef struct
       \f]
    */
   double admissibilityFactor;  /* DEPRECATED, use admissibilityCondition instead */
-  /*! \brief Type of ClusterTree */
-  hmat_cluster_t clustering;
+  /*! \brief Formula for cluster subdivision */
+  hmat_clustering_algorithm_t * clustering;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
   int maxLeafSize;
   /*! \brief max(|L0|) */

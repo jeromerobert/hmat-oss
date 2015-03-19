@@ -83,7 +83,7 @@ template<typename T>
 class TestAssemblyFunction : public SimpleAssemblyFunction<T> {
 public:
   /// Point coordinates
-  std::vector<Point> points;
+  const DofCoordinates& points;
   /// Wavenumber for the complex case.
   double k;
 
@@ -93,25 +93,36 @@ public:
       \param _points Point cloud
       \param _k Wavenumber
    */
-  TestAssemblyFunction(std::vector<Point>& _points, double _k = 1.)
+  TestAssemblyFunction(const DofCoordinates& _points, double _k = 1.)
     : SimpleAssemblyFunction<T>(), points(_points), k(_k) {}
   typename Types<T>::dp interaction(int i, int j) const;
+  double distanceTo(int i, int j) const;
 };
+
+template<typename T>
+double
+TestAssemblyFunction<T>::distanceTo(int i, int j) const
+{
+  double r = sqrt((points.get(0, i) - points.get(0, j))*(points.get(0, i) - points.get(0, j))+
+                  (points.get(1, i) - points.get(1, j))*(points.get(1, i) - points.get(1, j))+
+                  (points.get(2, i) - points.get(2, j))*(points.get(2, i) - points.get(2, j)));
+  return r;
+}
 
 
 template<>
 Types<S_t>::dp TestAssemblyFunction<S_t>::interaction(int i, int j) const {
-  double distance = points[i].distanceTo(points[j]) + 1e-10;
+  double distance = this->distanceTo(i, j) + 1e-10;
   return 1. / distance;
 }
 template<>
 Types<D_t>::dp TestAssemblyFunction<D_t>::interaction(int i, int j) const {
-  double distance = points[i].distanceTo(points[j]) + 1e-10;
+  double distance = this->distanceTo(i, j) + 1e-10;
   return 1. / distance;
 }
 template<>
 Types<C_t>::dp TestAssemblyFunction<C_t>::interaction(int i, int j) const {
-  double distance = points[i].distanceTo(points[j]) + 1e-10;
+  double distance = this->distanceTo(i, j) + 1e-10;
   Z_t result = Constants<Z_t>::zero;
   result.real(cos(k * distance) / (4 * M_PI * distance));
   result.imag(sin(k * distance) / (4 * M_PI * distance));
@@ -119,7 +130,7 @@ Types<C_t>::dp TestAssemblyFunction<C_t>::interaction(int i, int j) const {
 }
 template<>
 Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
-  double distance = points[i].distanceTo(points[j]) + 1e-10;
+  double distance = this->distanceTo(i, j) + 1e-10;
   Z_t result = Constants<Z_t>::zero;
   result.real(cos(k * distance) / (4 * M_PI * distance));
   result.imag(sin(k * distance) / (4 * M_PI * distance));
@@ -127,32 +138,19 @@ Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
 }
 
 
-ClusterTree* createClusterTree(const std::vector<Point>& points) {
-  int n = (int) points.size();
-  DofCoordinate* dls = new DofCoordinate[n];
-
-  for (int i = 0; i < n; i++) {
-    dls[i].x = points[i].x;
-    dls[i].y = points[i].y;
-    dls[i].z = points[i].z;
-  }
-  // We leak dls...
-  return createClusterTree(dls, n);
-}
-
 template<typename T, template<typename> class E> struct Configuration
 {
     void configure(HMatInterface<T,E> & hmat){}
 };
 
 template<typename T, template<typename> class E>
-void go(std::vector<Point>& points, double k) {
+void go(const DofCoordinates& coord, double k) {
   if (0 != HMatInterface<T, E>::init())
     return;
   {
-    ClusterTree* ct = createClusterTree(points);
+    ClusterTree* ct = createClusterTree(coord);
     std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
-    TestAssemblyFunction<T> f(points, k);
+    TestAssemblyFunction<T> f(coord, k);
     HMatInterface<T, E> hmat(ct, ct, kNotSymmetric);
     std::cout << "HMatrix node count = " << hmat.nodesCount() << std::endl;
     Configuration<T, E>().configure(hmat);
@@ -168,19 +166,19 @@ void go(std::vector<Point>& points, double k) {
 }
 
 template<template<typename> class E>
-void goA(char arithmetic, std::vector<Point>& points, double k) {
+void goA(char arithmetic, const DofCoordinates& coord, double k) {
     switch (arithmetic) {
     case 'S':
-        go<S_t, E>(points, k);
+        go<S_t, E>(coord, k);
         break;
     case 'D':
-        go<D_t, E>(points, k);
+        go<D_t, E>(coord, k);
         break;
     case 'C':
-        go<C_t, E>(points, k);
+        go<C_t, E>(coord, k);
         break;
     case 'Z':
-        go<Z_t, E>(points, k);
+        go<Z_t, E>(coord, k);
         break;
     default:
       std::cerr << "Unknown arithmetic code " << arithmetic << std::endl;
@@ -209,10 +207,18 @@ int main(int argc, char **argv) {
   double step = 1.75 * M_PI * radius / sqrt((double)n);
   double k = 2 * M_PI / (10. * step); // 10 points / lambda
   std::vector<Point> points = createCylinder(radius, step, n);
+  double * xyz = new double[3*points.size()];
+  for(size_t i = 0; i < points.size(); ++i)
+  {
+    xyz[3*i+0] = points[i].x;
+    xyz[3*i+1] = points[i].y;
+    xyz[3*i+2] = points[i].z;
+  }
+  DofCoordinates coord(xyz, 3, points.size(), true);
   std::cout << "done.\n";
 
   pointsToFile(points, "points.txt");
 
-  goA<DefaultEngine>(arithmetic, points, k);
+  goA<DefaultEngine>(arithmetic, coord, k);
   return 0;
 }

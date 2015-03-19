@@ -35,11 +35,13 @@ SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
                                     const ClusterData* cols,
                                     const hmat_block_info_t * block_info) const {
   FullMatrix<typename Types<T>::dp>* result =
-    new FullMatrix<typename Types<T>::dp>(rows->n, cols->n);
-  for (int j = 0; j < cols->n; ++j) {
-    int col = cols->indices[j + cols->offset];
-    for (int i = 0; i < rows->n; ++i) {
-      int row = rows->indices[i + rows->offset];
+    new FullMatrix<typename Types<T>::dp>(rows->size(), cols->size());
+  const int* rows_indices = rows->indices() + rows->offset();
+  const int* cols_indices = cols->indices() + cols->offset();
+  for (int j = 0; j < cols->size(); ++j) {
+    int col = cols_indices[j];
+    for (int i = 0; i < rows->size(); ++i) {
+      int row = rows_indices[i];
       result->get(i, j) = interaction(row, col);
     }
   }
@@ -51,7 +53,7 @@ Vector<typename Types<T>::dp>*
 SimpleAssemblyFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
                                int rowIndex, void* handle) const {
   Vector<typename Types<T>::dp>* result =
-    new Vector<typename Types<T>::dp>(cols->n);
+    new Vector<typename Types<T>::dp>(cols->size());
   getRow(rows, cols, rowIndex, handle, result);
   return result;
 }
@@ -60,10 +62,10 @@ template<typename T>
 void SimpleAssemblyFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
                                        int rowIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
-  int row = rows->indices[rowIndex + rows->offset];
-  for (int j = 0; j < cols->n; j++) {
-    int col = cols->indices[j + cols->offset];
-    result->v[j] = interaction(row, col);
+  const int row = *(rows->indices() + rows->offset() + rowIndex);
+  const int* cols_indices = cols->indices() + cols->offset();
+  for (int j = 0; j < cols->size(); j++) {
+    result->v[j] = interaction(row, cols_indices[j]);
   }
 }
 
@@ -72,7 +74,7 @@ Vector<typename Types<T>::dp>*
 SimpleAssemblyFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
                                   int colIndex, void* handle) const {
   Vector<typename Types<T>::dp>* result =
-    new Vector<typename Types<T>::dp>(rows->n);
+    new Vector<typename Types<T>::dp>(rows->size());
   getCol(rows, cols, colIndex, handle, result);
   return result;
 }
@@ -81,10 +83,10 @@ template<typename T>
 void SimpleAssemblyFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
                                        int colIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
-  int col = cols->indices[colIndex + cols->offset];
-  for (int i = 0; i < rows->n; i++) {
-    int row = rows->indices[i + rows->offset];
-    result->v[i] = interaction(row, col);
+  const int col = *(cols->indices() + cols->offset() + colIndex);
+  const int* rows_indices = rows->indices() + rows->offset();
+  for (int i = 0; i < rows->size(); i++) {
+    result->v[i] = interaction(rows_indices[i], col);
   }
 }
 
@@ -96,14 +98,14 @@ BlockAssemblyFunction<T>::BlockAssemblyFunction(const ClusterData* rowData,
                                                   hmat_prepare_func_t _prepare,
                                                   compute_func _compute)
   : prepare(_prepare), compute(_compute), matrixUserData(matrixUserData) {
-  rowMapping = rowData->indices;
-  colMapping = colData->indices;
-  rowReverseMapping = new int[rowData->n];
-  colReverseMapping = new int[colData->n];
-  for (int i = 0; i < (int) rowData->n; i++) {
+  rowMapping = rowData->indices();
+  colMapping = colData->indices();
+  rowReverseMapping = new int[rowData->size()];
+  colReverseMapping = new int[colData->size()];
+  for (int i = 0; i < (int) rowData->size(); i++) {
     rowReverseMapping[rowMapping[i]] = i;
   }
-  for (int i = 0; i < (int) colData->n; i++) {
+  for (int i = 0; i < (int) colData->size(); i++) {
     colReverseMapping[colMapping[i]] = i;
   }
 }
@@ -128,7 +130,7 @@ BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
                                    const hmat_block_info_t * block_info) const {
   DECLARE_CONTEXT;
   FullMatrix<typename Types<T>::dp>* result =
-    FullMatrix<typename Types<T>::dp>::Zero(rows->n, cols->n);
+    FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
 
   hmat_block_info_t local_block_info ;
 
@@ -138,7 +140,7 @@ BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
     local_block_info = *block_info ;
 
   if (local_block_info.block_type != hmat_block_null)
-    compute(local_block_info.user_data, 0, rows->n, 0, cols->n, (void*) result->m);
+    compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->m);
 
   if (!block_info)
     releaseBlock(&local_block_info);
@@ -155,7 +157,7 @@ void BlockAssemblyFunction<T>::prepareBlock(const ClusterData* rows, const Clust
   block_info->is_null_col = NULL;
   block_info->is_null_row = NULL;
   block_info->user_data = NULL;
-  prepare(rows->offset, rows->n, cols->offset, cols->n, rowMapping, rowReverseMapping,
+  prepare(rows->offset(), rows->size(), cols->offset(), cols->size(), rowMapping, rowReverseMapping,
           colMapping, colReverseMapping, matrixUserData, block_info);
   // check memory leak
   myAssert((block_info->user_data == NULL) == (block_info->release_user_data == NULL));
@@ -173,7 +175,7 @@ BlockAssemblyFunction<T>::getRow(const ClusterData* rows,
                                   const ClusterData* cols,
                                   int rowIndex, void* handle) const {
   Vector<typename Types<T>::dp>* result =
-    Vector<typename Types<T>::dp>::Zero(cols->n);
+    Vector<typename Types<T>::dp>::Zero(cols->size());
   strongAssert(result);
   getRow(rows, cols, rowIndex, handle, result);
   return result;
@@ -186,7 +188,7 @@ void BlockAssemblyFunction<T>::getRow(const ClusterData* rows,
                                        Vector<typename Types<T>::dp>* result) const {
   DECLARE_CONTEXT;
   myAssert(handle);
-  compute(handle, rowIndex, 1, 0, cols->n, (void*) result->v);
+  compute(handle, rowIndex, 1, 0, cols->size(), (void*) result->v);
 }
 
 
@@ -197,7 +199,7 @@ BlockAssemblyFunction<T>::getCol(const ClusterData* rows,
                                   int colIndex, void* handle) const {
   DECLARE_CONTEXT;
   Vector<typename Types<T>::dp>* result =
-    Vector<typename Types<T>::dp>::Zero(rows->n);
+    Vector<typename Types<T>::dp>::Zero(rows->size());
   strongAssert(result);
   getCol(rows, cols, colIndex, handle, result);
   return result;
@@ -210,9 +212,9 @@ void BlockAssemblyFunction<T>::getCol(const ClusterData* rows,
                                        Vector<typename Types<T>::dp>* result) const {
   DECLARE_CONTEXT;
   myAssert(handle);
-  compute(handle, 0, rows->n, colIndex, 1, (void*) result->v);
+  compute(handle, 0, rows->size(), colIndex, 1, (void*) result->v);
 
-  // for (int i = 0; i < rows->n; i++) {
+  // for (int i = 0; i < rows->size(); i++) {
   //   if (result->v[i] == Constants<T>::zero) {
   //     myAssert(false);
   //   }

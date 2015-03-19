@@ -180,7 +180,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
       h->data.m = NULL;
     } else {
       h->data.rk = NULL;
-      h->data.m = FullMatrix<T>::Zero(h->rows()->n, h->cols()->n);
+      h->data.m = FullMatrix<T>::Zero(h->rows()->size(), h->cols()->size());
     }
   } else {
     for (int i = 0; i < 2; ++i) {
@@ -207,7 +207,7 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols, c
       h->data.m = NULL;
     } else {
       h->data.rk = NULL;
-      h->data.m = FullMatrix<T>::Zero(h->rows()->n, h->cols()->n);
+      h->data.m = FullMatrix<T>::Zero(h->rows()->size(), h->cols()->size());
     }
   } else {
     for (int i = 0; i < 2; ++i) {
@@ -231,7 +231,7 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
       // a bad compression ratio anyways, and the SVD is not very costly in this
       // case.
       CompressionMethod method = RkMatrix<T>::approx.method;
-      if (max(rows()->n, cols()->n) < RkMatrix<T>::approx.compressionMinLeafSize) {
+      if (max(rows()->size(), cols()->size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
         method = Svd;
       }
       RkMatrix<typename Types<T>::dp>* rkDp = compress(method, f, rows(), cols());
@@ -270,15 +270,15 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
           break;
         } else {
           childrenArray[i] = child->data.rk;
-          childrenElements += (childrenArray[i]->rows->n
-                               + childrenArray[i]->cols->n) * childrenArray[i]->k;
+          childrenElements += (childrenArray[i]->rows->size()
+                               + childrenArray[i]->cols->size()) * childrenArray[i]->k;
         }
       }
       if (allRkLeaves) {
         RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
         T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
         RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
-        size_t elements = (((size_t) candidate->rows->n) + candidate->cols->n) * candidate->k;
+        size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->k;
         if (elements < childrenElements) {
           cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
           for (int i = 0; i < 4; i++) {
@@ -374,15 +374,15 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f,
               break;
             } else {
               childrenArray[i] = child->data.rk;
-              childrenElements += (childrenArray[i]->rows->n
-                                   + childrenArray[i]->cols->n) * childrenArray[i]->k;
+              childrenElements += (childrenArray[i]->rows->size()
+                                   + childrenArray[i]->cols->size()) * childrenArray[i]->k;
             }
           }
           if (allRkLeaves) {
             T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
             RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
             RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
-            size_t elements = (((size_t) candidate->rows->n) + candidate->cols->n) * candidate->k;
+            size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->k;
             if (elements < childrenElements) {
               cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
               for (int i = 0; i < 4; i++) {
@@ -474,16 +474,16 @@ void HMatrix<T>::eval(FullMatrix<T>* result, bool renumber) const {
     if (data.rk) {
       mat = data.rk->eval();
     }
-    int *rowIndices = rows()->indices + rows()->offset;
-    int rowCount = rows()->n;
-    int *colIndices = cols()->indices + cols()->offset;
-    int colCount = cols()->n;
+    int *rowIndices = rows()->indices() + rows()->offset();
+    int rowCount = rows()->size();
+    int *colIndices = cols()->indices() + cols()->offset();
+    int colCount = cols()->size();
     for (int i = 0; i < rowCount; i++) {
       for (int j = 0; j < colCount; j++) {
         if(renumber)
           result->get(rowIndices[i], colIndices[j]) = mat->get(i, j);
         else
-          result->get(rows()->offset + i, cols()->offset + j) = mat->get(i, j);
+          result->get(rows()->offset() + i, cols()->offset() + j) = mat->get(i, j);
       }
     }
     if (data.rk) {
@@ -506,10 +506,10 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const ClusterData* _rows,
     if (data.rk) {
       mat = data.rk->eval();
     }
-    int rowOffset = rows()->offset - _rows->offset;
-    int rowCount = rows()->n;
-    int colOffset = cols()->offset - _cols->offset;
-    int colCount = cols()->n;
+    int rowOffset = rows()->offset() - _rows->offset();
+    int rowCount = rows()->size();
+    int colOffset = cols()->offset() - _cols->offset();
+    int colCount = cols()->size();
     for (int i = 0; i < rowCount; i++) {
       for (int j = 0; j < colCount; j++) {
         result->get(i + rowOffset, j + colOffset) = mat->get(i, j);
@@ -611,20 +611,20 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
       }
       const ClusterData* childRows = child->rows();
       const ClusterData* childCols = child->cols();
-      int rowsOffset = childRows->offset - myRows->offset;
-      int colsOffset = childCols->offset - myCols->offset;
+      int rowsOffset = childRows->offset() - myRows->offset();
+      int colsOffset = childCols->offset() - myCols->offset();
       if (trans == 'N') {
-        myAssert(colsOffset + childCols->n <= x->rows);
-        myAssert(rowsOffset + childRows->n <= y->rows);
-        FullMatrix<T> subX(x->m + colsOffset, childCols->n, x->cols, x->lda);
-        FullMatrix<T> subY(y->m + rowsOffset, childRows->n, y->cols, y->lda);
+        myAssert(colsOffset + childCols->size() <= x->rows);
+        myAssert(rowsOffset + childRows->size() <= y->rows);
+        FullMatrix<T> subX(x->m + colsOffset, childCols->size(), x->cols, x->lda);
+        FullMatrix<T> subY(y->m + rowsOffset, childRows->size(), y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
       } else {
         myAssert(trans == 'T');
-        myAssert(rowsOffset + childRows->n <= x->rows);
-        myAssert(colsOffset + childCols->n <= y->rows);
-        FullMatrix<T> subX(x->m + rowsOffset, childRows->n, x->cols, x->lda);
-        FullMatrix<T> subY(y->m + colsOffset, childCols->n, y->cols, y->lda);
+        myAssert(rowsOffset + childRows->size() <= x->rows);
+        myAssert(colsOffset + childCols->size() <= y->rows);
+        FullMatrix<T> subX(x->m + rowsOffset, childRows->size(), x->cols, x->lda);
+        FullMatrix<T> subY(y->m + colsOffset, childCols->size(), y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
       }
     }
@@ -720,20 +720,20 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const ClusterData* rows,
       if (child->rows()->intersects(*rows) && child->cols()->intersects(*cols)) {
         const ClusterData *childRows = child->rows()->intersection(*rows);
         const ClusterData *childCols = child->cols()->intersection(*cols);
-        int rowOffset = childRows->offset - rows->offset;
-        int colOffset = childCols->offset - cols->offset;
+        int rowOffset = childRows->offset() - rows->offset();
+        int colOffset = childCols->offset() - cols->offset();
         FullMatrix<T> subB(b->m + rowOffset + colOffset * b->lda,
-                           childRows->n, childCols->n, b->lda);
+                           childRows->size(), childCols->size(), b->lda);
         child->axpy(alpha, &subB, childRows, childCols);
         delete childRows;
         delete childCols;
       }
     }
   } else {
-    int rowOffset = this->rows()->offset - rows->offset;
-    int colOffset = this->cols()->offset - cols->offset;
+    int rowOffset = this->rows()->offset() - rows->offset();
+    int colOffset = this->cols()->offset() - cols->offset();
     FullMatrix<T> subMat(b->m + rowOffset + ((size_t) colOffset) * b->lda,
-                         this->rows()->n, this->cols()->n, b->lda);
+                         this->rows()->size(), this->cols()->size(), b->lda);
     if (isFullMatrix()) {
       data.m->axpy(alpha, &subMat);
     } else {
@@ -909,10 +909,10 @@ template<typename T>
 FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
                                          const HMatrix<T>* h,
                                          const FullMatrix<T>* mat) {
-  myAssert((transH == 'N' ? h->cols()->n : h->rows()->n)
+  myAssert((transH == 'N' ? h->cols()->size() : h->rows()->size())
            == (transM == 'N' ? mat->rows : mat->cols));
   FullMatrix<T>* result =
-    new FullMatrix<T>((transH == 'N' ? h->rows()->n : h->cols()->n),
+    new FullMatrix<T>((transH == 'N' ? h->rows()->size() : h->cols()->size()),
                       (transM == 'N' ? mat->cols : mat->rows));
   if (transM == 'N') {
     h->gemv(transH, Constants<T>::pone, mat, Constants<T>::zero, result);
@@ -932,11 +932,11 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
   RkMatrix<T> *rk = NULL;
   // Matrices range compatibility
   if((transA == 'N') && (transB == 'N'))
-    assert(a->cols()->n == b->rows()->n);
+    assert(a->cols()->size() == b->rows()->size());
   if((transA == 'T') && (transB == 'N'))
-    assert(a->rows()->n == b->rows()->n);
+    assert(a->rows()->size() == b->rows()->size());
   if((transA == 'N') && (transB == 'T'))
-    assert(a->cols()->n == b->cols()->n);
+    assert(a->cols()->size() == b->cols()->size());
 
   // The cases are:
   //  - A Rk, B H
@@ -1034,7 +1034,7 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
     if (d->isFullMatrix()) {
       data.m->multiplyWithDiagOrDiagInv(d->data.m->diagonal, inverse, left);
     } else {
-      Vector<T> diag(d->rows()->n);
+      Vector<T> diag(d->rows()->size());
       d->getDiag(&diag);
       data.m->multiplyWithDiagOrDiagInv(&diag, inverse, left);
     }
@@ -1117,12 +1117,12 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
 
 template<typename T>
 const ClusterData* HMatrix<T>::rows() const {
-  return &(data.rows->data);
+  return &(data.rows->data_);
 }
 
 template<typename T>
 const ClusterData* HMatrix<T>::cols() const {
-  return &(data.cols->data);
+  return &(data.cols->data_);
 }
 
 template<typename T>
@@ -1134,8 +1134,9 @@ void HMatrix<T>::createPostcriptFile(const char* filename) const {
 template<typename T>
 void HMatrix<T>::dumpTreeToFile(const char* filename) const {
   ofstream file;
-  const vector<Point>* points = rows()->points;
-  int* indices = rows()->indices;
+  const DofCoordinates* points = rows()->coordinates();
+  const double* coord = &points->get(0, 0);
+  int* indices = rows()->indices();
   string delimiter;
 
   file.open(filename);
@@ -1143,8 +1144,8 @@ void HMatrix<T>::dumpTreeToFile(const char* filename) const {
   file << "{" << endl
        << "  \"points\": [" << endl;
   delimiter = "";
-  for (size_t i = 0; i < points->size(); i++) {
-    file << "    " << delimiter << "[" << (*points)[i].x << ", " << (*points)[i].y << ", " << (*points)[i].z
+  for (int i = 0; i < points->size(); i++) {
+    file << "    " << delimiter << "[" << coord[3*i] << ", " << coord[3*i+1] << ", " << coord[3*i+2]
          << "]" << endl;
     delimiter = " ,";
   }
@@ -1152,7 +1153,7 @@ void HMatrix<T>::dumpTreeToFile(const char* filename) const {
   file << "  ]," << endl
        << "  \"mapping\": [" << endl << "    ";
   delimiter = "";
-  for (size_t i = 0; i < points->size(); i++) {
+  for (int i = 0; i < points->size(); i++) {
     file << delimiter << indices[i];
     delimiter = " ,";
   }
@@ -1168,19 +1169,18 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
   for (int i = 0; i < depth; i++) {
     prefix += "  ";
   }
+  AxisAlignedBoundingBox rows_bbox(*data.rows);
+  AxisAlignedBoundingBox cols_bbox(*data.cols);
+
   f << prefix << "{\"isLeaf\": " << (isLeaf() ? "true" : "false") << "," << endl
     << prefix << " \"depth\": " << depth << "," << endl
-    << prefix << " \"rows\": " << "{\"offset\": " << rows()->offset << ", \"n\": " << rows()->n << ", "
-    << "\"boundingBox\": [[" << data.rows->boundingBox[0].x << ", " << data.rows->boundingBox[0].y
-    << ", " << data.rows->boundingBox[0].z << "], ["
-    << data.rows->boundingBox[1].x << ", " << data.rows->boundingBox[1].y
-    << ", " << data.rows->boundingBox[1].z << "]]},"
+    << prefix << " \"rows\": " << "{\"offset\": " << rows()->offset() << ", \"n\": " << rows()->size() << ", "
+    << "\"boundingBox\": [[" << rows_bbox.bbMin.x << ", " << rows_bbox.bbMin.y << ", " << rows_bbox.bbMin.z << "], ["
+    << rows_bbox.bbMax.x << ", " << rows_bbox.bbMax.y << ", " << rows_bbox.bbMax.z << "]]},"
     << endl
-    << prefix << " \"cols\": " << "{\"offset\": " << cols()->offset << ", \"n\": " << cols()->n << ", "
-    << "\"boundingBox\": [[" << data.cols->boundingBox[0].x << ", " << data.cols->boundingBox[0].y
-    << ", " << data.cols->boundingBox[0].z << "], ["
-    << data.cols->boundingBox[1].x << ", " << data.cols->boundingBox[1].y
-    << ", " << data.cols->boundingBox[1].z << "]]},";
+    << prefix << " \"cols\": " << "{\"offset\": " << cols()->offset() << ", \"n\": " << cols()->size() << ", "
+    << "\"boundingBox\": [[" << cols_bbox.bbMin.x << ", " << cols_bbox.bbMin.y << ", " << cols_bbox.bbMin.z << "], ["
+    << cols_bbox.bbMax.x << ", " << cols_bbox.bbMax.y << ", " << cols_bbox.bbMax.z << "]]},";
   if (!isLeaf()) {
     f << endl << prefix << " \"children\": [" << endl;
     string delimiter("");
@@ -1199,7 +1199,7 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
       f << endl << prefix << " \"leaf_type\": \"Full\"";
     } else if (isRkMatrix()) {
       f << endl << prefix << " \"leaf_type\": \"Rk\", \"k\": " << data.rk->k << ",";
-      f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
+      // f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
       f << endl << prefix << " \"method\": " << this->data.rk->method;
     } else {
       f << endl << prefix << " \"leaf_type\": \"N/A\"";
@@ -1395,7 +1395,7 @@ void HMatrix<T>::solveLowerTriangular(HMatrix<T>* b) const {
       myAssert(this->isLeaf());
       // Evaluate B, solve by column, and restore in the matrix
       // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->n, b->cols()->n);
+      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
 
       b->evalPart(bFull, b->rows(), b->cols());
       this->solveLowerTriangular(bFull);
@@ -1410,7 +1410,7 @@ template<typename T>
 void HMatrix<T>::solveLowerTriangular(FullMatrix<T>* b) const {
   DECLARE_CONTEXT;
   myAssert(*rows() == *cols());
-  myAssert(cols()->n == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
+  myAssert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
   if (this->isLeaf()) {
     myAssert(this->isFullMatrix());
     // LAPACK resolution
@@ -1419,8 +1419,8 @@ void HMatrix<T>::solveLowerTriangular(FullMatrix<T>* b) const {
     const HMatrix<T>* l11 = get(0, 0);
     const HMatrix<T>* l21 = get(1, 0);
     const HMatrix<T>* l22 = get(1, 1);
-    FullMatrix<T> b1(b->m, l11->cols()->n, b->cols, b->lda);
-    FullMatrix<T> b2(b->m + l11->cols()->n, l22->cols()->n, b->cols, b->lda);
+    FullMatrix<T> b1(b->m, l11->cols()->size(), b->cols, b->lda);
+    FullMatrix<T> b2(b->m + l11->cols()->size(), l22->cols()->size(), b->cols, b->lda);
     l11->solveLowerTriangular(&b1);
     l21->gemv('N', Constants<T>::mone, &b1, Constants<T>::pone, &b2);
     l22->solveLowerTriangular(&b2);
@@ -1480,13 +1480,13 @@ void HMatrix<T>::solveUpperTriangular(HMatrix<T>* b, bool lowerStored) const {
       myAssert(isFullMatrix());
       // Evaluate B, solve by column and restore all in the matrix
       // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->n, b->cols()->n);
+      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
       b->evalPart(bFull, b->rows(), b->cols());
       bFull->transpose();
       this->solveUpperTriangular(bFull, lowerStored);
       bFull->transpose();
-      // int bRows = b->rows()->n;
-      // int bCols = b->cols()->n;
+      // int bRows = b->rows()->size();
+      // int bCols = b->cols()->size();
       // Vector<T> bRow(bCols);
       // for (int row = 0; row < bRows; row++) {
       //   blasCopy<T>(bCols, bFull->m + row, bRows, bRow.v, 1);
@@ -1537,7 +1537,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b) const {
       myAssert(this->isLeaf());
       // Evaluate B, solve by column, and restore in the matrix
       // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->n, b->cols()->n);
+      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
       b->evalPart(bFull, b->rows(), b->cols());
       this->solveUpperTriangularLeft(bFull);
       b->clear();
@@ -1565,8 +1565,8 @@ void HMatrix<T>::solveUpperTriangular(FullMatrix<T>* b, bool loweredStored) cons
     const HMatrix<T>* u12 = loweredStored ? get(1, 0) : get(0, 1);
     const HMatrix<T>* u22 = get(1, 1);
 
-    FullMatrix<T> b1(b->m, u11->rows()->n, b->cols, b->lda);
-    FullMatrix<T> b2(b->m + u11->rows()->n, u22->rows()->n, b->cols, b->lda);
+    FullMatrix<T> b1(b->m, u11->rows()->size(), b->cols, b->lda);
+    FullMatrix<T> b2(b->m + u11->rows()->size(), u22->rows()->size(), b->cols, b->lda);
     u11->solveUpperTriangular(&b1, loweredStored);
     // b2 <- -x1 U12 + b2 = -U12^t x1^t + b2
     u12->gemv(loweredStored ? 'N' : 'T', Constants<T>::mone, &b1, Constants<T>::pone, &b2);
@@ -1585,8 +1585,8 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool lowerStored) co
     const HMatrix<T>* u12 = (lowerStored ? get(1, 0) : get(0, 1));
     const HMatrix<T>* u22 = get(1, 1);
 
-    FullMatrix<T> b1(b->m, u11->cols()->n, b->cols, b->lda);
-    FullMatrix<T> b2(b->m + u11->cols()->n, u22->cols()->n, b->cols, b->lda);
+    FullMatrix<T> b1(b->m, u11->cols()->size(), b->cols, b->lda);
+    FullMatrix<T> b2(b->m + u11->cols()->size(), u22->cols()->size(), b->cols, b->lda);
 
     u22->solveUpperTriangularLeft(&b2, lowerStored);
     // b1 <- -U12 b2 + b1
@@ -1762,7 +1762,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       if (d->isFullMatrix()) {
         mTmp.multiplyWithDiagOrDiagInv(d->data.m->diagonal, false, false);
       } else {
-        Vector<T> diag(d->cols()->n);
+        Vector<T> diag(d->cols()->size());
         d->getDiag(&diag);
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
@@ -1907,7 +1907,7 @@ void HMatrix<T>::getDiag(Vector<T>* diag, int start) const {
     }
   } else {
     get(0,0)->getDiag(diag, start);
-    get(1,1)->getDiag(diag, start + get(0,0)->rows()->n);
+    get(1,1)->getDiag(diag, start + get(0,0)->rows()->size());
   }
 }
 
@@ -1925,7 +1925,7 @@ void HMatrix<T>::solve(HMatrix<T>* b) const {
 template<typename T>
 void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
   // Diagonal extraction
-  Vector<T> diag(cols()->n);
+  Vector<T> diag(cols()->size());
   getDiag(&diag);
   // TODO: use BLAS for that
   for (int j = 0; j < b->cols; j++) {

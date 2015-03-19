@@ -102,17 +102,17 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
 
 
 /** Write points into file. */
-void pointsToFile(DofCoordinate* points, int size, const char* filename) {
+void pointsToFile(double* points, int size, const char* filename) {
   int i;
   FILE * fp = fopen(filename, "w");
   for (i = 0; i < size; i++) {
-      fprintf(fp, "%e %e %e\n", points[i].x, points[i].y, points[i].z);
+      fprintf(fp, "%e %e %e\n", points[3*i], points[3*i+1], points[3*i+2]);
   }
   fclose(fp);
 }
 
 /** Read points from file. */
-void readPointsFromFile(const char* filename, DofCoordinate **points, int *size) {
+void readPointsFromFile(const char* filename, double **points, int *size) {
   FILE * fp=NULL;
   int  k;
   char *line = NULL;
@@ -122,18 +122,17 @@ void readPointsFromFile(const char* filename, DofCoordinate **points, int *size)
   double x = 0, y = 0, z = 0;
   int np = 1000000, rnp = 500000;
   fp = fopen(filename, "r");
-  *points = (DofCoordinate*) malloc(np * sizeof(DofCoordinate));
+  *points = (double*) malloc(3 * np * sizeof(double));
   k = 0;
   while ((read = getline(&line, &len, fp)) != -1) {
-      if(k>=np) *points = (DofCoordinate*) realloc(*points, (k+rnp) * sizeof(DofCoordinate));
+      if(k>=np) *points = (double*) realloc(*points, 3*(k+rnp) * sizeof(double));
       sscanf(line, "%lf %lf %lf\n", &x, &y, &z);
-      (*points)[k].globalIndex = k;
-      (*points)[k].x = x;
-      (*points)[k].y = y;
-      (*points)[k].z = z;
+      (*points)[3*k+0] = x;
+      (*points)[3*k+1] = y;
+      (*points)[3*k+2] = z;
       k++;
   }
-   *points = (DofCoordinate*) realloc(*points, k * sizeof(DofCoordinate));
+   *points = (double*) realloc(*points, 3 * k * sizeof(double));
   fclose(fp);
   free(line);
   *size = k;
@@ -141,32 +140,32 @@ void readPointsFromFile(const char* filename, DofCoordinate **points, int *size)
 }
 
 
-double distanceTo(DofCoordinate center, DofCoordinate points){
-  double r = sqrt((center.x - points.x)*(center.x - points.x) +
-                  (center.y - points.y)*(center.y - points.y) +
-                  (center.z - points.z)*(center.z - points.z));
+double distanceTo(double* center, double* points){
+  double r = sqrt((center[0] - points[0])*(center[0] - points[0]) +
+                  (center[1] - points[1])*(center[1] - points[1]) +
+                  (center[2] - points[2])*(center[2] - points[2]));
   return r;
 }
 
-double* createRhs(DofCoordinate *points, int n, double l) {
+double* createRhs(double *points, int n, double l) {
   double* rhs = (double*) calloc(n,  sizeof(double));
   int i;
-  DofCoordinate center;
-  center.x = 0.;
-  center.y = 0.;
-  center.z = 0.;
+  double center[3];
+  center[0] = 0.;
+  center[1] = 0.;
+  center[2] = 0.;
 
   for (i = 0; i < n; i++) {
-      center.x += points[i].x;
-      center.y += points[i].y;
-      center.z += points[i].z;
+      center[0] += points[3*i+0];
+      center[1] += points[3*i+1];
+      center[2] += points[3*i+2];
   }
-  center.x /= n;
-  center.y /= n;
-  center.z /= n;
+  center[0] /= n;
+  center[1] /= n;
+  center[2] /= n;
 
   for (i = 0; i < n; i++) {
-      double r = distanceTo(center, points[i]);
+      double r = distanceTo(center, &points[3*i]);
       rhs[i] = exp(-fabs(r) / l);
   }
   return rhs;
@@ -174,28 +173,28 @@ double* createRhs(DofCoordinate *points, int n, double l) {
 
 typedef struct {
   int n;
-  DofCoordinate* points;
+  double* points;
   double l;
 } problem_data_t;
 
-double correlationLength(DofCoordinate * points, size_t n) {
+double correlationLength(double * points, size_t n) {
   size_t i;
-  DofCoordinate pMin, pMax;
-  pMin.x = points[0].x; pMin.y = points[0].y; pMin.z = points[0].z;
-  pMax.x = points[0].x; pMax.y = points[0].y; pMax.z = points[0].z;
+  double pMin[3], pMax[3];
+  pMin[0] = points[0]; pMin[1] = points[1]; pMin[2] = points[2];
+  pMax[0] = points[0]; pMax[1] = points[1]; pMax[2] = points[2];
   for (i = 0; i < n; i++) {
-      if (points[i].x < pMin.x) pMin.x =  points[i].x;
-      if (points[i].x > pMax.x) pMax.x =  points[i].x;
+      if (points[3*i] < pMin[0]) pMin[0] =  points[3*i];
+      if (points[3*i] > pMax[0]) pMax[0] =  points[3*i];
 
-      if (points[i].y < pMin.y) pMin.y =  points[i].y;
-      if (points[i].y > pMax.y) pMax.y =  points[i].y;
+      if (points[3*i+1] < pMin[1]) pMin[1] =  points[3*i+1];
+      if (points[3*i+1] > pMax[1]) pMax[1] =  points[3*i+1];
 
-      if (points[i].z < pMin.z) pMin.z =  points[i].z;
-      if (points[i].z > pMax.z) pMax.z =  points[i].z;
+      if (points[3*i+2] < pMin[2]) pMin[2] =  points[3*i+2];
+      if (points[3*i+2] > pMax[2]) pMax[2] =  points[3*i+2];
   }
-  double l = pMax.x - pMin.x;
-  if (pMax.y - pMin.y > l) l = pMax.y - pMin.y;
-  if (pMax.z - pMin.z > l) l = pMax.z - pMin.z;
+  double l = pMax[0] - pMin[0];
+  if (pMax[1] - pMin[1] > l) l = pMax[1] - pMin[1];
+  if (pMax[2] - pMin[2] > l) l = pMax[2] - pMin[2];
   return 0.1 * l;
 }
 /**
@@ -204,8 +203,8 @@ double correlationLength(DofCoordinate * points, size_t n) {
 void interaction_real(void* data, int i, int j, void* result)
 {
   problem_data_t* pdata = (problem_data_t*) data;
-  DofCoordinate* points = pdata->points;
-  double r = distanceTo(points[i], points[j]);
+  double* points = pdata->points;
+  double r = distanceTo(&points[3*i], &points[3*j]);
 
   *((double*)result) = exp(-fabs(r) / pdata->l);
 }
@@ -286,13 +285,15 @@ int main(int argc, char **argv) {
   int i;
 
   char *pointsFilename = NULL;
-  DofCoordinate* points;
+  double* points;
   hmat_interface_t hmat;
   hmat_settings_t settings;
   hmat_value_t type;
   hmat_info_t mat_info;
   int n;
   char arithmetic;
+  hmat_coordinates_t* coordinates;
+  hmat_clustering_algorithm_t* clustering;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t * hmatrix;
   int kLowerSymmetric = 1; /* =0 if not Symmetric */
@@ -367,7 +368,9 @@ int main(int argc, char **argv) {
     drhsCopy = createRhs(points, n, l);
   }
 
-  cluster_tree = hmat_create_cluster_tree(points, n);
+  coordinates = hmat_create_coordinates(points, 3, n);
+  clustering = hmat_create_clustering_median();
+  cluster_tree = hmat_create_cluster_tree(coordinates, clustering);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
   hmat.hmat_get_info(hmatrix, &mat_info);
