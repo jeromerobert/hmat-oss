@@ -41,7 +41,7 @@ public:
   int depth;
 
 protected:
-  /// NULL for a leaf, pointeur on an array of N sons otherwie.
+  /// NULL for a leaf, pointeur on an array of N sons otherwise.
   Tree** children;
 public:
   /// Pointer to the father, NULL if this node is the root
@@ -82,7 +82,7 @@ public:
     child->depth = depth + 1;
   }
 
-  /*! \brief Remove a children, an delete it if necessary.
+  /*! \brief Remove a children, and delete it if necessary.
    */
   void removeChild(int index) {
     delete children[index];
