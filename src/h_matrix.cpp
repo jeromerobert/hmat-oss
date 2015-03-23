@@ -122,7 +122,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
       for (int j = 0; j < 2; ++j) {
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           ClusterTree* colChild = static_cast<ClusterTree*>(_cols->getChild(j));
-          this->insertChild(i + j * 2, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric)));
+          this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric)));
          }
        }
      }
@@ -189,7 +189,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < 2; ++j) {
         if (o->get(i, j)) {
-          h->insertChild(i + j * 2, HMatrix<T>::Zero(o->get(i, j)));
+          h->insertChild(i, j, HMatrix<T>::Zero(o->get(i, j)));
         }
       }
     }
@@ -217,7 +217,7 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols, c
       const ClusterTree* rowChild = static_cast<const ClusterTree*>(h->data.rows->getChild(i));
       for (int j = 0; j < 2; ++j) {
         const ClusterTree* colChild = static_cast<const ClusterTree*>(h->data.cols->getChild(j));
-        h->insertChild(i + j * 2, HMatrix<T>::Zero(rowChild, colChild, settings));
+        h->insertChild(i, j, HMatrix<T>::Zero(rowChild, colChild, settings));
       }
     }
   }
@@ -601,14 +601,14 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
         else if (isLower)
         {
           myAssert(i == 2);
-          child = static_cast<HMatrix<T>*>(getChild(1));
+          child = static_cast<HMatrix<T>*>(get(1, 0));
           trans = (trans == 'N' ? 'T' : 'N');
         }
         else
         {
           myAssert(isUpper);
           myAssert(i == 1);
-          child = static_cast<HMatrix<T>*>(getChild(2));
+          child = static_cast<HMatrix<T>*>(get(0, 1));
           trans = (trans == 'N' ? 'T' : 'N');
         }
       }
@@ -1303,14 +1303,14 @@ void HMatrix<T>::inverse(HMatrix<T>* tmp, int depth) {
     data.m->inverse();
   } else {
     myAssert(!tmp->isLeaf());
-    HMatrix<T>* m11 = static_cast<HMatrix<T>*>(getChild(0));
-    HMatrix<T>* m21 = static_cast<HMatrix<T>*>(getChild(1));
-    HMatrix<T>* m12 = static_cast<HMatrix<T>*>(getChild(2));
-    HMatrix<T>* m22 = static_cast<HMatrix<T>*>(getChild(3));
-    HMatrix<T>* x11 = static_cast<HMatrix<T>*>(tmp->getChild(0));
-    HMatrix<T>* x21 = static_cast<HMatrix<T>*>(tmp->getChild(1));
-    HMatrix<T>* x12 = static_cast<HMatrix<T>*>(tmp->getChild(2));
-    HMatrix<T>* x22 = static_cast<HMatrix<T>*>(tmp->getChild(3));
+    HMatrix<T>* m11 = static_cast<HMatrix<T>*>(get(0, 0));
+    HMatrix<T>* m21 = static_cast<HMatrix<T>*>(get(1, 0));
+    HMatrix<T>* m12 = static_cast<HMatrix<T>*>(get(0, 1));
+    HMatrix<T>* m22 = static_cast<HMatrix<T>*>(get(1, 1));
+    HMatrix<T>* x11 = static_cast<HMatrix<T>*>(tmp->get(0, 0));
+    HMatrix<T>* x21 = static_cast<HMatrix<T>*>(tmp->get(1, 0));
+    HMatrix<T>* x12 = static_cast<HMatrix<T>*>(tmp->get(0, 1));
+    HMatrix<T>* x22 = static_cast<HMatrix<T>*>(tmp->get(1, 1));
 
     // cout << prefix << "X11 <- X11^-1" << endl;
     // Destroy x11

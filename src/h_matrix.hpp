@@ -442,6 +442,18 @@ public:
 public:
   const ClusterData* rows() const;
   const ClusterData* cols() const;
+
+  /*! Return the i-th child of this.
+
+    \warning do not use on a leaf !
+
+    \param i index
+    \return the i-th child of this.
+   */
+  HMatrix<T>* getChild(int i) const {
+    return static_cast<HMatrix<T>*>(Tree::getChild(i));
+  }
+
   /*! Return the child (i, j) of this.
 
     \warning do not use on a leaf !
@@ -450,8 +462,31 @@ public:
     \param j column
     \return the (i,j) child of this.
    */
-  inline HMatrix<T>* get(int i, int j) const {
-    return static_cast<HMatrix<T>*>(getChild(i + j * 2));
+  HMatrix<T>* get(int i, int j) const {
+    return static_cast<HMatrix<T>*>(Tree::getChild(i + j * 2));
+  }
+
+  /*! Set the i-th child of this.
+
+    \warning do not use on a leaf !
+
+    \param i index
+    \param child the i-th child of this.
+   */
+  void insertChild(int i, HMatrix<T>* child) {
+    Tree::insertChild(i, child) ;
+  }
+
+  /*! Set the child (i, j) of this.
+
+    \warning do not use on a leaf !
+
+    \param i row index
+    \param j column index
+    \param child the child (i, j) of this.
+   */
+  void insertChild(int i, int j, HMatrix<T>* child) {
+    Tree::insertChild(i+j*2, static_cast<Tree*>(child)) ;
   }
 
 public:
