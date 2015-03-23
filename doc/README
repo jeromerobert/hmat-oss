@@ -1,0 +1,8 @@
+Doxygen documentation
+----------------------
+
+To generate the documentation :
+cd doc
+doxygen Doxyfile
+
+then browse html/index.html
