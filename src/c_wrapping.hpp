@@ -50,7 +50,7 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
   hmat_admissibility_t* condition)
 {
     HMatSettings& settings = HMatSettings::getInstance();
-    settings.setAdmissibilityCondition(static_cast<AdmissibilityCondition*>((void*)condition));
+    settings.setAdmissibilityCondition(static_cast<hmat::AdmissibilityCondition*>((void*)condition));
     SymmetryFlag sym = (settings.useLdlt ? kLowerSymmetric : kNotSymmetric);
     return (hmat_matrix_t*) new HMatInterface<T, E>(
             static_cast<ClusterTree*>(static_cast<void*>(rows_tree)),

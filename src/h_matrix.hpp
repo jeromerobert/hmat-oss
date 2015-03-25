@@ -48,7 +48,6 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 namespace hmat {
   /** Settings global to a whole matrix */
   struct MatrixSettings {
-     virtual int getMaxElementsPerBlock() const = 0;
      virtual AdmissibilityCondition * getAdmissibilityCondition() const = 0;
      virtual void setAdmissibilityCondition(AdmissibilityCondition* condition) = 0;
   };

@@ -24,34 +24,34 @@
 #include "cluster_tree.hpp"
 
 #include "common/my_assert.h"
-
+#include "hmat_cpp_interface.hpp"
 
 #include <cmath>
 #include <sstream>
 
-bool
-AdmissibilityCondition::isAdmissible(const ClusterTree& rows, const ClusterTree& cols)
-{
-  return false;
-}
+using namespace hmat;
 
-std::string
-AdmissibilityCondition::str() const
+StandardAdmissibilityCondition::StandardAdmissibilityCondition(
+    double eta, size_t maxElementsPerBlock):
+    eta_(eta), maxElementsPerBlock(maxElementsPerBlock)
 {
-  return "Not implemented";
-}
-
-StandardAdmissibilityCondition::StandardAdmissibilityCondition(double eta)
-  : AdmissibilityCondition()
-  , eta_(eta)
-{
-  // Nothing to do
 }
 
 bool
 StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const ClusterTree& cols)
 {
-  return std::min(rows.diameter(), cols.diameter()) <= eta_ * rows.distanceTo(&cols);
+    CompressionMethod m = HMatSettings::getInstance().compressionMethod;
+    bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
+    if (isFullAlgo) {
+        size_t elements = ((size_t) rows.data.n) * cols.data.n;
+        if(elements > maxElementsPerBlock)
+            return false;
+    }
+    // TODO may be this test should be done out of the AdmissibilityCondition
+    if(rows.data.n < 2 || cols.data.n < 2)
+        return false;
+
+    return std::min(rows.diameter(), cols.diameter()) <= eta_ * rows.distanceTo(&cols);
 }
 
 std::string
@@ -62,44 +62,8 @@ StandardAdmissibilityCondition::str() const
   return oss.str();
 }
 
-InfluenceRadiusCondition::InfluenceRadiusCondition(int length, double* radii)
-  : AdmissibilityCondition()
-  , radii_(std::vector<double>(radii, radii + length))
-{
-  // Nothing to do
+void StandardAdmissibilityCondition::setEta(double eta) {
+    eta_ = eta;
 }
 
-bool
-InfluenceRadiusCondition::isAdmissible(const ClusterTree& rows, const ClusterTree& cols)
-{
-  if (radiiMap_.empty())
-  {
-    strongAssert(!radii_.empty() && rows.father == NULL && cols.father == NULL);
-    computeRadii(rows);
-    computeRadii(cols);
-  }
-  return radiiMap_[&rows] + radiiMap_[&cols] < rows.distanceTo(&cols);
-}
-
-void
-InfluenceRadiusCondition::computeRadii(const ClusterTree& tree)
-{
-  double maxRadius = 0.0;
-  for (int i = 0; i < tree.data.n; ++i) {
-    int externalIndex = tree.data.indices[tree.data.offset + i];
-    maxRadius = std::max( maxRadius, radii_[externalIndex] );
-  }
-  radiiMap_[&tree] = maxRadius;
-  if (!tree.isLeaf())
-  {
-    computeRadii(* static_cast<ClusterTree*>(tree.getChild(0)));
-    computeRadii(* static_cast<ClusterTree*>(tree.getChild(1)));
-  }
-}
-
-std::string
-InfluenceRadiusCondition::str() const
-{
-  return "influence radius formula";
-}
-
+StandardAdmissibilityCondition StandardAdmissibilityCondition::DEPRECATED_INSTANCE = StandardAdmissibilityCondition(2.0);

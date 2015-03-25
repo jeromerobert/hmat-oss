@@ -26,6 +26,9 @@
 #include "admissibility.hpp"
 #include "c_wrapping.hpp"
 #include "common/my_assert.h"
+
+using namespace hmat;
+
 hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n) {
     return (hmat_cluster_tree_t*) createClusterTree(dls, n);
 }
@@ -45,12 +48,7 @@ int hmat_tree_nodes_count(hmat_cluster_tree_t * tree)
 
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
 {
-    return static_cast<hmat_admissibility_t*>((void*) new StandardAdmissibilityCondition(eta));
-}
-
-hmat_admissibility_t* hmat_create_admissibility_influence_radius(int length, double* radii)
-{
-    return static_cast<hmat_admissibility_t*>((void*) new InfluenceRadiusCondition(length, radii));
+    return static_cast<hmat_admissibility_t*>((void*) new hmat::StandardAdmissibilityCondition(eta));
 }
 
 void hmat_delete_admissibility(hmat_admissibility_t * cond) {
@@ -151,7 +149,10 @@ int hmat_set_parameters(hmat_settings_t* settings)
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
     if (settings->admissibilityFactor != 0.0)
-      settingsCxx.admissibilityCondition = new StandardAdmissibilityCondition(settings->admissibilityFactor);
+    {
+      StandardAdmissibilityCondition::DEPRECATED_INSTANCE.setEta(settings->admissibilityFactor);
+      settingsCxx.admissibilityCondition = &StandardAdmissibilityCondition::DEPRECATED_INSTANCE;
+    }
     else
       settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
     switch (settings->clustering) {

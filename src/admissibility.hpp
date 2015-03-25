@@ -29,16 +29,14 @@
 
 #include <cstddef>
 #include <string>
-#include <map>
-#include <vector>
 
 // Forward declarations
 class ClusterTree;
+namespace hmat {
 
 class AdmissibilityCondition
 {
 public:
-  AdmissibilityCondition() {}
   virtual ~AdmissibilityCondition() {}
   /*! \brief Returns true if 2 nodes are admissible together.
 
@@ -46,45 +44,33 @@ public:
     Two leaves are admissible if they satisfy the criterion allowing the
     compression of the resulting matrix block.
 
-    In the default implementation in the base class, the criterion kept
-    is Hackbusch formula :
-       min (diameter (), other-> diameter ()) <= eta * distanceTo (other);
-    For close interaction matrix computation, the influence radius formula
-    is also available :
-      influenceRadius() + other->influenceRadius() <= distanceTo (other);
-    \param other  the other node of the couple.
-    \param eta    a parameter used in the evaluation of the admissibility.
-    \param max_size should be used with AcaFull and Svd compression to limit
-           memory size of a block. A value of 0 will be ignored and should be
-           used with AcaPlus.
     \return true  if 2 nodes are admissible.
 
    */
-  virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
-  virtual std::string str() const;
+  virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  virtual std::string str() const = 0;
 };
 
+/**
+ * @brief Hackbusch formula based admissibility
+ *  is Hackbusch formula :
+ *     min (diameter (), other-> diameter ()) <= eta * distanceTo (other);
+ * @param eta    a parameter used in the evaluation of the admissibility.
+ * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression
+ */
 class StandardAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  StandardAdmissibilityCondition(double eta);
+  StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 5000000);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   std::string str() const;
+  void setEta(double eta);
+  // For API compatibility
+  static StandardAdmissibilityCondition DEPRECATED_INSTANCE;
 private:
   double eta_;
+  size_t maxElementsPerBlock;
 };
 
-class InfluenceRadiusCondition : public AdmissibilityCondition
-{
-public:
-  InfluenceRadiusCondition(int length, double* radii);
-  bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
-  std::string str() const;
-private:
-  void computeRadii(const ClusterTree& tree);
-
-  std::vector<double> radii_;
-  std::map<const ClusterTree*, double> radiiMap_;
-};
-
+}
 #endif

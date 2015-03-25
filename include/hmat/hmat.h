@@ -54,8 +54,7 @@ typedef enum {
   hmat_compress_svd,
   hmat_compress_aca_full,
   hmat_compress_aca_partial,
-  hmat_compress_aca_plus,
-  hmat_compress_rk_null
+  hmat_compress_aca_plus
 } hmat_compress_t;
 
 /*! \brief Coordinates of a degree of freedom
@@ -173,9 +172,6 @@ typedef struct hmat_admissibility_condition hmat_admissibility_t;
 
 /* Create a standard (Hackbusch) admissibility condition, with a given eta */
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
-
-/* Create an admissibility condition based on influence radii */
-hmat_admissibility_t* hmat_create_admissibility_influence_radius(int length, double* radii);
 
 /** Information on the HMatrix */
 typedef struct
