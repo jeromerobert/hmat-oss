@@ -106,16 +106,6 @@ ClusterTree::~ClusterTree() {
   }
 }
 
-/* Implemente la condition d'admissibilite des bounding box.
- */
-bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {
-  size_t elements = ((size_t) data.n) * other->data.n;
-  if(elements < max_size && data.n > 1)
-    return min(diameter(), other->diameter()) <= eta * distanceTo(other);
-  else
-    return false;
-}
-
 double ClusterTree::getEta(const ClusterTree* other) const {
   return min(diameter(), other->diameter()) / distanceTo(other);
 }

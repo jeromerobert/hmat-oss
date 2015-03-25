@@ -147,6 +147,7 @@ typedef void (*compute_func)(void* v_data, int row_start, int row_count,
  */
 typedef void (*simple_interaction_compute_func)(void* user_context, int row, int col, void* result);
 
+/* Opaque pointer */
 typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
 
 /*! \brief Create a ClusterTree from the DoFs coordinates.
@@ -165,6 +166,12 @@ hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
  * Return the number of nodes in a cluster tree
  */
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
+
+/* Opaque pointer */
+typedef struct hmat_admissibility_condition hmat_admissibility_t;
+
+/* Create a standard (Hackbusch) admissibility condition, with a given eta */
+hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
 
 /** Information on the HMatrix */
 typedef struct
@@ -196,11 +203,25 @@ typedef struct
       arguments.
 
       \param stype the scalar type
-      \param rows_tree a ClusterTree as returned by \a create_cluster_tree().
-      \param cols_tree a ClusterTree as returned by \a create_cluster_tree().
+      \param rows_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
+      \param cols_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
       \return an opaque pointer to an HMatrix, or NULL in case of error.
     */
     hmat_matrix_t* (*create_empty_hmatrix)(void* rows_tree, void* cols_tree);
+
+    /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances,
+      and specify admissibility condition.
+
+      The HMatrix is built on a row and a column tree, that are provided as
+      arguments.
+
+      \param stype the scalar type
+      \param rows_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
+      \param cols_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
+      \param cond an admissibility condition, as returned by \a hmat_create_admissibility_standard().
+      \return an opaque pointer to an HMatrix, or NULL in case of error.
+    */
+    hmat_matrix_t* (*create_empty_hmatrix_admissibility)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, hmat_admissibility_t* cond);
 
     /*! Assemble a HMatrix.
 
@@ -389,12 +410,12 @@ typedef struct
   int compressionMethod;
   /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
    int compressionMinLeafSize;
-  /** \f$\eta\f$ in the admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
+  /** \f$\eta\f$ in the Hackbusch admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
       \f[
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
       \f]
    */
-  double admissibilityFactor;
+  double admissibilityFactor;  /* DEPRECATED, use admissibilityCondition instead */
   /*! \brief Type of ClusterTree */
   hmat_cluster_t clustering;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
@@ -403,6 +424,8 @@ typedef struct
   int maxParallelLeaves;
   /*! \brief Maximum size of an admissible block. Should be size_t ! */
   int elementsPerBlock;
+  /*! \brief Admissibility condition for clusters */
+  hmat_admissibility_t* admissibilityCondition;
   /*! \brief Use an LU decomposition */
   int useLu;
   /*! \brief Use an LDL^t decomposition if possible */

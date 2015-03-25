@@ -43,7 +43,6 @@ static void setTemplatedParameters(const HMatSettings& s) {
 void HMatSettings::setParameters() const {
   strongAssert(assemblyEpsilon > 0.);
   strongAssert(recompressionEpsilon > 0.);
-  strongAssert(admissibilityFactor >= 0.);
   strongAssert(validationErrorThreshold >= 0.);
   setTemplatedParameters<S_t>(*this);
   setTemplatedParameters<D_t>(*this);
@@ -57,9 +56,8 @@ void HMatSettings::printSettings(std::ostream& out) const {
   out << std::scientific;
   out << "Assembly Epsilon           = " << assemblyEpsilon << std::endl;
   out << "Resolution Epsilon         = " << recompressionEpsilon << std::endl;
-  out << "Admissibility factor       = " << admissibilityFactor << std::endl;
   out << "Compression Min Leaf Size  = " << compressionMinLeafSize << std::endl;
-  out << "Max Leaf Size              = " << maxLeafSize << std::endl;
+  out << "Admissibility Condition    = " << admissibilityCondition->str() << std::endl;
   out << "Validation Error Threshold = " << validationErrorThreshold << std::endl;
   switch (clustering) {
   case kGeometric:

@@ -32,6 +32,7 @@
 #include "data_types.hpp"
 #include "full_matrix.hpp"
 #include "cluster_tree.hpp"
+#include "admissibility.hpp"
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -47,8 +48,8 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 namespace hmat {
   /** Settings global to a whole matrix */
   struct MatrixSettings {
-     virtual double getAdmissibilityFactor() const = 0;
-     virtual int getMaxElementsPerBlock() const = 0;
+     virtual AdmissibilityCondition * getAdmissibilityCondition() const = 0;
+     virtual void setAdmissibilityCondition(AdmissibilityCondition* condition) = 0;
   };
 
   /** Settings local to a matrix bloc */

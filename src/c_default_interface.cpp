@@ -23,8 +23,12 @@
 #include "hmat/hmat.h"
 #include "hmat_cpp_interface.hpp"
 #include "default_engine.hpp"
+#include "admissibility.hpp"
 #include "c_wrapping.hpp"
 #include "common/my_assert.h"
+
+using namespace hmat;
+
 hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n) {
     return (hmat_cluster_tree_t*) createClusterTree(dls, n);
 }
@@ -40,6 +44,15 @@ hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree) {
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree)
 {
     return ((ClusterTree*)tree)->nodesCount();
+}
+
+hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
+{
+    return static_cast<hmat_admissibility_t*>((void*) new hmat::StandardAdmissibilityCondition(eta));
+}
+
+void hmat_delete_admissibility(hmat_admissibility_t * cond) {
+    delete static_cast<AdmissibilityCondition*>((void*)cond);
 }
 
 void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
@@ -77,7 +90,8 @@ void hmat_get_parameters(hmat_settings_t* settings)
       settings->compressionMethod = hmat_compress_svd;
       break;
     }
-    settings->admissibilityFactor = settingsCxx.admissibilityFactor;
+    settings->admissibilityCondition = static_cast<hmat_admissibility_t*>((void*)settingsCxx.admissibilityCondition);
+    settings->admissibilityFactor = 0.0;
     switch (settingsCxx.clustering) {
     case kGeometric:
       settings->clustering = hmat_cluster_geometric;
@@ -134,7 +148,13 @@ int hmat_set_parameters(hmat_settings_t* settings)
       break;
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
-    settingsCxx.admissibilityFactor = settings->admissibilityFactor;
+    if (settings->admissibilityFactor != 0.0)
+    {
+      StandardAdmissibilityCondition::DEPRECATED_INSTANCE.setEta(settings->admissibilityFactor);
+      settingsCxx.admissibilityCondition = &StandardAdmissibilityCondition::DEPRECATED_INSTANCE;
+    }
+    else
+      settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
     switch (settings->clustering) {
     case hmat_cluster_geometric:
       settingsCxx.clustering = kGeometric;
