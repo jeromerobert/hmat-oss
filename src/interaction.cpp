@@ -34,10 +34,10 @@ SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
                                     const hmat_block_info_t * block_info) const {
   FullMatrix<typename Types<T>::dp>* result =
     new FullMatrix<typename Types<T>::dp>(rows->n, cols->n);
-  for (int i = 0; i < rows->n; ++i) {
-    int row = rows->indices[i + rows->offset];
-    for (int j = 0; j < cols->n; ++j) {
-      int col = cols->indices[j + cols->offset];
+  for (int j = 0; j < cols->n; ++j) {
+    int col = cols->indices[j + cols->offset];
+    for (int i = 0; i < rows->n; ++i) {
+      int row = rows->indices[i + rows->offset];
       result->get(i, j) = interaction(row, col);
     }
   }
