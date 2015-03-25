@@ -52,23 +52,23 @@ template<typename T>
 void axpy(const int n, const T& alpha, const T* x, const int incx, T* y, const int incy);
 
 inline
-void axpy(const int n, const S_t& alpha, const S_t* x, const int incx, S_t* y, const int incy) {
+void axpy(const int n, const hmat::S_t& alpha, const hmat::S_t* x, const int incx, hmat::S_t* y, const int incy) {
   cblas_saxpy(n, alpha, x, incx, y, incy);
 }
 inline
-void axpy(const int n, const D_t& alpha, const D_t* x, const int incx, D_t* y, const int incy) {
+void axpy(const int n, const hmat::D_t& alpha, const hmat::D_t* x, const int incx, hmat::D_t* y, const int incy) {
   cblas_daxpy(n, alpha, x, incx, y, incy);
 }
 inline
-void axpy(const int n, const C_t& alpha, const C_t* x, const int incx, C_t* y, const int incy) {
+void axpy(const int n, const hmat::C_t& alpha, const hmat::C_t* x, const int incx, hmat::C_t* y, const int incy) {
   // WARNING: &alpha instead of alpha for complex values
-  #define _C_T C_t
+  #define _C_T hmat::C_t
   cblas_caxpy(n, _C(&alpha), _C(x), incx, _C(y), incy);
   #undef _C_T
 }
 inline
-void axpy(const int n, const Z_t& alpha, const Z_t* x, const int incx, Z_t* y, const int incy) {
-  #define _C_T Z_t
+void axpy(const int n, const hmat::Z_t& alpha, const hmat::Z_t* x, const int incx, hmat::Z_t* y, const int incy) {
+  #define _C_T hmat::Z_t
   // WARNING: &alpha instead of alpha for complex values
   cblas_zaxpy(n, _C(&alpha), _C(x), incx, _C(y), incy);
   #undef _C_T
@@ -78,22 +78,22 @@ template<typename T>
 void copy(const int n, const T* x, const int incx, T* y, const int incy);
 
 inline
-void copy(const int n, const S_t* x, int incx, S_t* y, const int incy) {
+void copy(const int n, const hmat::S_t* x, int incx, hmat::S_t* y, const int incy) {
   cblas_scopy(n, x, incx, y, incy);
 }
 inline
-void copy(const int n, const D_t* x, int incx, D_t* y, const int incy) {
+void copy(const int n, const hmat::D_t* x, int incx, hmat::D_t* y, const int incy) {
   cblas_dcopy(n, x, incx, y, incy);
 }
 inline
-void copy(const int n, const C_t* x, int incx, C_t* y, const int incy) {
-  #define _C_T C_t
+void copy(const int n, const hmat::C_t* x, int incx, hmat::C_t* y, const int incy) {
+  #define _C_T hmat::C_t
   cblas_ccopy(n, _C(x), incx, _C(y), incy);
   #undef _C_T
 }
 inline
-void copy(const int n, const Z_t* x, int incx, Z_t* y, const int incy) {
-  #define _C_T Z_t
+void copy(const int n, const hmat::Z_t* x, int incx, hmat::Z_t* y, const int incy) {
+  #define _C_T hmat::Z_t
   cblas_zcopy(n, _C(x), incx, _C(y), incy);
   #undef _C_T
 }
@@ -102,11 +102,11 @@ template<typename T>
 T dot(const int n, const T* x, const int incx, const T* y, const int incy);
 
 inline
-S_t dot(const int n, const S_t* x, const int incx, const S_t* y, const int incy) {
+hmat::S_t dot(const int n, const hmat::S_t* x, const int incx, const hmat::S_t* y, const int incy) {
   return cblas_sdot(n, x, incx, y, incy);
 }
 inline
-D_t dot(const int n, const D_t* x, const int incx, const D_t* y, const int incy) {
+hmat::D_t dot(const int n, const hmat::D_t* x, const int incx, const hmat::D_t* y, const int incy) {
   return cblas_ddot(n, x, incx, y, incy);
 }
 
@@ -114,24 +114,24 @@ template<typename T>
 T dotc(const int n, const T* x, const int incx, const T* y, const int incy);
 
 inline
-C_t dotc(const int n, const C_t* x, const int incx, const C_t* y, const int incy) {
+hmat::C_t dotc(const int n, const hmat::C_t* x, const int incx, const hmat::C_t* y, const int incy) {
 #ifdef HAVE_CBLAS_CDOTC
   return cblas_cdotc(n, x, incx, y, incy);
 #else
-  C_t result = Constants<C_t>::zero;
-  #define _C_T C_t
+  hmat::C_t result = hmat::Constants<hmat::C_t>::zero;
+  #define _C_T hmat::C_t
   cblas_cdotc_sub(n, _C(x), incx, _C(y), incy, _CC(openblas_complex_float, &result));
   #undef _C_T
   return result;
 #endif
 }
 inline
-Z_t dotc(const int n, const Z_t* x, const int incx, const Z_t* y, const int incy) {
+hmat::Z_t dotc(const int n, const hmat::Z_t* x, const int incx, const hmat::Z_t* y, const int incy) {
 #ifdef HAVE_CBLAS_CDOTC
   return cblas_zdotc(n, x, incx, y, incy);
 #else
-  Z_t result = Constants<Z_t>::zero;
-  #define _C_T Z_t
+  hmat::Z_t result = hmat::Constants<hmat::Z_t>::zero;
+  #define _C_T hmat::Z_t
   cblas_zdotc_sub(n, _C(x), incx, _C(y), incy, _CC(openblas_complex_double, &result));
   #undef _C_T
   return result;
@@ -142,22 +142,22 @@ template<typename T>
 int i_amax(const int n, const T* x, const int incx);
 
 inline
-int i_amax(const int n, const S_t* x, const int incx) {
+int i_amax(const int n, const hmat::S_t* x, const int incx) {
   return cblas_isamax(n, x, incx);
 }
 inline
-int i_amax(const int n, const D_t* x, const int incx) {
+int i_amax(const int n, const hmat::D_t* x, const int incx) {
   return cblas_idamax(n, x, incx);
 }
 inline
-int i_amax(const int n, const C_t* x, const int incx) {
-  #define _C_T C_t
+int i_amax(const int n, const hmat::C_t* x, const int incx) {
+  #define _C_T hmat::C_t
   return cblas_icamax(n, _C(x), incx);
   #undef _C_T
 }
 inline
-int i_amax(const int n, const Z_t* x, const int incx) {
-  #define _C_T Z_t
+int i_amax(const int n, const hmat::Z_t* x, const int incx) {
+  #define _C_T hmat::Z_t
   return cblas_izamax(n, _C(x), incx);
   #undef _C_T
 }
@@ -166,24 +166,24 @@ template<typename T>
 void scal(const int n, const T& alpha, T* x, const int incx);
 
 inline
-void scal(const int n, const S_t& alpha, S_t* x, const int incx) {
+void scal(const int n, const hmat::S_t& alpha, hmat::S_t* x, const int incx) {
   cblas_sscal(n, alpha, x, incx);
 }
 inline
-void scal(const int n, const D_t& alpha, D_t* x, const int incx) {
+void scal(const int n, const hmat::D_t& alpha, hmat::D_t* x, const int incx) {
   cblas_dscal(n, alpha, x, incx);
 }
 inline
-void scal(const int n, const C_t& alpha, C_t* x, const int incx) {
+void scal(const int n, const hmat::C_t& alpha, hmat::C_t* x, const int incx) {
   // WARNING: &alpha instead of alpha for complex values
-  #define _C_T C_t
+  #define _C_T hmat::C_t
   cblas_cscal(n, _C(&alpha), _C(x), incx);
   #undef _C_T
 }
 inline
-void scal(const int n, const Z_t& alpha, Z_t* x, const int incx) {
+void scal(const int n, const hmat::Z_t& alpha, hmat::Z_t* x, const int incx) {
   // WARNING: &alpha instead of alpha for complex values
-  #define _C_T Z_t
+  #define _C_T hmat::Z_t
   cblas_zscal(n, _C(&alpha), _C(x), incx);
   #undef _C_T
 }
@@ -194,32 +194,32 @@ void gemv(const char trans, const int m, const int n, const T& alpha, const T* a
           const T* x, const int incx, const T& beta, T* y, const int incy);
 
 inline
-void gemv(const char trans, const int m, const int n, const S_t& alpha, const S_t* a, const int lda,
-          const S_t* x, const int incx, const S_t& beta, S_t* y, const int incy) {
+void gemv(const char trans, const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
+          const hmat::S_t* x, const int incx, const hmat::S_t& beta, hmat::S_t* y, const int incy) {
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   cblas_sgemv(CblasColMajor, t, m, n, alpha, a, lda, x, incx, beta, y, incy);
 }
 inline
-void gemv(const char trans, const int m, const int n, const D_t& alpha, const D_t* a, const int lda,
-          const D_t* x, const int incx, const D_t& beta, D_t* y, const int incy) {
+void gemv(const char trans, const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
+          const hmat::D_t* x, const int incx, const hmat::D_t& beta, hmat::D_t* y, const int incy) {
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   cblas_dgemv(CblasColMajor, t, m, n, alpha, a, lda, x, incx, beta, y, incy);
 }
 inline
-void gemv(const char trans, const int m, const int n, const C_t& alpha, const C_t* a, const int lda,
-          const C_t* x, const int incx, const C_t& beta, C_t* y, const int incy) {
+void gemv(const char trans, const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
+          const hmat::C_t* x, const int incx, const hmat::C_t& beta, hmat::C_t* y, const int incy) {
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
-  #define _C_T C_t
+  #define _C_T hmat::C_t
   cblas_cgemv(CblasColMajor, t, m, n, _C(&alpha), _C(a), lda, _C(x), incx, _C(&beta), _C(y), incy);
   #undef _C_T
 }
 inline
-void gemv(const char trans, const int m, const int n, const Z_t& alpha, const Z_t* a, const int lda,
-          const Z_t* x, const int incx, const Z_t& beta, Z_t* y, const int incy) {
+void gemv(const char trans, const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
+          const hmat::Z_t* x, const int incx, const hmat::Z_t& beta, hmat::Z_t* y, const int incy) {
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
-  #define _C_T Z_t
+  #define _C_T hmat::Z_t
   cblas_zgemv(CblasColMajor, t, m, n, _C(&alpha), _C(a), lda, _C(x), incx, _C(&beta), _C(y), incy);
   #undef _C_T
 }
@@ -232,28 +232,28 @@ void gemm(const char transA, const char transB, const int m, const int n, const 
 
 inline
 void gemm(const char transA, const char transB, const int m, const int n, const int k,
-          const S_t& alpha, const S_t* a, const int lda, const S_t* b, const int ldb,
-          const S_t& beta, S_t* c, const int ldc) {
+          const hmat::S_t& alpha, const hmat::S_t* a, const int lda, const hmat::S_t* b, const int ldb,
+          const hmat::S_t& beta, hmat::S_t* c, const int ldc) {
   const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
   cblas_sgemm(CblasColMajor, tA, tB, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 }
 inline
 void gemm(const char transA, const char transB, const int m, const int n, const int k,
-          const D_t& alpha, const D_t* a, const int lda, const D_t* b, const int ldb,
-          const D_t& beta, D_t* c, const int ldc) {
+          const hmat::D_t& alpha, const hmat::D_t* a, const int lda, const hmat::D_t* b, const int ldb,
+          const hmat::D_t& beta, hmat::D_t* c, const int ldc) {
   const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
   cblas_dgemm(CblasColMajor, tA, tB, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 }
 inline
 void gemm(const char transA, const char transB, const int m, const int n, const int k,
-          const C_t& alpha, const C_t* a, const int lda, const C_t* b, const int ldb,
-          const C_t& beta, C_t* c, const int ldc) {
+          const hmat::C_t& alpha, const hmat::C_t* a, const int lda, const hmat::C_t* b, const int ldb,
+          const hmat::C_t& beta, hmat::C_t* c, const int ldc) {
   const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
-#define _C_T C_t
+#define _C_T hmat::C_t
 #ifdef HAVE_ZGEMM3M
   cblas_cgemm3m(CblasColMajor, tA, tB, m, n, k, _C(&alpha), _C(a), lda, _C(b), ldb, _C(&beta), _C(c), ldc);
 #else
@@ -263,12 +263,12 @@ void gemm(const char transA, const char transB, const int m, const int n, const 
 }
 inline
 void gemm(const char transA, const char transB, const int m, const int n, int k,
-          const Z_t& alpha, const Z_t* a, const int lda, const Z_t* b, const int ldb,
-          const Z_t& beta, Z_t* c, const int ldc) {
+          const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda, const hmat::Z_t* b, const int ldb,
+          const hmat::Z_t& beta, hmat::Z_t* c, const int ldc) {
   const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
-#define _C_T Z_t
+#define _C_T hmat::Z_t
 #ifdef HAVE_ZGEMM3M
   cblas_zgemm3m(CblasColMajor, tA, tB, m, n, k, _C(&alpha), _C(a), lda, _C(b), ldb, _C(&beta), _C(c), ldc);
 #else
@@ -284,8 +284,8 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
 
 inline
 void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const S_t& alpha, const S_t* a, const int lda,
-          S_t* b, const int ldb) {
+          const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
+          hmat::S_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
@@ -294,8 +294,8 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
 }
 inline
 void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const D_t& alpha, const D_t* a, const int lda,
-          D_t* b, const int ldb) {
+          const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
+          hmat::D_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
@@ -304,27 +304,27 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
 }
 inline
 void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const C_t& alpha, const C_t* a, const int lda,
-          C_t* b, const int ldb) {
+          const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
+          hmat::C_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
-#define _C_T C_t
+#define _C_T hmat::C_t
   cblas_ctrmm(CblasColMajor, s, u, t, d, m, n, _C(&alpha), _C(a), lda, _C(b), ldb);
 #undef _C_T
 }
 inline
 void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const Z_t& alpha, const Z_t* a, const int lda,
-          Z_t* b, const int ldb) {
+          const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
+          hmat::Z_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
-#define _C_T Z_t
+#define _C_T hmat::Z_t
   cblas_ztrmm(CblasColMajor, s, u, t, d, m, n, _C(&alpha), _C(a), lda, _C(b), ldb);
 #undef _C_T
 }
@@ -336,8 +336,8 @@ void trsm(const char side, const char uplo, const char trans, const char diag,
 
 inline
 void trsm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const S_t& alpha, const S_t* a, const int lda,
-          S_t* b, const int ldb) {
+          const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
+          hmat::S_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
@@ -346,8 +346,8 @@ void trsm(const char side, const char uplo, const char trans, const char diag,
 }
 inline
 void trsm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const D_t& alpha, const D_t* a, const int lda,
-          D_t* b, const int ldb) {
+          const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
+          hmat::D_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
@@ -356,27 +356,27 @@ void trsm(const char side, const char uplo, const char trans, const char diag,
 }
 inline
 void trsm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const C_t& alpha, const C_t* a, const int lda,
-          C_t* b, const int ldb) {
+          const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
+          hmat::C_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
-#define _C_T C_t
+#define _C_T hmat::C_t
   cblas_ctrsm(CblasColMajor, s, u, t, d, m, n, _C(&alpha), _C(a), lda, _C(b), ldb);
 #undef _C_T
 }
 inline
 void trsm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const Z_t& alpha, const Z_t* a, const int lda,
-          Z_t* b, const int ldb) {
+          const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
+          hmat::Z_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
-#define _C_T Z_t
+#define _C_T hmat::Z_t
   cblas_ztrsm(CblasColMajor, s, u, t, d, m, n, _C(&alpha), _C(a), lda, _C(b), ldb);
 #undef _C_T
 }
@@ -393,19 +393,19 @@ template<typename T>
 T dot_c(const int n, const T* x, const int incx, const T* y, const int incy);
 
 inline
-S_t dot_c(const int n, const S_t* x, const int incx, const S_t* y, const int incy) {
+hmat::S_t dot_c(const int n, const hmat::S_t* x, const int incx, const hmat::S_t* y, const int incy) {
   return proxy_cblas::dot(n, x, incx, y, incy);
 }
 inline
-D_t dot_c(const int n, const D_t* x, const int incx, const D_t* y, const int incy) {
+hmat::D_t dot_c(const int n, const hmat::D_t* x, const int incx, const hmat::D_t* y, const int incy) {
   return proxy_cblas::dot(n, x, incx, y, incy);
 }
 inline
-C_t dot_c(const int n, const C_t* x, const int incx, const C_t* y, const int incy) {
+hmat::C_t dot_c(const int n, const hmat::C_t* x, const int incx, const hmat::C_t* y, const int incy) {
   return proxy_cblas::dotc(n, x, incx, y, incy);
 }
 inline
-Z_t dot_c(const int n, const Z_t* x, const int incx, const Z_t* y, const int incy) {
+hmat::Z_t dot_c(const int n, const hmat::Z_t* x, const int incx, const hmat::Z_t* y, const int incy) {
   return proxy_cblas::dotc(n, x, incx, y, incy);
 }
 
@@ -418,20 +418,20 @@ template<typename T>
 void imatcopy(const size_t rows, const size_t cols, T* m);
 
 inline
-void imatcopy(const size_t rows, const size_t cols, S_t* m) {
-  mkl_simatcopy('C', 'T', rows, cols, Constants<S_t>::pone, m, rows, cols);
+void imatcopy(const size_t rows, const size_t cols, hmat::S_t* m) {
+  mkl_simatcopy('C', 'T', rows, cols, hmat::Constants<hmat::S_t>::pone, m, rows, cols);
 }
 inline
-void imatcopy(const size_t rows, const size_t cols, D_t* m) {
-  mkl_dimatcopy('C', 'T', rows, cols, Constants<D_t>::pone, m, rows, cols);
+void imatcopy(const size_t rows, const size_t cols, hmat::D_t* m) {
+  mkl_dimatcopy('C', 'T', rows, cols, hmat::Constants<hmat::D_t>::pone, m, rows, cols);
 }
 inline
-void imatcopy(const size_t rows, const size_t cols, C_t* m) {
+void imatcopy(const size_t rows, const size_t cols, hmat::C_t* m) {
   const MKL_Complex8 pone = {1., 0.};
   mkl_cimatcopy('C', 'T', rows, cols, pone, (MKL_Complex8*) m, rows, cols);
 }
 inline
-void imatcopy(const size_t rows, const size_t cols, Z_t* m) {
+void imatcopy(const size_t rows, const size_t cols, hmat::Z_t* m) {
   const MKL_Complex16 pone = {1., 0.};
   mkl_zimatcopy('C', 'T', rows, cols, pone, (MKL_Complex16*) m, rows, cols);
 }
@@ -440,20 +440,20 @@ template<typename T>
 void omatcopy(size_t rows, size_t cols, const T* m, T* copy);
 
 inline
-void omatcopy(size_t rows, size_t cols, const S_t* m, S_t* copy) {
-  mkl_somatcopy('C', 'T', rows, cols, Constants<S_t>::pone, m, rows, copy, cols);
+void omatcopy(size_t rows, size_t cols, const hmat::S_t* m, hmat::S_t* copy) {
+  mkl_somatcopy('C', 'T', rows, cols, hmat::Constants<hmat::S_t>::pone, m, rows, copy, cols);
 }
 inline
-void omatcopy(size_t rows, size_t cols, const D_t* m, D_t* copy) {
-  mkl_domatcopy('C', 'T', rows, cols, Constants<D_t>::pone, m, rows, copy, cols);
+void omatcopy(size_t rows, size_t cols, const hmat::D_t* m, hmat::D_t* copy) {
+  mkl_domatcopy('C', 'T', rows, cols, hmat::Constants<hmat::D_t>::pone, m, rows, copy, cols);
 }
 inline
-void omatcopy(size_t rows, size_t cols, const C_t* m, C_t* copy) {
+void omatcopy(size_t rows, size_t cols, const hmat::C_t* m, hmat::C_t* copy) {
   const MKL_Complex8 pone = {1., 0.};
   mkl_comatcopy('C', 'T', rows, cols, pone, (const MKL_Complex8*) m, rows, (MKL_Complex8*) copy, cols);
 }
 inline
-void omatcopy(size_t rows, size_t cols, const Z_t* m, Z_t* copy) {
+void omatcopy(size_t rows, size_t cols, const hmat::Z_t* m, hmat::Z_t* copy) {
   const MKL_Complex16 pone = {1., 0.};
   mkl_zomatcopy('C', 'T', rows, cols, pone, (const MKL_Complex16*) m, rows, (MKL_Complex16*) copy, cols);
 }

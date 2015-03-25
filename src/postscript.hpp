@@ -26,6 +26,8 @@
 #include "tree.hpp"
 #include <fstream>
 
+namespace hmat {
+
 template<typename T> class HMatrix;
 
 /*! \brief Create a Postscript file representing the HMatrix.
@@ -46,4 +48,7 @@ protected:
 private:
     void recursiveDrawing(const Tree<4> * tree, std::ofstream& f, int depth, double scale) const;
 };
+
+}  // end namespace hmat
+
 #endif  // _POSTSCRIPT_HPP

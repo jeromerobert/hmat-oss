@@ -27,6 +27,9 @@
 
 /** Choice of the compression method.
  */
+
+namespace hmat {
+
 enum CompressionMethod {
   Svd, AcaFull, AcaPartial, AcaPlus, NoCompression
 };
@@ -63,4 +66,6 @@ template<typename T>
 RkMatrix<typename Types<T>::dp>*
 compress(CompressionMethod method, const AssemblyFunction<T>& f,
          const ClusterData* rows, const ClusterData* cols);
+
+}  // end namespace hmat
 #endif

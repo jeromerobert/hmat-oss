@@ -30,6 +30,8 @@
 #include <list>
 #include <cstddef>
 
+namespace hmat {
+
 /*! \brief Templated tree class.
 
   This class represents a tree of arity N, holding an instance of NodeData in
@@ -150,4 +152,7 @@ public:
     }
   }
 };
+
+}  // end namespace hmat
+
 #endif  // _TREE_HPP

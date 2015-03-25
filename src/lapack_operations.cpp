@@ -35,25 +35,27 @@
 
 using namespace std;
 
+namespace {
+
 // Implementation
 template<typename T> int svdCall(int order, char jobu, char jobv, int m, int n, T* a,
                                  int lda, double* sigma, T* u, int ldu, T* vt,
                                  int ldvt);
 
-template<> int svdCall<S_t>(int order, char jobu, char jobv, int m, int n, S_t* a,
-                            int lda, double* sigma, S_t* u, int ldu, S_t* vt,
+template<> int svdCall<hmat::S_t>(int order, char jobu, char jobv, int m, int n, hmat::S_t* a,
+                            int lda, double* sigma, hmat::S_t* u, int ldu, hmat::S_t* vt,
                             int ldvt) {
   int result;
   int p = min(m, n);
   float* sigmaFloat = new float[p];
   int workSize;
-  S_t workSize_S;
+  hmat::S_t workSize_S;
 
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_S, -1);
   if(result != 0)
       throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_S + 1;
-  S_t* work = new S_t[workSize];
+  hmat::S_t* work = new hmat::S_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
@@ -66,11 +68,11 @@ template<> int svdCall<S_t>(int order, char jobu, char jobv, int m, int n, S_t* 
   delete[] sigmaFloat;
   return result;
 }
-template<> int svdCall<D_t>(int order, char jobu, char jobv, int m, int n, D_t* a,
-                            int lda, double* sigma, D_t* u, int ldu, D_t* vt,
+template<> int svdCall<hmat::D_t>(int order, char jobu, char jobv, int m, int n, hmat::D_t* a,
+                            int lda, double* sigma, hmat::D_t* u, int ldu, hmat::D_t* vt,
                             int ldvt) {
   int workSize;
-  D_t workSize_D;
+  hmat::D_t workSize_D;
   int result;
 
   // We request the right size for WORK
@@ -78,7 +80,7 @@ template<> int svdCall<D_t>(int order, char jobu, char jobv, int m, int n, D_t* 
   if(result != 0)
       throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_D + 1;
-  D_t* work = new D_t[workSize];
+  hmat::D_t* work = new hmat::D_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
@@ -86,12 +88,12 @@ template<> int svdCall<D_t>(int order, char jobu, char jobv, int m, int n, D_t* 
   delete[] work;
   return result;
 }
-template<> int svdCall<C_t>(int order, char jobu, char jobv, int m, int n, C_t* a,
-                            int lda, double* sigma, C_t* u, int ldu, C_t* vt,
+template<> int svdCall<hmat::C_t>(int order, char jobu, char jobv, int m, int n, hmat::C_t* a,
+                            int lda, double* sigma, hmat::C_t* u, int ldu, hmat::C_t* vt,
                             int ldvt) {
   int result;
   int workSize;
-  C_t workSize_C;
+  hmat::C_t workSize_C;
   int p = min(m, n);
   float* sigmaFloat = new float[p];
 
@@ -100,7 +102,7 @@ template<> int svdCall<C_t>(int order, char jobu, char jobv, int m, int n, C_t* 
   if(result != 0)
       throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_C.real() + 1;
-  C_t* work = new C_t[workSize];
+  hmat::C_t* work = new hmat::C_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
@@ -113,19 +115,19 @@ template<> int svdCall<C_t>(int order, char jobu, char jobv, int m, int n, C_t* 
   delete[] sigmaFloat;
   return result;
 }
-template<> int svdCall<Z_t>(int order, char jobu, char jobv, int m, int n, Z_t* a,
-                            int lda, double* sigma, Z_t* u, int ldu, Z_t* vt,
+template<> int svdCall<hmat::Z_t>(int order, char jobu, char jobv, int m, int n, hmat::Z_t* a,
+                            int lda, double* sigma, hmat::Z_t* u, int ldu, hmat::Z_t* vt,
                             int ldvt) {
   int result;
   int workSize;
-  Z_t workSize_Z;
+  hmat::Z_t workSize_Z;
 
   // We request the right size for WORK
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_Z, -1);
   if(result != 0)
       throw new hmat::LapackException("gesvd", result);
   workSize = (int) workSize_Z.real() + 1;
-  Z_t* work = new Z_t[workSize];
+  hmat::Z_t* work = new hmat::Z_t[workSize];
   strongAssert(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
@@ -133,6 +135,10 @@ template<> int svdCall<Z_t>(int order, char jobu, char jobv, int m, int n, Z_t* 
   delete[] work;
   return result;
 }
+
+}  // end anonymous namespace
+
+namespace hmat {
 
 template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vector<double>** sigma, FullMatrix<T>** vt) {
   DECLARE_CONTEXT;
@@ -279,4 +285,6 @@ template int productQ(char side, char trans, FullMatrix<S_t>* qr, S_t* tau, Full
 template int productQ(char side, char trans, FullMatrix<D_t>* qr, D_t* tau, FullMatrix<D_t>* c);
 template int productQ(char side, char trans, FullMatrix<C_t>* qr, C_t* tau, FullMatrix<C_t>* c);
 template int productQ(char side, char trans, FullMatrix<Z_t>* qr, Z_t* tau, FullMatrix<Z_t>* c);
+
+}  // end namespace hmat
 

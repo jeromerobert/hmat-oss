@@ -24,6 +24,8 @@
 #define _DEFAULT_ENGINE_HPP
 #include "h_matrix.hpp"
 
+namespace hmat {
+
 class NullSettings {};
 template<typename T> class DefaultEngine
 {
@@ -48,5 +50,7 @@ public:
   void dumpTreeToFile(const char* filename) const;
   double norm() const;
 };
+
+}  // end namespace hmat
 
 #endif

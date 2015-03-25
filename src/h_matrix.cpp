@@ -43,6 +43,8 @@
 
 using namespace std;
 
+namespace hmat {
+
 // The default values below will be overwritten in default_engine.cpp by HMatSettings values
 template<typename T> bool HMatrix<T>::coarsening = false;
 template<typename T> bool HMatrix<T>::recompress = false;
@@ -2001,3 +2003,5 @@ template void restoreVectorOrder(FullMatrix<S_t>* v, int* indices);
 template void restoreVectorOrder(FullMatrix<D_t>* v, int* indices);
 template void restoreVectorOrder(FullMatrix<C_t>* v, int* indices);
 template void restoreVectorOrder(FullMatrix<Z_t>* v, int* indices);
+
+}  // end namespace hmat

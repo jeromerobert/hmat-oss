@@ -30,9 +30,10 @@
 #include <cstddef>
 #include <string>
 
+namespace hmat {
+
 // Forward declarations
 class ClusterTree;
-namespace hmat {
 
 class AdmissibilityCondition
 {
@@ -72,5 +73,5 @@ private:
   size_t maxElementsPerBlock;
 };
 
-}
+} //  end namespace hmat
 #endif

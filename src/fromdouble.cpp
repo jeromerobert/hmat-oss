@@ -22,6 +22,9 @@
 
 #include "fromdouble.hpp"
 #include "common/my_assert.h"
+
+namespace hmat {
+
 template<>
 FullMatrix<D_t>* fromDoubleFull(FullMatrix<D_t>* f) {
   return f;
@@ -73,3 +76,5 @@ template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* 
 
 template RkMatrix<S_t>* fromDoubleRk(RkMatrix<Types<S_t>::dp>* rk);
 template RkMatrix<C_t>* fromDoubleRk(RkMatrix<Types<C_t>::dp>* rk);
+
+}  // end namespace hmat

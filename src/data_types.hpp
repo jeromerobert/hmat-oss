@@ -26,6 +26,8 @@
 #include <complex>
 
 
+namespace hmat {
+
 // Scalar Types
 typedef double D_t;
 typedef float S_t ;
@@ -89,4 +91,7 @@ template<> struct Types<Z_t> {
   typedef Z_t dp;
   typedef C_t sp;
 };
+
+}  // end namespace hmat
+
 #endif

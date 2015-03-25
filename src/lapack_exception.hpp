@@ -53,6 +53,6 @@ private:
     int info_;
 };
 
-}
+}  // end namespace hmat
 
 #endif /* LAPACK_EXCEPTION_HPP */

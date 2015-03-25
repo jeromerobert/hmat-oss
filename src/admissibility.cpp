@@ -29,7 +29,7 @@
 #include <cmath>
 #include <sstream>
 
-using namespace hmat;
+namespace hmat {
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(
     double eta, size_t maxElementsPerBlock):
@@ -67,3 +67,5 @@ void StandardAdmissibilityCondition::setEta(double eta) {
 }
 
 StandardAdmissibilityCondition StandardAdmissibilityCondition::DEPRECATED_INSTANCE = StandardAdmissibilityCondition(2.0);
+
+}  // end namespace hmat

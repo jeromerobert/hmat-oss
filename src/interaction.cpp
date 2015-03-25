@@ -27,6 +27,8 @@
 #include "common/my_assert.h"
 #include <iostream>
 
+namespace hmat {
+
 template<typename T>
 FullMatrix<typename Types<T>::dp>*
 SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
@@ -228,4 +230,6 @@ template class BlockAssemblyFunction<S_t>;
 template class BlockAssemblyFunction<D_t>;
 template class BlockAssemblyFunction<C_t>;
 template class BlockAssemblyFunction<Z_t>;
+
+}  // end namespace hmat
 

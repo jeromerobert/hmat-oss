@@ -72,6 +72,8 @@
 using std::isnan;
 #endif
 
+namespace hmat {
+
 /** FullMatrix */
 template<typename T>
 FullMatrix<T>::FullMatrix(T* _m, int _rows, int _cols, int _lda)
@@ -845,3 +847,6 @@ template class Vector<S_t>;
 template class Vector<D_t>;
 template class Vector<C_t>;
 template class Vector<Z_t>;
+
+}  // end namespace hmat
+

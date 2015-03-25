@@ -31,6 +31,8 @@
 #include "data_types.hpp"
 #include "h_matrix.hpp"
 
+namespace hmat {
+
 /*! \brief Templated dense Matrix type.
 
   The template parameter represents the scalar type of the matrix elements.  The
@@ -361,4 +363,7 @@ private:
   \paarm incTo increment between elenents in to
  */
 template<typename T> void blasCopy(int n, T* from, int incFrom, T* to, int incTo);
+
+}  // end namespace hmat
+
 #endif

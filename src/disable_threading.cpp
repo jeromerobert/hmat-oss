@@ -39,6 +39,8 @@ int  goto_get_num_procs(void);
 }
 #endif
 
+namespace hmat {
+
 DisableThreadingInBlock::DisableThreadingInBlock() {
 #if defined(HAVE_MKL_H)
     mklNumThreads = mkl_get_max_threads();
@@ -66,3 +68,4 @@ DisableThreadingInBlock::~DisableThreadingInBlock() {
 #endif
 }
 
+}  // end namespace hmat

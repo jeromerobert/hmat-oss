@@ -27,6 +27,10 @@
 #include "common/context.hpp"
 #include "disable_threading.hpp"
 
+#include <utility>
+
+namespace hmat {
+
 // HMatInterface
 template<typename T, template <typename> class E>
 bool HMatInterface<T, E>::initialized = false;
@@ -187,4 +191,6 @@ int HMatInterface<T, E>::nodesCount() const {
   DISABLE_THREADING_IN_BLOCK;
   return engine.hmat->nodesCount();
 }
+
+} // end namespace hmat
 

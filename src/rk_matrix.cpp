@@ -30,7 +30,7 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 
-using namespace std;
+namespace hmat {
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
@@ -38,7 +38,7 @@ int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
   // Control of approximation for fixed approx.k != 0
   int newK = k;
   if (newK != 0) {
-    newK = min(newK, maxK);
+    newK = std::min(newK, maxK);
   } else {
     myAssert(epsilon >= 0.);
     double sumSingularValues = 0.;
@@ -143,8 +143,8 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const ClusterData* s
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
 
-template<typename T> pair<size_t, size_t> RkMatrix<T>::compressionRatio() {
-  pair<size_t, size_t> result = pair<size_t, size_t>(0, 0);
+template<typename T> std::pair<size_t, size_t> RkMatrix<T>::compressionRatio() {
+  std::pair<size_t, size_t> result = std::pair<size_t, size_t>(0, 0);
   result.first = rows->n * k + cols->n * k;
   result.second = rows->n * cols->n;
   return result;
@@ -164,7 +164,7 @@ template<typename T> void RkMatrix<T>::truncate() {
   // expensive than computing the full SVD matrix. We make then a full matrix conversion,
   // and compress it with RkMatrix::fromMatrix().
   // TODO: in this case, the epsilon of recompression is not respected
-  if (k > min(rows->n, cols->n)) {
+  if (k > std::min(rows->n, cols->n)) {
     FullMatrix<T>* tmp = eval();
     RkMatrix<T>* rk = compressMatrix(tmp, rows, cols);
     // "Move" rk into this, and delete the old "this".
@@ -340,7 +340,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // In case the sum of the ranks of the sub-matrices is greater than
   // the matrix size, it is more efficient to put everything in a
   // full matrix.
-  if (kTotal >= min(rows->n, cols->n)) {
+  if (kTotal >= std::min(rows->n, cols->n)) {
     const FullMatrix<T>** fullParts = new const FullMatrix<T>*[n];
     const ClusterData** rowsParts = new const ClusterData*[n];
     const ClusterData** colsParts = new const ClusterData*[n];
@@ -690,3 +690,6 @@ template class RkMatrix<S_t>;
 template class RkMatrix<D_t>;
 template class RkMatrix<C_t>;
 template class RkMatrix<Z_t>;
+
+}  // end namespace hmat
+

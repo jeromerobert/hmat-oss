@@ -25,10 +25,12 @@
 /* Implementation of Rk-matrices */
 #include <vector>
 #include <algorithm>
+#include <utility>
 
 #include "full_matrix.hpp"
 #include "compression.hpp"
 
+namespace hmat {
 
 template<typename T> class HMatrix;
 template<typename T> class AssemblyFunction;
@@ -284,4 +286,7 @@ public:
    */
   void checkNan() const;
 };
+
+}  // end namespace hmat
+
 #endif

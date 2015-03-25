@@ -27,6 +27,7 @@
 #include <utility>
 
 using namespace std;
+using namespace hmat;
 
 static double writeHeader(ofstream & file, int maxDim)
 {
@@ -107,6 +108,8 @@ static double writeHeader(ofstream & file, int maxDim)
     file << maxDim / 40. << " " << maxDim / 40. << " translate" << endl;
     return scale;
 }
+
+namespace hmat {
 
 template<typename T>
 void PostscriptDumper<T>::write(const Tree<4> * tree, const char * filename) const {
@@ -205,3 +208,5 @@ template class PostscriptDumper<S_t>;
 template class PostscriptDumper<D_t>;
 template class PostscriptDumper<C_t>;
 template class PostscriptDumper<Z_t>;
+
+}  // end namespace hmat

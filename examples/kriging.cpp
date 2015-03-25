@@ -32,6 +32,7 @@
 #include <vector>
 #include <cstdio>
 
+using namespace hmat;
 
 class KrigingAssemblyFunction : public SimpleAssemblyFunction<D_t> {
 private:

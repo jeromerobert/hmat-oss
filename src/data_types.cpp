@@ -22,6 +22,8 @@
 
 #include "data_types.hpp"
 
+namespace hmat {
+
 template<> S_t Constants<S_t>::zero = 0.;
 template<> D_t Constants<D_t>::zero = 0.;
 template<> C_t Constants<C_t>::zero(0., 0.);
@@ -50,3 +52,5 @@ template<> int Constants<S_t>::code = 0;
 template<> int Constants<D_t>::code = 1;
 template<> int Constants<C_t>::code = 2;
 template<> int Constants<Z_t>::code = 3;
+
+}  // end namespace hmat

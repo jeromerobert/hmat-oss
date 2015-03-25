@@ -27,6 +27,8 @@
 #include "hmat_cpp_interface.hpp"
 #include "default_engine.hpp"
 
+using namespace hmat;
+
 /** This is a simple example showing how to use the HMatrix library.
 
     In this example, we assemble and do a decomposition of a Matrix such that:

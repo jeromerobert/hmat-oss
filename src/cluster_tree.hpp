@@ -30,6 +30,8 @@
 #include <vector>
 #include <cmath>
 
+namespace hmat {
+
 /*! \brief Class representing a 3D point.
  */
 class Point {
@@ -274,4 +276,7 @@ protected:
   int findSeparatorIndex() const;
   ClusterTree* make(Point _boundingBox[2], const ClusterData& _data, int _threshold) const;
 };
+
+}  // end namespace hmat
+
 #endif

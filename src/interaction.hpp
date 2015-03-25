@@ -26,6 +26,8 @@
 #include "data_types.hpp"
 #include "hmat/hmat.h"
 
+namespace hmat {
+
 class ClusterData;
 class ClusterTree;
 template<typename T> class FullMatrix;
@@ -184,4 +186,7 @@ public:
                       int colIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const;
 };
+
+}  // end namespace hmat
+
 #endif

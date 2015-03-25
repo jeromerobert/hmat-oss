@@ -30,6 +30,8 @@
   it to its original setting at the end.
  */
 
+namespace hmat {
+
 class DisableThreadingInBlock {
 private:
   int mklNumThreads;
@@ -44,4 +46,6 @@ public:
     at the end.
  */
 #define DISABLE_THREADING_IN_BLOCK DisableThreadingInBlock dummyDisableThreadingInBlock
+
+} // end namespace hmat
 

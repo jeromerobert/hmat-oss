@@ -55,6 +55,8 @@ using std::vector;
 using std::min;
 using std::max;
 
+namespace hmat {
+
 
 /* Convenience class to lighten the getRow() / getCol() / assemble calls
    and use information from block_info_t to speed up things for sparse and null blocks.
@@ -793,3 +795,6 @@ template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const AssemblyFunction<D_t>& f, const ClusterData* rows, const ClusterData* cols);
 template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const AssemblyFunction<C_t>& f, const ClusterData* rows, const ClusterData* cols);
 template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const AssemblyFunction<Z_t>& f, const ClusterData* rows, const ClusterData* cols);
+
+}  // end namespace hmat
+

@@ -27,6 +27,7 @@
 #include "data_types.hpp"
 #include "full_matrix.hpp"
 
+namespace hmat {
 
 /** Makes an SVD with LAPACK in MKL.
 
@@ -73,4 +74,7 @@ int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c)
  */
 template<typename T> void myTrmm(FullMatrix<T>* aFull,
                                  FullMatrix<T>* bTri);
+
+}  // end namespace hmat
+
 #endif

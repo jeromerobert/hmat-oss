@@ -23,6 +23,8 @@
 #include "full_matrix.hpp"
 #include "rk_matrix.hpp"
 
+namespace hmat {
+
 /** Returns a potentially lower precision matrix.
 
     This functions takes a FullMatrix either in double precision, and
@@ -37,4 +39,6 @@
 template<typename T> FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f);
 
 template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* rk);
+
+}  // end namespace hmat
 

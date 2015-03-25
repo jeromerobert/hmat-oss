@@ -20,10 +20,12 @@
   http://github.com/jeromerobert/hmat-oss
 */
 
-#include "hmat_cpp_interface.hpp"
 #include "default_engine.hpp"
+#include "hmat_cpp_interface.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
+
+namespace hmat {
 
 template<typename T>
 static void setTemplatedParameters(const HMatSettings& s) {
@@ -196,10 +198,18 @@ template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result) cons
     result.hmat = hmat->copyStructure();
     result.hmat->copy(hmat);
 }
+
+}  // end namespace hmat
+
 #include "hmat_cpp_interface.cpp"
+
+namespace hmat {
 
 // Explicit template instantiation
 template class HMatInterface<S_t, DefaultEngine>;
 template class HMatInterface<D_t, DefaultEngine>;
 template class HMatInterface<C_t, DefaultEngine>;
 template class HMatInterface<Z_t, DefaultEngine>;
+
+}  // end namespace hmat
+

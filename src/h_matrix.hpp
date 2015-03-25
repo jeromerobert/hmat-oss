@@ -38,6 +38,8 @@
 #include <iostream>
 
 
+namespace hmat {
+
 template<typename T> class Vector;
 template<typename T> class RkMatrix;
 
@@ -45,20 +47,18 @@ template<typename T> class RkMatrix;
  */
 enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 
-namespace hmat {
-  /** Settings global to a whole matrix */
-  struct MatrixSettings {
-     virtual AdmissibilityCondition * getAdmissibilityCondition() const = 0;
-     virtual void setAdmissibilityCondition(AdmissibilityCondition* condition) = 0;
-  };
+/** Settings global to a whole matrix */
+struct MatrixSettings {
+   virtual AdmissibilityCondition * getAdmissibilityCondition() const = 0;
+   virtual void setAdmissibilityCondition(AdmissibilityCondition* condition) = 0;
+};
 
-  /** Settings local to a matrix bloc */
-  struct LocalSettings {
-      const MatrixSettings * global;
-      explicit LocalSettings(const MatrixSettings * s): global(s) {}
-      //TODO add epsilons
-  };
-}
+/** Settings local to a matrix bloc */
+struct LocalSettings {
+    const MatrixSettings * global;
+    explicit LocalSettings(const MatrixSettings * s): global(s) {}
+    //TODO add epsilons
+};
 
 /** Degrees of freedom permutation of a vector required in HMatrix context.
 
@@ -104,7 +104,7 @@ public:
   ~HMatrixData();
   /*! \brief Return true if the block is admissible.
    */
-  bool isAdmissibleLeaf(const hmat::MatrixSettings * settings) const;
+  bool isAdmissibleLeaf(const MatrixSettings * settings) const;
 };
 
 /*! \brief The HMatrix class, representing a HMatrix.
@@ -124,7 +124,7 @@ public:
     \param _rows The row cluster tree
     \param _cols The column cluster tree
    */
-  HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
+  HMatrix(ClusterTree* _rows, ClusterTree* _cols, const MatrixSettings * settings,
        SymmetryFlag symmetryFlag = kNotSymmetric);
   /*! \brief HMatrix assembly.
    */
@@ -218,7 +218,7 @@ public:
       \param cols the column ClusterTree.
       \return a 0 HMatrix.
    */
-  static HMatrix<T>* Zero(const ClusterTree* rows, const ClusterTree* cols, const hmat::MatrixSettings * settings);
+  static HMatrix<T>* Zero(const ClusterTree* rows, const ClusterTree* cols, const MatrixSettings * settings);
   /*! \brief Create a Postscript file representing the HMatrix.
 
     The result .ps file shows the matrix structure and the compression ratio. In
@@ -300,7 +300,7 @@ private:
 public:
   /*! \brief Build a "fake" HMatrix for internal use only
    */
-  HMatrix(const hmat::MatrixSettings * settings);
+  HMatrix(const MatrixSettings * settings);
   /** This <- This + alpha * b
 
       \param alpha
@@ -506,7 +506,7 @@ public:
   HMatrixData<T> data;
   bool isUpper, isLower;       /// symmetric, upper or lower stored
   bool isTriUpper, isTriLower; /// upper/lower triangular
-  hmat::LocalSettings localSettings;
+  LocalSettings localSettings;
 
 private:
   /* \brief Resolution de X * D = B, avec D = this (matrice dont on ne tient compte que de la diagonale)
@@ -535,4 +535,7 @@ private:
   void testLdlt(HMatrix<T> * originalCopy) ;
 #endif
 };
+
+}  // end namespace hmat
+
 #endif

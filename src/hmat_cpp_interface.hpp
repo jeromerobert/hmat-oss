@@ -32,10 +32,10 @@
 #include "h_matrix.hpp"
 #include "default_engine.hpp"
 
-class ClusterTree;
 namespace hmat {
+
+class ClusterTree;
 class AdmissibilityCondition;
-}
 
 /** Type of ClusterTree */
 enum ClusteringType {kGeometric, kMedian, kHybrid};
@@ -327,4 +327,7 @@ private:
   /// Disallow the copy
   HMatInterface(const HMatInterface<T, E>& o);
 };
+
+}  // end namespace hmat
+
 #endif
