@@ -111,7 +111,7 @@ DofData::copy() const
 }
 
 const ClusterData*
-ClusterData::intersection(const ClusterData& o) const
+ClusterData::intersection(const IndexSet& o) const
 {
   const IndexSet* idx = IndexSet::intersection(o);
   ClusterData* result = new ClusterData(dofData_, idx->offset(), idx->size());

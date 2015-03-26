@@ -266,8 +266,8 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
 
 
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
-                            const ClusterData* cols) {
+RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
+                            const IndexSet* cols) {
   DECLARE_CONTEXT;
   myAssert(m->rows == rows->size());
   myAssert(m->cols == cols->size());
@@ -788,10 +788,10 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 }
 
 // Declaration of the used templates
-template RkMatrix<S_t>* compressMatrix(FullMatrix<S_t>* m, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<S_t>* compressMatrix(FullMatrix<S_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const IndexSet* rows, const IndexSet* cols);
 
 template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const AssemblyFunction<S_t>& f, const ClusterData* rows, const ClusterData* cols);
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const AssemblyFunction<D_t>& f, const ClusterData* rows, const ClusterData* cols);

@@ -58,8 +58,8 @@ int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
 
 
 /** RkMatrix */
-template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const ClusterData* _rows,
-                                           FullMatrix<T>* _b, const ClusterData* _cols,
+template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _rows,
+                                           FullMatrix<T>* _b, const IndexSet* _cols,
                                            CompressionMethod _method)
   : rows(_rows),
     cols(_cols),
@@ -129,8 +129,8 @@ void RkMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, Full
 }
 
 
-template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const ClusterData* subRows,
-                                                            const ClusterData* subCols) const {
+template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subRows,
+                                                            const IndexSet* subCols) const {
   myAssert(subRows->isSubset(*rows));
   myAssert(subCols->isSubset(*cols));
   // The offset in the matrix, and not in all the indices
@@ -306,8 +306,8 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const RkMatrix<T>* o
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>* o) const {
   const FullMatrix<T>* parts[1] = {o};
-  const ClusterData* rowsList[1] = {rows};
-  const ClusterData* colsList[1] = {cols};
+  const IndexSet* rowsList[1] = {rows};
+  const IndexSet* colsList[1] = {cols};
   T alpha[1] = {Constants<T>::pone};
   return formattedAddParts(alpha, parts, rowsList, colsList, 1);
 }
@@ -342,8 +342,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // full matrix.
   if (kTotal >= std::min(rows->size(), cols->size())) {
     const FullMatrix<T>** fullParts = new const FullMatrix<T>*[n];
-    const ClusterData** rowsParts = new const ClusterData*[n];
-    const ClusterData** colsParts = new const ClusterData*[n];
+    const IndexSet** rowsParts = new const IndexSet*[n];
+    const IndexSet** colsParts = new const IndexSet*[n];
     for (int i = 0; i < n; i++) {
       fullParts[i] = parts[i]->eval();
       rowsParts[i] = parts[i]->rows;
@@ -403,8 +403,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
 }
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** parts,
-                                            const ClusterData **rowsList,
-                                            const ClusterData **colsList, int n) const {
+                                            const IndexSet **rowsList,
+                                            const IndexSet **colsList, int n) const {
   DECLARE_CONTEXT;
   FullMatrix<T>* me = eval();
   strongAssert(me);
@@ -431,7 +431,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** part
 template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char transM,
                                                               const RkMatrix<T>* rk,
                                                               const FullMatrix<T>* m,
-                                                              const ClusterData* mCols) {
+                                                              const IndexSet* mCols) {
   DECLARE_CONTEXT;
 
   myAssert((transR == 'N') || (transM == 'N'));// we do not manage the case R^T*M^T
@@ -468,7 +468,7 @@ template<typename T>
 RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
                                          const FullMatrix<T>* m,
                                          const RkMatrix<T>* rk,
-                                         const ClusterData* mRows) {
+                                         const IndexSet* mRows) {
   DECLARE_CONTEXT;
   myAssert((transR == 'N') || (transM == 'N')); // we do not manage the case R^T*M^T
   FullMatrix<T>* a = rk->a;
@@ -476,7 +476,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
   if (transR == 'T') { // permutation to transpose the matrix Rk
     std::swap(a, b);
   }
-  const ClusterData *rkCols = ((transR == 'N')? rk->cols : rk->rows);
+  const IndexSet *rkCols = ((transR == 'N')? rk->cols : rk->rows);
 
   /* M R = M (A B^t) = (MA) B^t */
   myAssert(((transM == 'N') ? m->rows : m->cols) == mRows->size());
@@ -499,7 +499,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
 
   FullMatrix<T>* a = (transRk == 'N')? rk->a : rk->b;
   FullMatrix<T>* b = (transRk == 'N')? rk->b : rk->a;
-  const ClusterData* rkRows = ((transRk == 'N')? rk->rows : rk->cols);
+  const IndexSet* rkRows = ((transRk == 'N')? rk->rows : rk->cols);
 
   // R M = A (M^t B)^t
   // Size of the HMatrix is n x m, with
@@ -514,7 +514,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
   resB->clear();
   h->gemv(transH == 'N' ? 'T' : 'N', Constants<T>::pone, b, Constants<T>::zero, resB);
   FullMatrix<T>* newA = a->copy();
-  const ClusterData *newCols = ((transH == 'N' )? h->cols() : h->rows());
+  const IndexSet *newCols = ((transH == 'N' )? h->cols() : h->rows());
   return new RkMatrix<T>(newA, rkRows, resB, newCols, rk->method);
 }
 
@@ -524,8 +524,8 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
 
   DECLARE_CONTEXT;
   if (rk->k == 0) {
-    const ClusterData* newRows = ((transH == 'N') ? h-> rows() : h->cols());
-    const ClusterData* newCols = ((transR == 'N') ? rk->cols : rk->rows);
+    const IndexSet* newRows = ((transH == 'N') ? h-> rows() : h->cols());
+    const IndexSet* newCols = ((transR == 'N') ? rk->cols : rk->rows);
     return new RkMatrix<T>(NULL, newRows, NULL, newCols, rk->method);
   }
   // M R = (M A) B^t
@@ -540,7 +540,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   if (transR == 'T') { // permutation of a and b to transpose the matrix Rk
     std::swap(a, b);
   }
-  const ClusterData *rkCols = ((transR == 'N' )? rk->cols : rk->rows);
+  const IndexSet *rkCols = ((transR == 'N' )? rk->cols : rk->rows);
   int n = ((transH == 'N')? h->rows()->size() : h->cols()->size());
   myAssert(a->cols == rk->k);
   int p = rk->k;
@@ -548,7 +548,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   resA->clear();
   h->gemv(transH, Constants<T>::pone, a, Constants<T>::zero, resA);
   FullMatrix<T>* newB = b->copy();
-  const ClusterData* newRows = ((transH == 'N')? h-> rows() : h->cols());
+  const IndexSet* newRows = ((transH == 'N')? h-> rows() : h->cols());
   // If this base been transposed earlier, back in the right direction.
 
   if (transR == 'T') {
@@ -631,8 +631,8 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     RkMatrix<T>* subRks[2 * 2];
     for (int i = 0; i < 2; i++) {
       for (int j = 0; j < 2; j++) {
-        const ClusterData* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
-        const ClusterData* subCols = (transHB == 'N' ? hb->get(i, j)->cols() : hb->get(j, i)->rows());
+        const IndexSet* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
+        const IndexSet* subCols = (transHB == 'N' ? hb->get(i, j)->cols() : hb->get(j, i)->rows());
         subRks[i + j * 2] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
         for (int k = 0; k < 2; k++) {
           // C_ij = A_ik * B_kj

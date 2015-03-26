@@ -158,7 +158,7 @@ public:
     \param _rows Rows of the result matrix
     \param _cols Columns of the result matrix
    */
-  void evalPart(FullMatrix<T>* result, const ClusterData* _rows, const ClusterData* _cols) const;
+  void evalPart(FullMatrix<T>* result, const IndexSet* _rows, const IndexSet* _cols) const;
   /*! Compute the compression ratio of the HMatrix.
 
     \return the pair (elements_stored, total_elements).
@@ -320,7 +320,7 @@ public:
       \param rows
       \param cols
    */
-  void axpy(T alpha, const FullMatrix<T>* b, const ClusterData* rows, const ClusterData* cols);
+  void axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows, const IndexSet* cols);
   /*! Return true if this is a full block.
    */
   inline bool isFullMatrix() const {

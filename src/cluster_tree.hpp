@@ -111,7 +111,7 @@ friend class ClusterTree;
 public:
   ClusterData(const DofData* dofData) : IndexSet(0, dofData->size()), dofData_(dofData) {}
   ClusterData(const DofData* dofData, int offset, int size) : IndexSet(offset, size), dofData_(dofData) {}
-  const ClusterData* intersection(const ClusterData& o) const;
+  const ClusterData* intersection(const IndexSet& o) const;
 
   inline int* indices() const { return dofData_->perm_i2e_; }
   inline const DofCoordinates* coordinates() const { return dofData_->coordinates_; }

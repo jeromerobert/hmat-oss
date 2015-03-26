@@ -499,8 +499,8 @@ void HMatrix<T>::eval(FullMatrix<T>* result, bool renumber) const {
 }
 
 template<typename T>
-void HMatrix<T>::evalPart(FullMatrix<T>* result, const ClusterData* _rows,
-                          const ClusterData* _cols) const {
+void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
+                          const IndexSet* _cols) const {
   if (isLeaf()) {
     FullMatrix<T> *mat = data.m;
     if (data.rk) {
@@ -706,8 +706,8 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
 }
 
 template<typename T>
-void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const ClusterData* rows,
-                      const ClusterData* cols) {
+void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
+                      const IndexSet* cols) {
   DECLARE_CONTEXT;
   // this += alpha * b
   myAssert(rows->isSuperSet(*this->rows()) && cols->isSuperSet(*this->cols()));
