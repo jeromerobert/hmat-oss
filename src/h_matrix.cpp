@@ -1169,8 +1169,8 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
   for (int i = 0; i < depth; i++) {
     prefix += "  ";
   }
-  AxisAlignedBoundingBox rows_bbox(*data.rows);
-  AxisAlignedBoundingBox cols_bbox(*data.cols);
+  AxisAlignedBoundingBox rows_bbox(data.rows->data);
+  AxisAlignedBoundingBox cols_bbox(data.cols->data);
 
   f << prefix << "{\"isLeaf\": " << (isLeaf() ? "true" : "false") << "," << endl
     << prefix << " \"depth\": " << depth << "," << endl

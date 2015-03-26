@@ -155,13 +155,13 @@ bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t 
   AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(admissibilityAlgoData_);
   if (bbox == NULL)
   {
-    bbox = new AxisAlignedBoundingBox(*this);
+    bbox = new AxisAlignedBoundingBox(data);
     admissibilityAlgoData_ = bbox;
   }
   AxisAlignedBoundingBox* bbox_other = static_cast<AxisAlignedBoundingBox*>(other->admissibilityAlgoData_);
   if (bbox_other == NULL)
   {
-    bbox_other = new AxisAlignedBoundingBox(*other);
+    bbox_other = new AxisAlignedBoundingBox(other->data);
     other->admissibilityAlgoData_ = bbox_other;
   }
   return std::min(bbox->diameter(), bbox_other->diameter()) <= eta * bbox->distanceTo(*bbox_other);
@@ -183,14 +183,14 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   return result;
 }
 
-AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterTree& node)
+AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
 {
-  int* myIndices = node.data.indices() + node.data.offset();
-  const double* coord = &node.data.coordinates()->get(0, 0);
+  int* myIndices = data.indices() + data.offset();
+  const double* coord = &data.coordinates()->get(0, 0);
   bbMin = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
   bbMax = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
 
-  for (int i = 0; i < node.data.size(); ++i) {
+  for (int i = 0; i < data.size(); ++i) {
     int index = myIndices[i];
     const double* p = &coord[3*index];
     for (int dim = 0; dim < 3; ++dim) {

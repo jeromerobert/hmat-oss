@@ -82,7 +82,7 @@ getAxisAlignedBoundingbox(const hmat::ClusterTree& node)
   hmat::AxisAlignedBoundingBox* bbox = static_cast<hmat::AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
   if (bbox == NULL)
   {
-    bbox = new hmat::AxisAlignedBoundingBox(node);
+    bbox = new hmat::AxisAlignedBoundingBox(node.data);
     node.clusteringAlgoData_ = bbox;
   }
   return bbox;
@@ -132,7 +132,7 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
     dim = ((axisIndex_ + current.depth) % spatialDimension_);
   }
   sortByDimension(current, dim);
-  AxisAlignedBoundingBox* bbox = new AxisAlignedBoundingBox(current);
+  AxisAlignedBoundingBox* bbox = new AxisAlignedBoundingBox(current.data);
   current.clusteringAlgoData_ = bbox;
 
   double middle = .5 * (bbox->bbMin.xyz[dim] + bbox->bbMax.xyz[dim]);

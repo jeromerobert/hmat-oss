@@ -196,7 +196,7 @@ public:
 class AxisAlignedBoundingBox
 {
 public:
-  AxisAlignedBoundingBox(const ClusterTree& node);
+  explicit AxisAlignedBoundingBox(const ClusterData& node);
   Point bbMin, bbMax;
 
   double diameter() const;

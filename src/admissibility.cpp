@@ -54,13 +54,13 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
     AxisAlignedBoundingBox* rows_bbox = static_cast<AxisAlignedBoundingBox*>(rows.admissibilityAlgoData_);
     if (rows_bbox == NULL)
     {
-      rows_bbox = new AxisAlignedBoundingBox(rows);
+      rows_bbox = new AxisAlignedBoundingBox(rows.data);
       rows.admissibilityAlgoData_ = rows_bbox;
     }
     AxisAlignedBoundingBox* cols_bbox = static_cast<AxisAlignedBoundingBox*>(cols.admissibilityAlgoData_);
     if (cols_bbox == NULL)
     {
-      cols_bbox = new AxisAlignedBoundingBox(cols);
+      cols_bbox = new AxisAlignedBoundingBox(cols.data);
       cols.admissibilityAlgoData_ = cols_bbox;
     }
     return std::min(rows_bbox->diameter(), cols_bbox->diameter()) <= eta_ * rows_bbox->distanceTo(*cols_bbox);
