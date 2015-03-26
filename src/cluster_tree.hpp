@@ -134,7 +134,7 @@ private:
 class ClusterTree : public Tree<2> {
 public:
   /*! Data */
-  ClusterData data_;
+  ClusterData data;
 
   /*! Opaque pointer which may be used by clustering algorithm */
   mutable void* clusteringAlgoData_;

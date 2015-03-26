@@ -60,16 +60,16 @@ public:
 
 void sortByDimension(hmat::ClusterTree& node, int dim)
 {
-  int* myIndices = node.data_.indices() + node.data_.offset();
+  int* myIndices = node.data.indices() + node.data.offset();
   switch (dim) {
   case 0:
-    std::stable_sort(myIndices, myIndices + node.data_.size(), IndicesComparator<0>(node.data_));
+    std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator<0>(node.data));
     break;
   case 1:
-    std::stable_sort(myIndices, myIndices + node.data_.size(), IndicesComparator<1>(node.data_));
+    std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator<1>(node.data));
     break;
   case 2:
-    std::stable_sort(myIndices, myIndices + node.data_.size(), IndicesComparator<2>(node.data_));
+    std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator<2>(node.data));
     break;
   default:
     strongAssert(false);
@@ -128,7 +128,7 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
     dim = largestDimension(current);
   } else {
     if (spatialDimension_ < 0)
-      spatialDimension_ = current.data_.coordinates()->dimension();
+      spatialDimension_ = current.data.coordinates()->dimension();
     dim = ((axisIndex_ + current.depth) % spatialDimension_);
   }
   sortByDimension(current, dim);
@@ -137,21 +137,21 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
 
   double middle = .5 * (bbox->bbMin.xyz[dim] + bbox->bbMax.xyz[dim]);
   int middleIndex = 0;
-  int* myIndices = current.data_.indices() + current.data_.offset();
-  const double* coord = &current.data_.coordinates()->get(0,0);
+  int* myIndices = current.data.indices() + current.data.offset();
+  const double* coord = &current.data.coordinates()->get(0,0);
   while (coord[myIndices[middleIndex]*3+dim] < middle) {
     middleIndex++;
   }
-  if (NULL != current.data_.group_index())
+  if (NULL != current.data.group_index())
   {
     // Ensure that we do not split inside a group
-    const int* group_index = current.data_.group_index() + current.data_.offset();
+    const int* group_index = current.data.group_index() + current.data.offset();
     const int group(group_index[middleIndex]);
     if (group_index[middleIndex-1] == group)
     {
       int upper = middleIndex;
       int lower = middleIndex-1;
-      while (upper < current.data_.size() && group_index[upper] == group)
+      while (upper < current.data.size() && group_index[upper] == group)
         ++upper;
       while (lower > 0 && group_index[lower] == group)
         --lower;
@@ -161,8 +161,8 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
         middleIndex = lower;
     }
   }
-  children.push_back(current.slice(current.data_.offset(), middleIndex));
-  children.push_back(current.slice(current.data_.offset()+ middleIndex, current.data_.size() - middleIndex));
+  children.push_back(current.slice(current.data.offset(), middleIndex));
+  children.push_back(current.slice(current.data.offset()+ middleIndex, current.data.size() - middleIndex));
 }
 
 void
@@ -181,21 +181,21 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
     dim = largestDimension(current);
   } else {
     if (spatialDimension_ < 0)
-      spatialDimension_ = current.data_.coordinates()->dimension();
+      spatialDimension_ = current.data.coordinates()->dimension();
     dim = ((axisIndex_ + current.depth) % spatialDimension_);
   }
   sortByDimension(current, dim);
-  int middleIndex = current.data_.size() / 2;
-  if (NULL != current.data_.group_index())
+  int middleIndex = current.data.size() / 2;
+  if (NULL != current.data.group_index())
   {
     // Ensure that we do not split inside a group
-    const int* group_index = current.data_.group_index() + current.data_.offset();
+    const int* group_index = current.data.group_index() + current.data.offset();
     const int group(group_index[middleIndex]);
     if (group_index[middleIndex-1] == group)
     {
       int upper = middleIndex;
       int lower = middleIndex-1;
-      while (upper < current.data_.size() && group_index[upper] == group)
+      while (upper < current.data.size() && group_index[upper] == group)
         ++upper;
       while (lower > 0 && group_index[lower] == group)
         --lower;
@@ -205,8 +205,8 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
         middleIndex = lower;
     }
   }
-  children.push_back(current.slice(current.data_.offset(), middleIndex));
-  children.push_back(current.slice(current.data_.offset()+ middleIndex, current.data_.size() - middleIndex));
+  children.push_back(current.slice(current.data.offset(), middleIndex));
+  children.push_back(current.slice(current.data.offset()+ middleIndex, current.data.size() - middleIndex));
 }
 
 void
@@ -309,7 +309,7 @@ ClusterTreeBuilder::addAlgorithm(int depth, const ClusteringAlgorithm& algo)
 void
 ClusterTreeBuilder::divide_recursive(ClusterTree& current) const
 {
-  if (current.data_.size() <= maxLeafSize_)
+  if (current.data.size() <= maxLeafSize_)
     return;
   ClusteringAlgorithm* algo = getAlgorithm(current.depth);
 

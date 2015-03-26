@@ -122,7 +122,7 @@ ClusterData::intersection(const IndexSet& o) const
 
 ClusterTree::ClusterTree(const DofData* dofData)
   : Tree<2>(NULL)
-  , data_(dofData)
+  , data(dofData)
   , clusteringAlgoData_(NULL)
   , admissibilityAlgoData_(NULL)
 {
@@ -131,7 +131,7 @@ ClusterTree::ClusterTree(const DofData* dofData)
 ClusterTree::~ClusterTree() {
   if(father == NULL)
   {
-    delete data_.dofData_;
+    delete data.dofData_;
   }
 }
 
@@ -139,8 +139,8 @@ ClusterTree*
 ClusterTree::slice(int offset, int size) const
 {
   ClusterTree* result = new ClusterTree(*this);
-  result->data_.offset_ = offset;
-  result->data_.size_ = size;
+  result->data.offset_ = offset;
+  result->data.size_ = size;
   result->clusteringAlgoData_ = NULL;
   result->admissibilityAlgoData_ = NULL;
   return result;
@@ -149,8 +149,8 @@ ClusterTree::slice(int offset, int size) const
 /* Implemente la condition d'admissibilite des bounding box.
  */
 bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {
-  size_t elements = ((size_t) data_.size()) * other->data_.size();
-  if(elements >= max_size || data_.size() <= 1)
+  size_t elements = ((size_t) data.size()) * other->data.size();
+  if(elements >= max_size || data.size() <= 1)
     return false;
   AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(admissibilityAlgoData_);
   if (bbox == NULL)
@@ -171,10 +171,10 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   ClusterTree* result = NULL;
   if (!copyFather) {
     // La racine doit s'occuper le tableau des points et le mapping.
-    result = new ClusterTree(data_.dofData_->copy());
+    result = new ClusterTree(data.dofData_->copy());
     copyFather = result;
   } else {
-    result = copyFather->slice(data_.offset(), data_.size());
+    result = copyFather->slice(data.offset(), data.size());
   }
   if (!isLeaf()) {
     result->insertChild(0, ((ClusterTree*) getChild(0))->copy(copyFather));
@@ -185,12 +185,12 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
 
 AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterTree& node)
 {
-  int* myIndices = node.data_.indices() + node.data_.offset();
-  const double* coord = &node.data_.coordinates()->get(0, 0);
+  int* myIndices = node.data.indices() + node.data.offset();
+  const double* coord = &node.data.coordinates()->get(0, 0);
   bbMin = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
   bbMax = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
 
-  for (int i = 0; i < node.data_.size(); ++i) {
+  for (int i = 0; i < node.data.size(); ++i) {
     int index = myIndices[i];
     const double* p = &coord[3*index];
     for (int dim = 0; dim < 3; ++dim) {

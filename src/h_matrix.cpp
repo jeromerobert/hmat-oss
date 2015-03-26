@@ -1117,12 +1117,12 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
 
 template<typename T>
 const ClusterData* HMatrix<T>::rows() const {
-  return &(data.rows->data_);
+  return &(data.rows->data);
 }
 
 template<typename T>
 const ClusterData* HMatrix<T>::cols() const {
-  return &(data.cols->data_);
+  return &(data.cols->data);
 }
 
 template<typename T>

@@ -43,12 +43,12 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
     CompressionMethod m = HMatSettings::getInstance().compressionMethod;
     bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
     if (isFullAlgo) {
-        size_t elements = ((size_t) rows.data_.size()) * cols.data_.size();
+        size_t elements = ((size_t) rows.data.size()) * cols.data.size();
         if(elements > maxElementsPerBlock)
             return false;
     }
     // TODO may be this test should be done out of the AdmissibilityCondition
-    if(rows.data_.size() < 2 || cols.data_.size() < 2)
+    if(rows.data.size() < 2 || cols.data.size() < 2)
         return false;
 
     AxisAlignedBoundingBox* rows_bbox = static_cast<AxisAlignedBoundingBox*>(rows.admissibilityAlgoData_);
