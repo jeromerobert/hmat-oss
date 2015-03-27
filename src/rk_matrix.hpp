@@ -285,6 +285,9 @@ public:
   /*! \brief Triggers an assertion if there are NaNs in the RkMatrix.
    */
   void checkNan() const;
+
+  /** Return the memory size of the a*b product */
+  static size_t computeRkRkMemorySize(char transA, char transB, const RkMatrix<T>* a, const RkMatrix<T>* b);
 };
 
 }  // end namespace hmat
