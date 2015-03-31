@@ -50,17 +50,6 @@ typedef enum {
   hmat_compress_aca_plus
 } hmat_compress_t;
 
-/*! \brief Coordinates of a degree of freedom
-
-  \a globalIndex is the global index
-*/
-typedef struct {
-  int globalIndex;
-  double x;
-  double y;
-  double z;
-} DofCoordinate;
-
 typedef enum {
     hmat_block_full,
     hmat_block_null,
