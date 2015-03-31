@@ -39,6 +39,7 @@ template<typename T> class AssemblyFunction;
 template<typename T> class FullMatrix;
 template<typename T> class RkMatrix;
 class ClusterData;
+class IndexSet;
 
 /** Compress a FullMatrix into an RkMatrix.
 
@@ -51,8 +52,8 @@ class ClusterData;
     \return A RkMatrix approximationg the argument \a m.
 */
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const ClusterData* rows,
-                            const ClusterData* cols);
+RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
+                            const IndexSet* cols);
 
 /** Compress a block into an RkMatrix.
 

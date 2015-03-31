@@ -24,6 +24,7 @@
 #include "hmat_cpp_interface.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
+#include "hmat/hmat.h"
 
 namespace hmat {
 
@@ -61,17 +62,6 @@ void HMatSettings::printSettings(std::ostream& out) const {
   out << "Compression Min Leaf Size  = " << compressionMinLeafSize << std::endl;
   out << "Admissibility Condition    = " << admissibilityCondition->str() << std::endl;
   out << "Validation Error Threshold = " << validationErrorThreshold << std::endl;
-  switch (clustering) {
-  case kGeometric:
-    out << "Geometric Clustering" << std::endl;
-    break;
-  case kMedian:
-    out << "Median Clustering" << std::endl;
-    break;
-  case kHybrid:
-    out << "Hybrid Clustering" << std::endl;
-    break;
-  }
   switch (compressionMethod) {
   case Svd:
     out << "SVD Compression" << std::endl;
@@ -92,41 +82,17 @@ void HMatSettings::printSettings(std::ostream& out) const {
   out.flags(savedIosFlags);
 }
 
-ClusterTree* createClusterTree(DofCoordinate* dls, int n) {
+DofCoordinates* createCoordinates(double* coord, int dim, int size) {
+  return new DofCoordinates(coord, dim, size);
+}
+
+
+ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgorithm& algo) {
   DECLARE_CONTEXT;
-  std::vector<Point>* points = new std::vector<Point>(n);
 
-  for (int i = 0; i < n; i++) {
-    (*points)[i] = Point(dls[i].x, dls[i].y, dls[i].z);
-  }
-  int *indices = new int[n];
-  for (int i = 0; i < n; i++) {
-    indices[i] = i;
-  }
-  ClusterData rootData(indices, 0, n, points);
-  Point boundingBox[2];
-  rootData.computeBoundingBox(boundingBox);
-
-  ClusterTree* ct;
   const HMatSettings& settings = HMatSettings::getInstance();
-  switch (settings.clustering) {
-  case kMedian:
-    ct = new MedianBisectionClusterTree(boundingBox, rootData,
-                                        settings.maxLeafSize);
-    break;
-  case kGeometric:
-    ct = new GeometricBisectionClusterTree(boundingBox, rootData,
-                                           settings.maxLeafSize);
-    break;
-  case kHybrid:
-    ct = new HybridBisectionClusterTree(boundingBox, rootData,
-                                        settings.maxLeafSize);
-    break;
-  default:
-    strongAssert(false);
-  }
-  ct->divide();
-  return ct;
+  ClusterTreeBuilder ctb(algo, settings.maxLeafSize);
+  return ctb.build(dls);
 }
 
 

@@ -28,6 +28,7 @@
 #define HMAT_CPP_INTERFACE_HPP
 #include "hmat/hmat.h"
 
+#include "clustering.hpp"
 #include "compression.hpp"
 #include "h_matrix.hpp"
 #include "default_engine.hpp"
@@ -37,9 +38,8 @@ namespace hmat {
 class ClusterTree;
 class AdmissibilityCondition;
 
-/** Type of ClusterTree */
-enum ClusteringType {kGeometric, kMedian, kHybrid};
-
+class DofCoordinates;
+class ClusteringAlgorithm;
 
 /** Settings for the HMatrix library.
 
@@ -60,7 +60,6 @@ public:
       \f]
    */
   hmat::AdmissibilityCondition * admissibilityCondition; ///< Formula for cluster admissibility
-  ClusteringType clustering; ///< Type of ClusterTree
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
   size_t elementsPerBlock; ///< Maximum size of an admissible block
@@ -80,7 +79,6 @@ private:
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(Svd),  compressionMinLeafSize(100),
                    admissibilityCondition(&hmat::StandardAdmissibilityCondition::DEPRECATED_INSTANCE),
-                   clustering(kMedian),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
                    elementsPerBlock(5000000),
@@ -120,6 +118,8 @@ private:
   }
 };
 
+DofCoordinates* createCoordinates(double* coord, int dim, int size);
+
 /** Create a ClusterTree.
 
     The exact type of the returned ClusterTree depends on the global HMatrix
@@ -131,10 +131,9 @@ private:
     @note This is the only proper way to dispose of a ClusterTree instance.
 
     @param dls Array of DofCoordinate, of length n
-    @param n number of elements in dls
     @return a ClusterTree instance.
  */
-ClusterTree* createClusterTree(DofCoordinate* dls, int n);
+ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgorithm& algo = MedianBisectionAlgorithm());
 
 /** C++ interface to the HMatrix library.
 

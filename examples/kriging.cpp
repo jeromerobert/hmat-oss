@@ -34,9 +34,27 @@
 
 using namespace hmat;
 
+D_t
+distanceTo(const DofCoordinates& points, int i, int j)
+{
+  D_t r = sqrt((points.get(0, i) - points.get(0, j))*(points.get(0, i) - points.get(0, j))+
+               (points.get(1, i) - points.get(1, j))*(points.get(1, i) - points.get(1, j))+
+               (points.get(2, i) - points.get(2, j))*(points.get(2, i) - points.get(2, j)));
+  return r;
+}
+
+D_t
+distanceTo(const DofCoordinates& points, int i, const Point& to)
+{
+  D_t r = sqrt((points.get(0, i) - to.x)*(points.get(0, i) - to.x)+
+               (points.get(1, i) - to.y)*(points.get(1, i) - to.y)+
+               (points.get(2, i) - to.z)*(points.get(2, i) - to.z));
+  return r;
+}
+
 class KrigingAssemblyFunction : public SimpleAssemblyFunction<D_t> {
 private:
-  std::vector<Point> points;
+  const DofCoordinates& points;
   double l;
 
 public:
@@ -44,29 +62,16 @@ public:
 
       \param _mat The FullMatrix<T> the values are taken from.
    */
-  KrigingAssemblyFunction(std::vector<Point>& _points, double _l)
+  KrigingAssemblyFunction(const DofCoordinates& _points, double _l)
     : SimpleAssemblyFunction<D_t>(), points(_points), l(_l) {}
 
   D_t interaction(int i, int j) const {
-    D_t r = points[i].distanceTo(points[j]);
     // Exponential
-    return exp(-fabs(r) / l);
+    return exp(-fabs(distanceTo(points, i, j)) / l);
   }
 };
 
 
-ClusterTree* createClusterTree(const std::vector<Point>& points) {
-  int n = (int) points.size();
-  DofCoordinate* dls = new DofCoordinate[n];
-
-  for (int i = 0; i < n; i++) {
-    dls[i].x = points[i].x;
-    dls[i].y = points[i].y;
-    dls[i].z = points[i].z;
-  }
-  // We leak dls...
-  return createClusterTree(dls, n);
-}
 
 void readPointsFromFile(const char* filename, std::vector<Point>& points) {
   std::ifstream f(filename);
@@ -78,22 +83,22 @@ void readPointsFromFile(const char* filename, std::vector<Point>& points) {
   }
 }
 
-FullMatrix<D_t>* createRhs(const std::vector<Point>& points, double l) {
-  const int n = (int) points.size();
+FullMatrix<D_t>* createRhs(const DofCoordinates& coord, double l) {
+  const int n = (int) coord.size();
   FullMatrix<D_t>* rhs = FullMatrix<D_t>::Zero(n, 1);
 
   Point center(0., 0., 0.);
   for (int i = 0; i < n; i++) {
-    center.x += points[i].x;
-    center.y += points[i].y;
-    center.z += points[i].z;
+    center.x += coord.get(0, i);
+    center.y += coord.get(1, i);
+    center.z += coord.get(2, i);
   }
   center.x /= n;
   center.y /= n;
   center.z /= n;
 
   for (int i = 0; i < n; i++) {
-    double r = center.distanceTo(points[i]);
+    double r = distanceTo(coord, i, center);
     rhs->get(i, 0) = exp(-fabs(r) / l);
   }
   return rhs;
@@ -128,15 +133,23 @@ int go(const char* pointsFilename) {
   readPointsFromFile(pointsFilename, points);
   const int n = (int) points.size();
   std::cout << n << std::endl;
+  double * xyz = new double[3*points.size()];
+  for(size_t i = 0; i < points.size(); ++i)
+  {
+    xyz[3*i+0] = points[i].x;
+    xyz[3*i+1] = points[i].y;
+    xyz[3*i+2] = points[i].z;
+  }
+  DofCoordinates coord(xyz, 3, points.size(), true);
 
   const double l = correlationLength(points);
-  FullMatrix<D_t>* rhs = createRhs(points, l);
+  FullMatrix<D_t>* rhs = createRhs(coord, l);
   FullMatrix<D_t> rhsCopy(n, 1);
   rhsCopy.copyMatrixAtOffset(rhs, 0, 0);
 
-  KrigingAssemblyFunction f(points, l);
+  KrigingAssemblyFunction f(coord, l);
 
-  ClusterTree* ct = createClusterTree(points);
+  ClusterTree* ct = createClusterTree(coord);
   std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
   // Either store lower triangular matrix and use LDLt (or LLt) factorization or
   // store full matrix and use LU factorization.

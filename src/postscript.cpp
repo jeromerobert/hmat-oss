@@ -116,7 +116,7 @@ void PostscriptDumper<T>::write(const Tree<4> * tree, const char * filename) con
     ofstream file;
     file.open(filename);
     const HMatrix<T> * m = cast(tree);
-    double scale = writeHeader(file, max(m->rows()->n, m->cols()->n));
+    double scale = writeHeader(file, max(m->rows()->size(), m->cols()->size()));
     recursiveDrawing(tree, file, 0, scale);
     file << "showpage" << endl;
 }
@@ -134,11 +134,11 @@ void PostscriptDumper<T>::recursiveDrawing(const Tree<4> * tree, ofstream& f, in
 
     const HMatrix<T> * m = cast(tree);
     if (depth == 0) {
-        int n = m->rows()->points->size();
-        int startX = m->cols()->offset;
-        int lengthX = m->cols()->n;
-        int startY = n - m->rows()->offset;
-        int lengthY = -m->rows()->n;
+        int n = m->rows()->coordinates()->size();
+        int startX = m->cols()->offset();
+        int lengthX = m->cols()->size();
+        int startY = n - m->rows()->offset();
+        int lengthY = -m->rows()->size();
         f << 0 << " "<< -lengthY << " "
           << -lengthX << " " << 0 << " "
           << 0 << " " << lengthY << " "
@@ -157,11 +157,11 @@ const HMatrix<T> * PostscriptDumper<T>::cast(const Tree<4> * tree) const {
 template<typename T>
 void PostscriptDumper<T>::drawMatrix(const Tree<4> * tree, const HMatrix<T> * m,
     ofstream& f, int depth, double scale, bool cross) const {
-    int n = m->rows()->points->size();
-    int startX = m->cols()->offset;
-    int lengthX = m->cols()->n;
-    int startY = n - m->rows()->offset;
-    int lengthY = -m->rows()->n;
+    int n = m->rows()->coordinates()->size();
+    int startX = m->cols()->offset();
+    int lengthX = m->cols()->size();
+    int startY = n - m->rows()->offset();
+    int lengthY = -m->rows()->size();
 
     if (m->isLeaf()) {
         if (m->isRkMatrix() && m->data.rk->a) {
@@ -189,13 +189,13 @@ void PostscriptDumper<T>::drawMatrix(const Tree<4> * tree, const HMatrix<T> * m,
             f << " redrectangle" << endl;
         }
     } else if(cross){
-        int n = m->rows()->points->size();
-        int startX = m->cols()->offset;
-        int startY = m->rows()->offset;
-        int colOffset = m->get(1, 1)->cols()->offset;
-        int rowsCount = m->rows()->n;
-        int rowOffset = m->get(1, 1)->rows()->offset;
-        int colsCount = m->cols()->n;
+        int n = m->rows()->coordinates()->size();
+        int startX = m->cols()->offset();
+        int startY = m->rows()->offset();
+        int colOffset = m->get(1, 1)->cols()->offset();
+        int rowsCount = m->rows()->size();
+        int rowOffset = m->get(1, 1)->rows()->offset();
+        int colsCount = m->cols()->size();
         f << 0 << " " << -rowsCount << " "
           << colOffset << " " << n - startY << " "
           << colsCount << " " << 0 << " "

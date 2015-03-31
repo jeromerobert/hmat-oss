@@ -35,6 +35,7 @@ namespace hmat {
 template<typename T> class HMatrix;
 template<typename T> class AssemblyFunction;
 class ClusterData;
+class IndexSet;
 
 /** Control the approximation of Rk-matrices.
 
@@ -74,8 +75,8 @@ public:
 
 template<typename T> class RkMatrix {
 public:
-  const ClusterData *rows;
-  const ClusterData *cols;
+  const IndexSet *rows;
+  const IndexSet *cols;
   // A B^t
   FullMatrix<T>* a;
   FullMatrix<T>* b;
@@ -102,8 +103,8 @@ public:
        \param _b matrix B (not B^t)
        \param _cols indices of the columns (of size k)
    */
-  RkMatrix(FullMatrix<T>* _a, const ClusterData* _rows,
-           FullMatrix<T>* _b, const ClusterData* _cols,
+  RkMatrix(FullMatrix<T>* _a, const IndexSet* _rows,
+           FullMatrix<T>* _b, const IndexSet* _cols,
            CompressionMethod _method);
   ~RkMatrix();
   /**  Swaps members of two RkMatrix instances.
@@ -120,7 +121,7 @@ public:
        \param subCols subset of columns
        \return pointer to a new matrix with subRows and subCols.
    */
-  const RkMatrix* subset(const ClusterData* subRows, const ClusterData* subCols) const;
+  const RkMatrix* subset(const IndexSet* subRows, const IndexSet* subCols) const;
   /** Returns the compression ratio (stored_elements, total_elements).
    */
   std::pair<size_t, size_t> compressionRatio();
@@ -200,8 +201,8 @@ public:
       \return truncate (*this + parts[0] + parts[1] + ... + parts[n-1])
    */
   RkMatrix<T>* formattedAddParts(T* alpha, const FullMatrix<T>** parts,
-                                 const ClusterData** rowsList,
-                                 const ClusterData** colsList, int n) const;
+                                 const IndexSet** rowsList,
+                                 const IndexSet** colsList, int n) const;
   void gemmRk(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);
 
   /** Multiplication by a scalar.
@@ -227,7 +228,7 @@ public:
   */
   static RkMatrix<T>* multiplyRkFull(char transR, char transM,
                                      const RkMatrix<T>* rk, const FullMatrix<T>* m,
-                                     const ClusterData* mCols);
+                                     const IndexSet* mCols);
 
   /** Left multiplication of RkMatrix by a matrix.
 
@@ -239,7 +240,7 @@ public:
   static RkMatrix<T>* multiplyFullRk(char transM, char transR,
                                      const FullMatrix<T>* m,
                                      const RkMatrix<T>* rk,
-                                     const ClusterData* mRows);
+                                     const IndexSet* mRows);
   /* These functions are added to manage the particular case of the product by
       H-matrix, which is treated by decomposing the product into the succession of
       products by a vector, the result being a RkMatrix.

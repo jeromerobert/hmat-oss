@@ -87,11 +87,11 @@ template<typename T, template <typename> class E>
 void HMatInterface<T, E>::gemv(char trans, T alpha, FullMatrix<T>& x, T beta,
                             FullMatrix<T>& y) const {
   DISABLE_THREADING_IN_BLOCK;
-  reorderVector(&x, trans == 'N' ? engine.hmat->cols()->indices : engine.hmat->rows()->indices);
-  reorderVector(&y, trans == 'N' ? engine.hmat->rows()->indices : engine.hmat->cols()->indices);
+  reorderVector(&x, trans == 'N' ? engine.hmat->cols()->indices() : engine.hmat->rows()->indices());
+  reorderVector(&y, trans == 'N' ? engine.hmat->rows()->indices() : engine.hmat->cols()->indices());
   engine.gemv(trans, alpha, x, beta, y);
-  restoreVectorOrder(&x, trans == 'N' ? engine.hmat->cols()->indices : engine.hmat->rows()->indices);
-  restoreVectorOrder(&y, trans == 'N' ? engine.hmat->rows()->indices : engine.hmat->cols()->indices);
+  restoreVectorOrder(&x, trans == 'N' ? engine.hmat->cols()->indices() : engine.hmat->rows()->indices());
+  restoreVectorOrder(&y, trans == 'N' ? engine.hmat->rows()->indices() : engine.hmat->cols()->indices());
 }
 
 template<typename T, template <typename> class E>
@@ -125,9 +125,9 @@ void HMatInterface<T, E>::gemm(FullMatrix<T>& c, char transA, char transB, T alp
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::solve(FullMatrix<T>& b) const {
   DISABLE_THREADING_IN_BLOCK;
-  reorderVector<T>(&b, engine.hmat->cols()->indices);
+  reorderVector<T>(&b, engine.hmat->cols()->indices());
   engine.solve(b);
-  restoreVectorOrder<T>(&b, engine.hmat->cols()->indices);
+  restoreVectorOrder<T>(&b, engine.hmat->cols()->indices());
 }
 
 template<typename T, template <typename> class E>

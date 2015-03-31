@@ -178,11 +178,11 @@ int full_gemm(char transA, char transB, int mc, int nc, void* c,
   hmat::FullMatrix<T> matC((T*)c, mc, nc);
   hmat::FullMatrix<T>* matA = NULL;
   if (transA == 'N') {
-    matA = new hmat::FullMatrix<T>((T*)a, mc, transB == 'N' ? b->rows->data.n
-                             : b->cols->data.n);
+    matA = new hmat::FullMatrix<T>((T*)a, mc, transB == 'N' ? b->rows->data.size()
+                             : b->cols->data.size());
   } else {
-    matA = new hmat::FullMatrix<T>((T*)a, transB == 'N' ? b->rows->data.n
-                             : b->cols->data.n, mc);
+    matA = new hmat::FullMatrix<T>((T*)a, transB == 'N' ? b->rows->data.size()
+                             : b->cols->data.size(), mc);
   }
   hmat::HMatInterface<T, E>::gemm(matC, transA, transB, *((T*)alpha), *matA, *b, *((T*)beta));
   delete matA;
@@ -207,8 +207,8 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
   const hmat::ClusterData* bData = (trans_a == 'N' ? &hmat->cols->data : &hmat->rows->data);
   const hmat::ClusterData* cData = (trans_a == 'N' ? &hmat->rows->data : &hmat->cols->data);
-  hmat::FullMatrix<T> mb((T*) vec_b, bData->n, nrhs);
-  hmat::FullMatrix<T> mc((T*) vec_c, cData->n, nrhs);
+  hmat::FullMatrix<T> mb((T*) vec_b, bData->size(), nrhs);
+  hmat::FullMatrix<T> mc((T*) vec_c, cData->size(), nrhs);
   hmat->gemv(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
   return 0;
 }
@@ -241,7 +241,7 @@ template<typename T, template <typename> class E>
 int solve_systems(hmat_matrix_t* holder, void* b, int nrhs) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
-  hmat::FullMatrix<T> mb((T*) b, hmat->cols->data.n, nrhs);
+  hmat::FullMatrix<T> mb((T*) b, hmat->cols->data.size(), nrhs);
   hmat->solve(mb);
   return 0;
 }

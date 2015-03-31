@@ -43,15 +43,27 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
     CompressionMethod m = HMatSettings::getInstance().compressionMethod;
     bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
     if (isFullAlgo) {
-        size_t elements = ((size_t) rows.data.n) * cols.data.n;
+        size_t elements = ((size_t) rows.data.size()) * cols.data.size();
         if(elements > maxElementsPerBlock)
             return false;
     }
     // TODO may be this test should be done out of the AdmissibilityCondition
-    if(rows.data.n < 2 || cols.data.n < 2)
+    if(rows.data.size() < 2 || cols.data.size() < 2)
         return false;
 
-    return std::min(rows.diameter(), cols.diameter()) <= eta_ * rows.distanceTo(&cols);
+    AxisAlignedBoundingBox* rows_bbox = static_cast<AxisAlignedBoundingBox*>(rows.admissibilityAlgoData_);
+    if (rows_bbox == NULL)
+    {
+      rows_bbox = new AxisAlignedBoundingBox(rows.data);
+      rows.admissibilityAlgoData_ = rows_bbox;
+    }
+    AxisAlignedBoundingBox* cols_bbox = static_cast<AxisAlignedBoundingBox*>(cols.admissibilityAlgoData_);
+    if (cols_bbox == NULL)
+    {
+      cols_bbox = new AxisAlignedBoundingBox(cols.data);
+      cols.admissibilityAlgoData_ = cols_bbox;
+    }
+    return std::min(rows_bbox->diameter(), cols_bbox->diameter()) <= eta_ * rows_bbox->distanceTo(*cols_bbox);
 }
 
 std::string

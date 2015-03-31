@@ -23,14 +23,45 @@
 #include "hmat/hmat.h"
 #include "hmat_cpp_interface.hpp"
 #include "default_engine.hpp"
+#include "clustering.hpp"
 #include "admissibility.hpp"
 #include "c_wrapping.hpp"
 #include "common/my_assert.h"
 
 using namespace hmat;
 
-hmat_cluster_tree_t * hmat_create_cluster_tree(DofCoordinate* dls, int n) {
-    return (hmat_cluster_tree_t*) createClusterTree(dls, n);
+hmat_coordinates_t * hmat_create_coordinates(double* coord, int dim, int size)
+{
+    return (hmat_coordinates_t*) createCoordinates(coord, dim, size);
+}
+
+void hmat_delete_coordinates(hmat_coordinates_t* dls)
+{
+    delete (DofCoordinates*) dls;
+}
+
+hmat_clustering_algorithm_t * hmat_create_clustering_median()
+{
+    return (hmat_clustering_algorithm_t*) new MedianBisectionAlgorithm();
+}
+
+hmat_clustering_algorithm_t * hmat_create_clustering_geometric()
+{
+    return (hmat_clustering_algorithm_t*) new GeometricBisectionAlgorithm();
+}
+
+hmat_clustering_algorithm_t * hmat_create_clustering_hybrid()
+{
+    return (hmat_clustering_algorithm_t*) new HybridBisectionAlgorithm();
+}
+
+void hmat_delete_clustering(hmat_clustering_algorithm_t* algo)
+{
+    delete (ClusteringAlgorithm*) algo;
+}
+
+hmat_cluster_tree_t * hmat_create_cluster_tree(hmat_coordinates_t* dls, hmat_clustering_algorithm_t* algo) {
+    return (hmat_cluster_tree_t*) createClusterTree(*((DofCoordinates*) dls), *((ClusteringAlgorithm*) algo));
 }
 
 void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree) {
@@ -92,22 +123,6 @@ void hmat_get_parameters(hmat_settings_t* settings)
     }
     settings->admissibilityCondition = static_cast<hmat_admissibility_t*>((void*)settingsCxx.admissibilityCondition);
     settings->admissibilityFactor = 0.0;
-    switch (settingsCxx.clustering) {
-    case kGeometric:
-      settings->clustering = hmat_cluster_geometric;
-      break;
-    case kMedian:
-      settings->clustering = hmat_cluster_median;
-      break;
-    case kHybrid:
-      settings->clustering = hmat_cluster_hybrid;
-      break;
-    default:
-      std::cerr << "Internal error: invalid value for clustering method: \"" << settingsCxx.clustering << "\"." << std::endl;
-      std::cerr << "Internal error: using median" << std::endl;
-      settings->clustering = hmat_cluster_median;
-      break;
-    }
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
@@ -155,21 +170,6 @@ int hmat_set_parameters(hmat_settings_t* settings)
     }
     else
       settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
-    switch (settings->clustering) {
-    case hmat_cluster_geometric:
-      settingsCxx.clustering = kGeometric;
-      break;
-    case hmat_cluster_median:
-      settingsCxx.clustering = kMedian;
-      break;
-    case hmat_cluster_hybrid:
-      settingsCxx.clustering = kHybrid;
-      break;
-    default:
-      std::cerr << "Invalid value for clustering method: \"" << settings->clustering << "\"." << std::endl;
-      rc = 1;
-      break;
-    }
     settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.maxParallelLeaves = settings->maxParallelLeaves;
     settingsCxx.elementsPerBlock = settings->elementsPerBlock;
