@@ -123,7 +123,6 @@ void hmat_get_parameters(hmat_settings_t* settings)
     }
     settings->admissibilityCondition = static_cast<hmat_admissibility_t*>((void*)settingsCxx.admissibilityCondition);
     settings->admissibilityFactor = 0.0;
-    settings->clustering = static_cast<hmat_clustering_algorithm_t*>((void*) settingsCxx.clustering);
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
@@ -171,7 +170,6 @@ int hmat_set_parameters(hmat_settings_t* settings)
     }
     else
       settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
-    settingsCxx.clustering = static_cast<ClusteringAlgorithm*>((void*) settings->clustering);
     settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.maxParallelLeaves = settings->maxParallelLeaves;
     settingsCxx.elementsPerBlock = settings->elementsPerBlock;

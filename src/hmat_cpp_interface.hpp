@@ -60,7 +60,6 @@ public:
       \f]
    */
   hmat::AdmissibilityCondition * admissibilityCondition; ///< Formula for cluster admissibility
-  ClusteringAlgorithm* clustering; ///< Type of clustering
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
   size_t elementsPerBlock; ///< Maximum size of an admissible block
@@ -80,7 +79,6 @@ private:
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(Svd),  compressionMinLeafSize(100),
                    admissibilityCondition(&hmat::StandardAdmissibilityCondition::DEPRECATED_INSTANCE),
-                   clustering(new MedianBisectionAlgorithm()),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
                    elementsPerBlock(5000000),
