@@ -100,21 +100,12 @@ BlockAssemblyFunction<T>::BlockAssemblyFunction(const ClusterData* rowData,
   : prepare(_prepare), compute(_compute), matrixUserData(matrixUserData) {
   rowMapping = rowData->indices();
   colMapping = colData->indices();
-  rowReverseMapping = new int[rowData->size()];
-  colReverseMapping = new int[colData->size()];
-  for (int i = 0; i < (int) rowData->size(); i++) {
-    rowReverseMapping[rowMapping[i]] = i;
-  }
-  for (int i = 0; i < (int) colData->size(); i++) {
-    colReverseMapping[colMapping[i]] = i;
-  }
+  rowReverseMapping = rowData->indices_rev();
+  colReverseMapping = colData->indices_rev();
 }
 
 template<typename T>
-BlockAssemblyFunction<T>::~BlockAssemblyFunction() {
-  delete[] rowReverseMapping;
-  delete[] colReverseMapping;
-}
+BlockAssemblyFunction<T>::~BlockAssemblyFunction() {}
 
 template<typename T>
 typename Types<T>::dp BlockAssemblyFunction<T>::interaction(int i, int j) const {

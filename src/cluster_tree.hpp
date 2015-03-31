@@ -116,6 +116,7 @@ public:
   const ClusterData* intersection(const IndexSet& o) const;
 
   inline int* indices() const { return dofData_->perm_i2e_; }
+  inline int* indices_rev() const { return dofData_->perm_e2i_; }
   inline const DofCoordinates* coordinates() const { return dofData_->coordinates_; }
   inline int* group_index() const { return dofData_->group_index_; }
 

@@ -259,6 +259,13 @@ ClusterTreeBuilder::build(const DofCoordinates& coordinates, int* group_index)
 
   divide_recursive(*rootNode);
   clean_recursive(*rootNode);
+  // Update reverse mapping
+  int* indices_i2e = rootNode->data.indices();
+  int* indices_e2i = rootNode->data.indices_rev();
+
+  for (int i = 0; rootNode->data.size(); ++i) {
+    indices_e2i[indices_i2e[i]] = i;
+  }
   return rootNode;
 }
 
