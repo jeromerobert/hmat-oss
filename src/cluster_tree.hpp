@@ -153,6 +153,9 @@ public:
    */
   explicit ClusterTree(const DofData* dofData);
 
+  /* Copy constructor */
+  ClusterTree(const ClusterTree& other);
+
   virtual ~ClusterTree();
 
   /*! \brief Returns the admissibility parameter eta corresponding to two clusters.
