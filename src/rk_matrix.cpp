@@ -594,7 +594,8 @@ size_t RkMatrix<T>::computeRkRkMemorySize(char transA, char transB,
 {
     FullMatrix<T>* Bb = (transB == 'N' ? b->b : b->a);
     FullMatrix<T>* Aa = (transA == 'N' ? a->a : a->b);
-    return Bb->memorySize() + Aa->rows * b->k * sizeof(T);
+    return Bb == NULL ? 0 : Bb->memorySize() +
+           Aa == NULL ? 0 : Aa->rows * b->k * sizeof(T);
 }
 
 template<typename T>
