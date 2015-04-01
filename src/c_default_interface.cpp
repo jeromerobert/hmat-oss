@@ -21,6 +21,7 @@
 */
 
 #include "hmat/hmat.h"
+#include "coordinates.hpp"
 #include "hmat_cpp_interface.hpp"
 #include "default_engine.hpp"
 #include "clustering.hpp"
@@ -29,16 +30,6 @@
 #include "common/my_assert.h"
 
 using namespace hmat;
-
-hmat_coordinates_t * hmat_create_coordinates(double* coord, int dim, int size)
-{
-    return (hmat_coordinates_t*) createCoordinates(coord, dim, size);
-}
-
-void hmat_delete_coordinates(hmat_coordinates_t* dls)
-{
-    delete (DofCoordinates*) dls;
-}
 
 hmat_clustering_algorithm_t * hmat_create_clustering_median()
 {
@@ -60,8 +51,10 @@ void hmat_delete_clustering(hmat_clustering_algorithm_t* algo)
     delete (ClusteringAlgorithm*) algo;
 }
 
-hmat_cluster_tree_t * hmat_create_cluster_tree(hmat_coordinates_t* dls, hmat_clustering_algorithm_t* algo) {
-    return (hmat_cluster_tree_t*) createClusterTree(*((DofCoordinates*) dls), *((ClusteringAlgorithm*) algo));
+hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo)
+{
+    DofCoordinates dofs(coord, dimension, size, true);
+    return (hmat_cluster_tree_t*) createClusterTree(dofs, *((ClusteringAlgorithm*) algo));
 }
 
 void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree) {

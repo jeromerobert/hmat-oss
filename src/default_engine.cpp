@@ -82,11 +82,6 @@ void HMatSettings::printSettings(std::ostream& out) const {
   out.flags(savedIosFlags);
 }
 
-DofCoordinates* createCoordinates(double* coord, int dim, int size) {
-  return new DofCoordinates(coord, dim, size);
-}
-
-
 ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgorithm& algo) {
   DECLARE_CONTEXT;
 

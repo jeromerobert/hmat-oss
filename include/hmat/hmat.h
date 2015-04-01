@@ -129,12 +129,6 @@ typedef void (*compute_func)(void* v_data, int row_start, int row_count,
  */
 typedef void (*simple_interaction_compute_func)(void* user_context, int row, int col, void* result);
 
-/* Opaque pointer */
-typedef struct hmat_coordinates_struct hmat_coordinates_t;
-
-hmat_coordinates_t * hmat_create_coordinates(double* coord, int dim, int size);
-void hmat_delete_coordinates(hmat_coordinates_t *dls);
-
 typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
 
 /* Opaque pointer */
@@ -147,11 +141,13 @@ void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
 
 /*! \brief Create a ClusterTree from the DoFs coordinates.
 
-  \param dls the DoFs coordinates
-  \param n the number of DoFs
+  \param coord DoFs coordinates
+  \param dimension spatial dimension
+  \param size number of DoFs
+  \param algo pointer to clustering algorithm
   \return an opaque pointer to a ClusterTree, or NULL in case of error.
 */
-hmat_cluster_tree_t * hmat_create_cluster_tree(hmat_coordinates_t* dls, hmat_clustering_algorithm_t* algo);
+hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo);
 
 void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
 

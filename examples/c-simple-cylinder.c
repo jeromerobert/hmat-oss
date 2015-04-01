@@ -120,7 +120,6 @@ int main(int argc, char **argv) {
   hmat_settings_t settings;
   int n;
   char arithmetic;
-  hmat_coordinates_t* coordinates;
   hmat_clustering_algorithm_t* clustering;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t* hmatrix;
@@ -182,9 +181,8 @@ int main(int argc, char **argv) {
   problem_data.points = points;
   problem_data.k = k;
 
-  coordinates = hmat_create_coordinates(points, 3, n);
   clustering = hmat_create_clustering_median();
-  cluster_tree = hmat_create_cluster_tree(coordinates, clustering);
+  cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
   hmat.hmat_get_info(hmatrix, &mat_info);
