@@ -88,13 +88,6 @@ template<typename T>
 BlockAssemblyFunction<T>::~BlockAssemblyFunction() {}
 
 template<typename T>
-typename Types<T>::dp BlockAssemblyFunction<T>::interaction(int i, int j) const {
-  //TODO: FIXME
-  strongAssert(false);
-  return Constants<typename Types<T>::dp>::zero;
-}
-
-template<typename T>
 FullMatrix<typename Types<T>::dp>*
 BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
                                    const ClusterData* cols,

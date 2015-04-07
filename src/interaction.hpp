@@ -29,7 +29,6 @@
 namespace hmat {
 
 class ClusterData;
-class ClusterTree;
 template<typename T> class FullMatrix;
 template<typename T> class Vector;
 
@@ -37,11 +36,6 @@ template<typename T> class Vector;
  */
 template<typename T> class AssemblyFunction {
 public:
-  /** Return the element (i, j) of the matrix.
-
-      This function has to ignore any mapping.
-   */
-  virtual typename Types<T>::dp interaction(int i, int j) const = 0;
   virtual ~AssemblyFunction() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
@@ -105,6 +99,10 @@ public:
  */
 template<typename T> class SimpleAssemblyFunction : public AssemblyFunction<T> {
 public:
+  /**
+   * @brief Return the element (i, j) of the matrix.
+   * This function has to ignore any mapping.
+   */
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
   virtual ~SimpleAssemblyFunction() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
@@ -134,7 +132,6 @@ public:
                          void* matrixUserData,
                          hmat_prepare_func_t _prepare, compute_func _compute);
   ~BlockAssemblyFunction();
-  typename Types<T>::dp interaction(int i, int j) const;
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,
                                               const hmat_block_info_t * block_info=NULL) const;
