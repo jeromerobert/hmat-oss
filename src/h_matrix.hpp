@@ -336,12 +336,7 @@ public:
    */
   inline bool isRkMatrix() const {
     return isLeaf() && data.rk;
-  };
-  /*! Return true if this is not a leaf.
-   */
-  inline bool isHMatrix() const {
-    return !isLeaf();
-  };
+  }
   /*! \brief Return F * H (F Full, H divided)
    */
   static FullMatrix<T>* multiplyFullH(char transM, char transH, const FullMatrix<T>* m, const HMatrix<T>* h);

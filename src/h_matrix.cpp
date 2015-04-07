@@ -944,11 +944,11 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
   //  - A Rk, B Rk
   //  - A Rk, B F
   //  - A F,  B Rk
-  if (a->isRkMatrix() && b->isHMatrix()) {
+  if (a->isRkMatrix() && !b->isLeaf()) {
     rk = RkMatrix<T>::multiplyRkH(transA, transB, a->data.rk, b);
     strongAssert(rk);
   }
-  else if (a->isHMatrix() && b->isRkMatrix()) {
+  else if (!a->isLeaf() && b->isRkMatrix()) {
     rk = RkMatrix<T>::multiplyHRk(transA, transB, a, b->data.rk);
     strongAssert(rk);
   }
@@ -983,10 +983,10 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
   //  - A H, B F
   //  - A F, B H
   //  - A F, B F
-  if (a->isHMatrix() && b->isFullMatrix()) {
+  if (!a->isLeaf() && b->isFullMatrix()) {
     result = HMatrix<T>::multiplyHFull(transA, transB, a, b->data.m);
     strongAssert(result);
-  } else if (a->isFullMatrix() && b->isHMatrix()) {
+  } else if (a->isFullMatrix() && !b->isLeaf()) {
     result = HMatrix<T>::multiplyFullH(transA, transB, a->data.m, b);
     strongAssert(result);
   } else if (a->isFullMatrix() && b->isFullMatrix()) {
@@ -1016,7 +1016,7 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
   myAssert(!left || (*rows() == *d->cols()));
 
   // The symmetric matrix must be taken into account: lower or upper
-  if (isHMatrix()) {
+  if (!isLeaf()) {
     get(0,0)->multiplyWithDiagOrDiagInv(d->get(0,0), inverse, left);
     get(1,1)->multiplyWithDiagOrDiagInv(d->get(1,1), inverse, left);
     if (get(0, 1)) {
