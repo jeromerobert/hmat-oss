@@ -49,16 +49,6 @@ SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
 }
 
 template<typename T>
-Vector<typename Types<T>::dp>*
-SimpleAssemblyFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
-                               int rowIndex, void* handle) const {
-  Vector<typename Types<T>::dp>* result =
-    new Vector<typename Types<T>::dp>(cols->size());
-  getRow(rows, cols, rowIndex, handle, result);
-  return result;
-}
-
-template<typename T>
 void SimpleAssemblyFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
                                        int rowIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
@@ -67,16 +57,6 @@ void SimpleAssemblyFunction<T>::getRow(const ClusterData* rows, const ClusterDat
   for (int j = 0; j < cols->size(); j++) {
     result->v[j] = interaction(row, cols_indices[j]);
   }
-}
-
-template<typename T>
-Vector<typename Types<T>::dp>*
-SimpleAssemblyFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
-                                  int colIndex, void* handle) const {
-  Vector<typename Types<T>::dp>* result =
-    new Vector<typename Types<T>::dp>(rows->size());
-  getCol(rows, cols, colIndex, handle, result);
-  return result;
 }
 
 template<typename T>
@@ -161,18 +141,6 @@ void BlockAssemblyFunction<T>::releaseBlock(hmat_block_info_t * block_info) cons
 }
 
 template<typename T>
-Vector<typename Types<T>::dp>*
-BlockAssemblyFunction<T>::getRow(const ClusterData* rows,
-                                  const ClusterData* cols,
-                                  int rowIndex, void* handle) const {
-  Vector<typename Types<T>::dp>* result =
-    Vector<typename Types<T>::dp>::Zero(cols->size());
-  strongAssert(result);
-  getRow(rows, cols, rowIndex, handle, result);
-  return result;
-}
-
-template<typename T>
 void BlockAssemblyFunction<T>::getRow(const ClusterData* rows,
                                        const ClusterData* cols,
                                        int rowIndex, void* handle,
@@ -180,20 +148,6 @@ void BlockAssemblyFunction<T>::getRow(const ClusterData* rows,
   DECLARE_CONTEXT;
   myAssert(handle);
   compute(handle, rowIndex, 1, 0, cols->size(), (void*) result->v);
-}
-
-
-template<typename T>
-Vector<typename Types<T>::dp>*
-BlockAssemblyFunction<T>::getCol(const ClusterData* rows,
-                                  const ClusterData* cols,
-                                  int colIndex, void* handle) const {
-  DECLARE_CONTEXT;
-  Vector<typename Types<T>::dp>* result =
-    Vector<typename Types<T>::dp>::Zero(rows->size());
-  strongAssert(result);
-  getCol(rows, cols, colIndex, handle, result);
-  return result;
 }
 
 template<typename T>

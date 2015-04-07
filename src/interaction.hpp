@@ -42,7 +42,7 @@ public:
       This function has to ignore any mapping.
    */
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
-  virtual ~AssemblyFunction() {};
+  virtual ~AssemblyFunction() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
                                                       const hmat_block_info_t * block_info=NULL) const = 0;
@@ -63,20 +63,7 @@ public:
     \param handle the handle passed to \a AssemblyFunction::releaseBlock().
   */
   virtual void releaseBlock(hmat_block_info_t *) const {}
-  /*! \brief Return a row of a matrix block.
 
-    This functions returns a \a Vector representing the row of index
-    \a rowIndex in the subblock defined by its \a rows and \a cols.
-
-    \param rows the rows of the subblock
-    \param cols the columns of the subblock
-    \param rowIndex the row index in the subblock
-    \param handle the optional handle created by \a AssemblyFunction::prepareBlock()
-    \return the row as a \a Vector
-  */
-  virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
-                                                const ClusterData* cols,
-                                                int rowIndex, void* handle=NULL) const = 0;
   /*! \brief Return a row of a matrix block.
 
     This functions returns a \a Vector representing the row of index
@@ -92,21 +79,7 @@ public:
   virtual void getRow(const ClusterData* rows, const ClusterData* cols,
                       int rowIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const = 0;
-  /*! \brief Return a column of a matrix block.
 
-    This functions returns a \a Vector representing the column of
-    index \a rowIndex in the subblock defined by its \a rows and \a
-    cols.
-
-    \param rows the rows of the subblock
-    \param cols the columns of the subblock
-    \param colIndex the row index in the subblock
-    \param handle the optional handle created by \a AssemblyFunction::prepareBlock()
-    \return the column as a \a Vector
-  */
-  virtual Vector<typename Types<T>::dp>* getCol(const ClusterData* rows,
-                                                const ClusterData* cols,
-                                                int colIndex, void* handle=NULL) const = 0;
   /*! \brief Return a column of a matrix block.
 
     This functions returns a \a Vector representing the column of
@@ -133,19 +106,13 @@ public:
 template<typename T> class SimpleAssemblyFunction : public AssemblyFunction<T> {
 public:
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
-  virtual ~SimpleAssemblyFunction() {};
+  virtual ~SimpleAssemblyFunction() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
                                                       const hmat_block_info_t * block_info=NULL) const;
-  virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
-                                                const ClusterData* cols,
-                                                int rowIndex, void* handle=NULL) const;
   virtual void getRow(const ClusterData* rows, const ClusterData* cols,
                       int rowIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const;
-  virtual Vector<typename Types<T>::dp>* getCol(const ClusterData* rows,
-                                                const ClusterData* cols,
-                                                int colIndex, void* handle=NULL) const;
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const;
@@ -174,14 +141,10 @@ public:
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
                             hmat_block_info_t * block_info) const;
   virtual void releaseBlock(hmat_block_info_t * block_info) const;
-  virtual Vector<typename Types<T>::dp>* getRow(const ClusterData* rows,
-                                                const ClusterData* cols,
-                                                int rowIndex, void* handle=NULL) const;
+
   virtual void getRow(const ClusterData* rows, const ClusterData* cols,
                       int rowIndex, void* handle, Vector<typename Types<T>::dp>* result) const;
-  virtual Vector<typename Types<T>::dp>* getCol(const ClusterData* rows,
-                                                const ClusterData* cols,
-                                                int colIndex, void* handle=NULL) const;
+
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const;
