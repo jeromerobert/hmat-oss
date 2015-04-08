@@ -499,8 +499,8 @@ public:
   /// Error threshold for the compression validation
   static double validationErrorThreshold;
   HMatrixData<T> data;
-  bool isUpper, isLower;       /// symmetric, upper or lower stored
-  bool isTriUpper, isTriLower; /// upper/lower triangular
+  char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
+       isTriUpper:1, isTriLower:1; /// upper/lower triangular
   LocalSettings localSettings;
 
 private:
