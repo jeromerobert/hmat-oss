@@ -200,7 +200,8 @@ public:
                  block to store upper counterpart.
       @param synchronize
    */
-  void assemble(AssemblyFunction<T>& f, SymmetryFlag sym, bool synchronize=true);
+  void assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize=true);
+
   /** Compute a \f$LU\f$ or \f$LDL^T\f$ decomposition of the HMatrix, in place.
 
       An LDL^T decomposition is done if the HMatrix is symmetric and has been

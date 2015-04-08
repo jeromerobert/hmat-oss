@@ -39,7 +39,6 @@
 #include "postscript.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
-#include "fromdouble.hpp"
 
 using namespace std;
 
@@ -222,31 +221,17 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols, c
 }
 
 template<typename T>
-void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
+void HMatrix<T>::assemble(Assembly<T>& f) {
   if (isLeaf()) {
     // If the leaf is admissible, matrix assembly and compression.
     // if not we keep the matrix.
-    if (data.isAdmissibleLeaf(localSettings.global)) {
-      // Always compress the smallest blocks using an SVD. Small blocks tend to have
-      // a bad compression ratio anyways, and the SVD is not very costly in this
-      // case.
-      CompressionMethod method = RkMatrix<T>::approx.method;
-      if (max(rows()->size(), cols()->size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
-        method = Svd;
-      }
-      RkMatrix<typename Types<T>::dp>* rkDp = compress(method, f, rows(), cols());
-      if (recompress) {
-        rkDp->truncate();
-      }
-      RkMatrix<T>* rk = fromDoubleRk<T>(rkDp);
-
-      data.m = NULL;
-      data.rk->swap(*rk);
-      delete rk;
-    } else {
-      FullMatrix<T>* mat = fromDoubleFull<T>(f.assemble(rows(), cols()));
-      data.rk = NULL;
-      data.m = mat;
+    data.m = NULL;
+    RkMatrix<T>* rk = NULL;
+    f.assemble(localSettings, *(data.rows), *(data.cols), data.m, rk);
+    strongAssert(data.m == NULL || rk == NULL);
+    if(rk) {
+        data.rk->swap(*rk);
+        delete rk;
     }
   } else {
     data.m = NULL;
@@ -299,7 +284,7 @@ void HMatrix<T>::assemble(const AssemblyFunction<T>& f) {
 }
 
 template<typename T>
-void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f,
+void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
    HMatrix<T>* upper, bool onlyLower) {
   if (!onlyLower) {
     if (!upper){
@@ -312,8 +297,8 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f,
   if (isLeaf()) {
     // If the leaf is admissible, matrix assembly and compression.
     // if not we keep the matrix.
-    if (data.isAdmissibleLeaf(localSettings.global)) {
-      this->assemble(f);
+    this->assemble(f);
+    if (data.rk) {
       if ((!onlyLower) && (upper != this)) {
         // Admissible leaf: a matrix represented by AB^t is transposed by exchanging A and B.
         RkMatrix<T>* rk = new RkMatrix<T>(NULL, upper->rows(),
@@ -327,7 +312,6 @@ void HMatrix<T>::assembleSymmetric(const AssemblyFunction<T>& f,
         upper->data.m = NULL;
       }
     } else {
-      this->assemble(f);
       if ((!onlyLower) && ( upper != this)) {
         upper->data.rk = NULL;
         upper->data.m = data.m->copyAndTranspose();

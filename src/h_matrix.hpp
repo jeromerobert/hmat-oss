@@ -128,7 +128,7 @@ public:
        SymmetryFlag symmetryFlag = kNotSymmetric);
   /*! \brief HMatrix assembly.
    */
-  void assemble(const AssemblyFunction<T>& f);
+  void assemble(Assembly<T>& f);
   /*! \brief HMatrix assembly.
 
     \param f the assembly function
@@ -136,7 +136,7 @@ public:
                  that upper=this (that is, the current block is on the diagonal)
     \param onlyLower if true, only assemble the lower part of the matrix, ie don't copy.
    */
-  void assembleSymmetric(const AssemblyFunction<T>& f,
+  void assembleSymmetric(Assembly<T>& f,
      HMatrix<T>* upper=NULL, bool onlyLower=false);
   /*! \brief Evaluate the HMatrix, ie converts it to a full matrix.
 

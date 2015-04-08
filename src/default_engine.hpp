@@ -38,7 +38,7 @@ public:
   HMatrix<T>* hmat;
   static int init() { return 0; }
   static void finalize(){}
-  void assembly(AssemblyFunction<T>& f, SymmetryFlag sym, bool synchronize);
+  void assembly(Assembly<T>& f, SymmetryFlag sym, bool synchronize);
   void factorization();
   void gemv(char trans, T alpha, FullMatrix<T>& x, T beta, FullMatrix<T>& y) const;
   void gemm(char transA, char transB, T alpha, const DefaultEngine<T> & a, const DefaultEngine<T>& b, T beta);

@@ -72,7 +72,7 @@ HMatInterface<T, E>::HMatInterface(HMatrix<T>* h) :
 
 //TODO remove the synchronize parameter which is parallel specific
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::assemble(AssemblyFunction<T>& f, SymmetryFlag sym, bool synchronize) {
+void HMatInterface<T, E>::assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize) {
   DISABLE_THREADING_IN_BLOCK;
   engine.assembly(f, sym, synchronize);
 }

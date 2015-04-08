@@ -26,12 +26,39 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 #include <iostream>
+#include "h_matrix.hpp"
+#include "rk_matrix.hpp"
+#include "fromdouble.hpp"
 
 namespace hmat {
 
 template<typename T>
+void AssemblyFunction<T>::assemble(const LocalSettings & settings,
+                                     const ClusterTree &rows,
+                                     const ClusterTree &cols,
+                                     FullMatrix<T> *&fullMatrix,
+                                     RkMatrix<T> *&rkMatrix) {
+    if (settings.global->getAdmissibilityCondition()->isAdmissible(rows, cols)) {
+      // Always compress the smallest blocks using an SVD. Small blocks tend to have
+      // a bad compression ratio anyways, and the SVD is not very costly in this
+      // case.
+      CompressionMethod method = RkMatrix<T>::approx.method;
+      if (std::max(rows.data.size(), cols.data.size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
+        method = Svd;
+      }
+      RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data));
+      if (HMatrix<T>::recompress) {
+        rkDp->truncate();
+      }
+      rkMatrix = fromDoubleRk<T>(rkDp);
+    } else {
+      fullMatrix = fromDoubleFull<T>(function_.assemble(&(rows.data), &(cols.data)));
+    }
+}
+
+template<typename T>
 FullMatrix<typename Types<T>::dp>*
-SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
+SimpleFunction<T>::assemble(const ClusterData* rows,
                                     const ClusterData* cols,
                                     const hmat_block_info_t * block_info) const {
   FullMatrix<typename Types<T>::dp>* result =
@@ -49,7 +76,7 @@ SimpleAssemblyFunction<T>::assemble(const ClusterData* rows,
 }
 
 template<typename T>
-void SimpleAssemblyFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
+void SimpleFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
                                        int rowIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
   const int row = *(rows->indices() + rows->offset() + rowIndex);
@@ -60,7 +87,7 @@ void SimpleAssemblyFunction<T>::getRow(const ClusterData* rows, const ClusterDat
 }
 
 template<typename T>
-void SimpleAssemblyFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
+void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
                                        int colIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
   const int col = *(cols->indices() + cols->offset() + colIndex);
@@ -72,7 +99,7 @@ void SimpleAssemblyFunction<T>::getCol(const ClusterData* rows, const ClusterDat
 
 
 template<typename T>
-BlockAssemblyFunction<T>::BlockAssemblyFunction(const ClusterData* rowData,
+BlockFunction<T>::BlockFunction(const ClusterData* rowData,
                                                   const ClusterData* colData,
                                                   void* matrixUserData,
                                                   hmat_prepare_func_t _prepare,
@@ -85,11 +112,11 @@ BlockAssemblyFunction<T>::BlockAssemblyFunction(const ClusterData* rowData,
 }
 
 template<typename T>
-BlockAssemblyFunction<T>::~BlockAssemblyFunction() {}
+BlockFunction<T>::~BlockFunction() {}
 
 template<typename T>
 FullMatrix<typename Types<T>::dp>*
-BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
+BlockFunction<T>::assemble(const ClusterData* rows,
                                    const ClusterData* cols,
                                    const hmat_block_info_t * block_info) const {
   DECLARE_CONTEXT;
@@ -113,7 +140,7 @@ BlockAssemblyFunction<T>::assemble(const ClusterData* rows,
 }
 
 template<typename T>
-void BlockAssemblyFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
+void BlockFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
     hmat_block_info_t * block_info) const {
   // TODO factorize block_info init with ClusterAssemblyFunction
   block_info->block_type = hmat_block_full;
@@ -128,13 +155,13 @@ void BlockAssemblyFunction<T>::prepareBlock(const ClusterData* rows, const Clust
 }
 
 template<typename T>
-void BlockAssemblyFunction<T>::releaseBlock(hmat_block_info_t * block_info) const {
+void BlockFunction<T>::releaseBlock(hmat_block_info_t * block_info) const {
   if(block_info->release_user_data)
     block_info->release_user_data(block_info->user_data);
 }
 
 template<typename T>
-void BlockAssemblyFunction<T>::getRow(const ClusterData* rows,
+void BlockFunction<T>::getRow(const ClusterData* rows,
                                        const ClusterData* cols,
                                        int rowIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
@@ -144,7 +171,7 @@ void BlockAssemblyFunction<T>::getRow(const ClusterData* rows,
 }
 
 template<typename T>
-void BlockAssemblyFunction<T>::getCol(const ClusterData* rows,
+void BlockFunction<T>::getCol(const ClusterData* rows,
                                        const ClusterData* cols,
                                        int colIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
@@ -161,6 +188,11 @@ void BlockAssemblyFunction<T>::getCol(const ClusterData* rows,
 
 
 // Template declaration
+template class BlockFunction<S_t>;
+template class BlockFunction<D_t>;
+template class BlockFunction<C_t>;
+template class BlockFunction<Z_t>;
+
 template class SimpleAssemblyFunction<S_t>;
 template class SimpleAssemblyFunction<D_t>;
 template class SimpleAssemblyFunction<C_t>;

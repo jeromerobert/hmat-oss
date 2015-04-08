@@ -63,13 +63,13 @@ namespace hmat {
 */
 template<typename T>
 class ClusterAssemblyFunction {
-  const AssemblyFunction<T>& f;
+  const Function<T>& f;
 
 public:
   const ClusterData* rows;
   const ClusterData* cols;
   hmat_block_info_t info;
-  ClusterAssemblyFunction(const AssemblyFunction<T>& _f,
+  ClusterAssemblyFunction(const Function<T>& _f,
                         const ClusterData* _rows, const ClusterData* _cols)
     : f(_f), rows(_rows), cols(_cols) {
     // TODO factorize block_info init with BlockAssemblyFunction<T>::prepareBlock
@@ -721,7 +721,7 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
 /* Appele par HMatrix<T>::assemble() */
 template<typename T>
 RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
-                                          const AssemblyFunction<T>& f,
+                                          const Function<T>& f,
                                           const ClusterData* rows,
                                           const ClusterData* cols) {
   typedef typename Types<T>::dp dp_t;
@@ -793,10 +793,10 @@ template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const IndexSet* rows,
 template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const IndexSet* rows, const IndexSet* cols);
 template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const IndexSet* rows, const IndexSet* cols);
 
-template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const AssemblyFunction<S_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const AssemblyFunction<D_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const AssemblyFunction<C_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const AssemblyFunction<Z_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const Function<Z_t>& f, const ClusterData* rows, const ClusterData* cols);
 
 }  // end namespace hmat
 

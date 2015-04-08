@@ -29,14 +29,72 @@
 namespace hmat {
 
 class ClusterData;
+class ClusterTree;
+class LocalSettings;
 template<typename T> class FullMatrix;
 template<typename T> class Vector;
+template<typename T> class RkMatrix;
+template<typename T> class Function;
+template<typename T> class BlockFunction;
+template<typename T> class SimpleFunction;
+
+/**
+ * Abstract class, describing the creation of the H-matrix blocks
+ */
+template<typename T> class Assembly {
+public:
+    /**
+     * @brief assemble Assemble a block of the matrix
+     * This function must set fullMatrix or rkMatrix following this rules:
+     * - Setting both fullMatrix and rkMatrix is an error
+     * - Setting none mean the block is empty and not compressed
+     */
+    virtual void assemble(const LocalSettings & settings,
+                          const ClusterTree & rows, const ClusterTree & cols,
+                          FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix ) = 0;
+};
+
+/**
+ * An assembling which use a Function object to compute blocks
+ */
+template<typename T> class AssemblyFunction: public Assembly<T> {
+public:
+    AssemblyFunction(const Function<T> & function): function_(function) {}
+    virtual void assemble(const LocalSettings & settings,
+                          const ClusterTree & rows, const ClusterTree & cols,
+                          FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix );
+protected:
+    const Function<T> & function_;
+};
+
+/**
+ * @Deprecated use AssemblyFunction instead
+ */
+template<typename T> class SimpleAssemblyFunction: public AssemblyFunction<T>, SimpleFunction<T> {
+public:
+    SimpleAssemblyFunction():
+        AssemblyFunction<T>(*static_cast<SimpleFunction<T>*>(this)) {}
+};
+
+/**
+ * @Deprecated use AssemblyFunction instead
+ */
+template<typename T> class BlockAssemblyFunction: public AssemblyFunction<T> {
+public:
+    BlockAssemblyFunction(const ClusterData* _rowData, const ClusterData* _colData,
+                           void* matrixUserData,
+                           hmat_prepare_func_t _prepare, compute_func _compute):
+        AssemblyFunction<T>(blockFunction),
+        blockFunction(_rowData, _colData, matrixUserData, _prepare, _compute){}
+protected:
+    BlockFunction<T> blockFunction;
+};
 
 /** Abstract base class representing an assembly function.
  */
-template<typename T> class AssemblyFunction {
+template<typename T> class Function {
 public:
-  virtual ~AssemblyFunction() {}
+  virtual ~Function() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
                                                       const hmat_block_info_t * block_info=NULL) const = 0;
@@ -97,14 +155,14 @@ public:
     The rest of the function work by executing a trivial loop on
     \a SimpleAssemblyFunction<T>::interaction().
  */
-template<typename T> class SimpleAssemblyFunction : public AssemblyFunction<T> {
+template<typename T> class SimpleFunction : public Function<T> {
 public:
   /**
    * @brief Return the element (i, j) of the matrix.
    * This function has to ignore any mapping.
    */
   virtual typename Types<T>::dp interaction(int i, int j) const = 0;
-  virtual ~SimpleAssemblyFunction() {}
+  virtual ~SimpleFunction() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
                                                       const hmat_block_info_t * block_info=NULL) const;
@@ -117,7 +175,7 @@ public:
 };
 
 
-template<typename T> class BlockAssemblyFunction : public AssemblyFunction<T> {
+template<typename T> class BlockFunction : public Function<T> {
 private:
   hmat_prepare_func_t prepare;
   compute_func compute;
@@ -128,10 +186,10 @@ private:
   int* colReverseMapping;
 
 public:
-  BlockAssemblyFunction(const ClusterData* _rowData, const ClusterData* _colData,
+  BlockFunction(const ClusterData* _rowData, const ClusterData* _colData,
                          void* matrixUserData,
                          hmat_prepare_func_t _prepare, compute_func _compute);
-  ~BlockAssemblyFunction();
+  ~BlockFunction();
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,
                                               const hmat_block_info_t * block_info=NULL) const;

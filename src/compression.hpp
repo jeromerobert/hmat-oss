@@ -35,7 +35,7 @@ enum CompressionMethod {
 };
 
 // Forward declarations
-template<typename T> class AssemblyFunction;
+template<typename T> class Function;
 template<typename T> class FullMatrix;
 template<typename T> class RkMatrix;
 class ClusterData;
@@ -65,7 +65,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
 */
 template<typename T>
 RkMatrix<typename Types<T>::dp>*
-compress(CompressionMethod method, const AssemblyFunction<T>& f,
+compress(CompressionMethod method, const Function<T>& f,
          const ClusterData* rows, const ClusterData* cols);
 
 }  // end namespace hmat
