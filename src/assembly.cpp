@@ -21,7 +21,7 @@
 */
 
 /* Interactions between the elements of the matrix */
-#include "interaction.hpp"
+#include "assembly.hpp"
 #include "full_matrix.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"

@@ -33,7 +33,7 @@
 #include <cstring>
 
 #include "cluster_tree.hpp"
-#include "interaction.hpp"
+#include "assembly.hpp"
 #include "rk_matrix.hpp"
 #include "lapack_operations.hpp"
 #include "lapack_overloads.hpp"

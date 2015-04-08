@@ -23,7 +23,7 @@
 /** Sample application for the HMatrix library.
 */
 #include "full_matrix.hpp"
-#include "interaction.hpp"
+#include "assembly.hpp"
 #include "data_types.hpp"
 #include "hmat_cpp_interface.hpp"
 #include <cstring>

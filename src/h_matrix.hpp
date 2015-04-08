@@ -28,7 +28,7 @@
 #define _H_MATRIX_HPP
 
 #include "tree.hpp"
-#include "interaction.hpp"
+#include "assembly.hpp"
 #include "data_types.hpp"
 #include "full_matrix.hpp"
 #include "cluster_tree.hpp"
