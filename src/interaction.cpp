@@ -36,9 +36,10 @@ template<typename T>
 void AssemblyFunction<T>::assemble(const LocalSettings & settings,
                                      const ClusterTree &rows,
                                      const ClusterTree &cols,
+                                     bool admissible,
                                      FullMatrix<T> *&fullMatrix,
                                      RkMatrix<T> *&rkMatrix) {
-    if (settings.global->getAdmissibilityCondition()->isAdmissible(rows, cols)) {
+    if (admissible) {
       // Always compress the smallest blocks using an SVD. Small blocks tend to have
       // a bad compression ratio anyways, and the SVD is not very costly in this
       // case.

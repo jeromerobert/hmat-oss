@@ -51,6 +51,7 @@ public:
      */
     virtual void assemble(const LocalSettings & settings,
                           const ClusterTree & rows, const ClusterTree & cols,
+                          bool admissible,
                           FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix ) = 0;
 };
 
@@ -62,6 +63,7 @@ public:
     AssemblyFunction(const Function<T> & function): function_(function) {}
     virtual void assemble(const LocalSettings & settings,
                           const ClusterTree & rows, const ClusterTree & cols,
+                          bool admissible,
                           FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix );
 protected:
     const Function<T> & function_;

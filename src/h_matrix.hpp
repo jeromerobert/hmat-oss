@@ -102,9 +102,6 @@ public:
   HMatrixData(ClusterTree* _rows, ClusterTree* _cols)
   : rows(_rows), cols(_cols), rk(NULL), m(NULL) {}
   ~HMatrixData();
-  /*! \brief Return true if the block is admissible.
-   */
-  bool isAdmissibleLeaf(const MatrixSettings * settings) const;
 };
 
 /*! \brief The HMatrix class, representing a HMatrix.
@@ -500,7 +497,8 @@ public:
   static double validationErrorThreshold;
   HMatrixData<T> data;
   char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
-       isTriUpper:1, isTriLower:1; /// upper/lower triangular
+       isTriUpper:1, isTriLower:1, /// upper/lower triangular
+       admissible:1, temporary:1;
   LocalSettings localSettings;
 
 private:

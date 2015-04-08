@@ -61,10 +61,6 @@ template<typename T> HMatrixData<T>::~HMatrixData() {
   }
 }
 
-template<typename T> bool HMatrixData<T>::isAdmissibleLeaf(const hmat::MatrixSettings * settings) const {
-   return settings->getAdmissibilityCondition()->isAdmissible(*rows, *cols);
-}
-
 template<typename T>
 void reorderVector(FullMatrix<T>* v, int* indices) {
   DECLARE_CONTEXT;
@@ -101,10 +97,10 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   : Tree<4>(NULL),
     data(HMatrixData<T>(_rows, _cols)),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), localSettings(settings) {
-  bool adm = data.isAdmissibleLeaf(settings);
-  if (_rows->isLeaf() || _cols->isLeaf() || adm) {
-    if (adm) {
+    isTriUpper(false), isTriLower(false), admissible(false), localSettings(settings) {
+  admissible = settings->getAdmissibilityCondition()->isAdmissible(*(data.rows), *(data.cols));
+  if (_rows->isLeaf() || _cols->isLeaf() || admissible) {
+    if (admissible) {
       data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
     }
     return;
@@ -128,7 +124,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<4>(NULL), data(HMatrixData<T>()), isUpper(false),
-    isLower(false), localSettings(settings) {}
+    isLower(false), admissible(false), localSettings(settings) {}
 
 template<typename T>
 HMatrix<T>* HMatrix<T>::copyStructure() const {
@@ -140,6 +136,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->isLower = isLower;
   h->isTriUpper = isTriUpper;
   h->isTriLower = isTriLower;
+  h->admissible = admissible;
 
   if (isLeaf()) {
     h->data.rk = NULL;
@@ -172,6 +169,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->isUpper = o->isUpper;
   h->isTriUpper = o->isTriUpper;
   h->isTriLower = o->isTriLower;
+  h->admissible = o->admissible;
 
   if (o->isLeaf()) {
     if (o->isRkMatrix()) {
@@ -199,9 +197,9 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols, c
   HMatrix<T> *h = new HMatrix<T>(settings);
   h->data.rows = (ClusterTree *) rows;
   h->data.cols = (ClusterTree *) cols;
-
-  if (rows->isLeaf() || cols->isLeaf() || h->data.isAdmissibleLeaf(settings)) {
-    if (h->data.isAdmissibleLeaf(settings)) {
+  h->admissible = settings->getAdmissibilityCondition()->isAdmissible(*(h->data.rows), *(h->data.cols));
+  if (rows->isLeaf() || cols->isLeaf() || h->admissible) {
+    if (h->admissible) {
       h->data.rk = new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression);
       h->data.m = NULL;
     } else {
@@ -227,7 +225,7 @@ void HMatrix<T>::assemble(Assembly<T>& f) {
     // if not we keep the matrix.
     data.m = NULL;
     RkMatrix<T>* rk = NULL;
-    f.assemble(localSettings, *(data.rows), *(data.cols), data.m, rk);
+    f.assemble(localSettings, *(data.rows), *(data.cols), admissible, data.m, rk);
     strongAssert(data.m == NULL || rk == NULL);
     if(rk) {
         data.rk->swap(*rk);
