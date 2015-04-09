@@ -83,5 +83,9 @@ namespace mem_instr {
   void disable() {
     enabled = false;
   }
+
+  size_t getNanoTime() {
+    return allocs.getNanoTime();
+  }
 }
 #endif // __cplusplus > 199711L

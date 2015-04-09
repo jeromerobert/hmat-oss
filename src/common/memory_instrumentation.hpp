@@ -46,6 +46,12 @@ namespace mem_instr {
 
   void enable();
   void disable();
+
+  /**
+   * Return the current time with the same reference as
+   * memory instrumentation
+   */
+  size_t getNanoTime();
 }
 
 #define REGISTER_ALLOC(ptr, size) mem_instr::addAlloc(ptr, +(size))

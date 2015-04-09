@@ -49,9 +49,26 @@ template<typename T> class TimedDataRecorder {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> TimePoint;
   typedef std::pair<TimePoint, T> DataPoint;
   typedef std::pair<TimePoint, std::string> Tag;
+  typedef std::chrono::nanoseconds nanos;
   std::vector<DataPoint> data;
   std::deque<Tag> tags;
   std::mutex mutex;
+
+  TimePoint getOrigin() {
+    if (data.size() == 0 && tags.size() == 0)
+        return std::chrono::high_resolution_clock::now();
+    bool hasData = data.size() > 0;
+    bool hasTags = tags.size() > 0;
+    auto origin = TimePoint();
+    if (hasData && hasTags) {
+      origin = std::min(tags[0].first, data[0].first);
+    } else if (hasData) {
+      origin = data[0].first;
+    } else if (hasTags) {
+      origin = tags[0].first;
+    }
+    return origin;
+  }
 
 public:
   /** Add a data point to the record.
@@ -91,18 +108,7 @@ public:
       \param delimiter field delimiter, space by default
    */
   void toFile(const char* filename, const char* delimiter=" ") {
-    typedef std::chrono::nanoseconds nanos;
-    if (data.size() == 0 && tags.size() == 0) return;
-    bool hasData = data.size() > 0;
-    bool hasTags = tags.size() > 0;
-    auto origin = TimePoint();
-    if (hasData && hasTags) {
-      origin = std::min(tags[0].first, data[0].first);
-    } else if (hasData) {
-      origin = data[0].first;
-    } else if (hasTags) {
-      origin = tags[0].first;
-    }
+    TimePoint origin = getOrigin();
     {
       std::ofstream file(filename);
       for (auto it : data) {
@@ -121,6 +127,13 @@ public:
         file << std::scientific << offsetNano << delimiter << it.second << "\n";
       }
     }
+  }
+
+  size_t getNanoTime() {
+    TimePoint now = std::chrono::high_resolution_clock::now();
+    size_t offsetNano =
+      std::chrono::duration_cast<nanos>(now - getOrigin()).count();
+    return offsetNano;
   }
 };
 #endif
