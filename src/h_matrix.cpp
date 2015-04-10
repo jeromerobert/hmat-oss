@@ -619,6 +619,7 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
   }
 }
 
+/** @brief AXPY where this and B are supposed to have the same layout */
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const HMatrix<T>* b) {
   myAssert(*rows() == *b->rows());
@@ -646,6 +647,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* b) {
   }
 }
 
+/** @brief AXPY between this an a subset of B with B a RkMatrix */
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   DECLARE_CONTEXT;
@@ -687,6 +689,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   }
 }
 
+/** @brief AXPY between this an a subset of B with B a FullMatrix */
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
                       const IndexSet* cols) {
