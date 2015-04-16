@@ -858,7 +858,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   }
 
   // The resulting matrix is a full matrix
-  myAssert(isFullMatrix());
+  FullMatrix<T>* fullMat;
   if (a->isRkMatrix() || b->isRkMatrix()) {
     myAssert(a->isRkMatrix() || b->isRkMatrix());
     if ((a->isRkMatrix() && (a->data.rk->k == 0))
@@ -866,15 +866,17 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       return;
     }
     RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
-    FullMatrix<T>* fullMat = rkMat->eval();
+    fullMat = rkMat->eval();
     delete rkMat;
+  } else {
+    fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
+  }
+  if(data.m) {
     data.m->axpy(alpha, fullMat);
     delete fullMat;
   } else {
-    myAssert(a->isFullMatrix() || b->isFullMatrix());
-    FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
-    this->data.m->axpy(alpha, fullMat);
-    delete fullMat;
+    fullMat->scale(alpha);
+    data.m = fullMat;
   }
 }
 
