@@ -164,6 +164,9 @@ typedef struct hmat_admissibility_condition hmat_admissibility_t;
 /* Create a standard (Hackbusch) admissibility condition, with a given eta */
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
 
+/* Delete admissibility condition */
+void hmat_delete_admissibility(hmat_admissibility_t * cond);
+
 /** Information on the HMatrix */
 typedef struct
 {
