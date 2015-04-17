@@ -858,6 +858,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     return;
   }
 
+  // This matrix is not yet initialized but we know it will be a RkMatrix if
+  // a or b is a RkMatrix
+  if(!data.rk && !data.m && (a->isRkMatrix() || b->isRkMatrix())) {
+    data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
+  }
+
   if (isRkMatrix()) {
     // The resulting matrix is a RkMatrix leaf.
     // At least one of the matrix is not a leaf.
@@ -897,6 +903,10 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     data.m->axpy(alpha, fullMat);
     delete fullMat;
   } else {
+    // It's not optimal to concider that the result is a FullMatrix but
+    // this is a H*F case and it almost never happen
+    std::cout << "GEMM with a full matrix result. This is implemented "
+              << "but as it almost never happen, it is not well tested" << std::endl;
     fullMat->scale(alpha);
     data.m = fullMat;
   }
