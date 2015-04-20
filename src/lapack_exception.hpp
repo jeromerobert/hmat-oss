@@ -30,9 +30,22 @@
 namespace hmat {
 
 class LapackException: public std::runtime_error {
+    std::string format_msg(const char * primitive, int info) {
+        std::stringstream sstm;
+        sstm << "Lapack error in "<< primitive << ", info=" << info;
+        return sstm.str().c_str();
+    }
+    const char * primitive_;
+    int info_;
+
 public:
+    LapackException()
+        : runtime_error("Not an exception"), primitive_(NULL), info_(0)
+    {}
+
     LapackException(const char * primitive, int info)
-        : runtime_error("Lapack error"), primitive_(primitive), info_(info)
+        : runtime_error(format_msg(primitive, info)),
+          primitive_(primitive), info_(info)
     {}
 
     const char * primitive() const {
@@ -41,16 +54,10 @@ public:
     int info() const {
         return info_;
     }
-    virtual const char* what() const throw()
-    {
-        std::stringstream sstm;
-        sstm << runtime_error::what() << " in "<< primitive_ << ", info=" << info_;
-        return sstm.str().c_str();
-    }
 
-private:
-    const char * primitive_;
-    int info_;
+    bool isError() {
+        return info_ != 0;
+    }
 };
 
 }  // end namespace hmat

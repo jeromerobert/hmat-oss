@@ -386,7 +386,7 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
     int info = proxy_lapack::potrf('L', this->rows, this->m, this->lda);
     if(info != 0)
         // throw a pointer to be compliant with the Status class
-        throw new hmat::LapackException("potrf", info);
+        throw hmat::LapackException("potrf", info);
     isTriLower = true;
     for (int j = 0; j < this->cols; j++) {
         for(int i = 0; i < j; i++) {
