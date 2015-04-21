@@ -202,7 +202,9 @@ endif ()
 # ========================
 configure_file("${PROJECT_SOURCE_DIR}/CMake/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 configure_file("${PROJECT_SOURCE_DIR}/CMake/hmat-config-oss.h.in" "${CMAKE_CURRENT_BINARY_DIR}/hmat/config-oss.h")
-configure_file("${PROJECT_SOURCE_DIR}/CMake/hmat-config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/hmat/config.h")
+if(NOT HMAT_SKIP_CONFIG)
+  configure_file("${PROJECT_SOURCE_DIR}/CMake/hmat-config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/hmat/config.h")
+endif()
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # ============================
