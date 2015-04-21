@@ -750,9 +750,251 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
   }
 }
 
+template<typename T> HMatrix<T> * HMatrix<T>::subset(
+    const IndexSet * rows, const IndexSet * cols) const
+{
+    if((this->rows() == rows && this->cols() == cols) ||
+       (*(this->rows()) == *rows && *(this->cols()) == *cols) ||
+       (!rows->isSubset(*(this->rows())) || !cols->isSubset(*(this->cols()))))
+        return const_cast<HMatrix<T>*>(this);
+
+    if(this->isLeaf()) {
+        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
+        tmpMatrix->temporary=true;
+        if(this->isRkMatrix()) {
+            tmpMatrix->data.rk = const_cast<RkMatrix<T>*>(this->data.rk->subset(rows, cols));
+            tmpMatrix->data.rows = this->data.rows->slice(rows->offset(), rows->size());
+            tmpMatrix->data.cols = this->data.cols->slice(cols->offset(), cols->size());
+        } else {
+            //TODO not yet implemented but will happen
+            strongAssert(false);
+        }
+        return tmpMatrix;
+    } else {
+        //TODO not yet implemented by should not happen
+        strongAssert(false);
+    }
+}
+
+/**
+ * @brief Ensure that matrices have compatible cluter trees.
+ * @param row_a If true check the number of row of A is compatible else check columns
+ * @param row_b If true check the number of row of B is compatible else check columns
+ * @param in_a The input A matrix whose dimension must be checked
+ * @param in_b The input A matrix whose dimension must be checked
+ * @param out_a A subset of the A matrix which have compatible dimension with out_b.
+ *  out_a is a view on in_a, no data are copied. It can possibly return in_a if matrices
+ *  are already compatibles.
+ * @param out_b A subset of the B matrix which have compatible dimension with out_a.
+ *  out_b is a view on in_b, no data are copied. It can possibly return in_b if matrices
+ *  are already compatibles.
+ */
+template<typename T> void
+makeCompatible(bool row_a, bool row_b,
+               const HMatrix<T> * in_a, const HMatrix<T> * in_b,
+               HMatrix<T> * & out_a, HMatrix<T> * & out_b) {
+
+    // suppose that A is bigger than B
+    const IndexSet * cdb = row_b ? in_b->rows() : in_b->cols();
+    if(row_a)
+        out_a = in_a->subset(cdb, in_a->cols());
+    else
+        out_a = in_a->subset(in_a->rows(), cdb);
+
+    if(out_a == in_a) {
+        // suppose than B is bigger than A
+        const IndexSet * cda = row_a ? in_a->rows() : in_a->cols();
+        if(row_b)
+            out_b = in_b->subset(cda, in_b->cols());
+        else
+            out_b = in_b->subset(in_b->rows(), cda);
+    }
+    else
+        out_b = const_cast<HMatrix<T> *>(in_b);
+}
+
+/**
+ * @brief A GEMM implementation which do not require matrices have compatible
+ * cluster tree.
+ */
+template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
+                                                  const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
+    HMatrix<T> * va = NULL;
+    HMatrix<T> * vb = NULL;
+    HMatrix<T> * vc = NULL;;
+    HMatrix<T> * vva = NULL;
+    HMatrix<T> * vvb = NULL;
+    HMatrix<T> * vvc = NULL;
+    makeCompatible<T>(transA != 'N', transB == 'N', a, b, va, vb);
+    makeCompatible<T>(transA == 'N', true, va, this, vva, vc);
+    if(va != vva && va != a)
+        delete va;
+    makeCompatible<T>(transB != 'N', false, vb, vc, vvb, vvc);
+    if(vb != vvb && vb != b)
+        delete vb;
+    if(vc != vvc && vc != this)
+        delete vc;
+    // writing on a subset of an RkMatrix is not possible without
+    // modifying the whole matrix
+    myAssert(!isRkMatrix() || vvc == this);
+    vvc->leafGemm(transA, transB, alpha, vva, vvb, beta);
+    if(vva != a)
+        delete vva;
+    if(vvb != b)
+        delete vvb;
+    if(vvc != this)
+        delete vvc;
+}
+
+template<typename T> void
+HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta) {
+    // None of the matrices is a leaf
+    if (!isLeaf() && !a->isLeaf() && !b->isLeaf()) {
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                HMatrix<T>* child = get(i, j);
+                if (!child) { // symmetric or triangular case
+                    continue;
+                }
+                for (int k = 0; k < 2; k++) {
+                    char tA = transA, tB = transB;
+                    // childA states :
+                    // if A is symmetric and childA_ik is NULL
+                    // then childA_ki^T is used and transA is changed accordingly.
+                    // However A may be triangular( upper/lower ) so childA_ik is NULL
+                    // and must be taken as 0.
+                    const HMatrix<T>* childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
+                    const HMatrix<T>* childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
+                    if (!childA && (a->isTriUpper || a->isTriLower)) {
+                        myAssert(*a->rows() == *a->cols());
+                        continue;
+                    }
+                    if (!childB && (b->isTriUpper || b->isTriLower)) {
+                        myAssert(*b->rows() == *b->cols());
+                        continue;
+                    }
+
+                    if (!childA) {
+                        tA = (tA == 'N' ? 'T' : 'N');
+                        childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
+                    }
+                    if (!childB) {
+                        tB = (tB == 'N' ? 'T' : 'N');
+                        childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
+                    }
+                    child->gemm(tA, tB, alpha, childA, childB, beta);
+                }
+            }
+        }
+        return;
+    }
+    else
+        uncompatibleGemm(transA, transB, alpha, a, b, beta);
+}
+
+template<typename T> void
+HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta) {
+    myAssert((transA == 'N' ? *a->cols() : *a->rows()) == ( transB == 'N' ? *b->rows() : *b->cols())); // pour le produit A*B
+    myAssert((transA == 'N' ? *a->rows() : *a->cols()) == *this->rows()); // compatibility of A*B + this : Rows
+    myAssert((transB == 'N' ? *b->cols() : *b->rows()) == *this->cols()); // compatibility of A*B + this : columns
+
+    // One of the matrices is a leaf
+    myAssert(isLeaf() || a->isLeaf() || b->isLeaf());
+
+    // the resulting matrix is not a leaf.
+    if (!isLeaf()) {
+        // If the resulting matrix is subdivided then at least one of the matrices of the product is a leaf.
+        RkMatrix<T>* rkMat = NULL;
+        FullMatrix<T>* fullMat = NULL;
+
+        // One matrix is a RkMatrix
+        if (a->isRkMatrix() || b->isRkMatrix()) {
+            if ((a->isRkMatrix() && (a->data.rk->k == 0))
+                    || (b->isRkMatrix() && (b->data.rk->k == 0))) {
+                return;
+            }
+            rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
+        } else {
+            // None of the matrices of the product is a Rk-matrix so one of them is
+            // a full matrix so as the result.
+            myAssert(a->isFullMatrix() || b->isFullMatrix());
+            fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
+        }
+        // The resulting matrix is added to a H-matrix with the H-matrix class operations.
+        if (rkMat) {
+            axpy(alpha, rkMat);
+            delete rkMat;
+        } else {
+            myAssert(fullMat);
+            axpy(alpha, fullMat, rows(), cols());
+            delete fullMat;
+        }
+        return;
+    }
+
+    // This matrix is not yet initialized but we know it will be a RkMatrix if
+    // a or b is a RkMatrix
+    if(!data.rk && !data.m && (a->isRkMatrix() || b->isRkMatrix() ||
+        // this choice might be bad if a or b contains lot's of full matrices
+        // but this case should almost never happen
+        (!a->isLeaf() && !b->isLeaf())))
+    {
+        data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
+    }
+
+    if (isRkMatrix()) {
+        // The resulting matrix is a RkMatrix leaf.
+        // At least one of the matrix is not a leaf.
+        // The different cases are :
+        //  a. R += H * H
+        //  b. R += H * R
+        //  c. R += R * H
+        //  d. R += H * M
+        //  e. R += M * H
+        //  f. R += M * M
+
+        // Cases a, b and c give an Hmatrix which has to be hierarchically converted into a Rkmatrix.
+        // Cases c, d, e and f give a RkMatrix
+        myAssert(isRkMatrix());
+        myAssert((transA == 'N' ? *a->cols() : *a->rows()) == (transB == 'N' ? *b->rows() : *b->cols()));
+        myAssert(*rows() == (transA == 'N' ? *a->rows() : *a->cols()));
+        myAssert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
+        data.rk->gemmRk(transA, transB, alpha, a, b, beta);
+        return;
+    }
+
+    // The resulting matrix is a full matrix
+    FullMatrix<T>* fullMat;
+    if (a->isRkMatrix() || b->isRkMatrix()) {
+        myAssert(a->isRkMatrix() || b->isRkMatrix());
+        if ((a->isRkMatrix() && (a->data.rk->k == 0))
+                || (b->isRkMatrix() && (b->data.rk->k == 0))) {
+            return;
+        }
+        RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
+        fullMat = rkMat->eval();
+        delete rkMat;
+    } else if(a->isLeaf() || b->isLeaf()){
+        fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
+    } else {
+        // TODO not yet implemented
+        strongAssert(false);
+    }
+    if(data.m) {
+        data.m->axpy(alpha, fullMat);
+        delete fullMat;
+    } else {
+        // It's not optimal to concider that the result is a FullMatrix but
+        // this is a H*F case and it almost never happen
+        std::cout << "GEMM with a full matrix result. This is implemented "
+                  << "but as it almost never happen, it is not well tested" << std::endl;
+        fullMat->scale(alpha);
+        data.m = fullMat;
+    }
+}
+
 template<typename T>
-void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, int depth) {
-  myAssert((transA == 'N' ? *a->cols() : *a->rows()) == ( transB == 'N' ? *b->rows() : *b->cols())); // pour le produit A*B
+void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
   if ((transA == 'T') && (transB == 'T')) {
     strongAssert(false); // This assertion is only a warning, this code has *not* been tested.
     const ClusterData& tmp_rows = *this->rows();
@@ -767,9 +1009,6 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     return;
   }
 
-  myAssert((transA == 'N' ? *a->rows() : *a->cols()) == *this->rows()); // compatibility of A*B + this : Rows
-  myAssert((transB == 'N' ? *b->cols() : *b->rows()) == *this->cols()); // compatibility of A*B + this : columns
-
  // Scaling this
   if (beta != Constants<T>::pone) {
     if (beta == Constants<T>::zero) {
@@ -781,135 +1020,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
 
   // Once the scaling is done, beta is reset to 1
   // to avoid an other scaling.
-  beta = Constants<T>::pone;
-
-  // None of the matrices is a leaf
-  if (!isLeaf() && !a->isLeaf() && !b->isLeaf()) {
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
-        HMatrix<T>* child = get(i, j);
-        if (!child) { // symmetric or triangular case
-          continue;
-        }
-        for (int k = 0; k < 2; k++) {
-          char tA = transA, tB = transB;
-          // childA states :
-          // if A is symmetric and childA_ik is NULL
-          // then childA_ki^T is used and transA is changed accordingly.
-          // However A may be triangular( upper/lower ) so childA_ik is NULL
-          // and must be taken as 0.
-          const HMatrix<T>* childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
-          const HMatrix<T>* childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
-          if (!childA && (a->isTriUpper || a->isTriLower)) {
-            myAssert(*a->rows() == *a->cols());
-            continue;
-          }
-          if (!childB && (b->isTriUpper || b->isTriLower)) {
-            myAssert(*b->rows() == *b->cols());
-            continue;
-          }
-
-          if (!childA) {
-            tA = (tA == 'N' ? 'T' : 'N');
-            childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
-          }
-          if (!childB) {
-            tB = (tB == 'N' ? 'T' : 'N');
-            childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
-          }
-          child->gemm(tA, tB, alpha, childA, childB, beta);
-        }
-      }
-    }
-    return;
-  }
-
-  // One of the matrices is a leaf
-  myAssert(isLeaf() || a->isLeaf() || b->isLeaf());
-
-  // the resulting matrix is not a leaf.
-  if (!isLeaf()) {
-    // If the resulting matrix is subdivided then at least one of the matrices of the product is a leaf.
-    RkMatrix<T>* rkMat = NULL;
-    FullMatrix<T>* fullMat = NULL;
-
-    // One matrix is a RkMatrix
-    if (a->isRkMatrix() || b->isRkMatrix()) {
-      if ((a->isRkMatrix() && (a->data.rk->k == 0))
-          || (b->isRkMatrix() && (b->data.rk->k == 0))) {
-        return;
-      }
-      rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
-    } else {
-      // None of the matrices of the product is a Rk-matrix so one of them is
-      // a full matrix so as the result.
-      myAssert(a->isFullMatrix() || b->isFullMatrix());
-      fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
-    }
-    // The resulting matrix is added to a H-matrix with the H-matrix class operations.
-    if (rkMat) {
-      axpy(alpha, rkMat);
-      delete rkMat;
-    } else {
-      myAssert(fullMat);
-      axpy(alpha, fullMat, rows(), cols());
-      delete fullMat;
-    }
-    return;
-  }
-
-  // This matrix is not yet initialized but we know it will be a RkMatrix if
-  // a or b is a RkMatrix
-  if(!data.rk && !data.m && (a->isRkMatrix() || b->isRkMatrix())) {
-    data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
-  }
-
-  if (isRkMatrix()) {
-    // The resulting matrix is a RkMatrix leaf.
-    // At least one of the matrix is not a leaf.
-    // The different cases are :
-    //  a. R += H * H
-    //  b. R += H * R
-    //  c. R += R * H
-    //  d. R += H * M
-    //  e. R += M * H
-    //  f. R += M * M
-
-    // Cases a, b and c give an Hmatrix which has to be hierarchically converted into a Rkmatrix.
-    // Cases c, d, e and f give a RkMatrix
-    myAssert(isRkMatrix());
-    myAssert((transA == 'N' ? *a->cols() : *a->rows()) == (transB == 'N' ? *b->rows() : *b->cols()));
-    myAssert(*rows() == (transA == 'N' ? *a->rows() : *a->cols()));
-    myAssert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
-    data.rk->gemmRk(transA, transB, alpha, a, b, beta);
-    return;
-  }
-
-  // The resulting matrix is a full matrix
-  FullMatrix<T>* fullMat;
-  if (a->isRkMatrix() || b->isRkMatrix()) {
-    myAssert(a->isRkMatrix() || b->isRkMatrix());
-    if ((a->isRkMatrix() && (a->data.rk->k == 0))
-        || (b->isRkMatrix() && (b->data.rk->k == 0))) {
-      return;
-    }
-    RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
-    fullMat = rkMat->eval();
-    delete rkMat;
-  } else {
-    fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
-  }
-  if(data.m) {
-    data.m->axpy(alpha, fullMat);
-    delete fullMat;
-  } else {
-    // It's not optimal to concider that the result is a FullMatrix but
-    // this is a H*F case and it almost never happen
-    std::cout << "GEMM with a full matrix result. This is implemented "
-              << "but as it almost never happen, it is not well tested" << std::endl;
-    fullMat->scale(alpha);
-    data.m = fullMat;
-  }
+  recursiveGemm(transA, transB, alpha, a, b, Constants<T>::pone);
 }
 
 template<typename T>

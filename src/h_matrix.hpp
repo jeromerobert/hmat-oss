@@ -189,7 +189,7 @@ public:
     \param b the matrix B
     \param beta beta
    */
-  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, int depth=0);
+  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
   /*! \brief this <- this - M * D * M^T, where 'this' is symmetric (Lower stored),
       D diagonal
 
@@ -482,6 +482,7 @@ public:
   }
 
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
+  HMatrix<T> * subset(const IndexSet * rows, const IndexSet * cols) const;
 
   /* \brief Retrieve diagonal values.
   */
@@ -507,6 +508,10 @@ public:
   LocalSettings localSettings;
 
 private:
+  void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+
 #ifdef DEBUG_LDLT
   /*  \brief verifie que la matrice est bien Lower i.e. avec des fils NULL au-dessus
    */
