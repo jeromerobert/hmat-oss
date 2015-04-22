@@ -373,6 +373,13 @@ hmat
         \param prefix A string to prefix files output */
     int (*hmat_dump_info)(hmat_matrix_t *hmatrix, char* prefix);
 
+    /**
+     * @brief Replace the cluster tree in a hmatrix
+     * The provided cluster trees must be compatible with the structure of
+     * the matrix.
+     */
+    int (*set_cluster_trees)(hmat_matrix_t* hmatrix, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols);
+
     /** For internal use only */
     void * internal;
 

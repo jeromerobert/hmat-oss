@@ -219,6 +219,25 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols, c
 }
 
 template<typename T>
+void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* cols) {
+    data.rows = const_cast<ClusterTree*>(rows);
+    data.cols = const_cast<ClusterTree*>(cols);
+    if(isRkMatrix()) {
+        data.rk->rows = &(rows->data);
+        data.rk->cols = &(cols->data);
+    } else if(!isLeaf()) {
+        for (int i = 0; i < 2; ++i) {
+            const ClusterTree* rowChild = static_cast<const ClusterTree*>(rows->getChild(i));
+            for (int j = 0; j < 2; ++j) {
+                const ClusterTree* colChild = static_cast<const ClusterTree*>(cols->getChild(j));
+                if(get(i, j))
+                    get(i, j)->setClusterTrees(rowChild, colChild);
+            }
+        }
+    }
+}
+
+template<typename T>
 void HMatrix<T>::assemble(Assembly<T>& f) {
   if (isLeaf()) {
     // If the leaf is admissible, matrix assembly and compression.

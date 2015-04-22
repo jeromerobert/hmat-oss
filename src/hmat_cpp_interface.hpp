@@ -325,6 +325,9 @@ public:
       return engine.hmat->rows();
   }
 
+  HMatrix<T> * matrix() const {
+      return engine.hmat;
+  }
 private:
   HMatInterface(HMatrix<T>* h);
 

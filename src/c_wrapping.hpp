@@ -280,6 +280,14 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
   return 0;
 }
 
+
+template<typename T, template <typename> class E>
+int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols) {
+  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
+  hmat->matrix()->setClusterTrees((hmat::ClusterTree*)rows, (hmat::ClusterTree*)cols);
+  return 0;
+}
+
 }  // end anonymous namespace
 
 namespace hmat {
@@ -308,6 +316,7 @@ static void createCInterface(hmat_interface_t * i)
     i->internal = NULL;
     i->hmat_get_info  = hmat_get_info<T, E>;
     i->hmat_dump_info = hmat_dump_info<T, E>;
+    i->set_cluster_trees = set_cluster_trees<T, E>;
 }
 
 }  // end namespace hmat

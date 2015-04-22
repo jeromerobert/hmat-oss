@@ -482,6 +482,8 @@ public:
     Tree::insertChild(i+j*2, static_cast<Tree*>(child)) ;
   }
 
+  void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
+
 public:
   /// Should try to coarsen the matrix at assembly
   static bool coarsening;
