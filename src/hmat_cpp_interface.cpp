@@ -52,9 +52,9 @@ void HMatInterface<T, E>::finalize() {
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym)
-  : rows(_rows), cols(_cols) {
+{
   DECLARE_CONTEXT;
-  engine.hmat = new HMatrix<T>(rows, cols, &HMatSettings::getInstance(), sym);
+  engine.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym);
 }
 
 template<typename T, template <typename> class E>
@@ -65,8 +65,6 @@ HMatInterface<T, E>::~HMatInterface() {
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>::HMatInterface(HMatrix<T>* h) :
-    rows(h == NULL ? NULL : h->data.rows),
-    cols(h == NULL ? NULL : h->data.cols),
     engine(h)
 {}
 
@@ -140,9 +138,7 @@ void HMatInterface<T, E>::solve(HMatInterface<T, E>& b) const {
 template<typename T, template <typename> class E>
 HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
   HMatInterface<T, E>* result = new HMatInterface<T, E>(NULL);
-  result->rows = this->rows;
-  result->cols = this->cols;
-  engine.copy(result->engine);;
+  engine.copy(result->engine);
   strongAssert(result->engine.hmat);
   return result;
 }

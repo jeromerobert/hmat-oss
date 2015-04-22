@@ -152,10 +152,6 @@ class HMatInterface {
  private:
   static bool initialized; ///< True if the library has been initialized.
 
-public:
-  ClusterTree* rows; ///< Row ClusterTree
-  ClusterTree* cols; ///< Column ClusterTree
-
 private:
   E<T> engine;
 
@@ -320,6 +316,15 @@ public:
   int nodesCount() const;
 
   typename E<T>::Settings & engineSettings() { return engine.settings; }
+
+  const ClusterData * rows() const {
+      return engine.hmat->rows();
+  }
+
+  const ClusterData * cols() const {
+      return engine.hmat->rows();
+  }
+
 private:
   HMatInterface(HMatrix<T>* h);
 

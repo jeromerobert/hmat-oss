@@ -88,7 +88,7 @@ int assemble(hmat_matrix_t * holder,
                               int lower_symmetric) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat::BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute);
+  hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), user_context, prepare, compute);
   hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric, true);
   std::pair<size_t, size_t> p =  hmat->compressionRatio();
   std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
@@ -107,7 +107,7 @@ int assemble_factor(hmat_matrix_t * holder,
                               int lower_symmetric) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat::BlockAssemblyFunction<T> f(&hmat->rows->data, &hmat->cols->data, user_context, prepare, compute);
+  hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), user_context, prepare, compute);
   hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric, false);
   hmat->factorize();
   std::pair<size_t, size_t> p =  hmat->compressionRatio();
@@ -178,11 +178,11 @@ int full_gemm(char transA, char transB, int mc, int nc, void* c,
   hmat::FullMatrix<T> matC((T*)c, mc, nc);
   hmat::FullMatrix<T>* matA = NULL;
   if (transA == 'N') {
-    matA = new hmat::FullMatrix<T>((T*)a, mc, transB == 'N' ? b->rows->data.size()
-                             : b->cols->data.size());
+    matA = new hmat::FullMatrix<T>((T*)a, mc, transB == 'N' ? b->rows()->size()
+                             : b->cols()->size());
   } else {
-    matA = new hmat::FullMatrix<T>((T*)a, transB == 'N' ? b->rows->data.size()
-                             : b->cols->data.size(), mc);
+    matA = new hmat::FullMatrix<T>((T*)a, transB == 'N' ? b->rows()->size()
+                             : b->cols()->size(), mc);
   }
   hmat::HMatInterface<T, E>::gemm(matC, transA, transB, *((T*)alpha), *matA, *b, *((T*)beta));
   delete matA;
@@ -205,8 +205,8 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
                    void* beta, void* vec_c, int nrhs) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
-  const hmat::ClusterData* bData = (trans_a == 'N' ? &hmat->cols->data : &hmat->rows->data);
-  const hmat::ClusterData* cData = (trans_a == 'N' ? &hmat->rows->data : &hmat->cols->data);
+  const hmat::ClusterData* bData = (trans_a == 'N' ? hmat->cols(): hmat->rows());
+  const hmat::ClusterData* cData = (trans_a == 'N' ? hmat->rows(): hmat->cols());
   hmat::FullMatrix<T> mb((T*) vec_b, bData->size(), nrhs);
   hmat::FullMatrix<T> mc((T*) vec_c, cData->size(), nrhs);
   hmat->gemv(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
@@ -241,7 +241,7 @@ template<typename T, template <typename> class E>
 int solve_systems(hmat_matrix_t* holder, void* b, int nrhs) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
-  hmat::FullMatrix<T> mb((T*) b, hmat->cols->data.size(), nrhs);
+  hmat::FullMatrix<T> mb((T*) b, hmat->cols()->size(), nrhs);
   hmat->solve(mb);
   return 0;
 }
