@@ -133,13 +133,15 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
                                                             const IndexSet* subCols) const {
   myAssert(subRows->isSubset(*rows));
   myAssert(subCols->isSubset(*cols));
-  // The offset in the matrix, and not in all the indices
-  int rowsOffset = subRows->offset() - rows->offset();
-  int colsOffset = subCols->offset() - cols->offset();
-  FullMatrix<T>* subA = new FullMatrix<T>(a->m + rowsOffset,
-                                          subRows->size(), k, a->lda);
-
-  FullMatrix<T>* subB = new FullMatrix<T>(b->m + colsOffset, subCols->size(), k, b->lda);
+  FullMatrix<T>* subA = NULL;
+  FullMatrix<T>* subB = NULL;
+  if(k > 0) {
+    // The offset in the matrix, and not in all the indices
+    int rowsOffset = subRows->offset() - rows->offset();
+    int colsOffset = subCols->offset() - cols->offset();
+    subA = new FullMatrix<T>(a->m + rowsOffset, subRows->size(), k, a->lda);
+    subB = new FullMatrix<T>(b->m + colsOffset, subCols->size(), k, b->lda);
+  }
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
 
