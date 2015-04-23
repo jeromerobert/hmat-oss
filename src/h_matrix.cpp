@@ -1287,8 +1287,7 @@ void HMatrix<T>::clear() {
   if (isLeaf()) {
     if (isFullMatrix()) {
       data.m->clear();
-    } else {
-      myAssert(isRkMatrix());
+    } else if(isRkMatrix()){
       delete data.rk;
       data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
     }
