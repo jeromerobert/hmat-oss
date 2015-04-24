@@ -63,9 +63,6 @@ public:
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
   size_t elementsPerBlock; ///< Maximum size of an admissible block
-  bool useLu; ///< Use an LU decomposition
-  bool useLdlt; ///< Use an LDL^t decomposition if possible
-  bool cholesky;
   bool coarsening; ///< Coarsen the matrix structure after assembly.
   bool recompress; ////< Recompress the matrix after assembly.
   bool validateCompression; ///< Validate the rk-matrices after compression
@@ -78,13 +75,10 @@ private:
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(Svd),  compressionMinLeafSize(100),
-                   admissibilityCondition(&hmat::StandardAdmissibilityCondition::DEPRECATED_INSTANCE),
+                   admissibilityCondition(&hmat::StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
                    elementsPerBlock(5000000),
-                   useLu(true),
-                   useLdlt(false),
-                   cholesky(false),
                    coarsening(false),
                    recompress(true), validateCompression(false),
                    validationReRun(false), validationDump(false), validationErrorThreshold(0.) {}
@@ -154,7 +148,7 @@ class HMatInterface {
 
 private:
   E<T> engine;
-
+  hmat_factorization_t factorizationType;
 
 public:
   /** Initialize the library.
@@ -205,7 +199,7 @@ public:
       HMatInterface<T>::assemble()), and if HMatSettings::useLdlt is
       true. Otherwise an LU decomposition is done.
    */
-  void factorize();
+  void factorize(hmat_factorization_t);
 
   /** Matrix-Vector product.
 

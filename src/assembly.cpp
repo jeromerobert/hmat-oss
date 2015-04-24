@@ -104,7 +104,7 @@ BlockFunction<T>::BlockFunction(const ClusterData* rowData,
                                                   const ClusterData* colData,
                                                   void* matrixUserData,
                                                   hmat_prepare_func_t _prepare,
-                                                  compute_func _compute)
+                                                  hmat_compute_func_t _compute)
   : prepare(_prepare), compute(_compute), matrixUserData(matrixUserData) {
   rowMapping = rowData->indices();
   colMapping = colData->indices();

@@ -76,9 +76,10 @@ void HMatInterface<T, E>::assemble(Assembly<T>& f, SymmetryFlag sym, bool synchr
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::factorize() {
+void HMatInterface<T, E>::factorize(hmat_factorization_t t) {
   DISABLE_THREADING_IN_BLOCK;
-  engine.factorization();
+  engine.factorization(t);
+  factorizationType = t;
 }
 
 template<typename T, template <typename> class E>
@@ -124,7 +125,7 @@ template<typename T, template <typename> class E>
 void HMatInterface<T, E>::solve(FullMatrix<T>& b) const {
   DISABLE_THREADING_IN_BLOCK;
   reorderVector<T>(&b, engine.hmat->cols()->indices());
-  engine.solve(b);
+  engine.solve(b, factorizationType);
   restoreVectorOrder<T>(&b, engine.hmat->cols()->indices());
 }
 

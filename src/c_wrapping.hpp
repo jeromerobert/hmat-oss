@@ -33,25 +33,23 @@
 namespace
 {
 template<typename T, template <typename> class E>
-hmat_matrix_t * create_empty_hmatrix(void* rows_tree, void* cols_tree)
+hmat_matrix_t * create_empty_hmatrix(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, int lower_sym)
 {
-    const hmat::HMatSettings& settings = hmat::HMatSettings::getInstance();
-    hmat::SymmetryFlag sym = (settings.useLdlt ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
+    hmat::SymmetryFlag sym = (lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
     return (hmat_matrix_t*) new hmat::HMatInterface<T, E>(
-            static_cast<hmat::ClusterTree*>(rows_tree),
-            static_cast<hmat::ClusterTree*>(cols_tree),
-            sym);
+            (hmat::ClusterTree*)rows_tree,
+            (hmat::ClusterTree*)cols_tree, sym);
 }
 
 template<typename T, template <typename> class E>
 hmat_matrix_t * create_empty_hmatrix_admissibility(
   hmat_cluster_tree_t* rows_tree,
-  hmat_cluster_tree_t* cols_tree,
+  hmat_cluster_tree_t* cols_tree, int lower_sym,
   hmat_admissibility_t* condition)
 {
     hmat::HMatSettings& settings = hmat::HMatSettings::getInstance();
     settings.setAdmissibilityCondition(static_cast<hmat::AdmissibilityCondition*>((void*)condition));
-    hmat::SymmetryFlag sym = (settings.useLdlt ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
+    hmat::SymmetryFlag sym = lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric;
     return (hmat_matrix_t*) new hmat::HMatInterface<T, E>(
             static_cast<hmat::ClusterTree*>(static_cast<void*>(rows_tree)),
             static_cast<hmat::ClusterTree*>(static_cast<void*>(cols_tree)),
@@ -62,7 +60,7 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
 template<typename T>
 class SimpleCAssemblyFunction : public hmat::SimpleAssemblyFunction<T> {
 private:
-  simple_interaction_compute_func functor;
+  hmat_interaction_func_t functor;
   void* functor_extra_args;
 
   /** Constructor.
@@ -70,7 +68,7 @@ private:
       \param _mat The FullMatrix<T> the values are taken from.
    */
 public:
-  SimpleCAssemblyFunction(void* user_context, simple_interaction_compute_func &f)
+  SimpleCAssemblyFunction(void* user_context, hmat_interaction_func_t &f)
     : hmat::SimpleAssemblyFunction<T>(), functor(f), functor_extra_args(user_context) {}
 
   typename hmat::Types<T>::dp interaction(int i, int j) const {
@@ -84,7 +82,7 @@ template<typename T, template <typename> class E>
 int assemble(hmat_matrix_t * holder,
                               void* user_context,
                               hmat_prepare_func_t prepare,
-                              compute_func compute,
+                              hmat_compute_func_t compute,
                               int lower_symmetric) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
@@ -103,13 +101,13 @@ template<typename T, template <typename> class E>
 int assemble_factor(hmat_matrix_t * holder,
                               void* user_context,
                               hmat_prepare_func_t prepare,
-                              compute_func compute,
-                              int lower_symmetric) {
+                              hmat_compute_func_t compute,
+                              int lower_symmetric, hmat_factorization_t f_type) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
   hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), user_context, prepare, compute);
   hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric, false);
-  hmat->factorize();
+  hmat->factorize(f_type);
   std::pair<size_t, size_t> p =  hmat->compressionRatio();
   std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
   p =  hmat->fullrkRatio();
@@ -122,7 +120,7 @@ int assemble_factor(hmat_matrix_t * holder,
 template<typename T, template <typename> class E>
 int assemble_simple_interaction(hmat_matrix_t * holder,
                           void* user_context,
-                          simple_interaction_compute_func compute,
+                          hmat_interaction_func_t compute,
                           int lower_symmetric) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
@@ -150,10 +148,10 @@ int destroy(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
-int factor(hmat_matrix_t* holder) {
+int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat->factorize();
+  hmat->factorize(t);
   std::pair<size_t, size_t> p =  hmat->compressionRatio();
   std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
   p =  hmat->fullrkRatio();
@@ -296,13 +294,13 @@ template<typename T, template <typename> class E>
 static void createCInterface(hmat_interface_t * i)
 {
     i->assemble = assemble<T, E>;
-    i->assemble_factor = assemble_factor<T, E>;
+    i->assemble_factorize = assemble_factor<T, E>;
     i->assemble_simple_interaction = assemble_simple_interaction<T, E>;
     i->copy = copy<T, E>;
     i->create_empty_hmatrix = create_empty_hmatrix<T, E>;
     i->create_empty_hmatrix_admissibility = create_empty_hmatrix_admissibility<T, E>;
     i->destroy = destroy<T, E>;
-    i->factor = factor<T, E>;
+    i->factorize = factor<T, E>;
     i->finalize = finalize<T, E>;
     i->full_gemm = full_gemm<T, E>;
     i->gemm = gemm<T, E>;
@@ -314,8 +312,8 @@ static void createCInterface(hmat_interface_t * i)
     i->solve_systems = solve_systems<T, E>;
     i->transpose = transpose<T, E>;
     i->internal = NULL;
-    i->hmat_get_info  = hmat_get_info<T, E>;
-    i->hmat_dump_info = hmat_dump_info<T, E>;
+    i->get_info  = hmat_get_info<T, E>;
+    i->dump_info = hmat_dump_info<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
 }
 

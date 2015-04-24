@@ -56,6 +56,12 @@ typedef enum {
     hmat_block_sparse
 } hmat_block_t;
 
+typedef enum {
+    hmat_factorization_lu,
+    hmat_factorization_ldlt,
+    hmat_factorization_llt
+} hmat_factorization_t;
+
 struct hmat_block_info_t_struct {
     hmat_block_t block_type;
     /**
@@ -116,7 +122,7 @@ to the block, that is the row i is the i-th row within the block.
 that is the leading dimension of the buffer must be its real leading
 dimension (1 for a row). Column-major order is assumed.
  */
-typedef void (*compute_func)(void* v_data, int row_start, int row_count,
+typedef void (*hmat_compute_func_t)(void* v_data, int row_start, int row_count,
                              int col_start, int col_count, void* block);
 
 /*! \brief Compute a single matrix term
@@ -127,7 +133,7 @@ typedef void (*compute_func)(void* v_data, int row_start, int row_count,
 \param result address where result is stored; result is a pointer to a double for real matrices,
               and a pointer to a double complex for complex matrices.
  */
-typedef void (*simple_interaction_compute_func)(void* user_context, int row, int col, void* result);
+typedef void (*hmat_interaction_func_t)(void* user_context, int row, int col, void* result);
 
 typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
 
@@ -199,9 +205,10 @@ typedef struct
       \param stype the scalar type
       \param rows_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
       \param cols_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
+      \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
       \return an opaque pointer to an HMatrix, or NULL in case of error.
     */
-    hmat_matrix_t* (*create_empty_hmatrix)(void* rows_tree, void* cols_tree);
+    hmat_matrix_t* (*create_empty_hmatrix)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, int lower_symmetric);
 
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances,
       and specify admissibility condition.
@@ -213,9 +220,11 @@ typedef struct
       \param rows_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
       \param cols_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
       \param cond an admissibility condition, as returned by \a hmat_create_admissibility_standard().
+      \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
       \return an opaque pointer to an HMatrix, or NULL in case of error.
     */
-    hmat_matrix_t* (*create_empty_hmatrix_admissibility)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, hmat_admissibility_t* cond);
+    hmat_matrix_t* (*create_empty_hmatrix_admissibility)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree,
+                                                         int lower_symmetric, hmat_admissibility_t* cond);
 
     /*! Assemble a HMatrix.
 
@@ -228,7 +237,7 @@ typedef struct
       \return 0 for success.
     */
     int (*assemble)(hmat_matrix_t* hmatrix, void* user_context, hmat_prepare_func_t prepare,
-                         compute_func compute, int lower_symmetric);
+                         hmat_compute_func_t compute, int lower_symmetric);
 
     /*! Assemble a HMatrix then factorize it.
 
@@ -240,8 +249,8 @@ typedef struct
       \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
       \return 0 for success.
     */
-    int (*assemble_factor)(hmat_matrix_t* hmatrix, void* user_context, hmat_prepare_func_t prepare,
-                         compute_func compute, int lower_symmetric);
+    int (*assemble_factorize)(hmat_matrix_t* hmatrix, void* user_context, hmat_prepare_func_t prepare,
+                         hmat_compute_func_t compute, int lower_symmetric, hmat_factorization_t);
 
     /*! Assemble a HMatrix.  This is a simplified interface, a single function is provided to
       compute matrix terms.
@@ -254,7 +263,7 @@ typedef struct
     */
     int (*assemble_simple_interaction)(hmat_matrix_t* hmatrix,
                                             void* user_context,
-                                            simple_interaction_compute_func compute,
+                                            hmat_interaction_func_t compute,
                                             int lower_symmetric);
     /*! \brief Return a copy of a HMatrix.
 
@@ -273,7 +282,7 @@ typedef struct
       \param hmatrix the matrix to factor
       \return 0 for success
     */
-    int (*factor)(hmat_matrix_t *hmatrix);
+    int (*factorize)(hmat_matrix_t *hmatrix, hmat_factorization_t);
     /*! \brief Destroy a HMatrix.
 
       \param hmatrix the matrix to destroy
@@ -366,12 +375,12 @@ hmat
         \param hmatrix A hmatrix
         \param info A structure to fill with current informations
      */
-    int (*hmat_get_info)(hmat_matrix_t *hmatrix, hmat_info_t* info);
+    int (*get_info)(hmat_matrix_t *hmatrix, hmat_info_t* info);
 
     /*! \brief Dump json & postscript informations about matrix
         \param hmatrix A hmatrix
         \param prefix A string to prefix files output */
-    int (*hmat_dump_info)(hmat_matrix_t *hmatrix, char* prefix);
+    int (*dump_info)(hmat_matrix_t *hmatrix, char* prefix);
 
     /**
      * @brief Replace the cluster tree in a hmatrix
@@ -411,12 +420,6 @@ typedef struct
   int compressionMethod;
   /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
    int compressionMinLeafSize;
-  /** \f$\eta\f$ in the Hackbusch admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
-      \f[
-      \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
-      \f]
-   */
-  double admissibilityFactor;  /* DEPRECATED, use admissibilityCondition instead */
   /*! \brief Formula for cluster subdivision */
   hmat_clustering_algorithm_t * clustering;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
@@ -427,10 +430,6 @@ typedef struct
   int elementsPerBlock;
   /*! \brief Admissibility condition for clusters */
   hmat_admissibility_t* admissibilityCondition;
-  /*! \brief Use an LU decomposition */
-  int useLu;
-  /*! \brief Use an LDL^t decomposition if possible */
-  int useLdlt;
   /*! \brief Coarsen the matrix structure after assembly. */
   int coarsening;
   /*! \brief Recompress the matrix after assembly. */

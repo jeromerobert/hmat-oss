@@ -102,16 +102,20 @@ void DefaultEngine<T>::assembly(Assembly<T>& f, SymmetryFlag sym,
 }
 
 template<typename T>
-void DefaultEngine<T>::factorization() {
-  const HMatSettings& settings = HMatSettings::getInstance();
-  strongAssert(settings.useLdlt ^ settings.useLu);
-  if (settings.useLdlt) {
-    if(settings.cholesky)
-      hmat->lltDecomposition();
-    else
+void DefaultEngine<T>::factorization(hmat_factorization_t t) {
+  switch(t)
+  {
+  case hmat_factorization_lu:
+      hmat->luDecomposition();
+      break;
+  case hmat_factorization_ldlt:
       hmat->ldltDecomposition();
-  } else {
-    hmat->luDecomposition();
+      break;
+  case hmat_factorization_llt:
+      hmat->lltDecomposition();
+      break;
+  default:
+      strongAssert(false);
   }
 }
 
@@ -129,11 +133,18 @@ void DefaultEngine<T>::gemm(char transA, char transB, T alpha,
 }
 
 template<typename T>
-void DefaultEngine<T>::solve(FullMatrix<T>& b) const {
-  const HMatSettings& settings = HMatSettings::getInstance();
-  strongAssert(settings.useLu ^ settings.useLdlt);
-  if (settings.useLu) hmat->solve(&b);
-  else if (settings.useLdlt) hmat->solveLdlt(&b);
+void DefaultEngine<T>::solve(FullMatrix<T>& b, hmat_factorization_t t) const {
+  switch(t) {
+  case hmat_factorization_lu:
+      hmat->solve(&b);
+      break;
+  case hmat_factorization_ldlt:
+      hmat->solveLdlt(&b);
+      break;
+  default:
+     // not supported
+     strongAssert(false);
+  }
 }
 
 template<typename T>

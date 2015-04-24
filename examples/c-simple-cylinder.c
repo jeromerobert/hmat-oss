@@ -184,8 +184,8 @@ int main(int argc, char **argv) {
   clustering = hmat_create_clustering_median();
   cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
-  hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree);
-  hmat.hmat_get_info(hmatrix, &mat_info);
+  hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree, 0);
+  hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
   if (type == HMAT_SIMPLE_PRECISION || type == HMAT_DOUBLE_PRECISION)
     rc = hmat.assemble_simple_interaction(hmatrix, &problem_data, interaction_real, 0);
@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
     return rc;
   }
 
-  rc = hmat.factor(hmatrix);
+  rc = hmat.factorize(hmatrix, hmat_factorization_lu);
   if (rc) {
     fprintf(stderr, "Error in factor, return code is %d, exiting...\n", rc);
     hmat.finalize();

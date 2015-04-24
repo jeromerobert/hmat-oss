@@ -85,7 +85,7 @@ template<typename T> class BlockAssemblyFunction: public AssemblyFunction<T> {
 public:
     BlockAssemblyFunction(const ClusterData* _rowData, const ClusterData* _colData,
                            void* matrixUserData,
-                           hmat_prepare_func_t _prepare, compute_func _compute):
+                           hmat_prepare_func_t _prepare, hmat_compute_func_t _compute):
         AssemblyFunction<T>(blockFunction),
         blockFunction(_rowData, _colData, matrixUserData, _prepare, _compute){}
 protected:
@@ -180,7 +180,7 @@ public:
 template<typename T> class BlockFunction : public Function<T> {
 private:
   hmat_prepare_func_t prepare;
-  compute_func compute;
+  hmat_compute_func_t compute;
   void* matrixUserData;
   int* rowMapping;
   int* rowReverseMapping;
@@ -190,7 +190,7 @@ private:
 public:
   BlockFunction(const ClusterData* _rowData, const ClusterData* _colData,
                          void* matrixUserData,
-                         hmat_prepare_func_t _prepare, compute_func _compute);
+                         hmat_prepare_func_t _prepare, hmat_compute_func_t _compute);
   ~BlockFunction();
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,

@@ -66,8 +66,7 @@ public:
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   std::string str() const;
   void setEta(double eta);
-  // For API compatibility
-  static StandardAdmissibilityCondition DEPRECATED_INSTANCE;
+  static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;
 private:
   double eta_;
   size_t maxElementsPerBlock;

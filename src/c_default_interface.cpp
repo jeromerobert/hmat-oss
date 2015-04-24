@@ -115,13 +115,10 @@ void hmat_get_parameters(hmat_settings_t* settings)
       break;
     }
     settings->admissibilityCondition = static_cast<hmat_admissibility_t*>((void*)settingsCxx.admissibilityCondition);
-    settings->admissibilityFactor = 0.0;
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
     settings->elementsPerBlock = settingsCxx.elementsPerBlock;
-    settings->useLu = settingsCxx.useLu;
-    settings->useLdlt = settingsCxx.useLdlt;
     settings->coarsening = settingsCxx.coarsening;
     settings->recompress = settingsCxx.recompress;
     settings->validateCompression = settingsCxx.validateCompression;
@@ -156,18 +153,10 @@ int hmat_set_parameters(hmat_settings_t* settings)
       break;
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
-    if (settings->admissibilityFactor != 0.0)
-    {
-      StandardAdmissibilityCondition::DEPRECATED_INSTANCE.setEta(settings->admissibilityFactor);
-      settingsCxx.admissibilityCondition = &StandardAdmissibilityCondition::DEPRECATED_INSTANCE;
-    }
-    else
-      settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
+    settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
     settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.maxParallelLeaves = settings->maxParallelLeaves;
     settingsCxx.elementsPerBlock = settings->elementsPerBlock;
-    settingsCxx.useLu = settings->useLu;
-    settingsCxx.useLdlt = settings->useLdlt;
     settingsCxx.coarsening = settings->coarsening;
     settingsCxx.recompress = settings->recompress;
     settingsCxx.validateCompression = settings->validateCompression;

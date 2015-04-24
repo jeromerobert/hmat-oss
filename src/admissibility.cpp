@@ -78,6 +78,6 @@ void StandardAdmissibilityCondition::setEta(double eta) {
     eta_ = eta;
 }
 
-StandardAdmissibilityCondition StandardAdmissibilityCondition::DEPRECATED_INSTANCE = StandardAdmissibilityCondition(2.0);
+StandardAdmissibilityCondition StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY = StandardAdmissibilityCondition(2.0);
 
 }  // end namespace hmat

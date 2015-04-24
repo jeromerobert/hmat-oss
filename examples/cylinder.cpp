@@ -155,7 +155,7 @@ void go(const DofCoordinates& coord, double k) {
     std::cout << "HMatrix node count = " << hmat.nodesCount() << std::endl;
     Configuration<T, E>().configure(hmat);
     hmat.assemble(f, kNotSymmetric, false);
-    hmat.factorize();
+    hmat.factorize(hmat_factorization_lu);
     std::pair<size_t, size_t> compressionRatio = hmat.compressionRatio();
     std::cout << "Compression Ratio = "
               << 100 * ((double) compressionRatio.first) / compressionRatio.second
