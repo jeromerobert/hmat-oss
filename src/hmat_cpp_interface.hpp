@@ -322,7 +322,7 @@ public:
   }
 
   const ClusterData * cols() const {
-      return engine.hmat->rows();
+      return engine.hmat->cols();
   }
 
   HMatrix<T> * matrix() const {
