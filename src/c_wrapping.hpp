@@ -88,12 +88,6 @@ int assemble(hmat_matrix_t * holder,
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
   hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), user_context, prepare, compute);
   hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric, true);
-  std::pair<size_t, size_t> p =  hmat->compressionRatio();
-  std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
-  p =  hmat->fullrkRatio();
-  double total = p.first + p.second;
-  std::cout << "Memory balance : (Full,Rk) = (" << (100. * p.first)/total << "%, " 
-                                                << (100. * p.second)/total << "%)" << std::endl;
   return 0;
 }
 
@@ -108,12 +102,6 @@ int assemble_factor(hmat_matrix_t * holder,
   hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), user_context, prepare, compute);
   hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric, false);
   hmat->factorize(f_type);
-  std::pair<size_t, size_t> p =  hmat->compressionRatio();
-  std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
-  p =  hmat->fullrkRatio();
-  double total = p.first + p.second;
-  std::cout << "Memory balance : (Full,Rk) = (" << (100. * p.first)/total << "%, " 
-                                                << (100. * p.second)/total << "%)" << std::endl;
   return 0;
 }
 
@@ -126,12 +114,6 @@ int assemble_simple_interaction(hmat_matrix_t * holder,
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
   SimpleCAssemblyFunction<T> f(user_context, compute);
   hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
-  std::pair<size_t, size_t> p =  hmat->compressionRatio();
-  std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
-  p =  hmat->fullrkRatio();
-  double total = p.first + p.second;
-  std::cout << "Memory balance : (Full,Rk) = (" << (100. * p.first)/total << "%, " 
-                                                << (100. * p.second)/total << "%)" << std::endl;
   return 0;
 }
 
@@ -152,12 +134,6 @@ int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
   hmat->factorize(t);
-  std::pair<size_t, size_t> p =  hmat->compressionRatio();
-  std::cout << "Compression ratio          = " << (100. * p.first) / p.second << "%" << std::endl;
-  p =  hmat->fullrkRatio();
-  double total = p.first + p.second;
-  std::cout << "Memory balance : (Full,Rk) = (" << (100. * p.first)/total << "%, " 
-                                                << (100. * p.second)/total << "%)" << std::endl;
   return 0;
 }
 

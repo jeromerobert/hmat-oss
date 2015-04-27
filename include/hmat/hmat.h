@@ -455,6 +455,12 @@ void hmat_get_parameters(hmat_settings_t * settings);
 */
 int hmat_set_parameters(hmat_settings_t*);
 
+/*! \brief Print current settings
+
+\param structure containing parameters
+*/
+void hmat_print_parameters(hmat_settings_t*);
+
 /*!
  * \brief hmat_get_version
  * \return The version of this library

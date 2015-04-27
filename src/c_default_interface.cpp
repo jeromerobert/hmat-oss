@@ -164,8 +164,14 @@ int hmat_set_parameters(hmat_settings_t* settings)
     settingsCxx.validationReRun = settings->validationReRun;
     settingsCxx.validationDump = settings->validationDump;
     settingsCxx.setParameters();
-    settingsCxx.printSettings();
     return rc;
+}
+
+void hmat_print_parameters(hmat_settings_t* settings)
+{
+    hmat_set_parameters(settings);
+    HMatSettings& settingsCxx = HMatSettings::getInstance();
+    settingsCxx.printSettings();
 }
 
 const char * hmat_get_version()
