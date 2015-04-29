@@ -171,20 +171,17 @@ public:
       \param alpha scaling factor
    */
   void scale(T alpha);
-  /** Compute y <- alpha * op(A) * y + beta * y.
+  /** Compute y <- alpha * op(this) * x + beta * y.
 
       The arguments are similar to BLAS GEMV.
    */
   void gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>* y) const;
-  /** Compute y <- alpha * op(A) * y + beta * y.
+  /** Compute y <- alpha * op(this) * x + beta * y.
 
       The arguments are similar to BLAS GEMV.
-
-      This version is in principle similar to GEMM(), but if you take
-      enough drug, it is not the same thing at all.
    */
   void gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const;
-  /*! \brief this <- alpha * A * B + beta * C
+  /*! \brief this <- alpha * op(A) * op(B) + beta * this
 
     \param transA 'N' or 'T', as in BLAS
     \param transB 'N' or 'T', as in BLAS
@@ -194,8 +191,8 @@ public:
     \param beta beta
    */
   void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, int depth=0);
-  /*! \brief S <- S - M * D * M^T, where S is symmetric (Lower stored),
-      D diagonal, this = S
+  /*! \brief this <- this - M * D * M^T, where 'this' is symmetric (Lower stored),
+      D diagonal
 
       \warning D has to be reduced in ldlt form with d->ldltDecomposition() before
 
