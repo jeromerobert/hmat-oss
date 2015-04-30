@@ -262,6 +262,17 @@ int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cl
   return 0;
 }
 
+template<typename T, template <typename> class E>
+int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
+{
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
+  hmat->matrix()->extractDiagonal(static_cast<T*>(diag), size);
+  hmat::FullMatrix<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), 1);
+  hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices());
+  return 0;
+}
+
 }  // end anonymous namespace
 
 namespace hmat {
@@ -291,6 +302,7 @@ static void createCInterface(hmat_interface_t * i)
     i->get_info  = hmat_get_info<T, E>;
     i->dump_info = hmat_dump_info<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
+    i->extract_diagonal = extract_diagonal<T, E>;
 }
 
 }  // end namespace hmat

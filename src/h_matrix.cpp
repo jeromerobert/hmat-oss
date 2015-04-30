@@ -1041,7 +1041,7 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
       data.m->multiplyWithDiagOrDiagInv(d->data.m->diagonal, inverse, left);
     } else {
       Vector<T> diag(d->rows()->size());
-      d->getDiag(&diag);
+      d->extractDiagonal(diag.v, d->rows()->size());
       data.m->multiplyWithDiagOrDiagInv(&diag, inverse, left);
     }
   }
@@ -1769,7 +1769,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         mTmp.multiplyWithDiagOrDiagInv(d->data.m->diagonal, false, false);
       } else {
         Vector<T> diag(d->cols()->size());
-        d->getDiag(&diag);
+        d->extractDiagonal(diag.v, d->cols()->size());
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
       data.m->gemm('N', 'T', Constants<T>::mone, &mTmp, m->data.m, Constants<T>::pone);
@@ -1899,21 +1899,22 @@ void HMatrix<T>::solve(FullMatrix<T>* b) const {
 }
 
 template<typename T>
-void HMatrix<T>::getDiag(Vector<T>* diag, int start) const {
+void HMatrix<T>::extractDiagonal(T* diag, int size) const {
   DECLARE_CONTEXT;
   if(isLeaf()) {
     myAssert(isFullMatrix());
     if(data.m->diagonal) {
       // LDLt
-      memcpy(diag->v + start, data.m->diagonal->v, data.m->rows * sizeof(T));
+      memcpy(diag, data.m->diagonal->v, data.m->rows * sizeof(T));
     } else {
       // LLt
       for (int i = 0; i < data.m->rows; ++i)
-        diag->v[start + i] = data.m->m[i*data.m->rows + i];
+        diag[i] = data.m->m[i*data.m->rows + i];
     }
   } else {
-    get(0,0)->getDiag(diag, start);
-    get(1,1)->getDiag(diag, start + get(0,0)->rows()->size());
+    myAssert(size == get(0,0)->rows()->size() + get(1,1)->rows()->size());
+    get(0,0)->extractDiagonal(diag, get(0,0)->rows()->size());
+    get(1,1)->extractDiagonal(diag + get(0,0)->rows()->size(), get(1,1)->rows()->size());
   }
 }
 
@@ -1931,14 +1932,15 @@ void HMatrix<T>::solve(HMatrix<T>* b) const {
 template<typename T>
 void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
   // Diagonal extraction
-  Vector<T> diag(cols()->size());
-  getDiag(&diag);
+  T* diag = new T[cols()->size()];
+  extractDiagonal(diag, cols()->size());
   // TODO: use BLAS for that
   for (int j = 0; j < b->cols; j++) {
     for (int i = 0; i < b->rows; i++) {
-      b->get(i, j) = b->get(i, j) / diag.v[i];
+      b->get(i, j) = b->get(i, j) / diag[i];
     }
   }
+  delete[] diag;
 }
 
 template<typename T>

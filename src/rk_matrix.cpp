@@ -605,11 +605,11 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
   myAssert(left  || (*cols == *d->rows()));
 
   // extracting the diagonal
-  Vector<T> diag(d->cols()->size());
-  d->getDiag(&diag, 0);
+  T* diag = new T[d->cols()->size()];
+  d->extractDiagonal(diag, d->cols()->size());
   if (inverse) {
     for (int i = 0; i < d->cols()->size(); i++) {
-      diag.v[i] = Constants<T>::pone / diag.v[i];
+      diag[i] = Constants<T>::pone / diag[i];
     }
   }
 
@@ -617,9 +617,10 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
   FullMatrix<T>* aOrB = (left ? a : b);
   for (int j = 0; j < k; j++) {
     for (int i = 0; i < aOrB->rows; i++) {
-      aOrB->get(i, j) *= diag.v[i];
+      aOrB->get(i, j) *= diag[i];
     }
   }
+  delete[] diag;
 }
 
 template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,

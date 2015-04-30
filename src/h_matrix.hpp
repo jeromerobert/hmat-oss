@@ -481,6 +481,10 @@ public:
 
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
 
+  /* \brief Retrieve diagonal values.
+  */
+  void extractDiagonal(T* diag, int size) const;
+
 public:
   /// Should try to coarsen the matrix at assembly
   static bool coarsening;
@@ -501,12 +505,6 @@ public:
   LocalSettings localSettings;
 
 private:
-  /* \brief Resolution de X * D = B, avec D = this (matrice dont on ne tient compte que de la diagonale)
-     et B <- X
-
-     \param b la HMatrix en entree qui contiendra la solution en sortie
-  */
-  void getDiag(Vector<T>* diag, int start=0) const;
 #ifdef DEBUG_LDLT
   /*  \brief verifie que la matrice est bien Lower i.e. avec des fils NULL au-dessus
    */

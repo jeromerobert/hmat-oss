@@ -389,6 +389,14 @@ hmat
      */
     int (*set_cluster_trees)(hmat_matrix_t* hmatrix, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols);
 
+    /**
+     * @brief Extract matrix diagonal
+     * \param hmatrix A hmatrix
+     * \param diag allocated memory area in which diagonal values are written
+     * \param size memory size
+     */
+    int (*extract_diagonal)(hmat_matrix_t* holder, void* diag, int size);
+
     /** For internal use only */
     void * internal;
 
