@@ -60,7 +60,6 @@ void HMatSettings::printSettings(std::ostream& out) const {
   out << "Assembly Epsilon           = " << assemblyEpsilon << std::endl;
   out << "Resolution Epsilon         = " << recompressionEpsilon << std::endl;
   out << "Compression Min Leaf Size  = " << compressionMinLeafSize << std::endl;
-  out << "Admissibility Condition    = " << admissibilityCondition->str() << std::endl;
   out << "Validation Error Threshold = " << validationErrorThreshold << std::endl;
   switch (compressionMethod) {
   case Svd:

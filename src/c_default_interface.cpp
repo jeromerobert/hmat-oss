@@ -114,7 +114,6 @@ void hmat_get_parameters(hmat_settings_t* settings)
       settings->compressionMethod = hmat_compress_svd;
       break;
     }
-    settings->admissibilityCondition = static_cast<hmat_admissibility_t*>((void*)settingsCxx.admissibilityCondition);
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
@@ -153,7 +152,6 @@ int hmat_set_parameters(hmat_settings_t* settings)
       break;
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
-    settingsCxx.admissibilityCondition = static_cast<AdmissibilityCondition*>((void*)settings->admissibilityCondition);
     settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.maxParallelLeaves = settings->maxParallelLeaves;
     settingsCxx.elementsPerBlock = settings->elementsPerBlock;

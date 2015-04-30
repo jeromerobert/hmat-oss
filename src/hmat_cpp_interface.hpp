@@ -59,7 +59,6 @@ public:
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
       \f]
    */
-  hmat::AdmissibilityCondition * admissibilityCondition; ///< Formula for cluster admissibility
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
   size_t elementsPerBlock; ///< Maximum size of an admissible block
@@ -75,7 +74,6 @@ private:
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(Svd),  compressionMinLeafSize(100),
-                   admissibilityCondition(&hmat::StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
                    elementsPerBlock(5000000),
@@ -103,13 +101,6 @@ private:
       @param out The output stream, std::cout by default.
    */
   void printSettings(std::ostream& out = std::cout) const;
-
-  virtual hmat::AdmissibilityCondition * getAdmissibilityCondition() const {
-      return admissibilityCondition;
-  }
-  virtual void setAdmissibilityCondition(hmat::AdmissibilityCondition* condition) {
-      admissibilityCondition = condition;
-  }
 };
 
 DofCoordinates* createCoordinates(double* coord, int dim, int size);
@@ -172,7 +163,9 @@ public:
       @param symmetric If kLowerSymmetric, only lower triangular structure is created
       @return a new HMatInterface instance.
    */
-  HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym);
+  HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
+                AdmissibilityCondition * admissibilityCondition =
+                &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
   /** Destroy an HMatInterface instance.
 
       @note This destructor is *not* virtual, as this class is not meant to be subclassed.

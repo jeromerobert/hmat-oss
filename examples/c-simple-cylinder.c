@@ -128,6 +128,7 @@ int main(int argc, char **argv) {
   hmat_info_t mat_info;
   int rc;
   problem_data_t problem_data;
+  hmat_admissibility_t * admissibilityCondition = hmat_create_admissibility_standard(3.0);
   int is_parallel_run = 0;
 
   if (argc != 3) {
@@ -158,7 +159,6 @@ int main(int argc, char **argv) {
   hmat_get_parameters(&settings);
   hmat_init_default_interface(&hmat, type);
   settings.compressionMethod = hmat_compress_aca_plus;
-  settings.admissibilityCondition = hmat_create_admissibility_standard(3.0);
 
   hmat_set_parameters(&settings);
   if (0 != hmat.init())
@@ -184,7 +184,8 @@ int main(int argc, char **argv) {
   clustering = hmat_create_clustering_median();
   cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
-  hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree, 0);
+  hmatrix = hmat.create_empty_hmatrix_admissibility(cluster_tree, cluster_tree,
+                                                    0, admissibilityCondition);
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
   if (type == HMAT_SIMPLE_PRECISION || type == HMAT_DOUBLE_PRECISION)

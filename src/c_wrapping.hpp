@@ -47,13 +47,11 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
   hmat_cluster_tree_t* cols_tree, int lower_sym,
   hmat_admissibility_t* condition)
 {
-    hmat::HMatSettings& settings = hmat::HMatSettings::getInstance();
-    settings.setAdmissibilityCondition(static_cast<hmat::AdmissibilityCondition*>((void*)condition));
     hmat::SymmetryFlag sym = lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric;
     return (hmat_matrix_t*) new hmat::HMatInterface<T, E>(
             static_cast<hmat::ClusterTree*>(static_cast<void*>(rows_tree)),
             static_cast<hmat::ClusterTree*>(static_cast<void*>(cols_tree)),
-            sym);
+            sym, (hmat::AdmissibilityCondition*)condition);
 }
 
 

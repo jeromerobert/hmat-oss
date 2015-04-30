@@ -49,8 +49,6 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 
 /** Settings global to a whole matrix */
 struct MatrixSettings {
-   virtual AdmissibilityCondition * getAdmissibilityCondition() const = 0;
-   virtual void setAdmissibilityCondition(AdmissibilityCondition* condition) = 0;
 };
 
 /** Settings local to a matrix bloc */
@@ -122,7 +120,8 @@ public:
     \param _cols The column cluster tree
    */
   HMatrix(ClusterTree* _rows, ClusterTree* _cols, const MatrixSettings * settings,
-       SymmetryFlag symmetryFlag = kNotSymmetric);
+       SymmetryFlag symmetryFlag = kNotSymmetric,
+       AdmissibilityCondition * admissibilityCondition = &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
   /*! \brief HMatrix assembly.
    */
   void assemble(Assembly<T>& f);
@@ -212,7 +211,10 @@ public:
       \param cols the column ClusterTree.
       \return a 0 HMatrix.
    */
-  static HMatrix<T>* Zero(const ClusterTree* rows, const ClusterTree* cols, const MatrixSettings * settings);
+  static HMatrix<T>* Zero(const ClusterTree* rows, const ClusterTree* cols,
+                          const MatrixSettings * settings,
+                          AdmissibilityCondition * admissibilityCondition =
+                          &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
   /*! \brief Create a Postscript file representing the HMatrix.
 
     The result .ps file shows the matrix structure and the compression ratio. In

@@ -93,12 +93,13 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
 
 
 template<typename T>
-HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings, SymmetryFlag symFlag)
+HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
+                    SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<4>(NULL),
     data(HMatrixData<T>(_rows, _cols)),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), admissible(false), localSettings(settings) {
-  admissible = settings->getAdmissibilityCondition()->isAdmissible(*(data.rows), *(data.cols));
+  admissible = admissibilityCondition->isAdmissible(*(data.rows), *(data.cols));
   if (_rows->isLeaf() || _cols->isLeaf() || admissible) {
     if (admissible) {
       data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
@@ -192,12 +193,14 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
 }
 
 template<typename T>
-HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols, const hmat::MatrixSettings * settings) {
+HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols,
+                             const hmat::MatrixSettings * settings,
+                             AdmissibilityCondition * admissibilityCondition) {
   // Leaves are filled by 0
   HMatrix<T> *h = new HMatrix<T>(settings);
   h->data.rows = (ClusterTree *) rows;
   h->data.cols = (ClusterTree *) cols;
-  h->admissible = settings->getAdmissibilityCondition()->isAdmissible(*(h->data.rows), *(h->data.cols));
+  h->admissible = admissibilityCondition->isAdmissible(*(h->data.rows), *(h->data.cols));
   if (rows->isLeaf() || cols->isLeaf() || h->admissible) {
     if (h->admissible) {
       h->data.rk = new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression);

@@ -436,8 +436,6 @@ typedef struct
   int maxParallelLeaves;
   /*! \brief Maximum size of an admissible block. Should be size_t ! */
   int elementsPerBlock;
-  /*! \brief Admissibility condition for clusters */
-  hmat_admissibility_t* admissibilityCondition;
   /*! \brief Coarsen the matrix structure after assembly. */
   int coarsening;
   /*! \brief Recompress the matrix after assembly. */

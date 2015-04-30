@@ -143,6 +143,8 @@ template<typename T, template<typename> class E> struct Configuration
     void configure(HMatInterface<T,E> & hmat){}
 };
 
+hmat::StandardAdmissibilityCondition admissibilityCondition(3.);
+
 template<typename T, template<typename> class E>
 void go(const DofCoordinates& coord, double k) {
   if (0 != HMatInterface<T, E>::init())
@@ -151,7 +153,7 @@ void go(const DofCoordinates& coord, double k) {
     ClusterTree* ct = createClusterTree(coord);
     std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
     TestAssemblyFunction<T> f(coord, k);
-    HMatInterface<T, E> hmat(ct, ct, kNotSymmetric);
+    HMatInterface<T, E> hmat(ct, ct, kNotSymmetric, &admissibilityCondition);
     std::cout << "HMatrix node count = " << hmat.nodesCount() << std::endl;
     Configuration<T, E>().configure(hmat);
     hmat.assemble(f, kNotSymmetric, false);
@@ -198,8 +200,6 @@ int main(int argc, char **argv) {
   char arithmetic = argv[2][0];
 
   settings.compressionMethod = AcaPlus;
-  settings.admissibilityCondition = new hmat::StandardAdmissibilityCondition(3.);
-
   settings.setParameters();
   settings.printSettings();
   std::cout << "Generating the point cloud...";

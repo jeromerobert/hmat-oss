@@ -51,10 +51,11 @@ void HMatInterface<T, E>::finalize() {
 }
 
 template<typename T, template <typename> class E>
-HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym)
+HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
+                                   AdmissibilityCondition * admissibilityCondition)
 {
   DECLARE_CONTEXT;
-  engine.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym);
+  engine.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym, admissibilityCondition);
 }
 
 template<typename T, template <typename> class E>
