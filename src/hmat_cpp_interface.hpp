@@ -244,7 +244,7 @@ public:
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */
   void solve(FullMatrix<T>& b) const;
-  /** Solve the system \f$A x = B\f$ in place, with A = this, and B a HMatInterface<T>.
+  /** Solve the system \f$op(A) x = B\f$ in place, with A = this, and B a HMatInterface<T>.
 
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */

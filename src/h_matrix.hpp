@@ -372,31 +372,31 @@ public:
 
     \param b la matrice B en entree, et X en sortie.
    */
-  void solveLowerTriangular(HMatrix<T>* b) const;
+  void solveLowerTriangular(HMatrix<T>* b, bool unitriangular) const;
   /*! \brief Resolution du systeme L x = x, avec this = L, et x = b vecteur.
 
     B est un vecteur a plusieurs colonnes, donc une FullMatrix.
 
     \param b Le vecteur b en entree, et x en sortie.
    */
-  void solveLowerTriangular(FullMatrix<T>* b) const;
+  void solveLowerTriangular(FullMatrix<T>* b, bool unitriangular) const;
   /*! Resolution de X U = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangular(HMatrix<T>* b, bool loweredStored = false) const;
+  void solveUpperTriangular(HMatrix<T>* b, bool unitriangular, bool lowerStored) const;
   /*! Resolution de U X = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularLeft(HMatrix<T>* b) const;
+  void solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored) const;
   /*! Resolution de x U = b, avec U = this, et x = b.
 
     \warning b est un vecteur ligne et non colonne.
 
     \param b Le vecteur b en entree, x en sortie.
    */
-  void solveUpperTriangular(FullMatrix<T>* b, bool loweredStored = false) const;
+  void solveUpperTriangular(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const;
   /*! Resolution de U x = b, avec U = this, et x = b.
     U peut etre en fait L^T ou L est une matrice stockee inferieurement
     en precisant lowerStored = true
@@ -405,7 +405,7 @@ public:
     \param indice les indices portes par le vecteur
     \param lowerStored indique le stockage de la matrice U ou L^T
   */
-  void solveUpperTriangularLeft(FullMatrix<T>* b, bool lowerStored=false) const;
+  void solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const;
   /* Solve D x = b, in place with D a diagonal matrix.
 
      \param b Input: B, Output: X

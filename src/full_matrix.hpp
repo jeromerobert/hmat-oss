@@ -146,7 +146,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveLowerTriangular(FullMatrix<T>* x) const;
+  void solveLowerTriangular(FullMatrix<T>* x, bool unitriangular) const;
   /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -154,7 +154,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangular(FullMatrix<T>* x, bool loweredStored = false) const;
+  void solveUpperTriangular(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -162,7 +162,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularLeft(FullMatrix<T>* x, bool lowerStored) const;
+  void solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by

@@ -1499,7 +1499,7 @@ void HMatrix<T>::inverse(HMatrix<T>* tmp, int depth) {
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangular(HMatrix<T>* b) const {
+void HMatrix<T>::solveLowerTriangular(HMatrix<T>* b, bool unitriangular) const {
   DECLARE_CONTEXT;
   // At first, the recursion one (simple case)
   if (!isLeaf() && !b->isLeaf()) {
@@ -1521,23 +1521,23 @@ void HMatrix<T>::solveLowerTriangular(HMatrix<T>* b) const {
     HMatrix<T>* b12 = b->get(0, 1);
     HMatrix<T>* b22 = b->get(1, 1);
 
-    l11->solveLowerTriangular(b11);
-    l11->solveLowerTriangular(b12);
+    l11->solveLowerTriangular(b11, unitriangular);
+    l11->solveLowerTriangular(b12, unitriangular);
     b21->gemm('N', 'N', Constants<T>::mone, l21, b11, Constants<T>::pone);
-    l22->solveLowerTriangular(b21);
+    l22->solveLowerTriangular(b21, unitriangular);
     b22->gemm('N', 'N', Constants<T>::mone, l21, b12, Constants<T>::pone);
-    l22->solveLowerTriangular(b22);
+    l22->solveLowerTriangular(b22, unitriangular);
   } else {
     // if B is a leaf, the resolve is done by column
     if (b->isLeaf()) {
       if (b->isFullMatrix()) {
-        this->solveLowerTriangular(b->data.m);
+        this->solveLowerTriangular(b->data.m, unitriangular);
       } else {
         myAssert(b->isRkMatrix());
         if (b->data.rk->k == 0) {
           return;
         }
-        this->solveLowerTriangular(b->data.rk->a);
+        this->solveLowerTriangular(b->data.rk->a, unitriangular);
       }
     } else {
       // B isn't a leaf, then 'this' is one
@@ -1547,7 +1547,7 @@ void HMatrix<T>::solveLowerTriangular(HMatrix<T>* b) const {
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
 
       b->evalPart(bFull, b->rows(), b->cols());
-      this->solveLowerTriangular(bFull);
+      this->solveLowerTriangular(bFull, unitriangular);
       b->clear();
       b->axpy(Constants<T>::pone, bFull, b->rows(), b->cols());
       delete bFull;
@@ -1556,28 +1556,28 @@ void HMatrix<T>::solveLowerTriangular(HMatrix<T>* b) const {
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangular(FullMatrix<T>* b) const {
+void HMatrix<T>::solveLowerTriangular(FullMatrix<T>* b, bool unitriangular) const {
   DECLARE_CONTEXT;
   myAssert(*rows() == *cols());
   myAssert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
   if (this->isLeaf()) {
     myAssert(this->isFullMatrix());
     // LAPACK resolution
-    this->data.m->solveLowerTriangular(b);
+    this->data.m->solveLowerTriangular(b, unitriangular);
   } else {
     const HMatrix<T>* l11 = get(0, 0);
     const HMatrix<T>* l21 = get(1, 0);
     const HMatrix<T>* l22 = get(1, 1);
     FullMatrix<T> b1(b->m, l11->cols()->size(), b->cols, b->lda);
     FullMatrix<T> b2(b->m + l11->cols()->size(), l22->cols()->size(), b->cols, b->lda);
-    l11->solveLowerTriangular(&b1);
+    l11->solveLowerTriangular(&b1, unitriangular);
     l21->gemv('N', Constants<T>::mone, &b1, Constants<T>::pone, &b2);
-    l22->solveLowerTriangular(&b2);
+    l22->solveLowerTriangular(&b2, unitriangular);
   }
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangular(HMatrix<T>* b, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangular(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   myAssert(*b->cols() == *this->rows());
   myAssert(*this->rows() == *this->cols());
@@ -1593,23 +1593,23 @@ void HMatrix<T>::solveUpperTriangular(HMatrix<T>* b, bool lowerStored) const {
     HMatrix<T>* b12 = b->get(0, 1);
     HMatrix<T>* b22 = b->get(1, 1);
 
-    u11->solveUpperTriangular(b11, lowerStored);
-    u11->solveUpperTriangular(b21, lowerStored);
+    u11->solveUpperTriangular(b11, unitriangular, lowerStored);
+    u11->solveUpperTriangular(b21, unitriangular, lowerStored);
     // B12 <- -B11*U12 + B12
     b12->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b11, u12, Constants<T>::pone);
     // B12 <- the solution of X * U22 = B12
-    u22->solveUpperTriangular(b12, lowerStored);
+    u22->solveUpperTriangular(b12, unitriangular, lowerStored);
     // B22 <- - B21*U12 + B22
     b22->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b21, u12, Constants<T>::pone);
     // B22 <- the solution of X*U22 = B22
-    u22->solveUpperTriangular(b22, lowerStored);
+    u22->solveUpperTriangular(b22, unitriangular, lowerStored);
 
   } else {
     // if B is a leaf, the resolve is done by row
     if (b->isLeaf()) {
       if (b->isFullMatrix()) {
         b->data.m->transpose();
-        this->solveUpperTriangular(b->data.m, lowerStored);
+        this->solveUpperTriangular(b->data.m, unitriangular, lowerStored);
         b->data.m->transpose();
       } else {
         // Xa Xb^t U = Ba Bb^t
@@ -1621,7 +1621,7 @@ void HMatrix<T>::solveUpperTriangular(HMatrix<T>* b, bool lowerStored) const {
         if (b->data.rk->k == 0) {
           return;
         }
-        this->solveUpperTriangular(b->data.rk->b, lowerStored);
+        this->solveUpperTriangular(b->data.rk->b, unitriangular, lowerStored);
       }
     } else {
       // B is not a leaf, then so is L
@@ -1632,7 +1632,7 @@ void HMatrix<T>::solveUpperTriangular(HMatrix<T>* b, bool lowerStored) const {
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
       b->evalPart(bFull, b->rows(), b->cols());
       bFull->transpose();
-      this->solveUpperTriangular(bFull, lowerStored);
+      this->solveUpperTriangular(bFull, unitriangular, lowerStored);
       bFull->transpose();
       // int bRows = b->rows()->size();
       // int bCols = b->cols()->size();
@@ -1650,35 +1650,46 @@ void HMatrix<T>::solveUpperTriangular(HMatrix<T>* b, bool lowerStored) const {
   }
 }
 
-/* Resolve U.X=B, solution saved in B, with B Hmat */
+/* Resolve U.X=B, solution saved in B, with B Hmat
+   Only called by luDecomposition
+ */
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b) const {
+void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   // At first, the recursion one (simple case)
   if (!isLeaf() && !b->isLeaf()) {
+    //  Backward substitution:
+    //  [ U11 | U12 ]    [ X11 | X12 ]   [ b11 | b12 ]
+    //  [ ----+---- ] *  [-----+-----] = [ ----+---- ]
+    //  [  0  | U22 ]    [ X21 | X22 ]   [ b21 | b22 ]
+    //
+    //  U22 * X21 = b21 (by recursive backward substitution)
+    //  U22 * X22 = b22 (by recursive backward substitution)
+    //  U11 * X12 + U12 * X22 = b12 (backward substitution of U11*X12=b12-U12*X22)
+    //  U11 * X11 + U12 * X21 = b11 (backward substitution of U11*X11=b11-U12*X21)
     const HMatrix<T>* u11 = get(0, 0);
-    const HMatrix<T>* u12 = get(0, 1);
+    const HMatrix<T>* u12 = lowerStored ? get(1, 0) : get(0, 1);
     const HMatrix<T>* u22 = get(1, 1);
     HMatrix<T>* b11 = b->get(0, 0);
     HMatrix<T>* b21 = b->get(1, 0);
     HMatrix<T>* b12 = b->get(0, 1);
     HMatrix<T>* b22 = b->get(1, 1);
 
-    u22->solveUpperTriangularLeft(b21);
-    u22->solveUpperTriangularLeft(b22);
-    b12->gemm('N', 'N', Constants<T>::mone, u12, b22, Constants<T>::pone);
-    u11->solveUpperTriangularLeft(b12);
-    b11->gemm('N', 'N', Constants<T>::mone, u12, b21, Constants<T>::pone);
-    u11->solveUpperTriangularLeft(b11);
+    u22->solveUpperTriangularLeft(b21, unitriangular, lowerStored);
+    u22->solveUpperTriangularLeft(b22, unitriangular, lowerStored);
+    b12->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u12, b22, Constants<T>::pone);
+    u11->solveUpperTriangularLeft(b12, unitriangular, lowerStored);
+    b11->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u12, b21, Constants<T>::pone);
+    u11->solveUpperTriangularLeft(b11, unitriangular, lowerStored);
   } else {
     // if B is a leaf, the resolve is done by column
     if (b->isLeaf()) {
       if (b->isFullMatrix()) {
-        this->solveUpperTriangularLeft(b->data.m);
+        this->solveUpperTriangularLeft(b->data.m, unitriangular, lowerStored);
       } else {
         myAssert(b->isRkMatrix());
         if (b->data.rk->k != 0) {
-          this->solveUpperTriangularLeft(b->data.rk->a);
+          this->solveUpperTriangularLeft(b->data.rk->a, unitriangular, lowerStored);
         }
       }
     } else {
@@ -1688,7 +1699,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b) const {
       // TODO: check if it's not too bad
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
       b->evalPart(bFull, b->rows(), b->cols());
-      this->solveUpperTriangularLeft(bFull);
+      this->solveUpperTriangularLeft(bFull, unitriangular, lowerStored);
       b->clear();
       b->axpy(Constants<T>::pone, bFull, b->rows(), b->cols());
       delete bFull;
@@ -1697,7 +1708,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b) const {
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangular(FullMatrix<T>* b, bool loweredStored) const {
+void HMatrix<T>::solveUpperTriangular(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   myAssert(*rows() == *cols());
   // B is supposed given in form of a row vector, but transposed
@@ -1705,30 +1716,30 @@ void HMatrix<T>::solveUpperTriangular(FullMatrix<T>* b, bool loweredStored) cons
   if (this->isLeaf()) {
     myAssert(this->isFullMatrix());
     FullMatrix<T>* bCopy = b->copyAndTranspose();
-    this->data.m->solveUpperTriangular(bCopy, loweredStored);
+    this->data.m->solveUpperTriangular(bCopy, unitriangular, lowerStored);
     bCopy->transpose();
     b->copyMatrixAtOffset(bCopy, 0, 0);
     delete bCopy;
   } else {
     const HMatrix<T>* u11 = get(0, 0);
-    const HMatrix<T>* u12 = loweredStored ? get(1, 0) : get(0, 1);
+    const HMatrix<T>* u12 = lowerStored ? get(1, 0) : get(0, 1);
     const HMatrix<T>* u22 = get(1, 1);
 
     FullMatrix<T> b1(b->m, u11->rows()->size(), b->cols, b->lda);
     FullMatrix<T> b2(b->m + u11->rows()->size(), u22->rows()->size(), b->cols, b->lda);
-    u11->solveUpperTriangular(&b1, loweredStored);
+    u11->solveUpperTriangular(&b1, unitriangular, lowerStored);
     // b2 <- -x1 U12 + b2 = -U12^t x1^t + b2
-    u12->gemv(loweredStored ? 'N' : 'T', Constants<T>::mone, &b1, Constants<T>::pone, &b2);
-    u22->solveUpperTriangular(&b2, loweredStored);
+    u12->gemv(lowerStored ? 'N' : 'T', Constants<T>::mone, &b1, Constants<T>::pone, &b2);
+    u22->solveUpperTriangular(&b2, unitriangular, lowerStored);
   }
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   myAssert(*rows() == *cols());
   if (this->isLeaf()) {
-    this->data.m->solveUpperTriangularLeft(b, lowerStored);
+    this->data.m->solveUpperTriangularLeft(b, unitriangular, lowerStored);
   } else {
     const HMatrix<T>* u11 = get(0, 0);
     const HMatrix<T>* u12 = (lowerStored ? get(1, 0) : get(0, 1));
@@ -1737,10 +1748,10 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool lowerStored) co
     FullMatrix<T> b1(b->m, u11->cols()->size(), b->cols, b->lda);
     FullMatrix<T> b2(b->m + u11->cols()->size(), u22->cols()->size(), b->cols, b->lda);
 
-    u22->solveUpperTriangularLeft(&b2, lowerStored);
+    u22->solveUpperTriangularLeft(&b2, unitriangular, lowerStored);
     // b1 <- -U12 b2 + b1
     u12->gemv(lowerStored ? 'T' : 'N', Constants<T>::mone, &b2, Constants<T>::pone, &b1);
-    u11->solveUpperTriangularLeft(&b1, lowerStored);
+    u11->solveUpperTriangularLeft(&b1, unitriangular, lowerStored);
   }
 }
 template<typename T> void HMatrix<T>::lltDecomposition() {
@@ -1769,7 +1780,7 @@ template<typename T> void HMatrix<T>::lltDecomposition() {
         HMatrix<T>* h21 = get(1,0);
         HMatrix<T>* h22 = get(1,1);
         h11->lltDecomposition();
-        h11->solveUpperTriangular(h21, true);
+        h11->solveUpperTriangular(h21, false, true);
         h22->gemm('N', 'T', Constants<T>::mone, h21, h21, Constants<T>::pone);
         h22->lltDecomposition();
     }
@@ -1778,6 +1789,17 @@ template<typename T> void HMatrix<T>::lltDecomposition() {
 
 template<typename T>
 void HMatrix<T>::luDecomposition() {
+// |     |     |    |     |     |   |     |     |
+// | h11 | h12 |    | L11 |     |   | U11 | U12 |
+// |-----|-----| =  |-----|-----| * |-----|-----|
+// | h21 | h22 |    | L21 | L22 |   |     | U22 |
+// |     |     |    |     |     |   |     |     |
+//
+// h11 = L11 * U11 => (L11,U11) = h11.luDecomposition
+// h12 = L11 * U12 => trsm L
+// h21 = L21 * U11 => trsm R
+// h22 = L21 * U12 + L22 * U22 => (L22,U22) = (h22 - L21*U12).lltDecomposition()
+//
   DECLARE_CONTEXT;
 
   if (isLeaf()) {
@@ -1795,9 +1817,9 @@ void HMatrix<T>::luDecomposition() {
     const HMatrix<T>* l11 = h11;
     const HMatrix<T>* u11 = h11;
     // Solve L11 U12 = H12 (get U12)
-    l11->solveLowerTriangular(h12);
+    l11->solveLowerTriangular(h12, true);
     // Solve L21 U11 = H21 (get L21)
-    u11->solveUpperTriangular(h21);
+    u11->solveUpperTriangular(h21, false, false);
     // H22 <- H22 - L21 U12
     h22->gemm('N', 'N', Constants<T>::mone, h21, h12, Constants<T>::pone);
     h22->luDecomposition();
@@ -2015,7 +2037,7 @@ void HMatrix<T>::ldltDecomposition() {
     // stored in H21
     myAssert(y->isUpper || y->isLeaf());
     myAssert(!y->isLower);
-    y->solveUpperTriangular(h21);
+    y->solveUpperTriangular(h21, false, false);
 #ifdef DEBUG_LDLT
     y->assertUpper();
     y->assertAllocFull();
@@ -2037,8 +2059,11 @@ void HMatrix<T>::ldltDecomposition() {
 template<typename T>
 void HMatrix<T>::solve(FullMatrix<T>* b) const {
   DECLARE_CONTEXT;
-  this->solveLowerTriangular(b);
-  this->solveUpperTriangularLeft(b, false);
+  // Solve (LU) X = b
+  // First compute L Y = b
+  this->solveLowerTriangular(b, true);
+  // Then compute U X = Y
+  this->solveUpperTriangularLeft(b, false, false);
 }
 
 template<typename T>
@@ -2065,15 +2090,15 @@ void HMatrix<T>::extractDiagonal(T* diag, int size) const {
 template<typename T>
 void HMatrix<T>::solve(HMatrix<T>* b) const {
   DECLARE_CONTEXT;
-
   /* Solve LX=B, result in B */
-  this->solveLowerTriangular(b);
+  this->solveLowerTriangular(b, true);
   /* Solve UX=B, result in B */
-  this->solveUpperTriangularLeft(b);
+  this->solveUpperTriangularLeft(b, false, false);
 }
 
 template<typename T>
 void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
+  // Solve D*X = B and store result into B
   // Diagonal extraction
   T* diag = new T[cols()->size()];
   extractDiagonal(diag, cols()->size());
@@ -2094,7 +2119,7 @@ void HMatrix<T>::solveLdlt(FullMatrix<T>* b) const {
 #endif
   // L*D*L^T * X = B
   // B <- solution of L * Y = B : Y = D*L^T * X
-  this->solveLowerTriangular(b);
+  this->solveLowerTriangular(b, true);
 
   // B <- D^{-1} Y : solution of D*Y = B : Y = L^T * X
   this->solveDiagonal(b);

@@ -419,7 +419,7 @@ void FullMatrix<T>::luDecomposition() {
 // solve LX = (P ^ -1 B), which is done by ZLASWP with
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
-void FullMatrix<T>::solveLowerTriangular(FullMatrix<T>* x) const {
+void FullMatrix<T>::solveLowerTriangular(FullMatrix<T>* x, bool unitriangular) const {
   myAssert(pivots || diagonal);
   {
     const size_t _m = rows, _n = x->cols;
@@ -429,7 +429,7 @@ void FullMatrix<T>::solveLowerTriangular(FullMatrix<T>* x) const {
   }
   if (!diagonal && pivots)
     proxy_lapack::laswp(x->cols, x->m, x->lda, 1, rows, pivots, 1);
-  proxy_cblas::trsm('L', 'L', 'N', 'U', rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
+  proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
 }
 
 
@@ -439,19 +439,19 @@ void FullMatrix<T>::solveLowerTriangular(FullMatrix<T>* x) const {
 //  the matrix was factorized before.
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangular(FullMatrix<T>* x, bool loweredStored) const {
+void FullMatrix<T>::solveUpperTriangular(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::trsm('R', loweredStored ? 'L' : 'U', loweredStored ? 'T' : 'N', 'N',
+  proxy_cblas::trsm('R', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
     x->rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
 }
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* x, bool lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
   myAssert(pivots || diagonal);
   {
     const size_t _m = rows, _n = x->cols;
@@ -459,16 +459,8 @@ void FullMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* x, bool lowerStored)
     const size_t muls = _n * _m * (_n + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  if (pivots) {
-    myAssert(!diagonal);
-    proxy_cblas::trsm('L', 'U', 'N', 'N',
-                rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
-  } else {
-    myAssert(diagonal);
-    myAssert(lowerStored);
-    proxy_cblas::trsm('L', 'L', 'T', 'U',
-                rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
-  }
+  proxy_cblas::trsm('L', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
+    x->rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
 }
 
 template<typename T>
