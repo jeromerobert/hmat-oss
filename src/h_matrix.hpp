@@ -426,6 +426,11 @@ public:
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.
    */
   void solveLdlt(FullMatrix<T>* b) const ;
+  /*! Resolution de This * x = b.
+
+    \warning This doit etre factorisee avec \a HMatrix::lltDecomposition() avant.
+   */
+  void solveLlt(FullMatrix<T>* b) const ;
   /*! Triggers an assertion is the HMatrix contains any NaN.
    */
   void checkNan() const;

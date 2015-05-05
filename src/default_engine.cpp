@@ -140,6 +140,9 @@ void DefaultEngine<T>::solve(FullMatrix<T>& b, hmat_factorization_t t) const {
   case hmat_factorization_ldlt:
       hmat->solveLdlt(&b);
       break;
+  case hmat_factorization_llt:
+      hmat->solveLlt(&b);
+      break;
   default:
      // not supported
      strongAssert(false);

@@ -420,14 +420,13 @@ void FullMatrix<T>::luDecomposition() {
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
 void FullMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangular) const {
-  myAssert(pivots || diagonal);
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  if (!diagonal && pivots)
+  if (pivots)
     proxy_lapack::laswp(x->cols, x->m, x->lda, 1, rows, pivots, 1);
   proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
 }
@@ -452,7 +451,6 @@ void FullMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* x, bool unitriangul
 
 template<typename T>
 void FullMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
-  myAssert(pivots || diagonal);
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_n - 1) / 2;

@@ -2129,6 +2129,17 @@ void HMatrix<T>::solveLdlt(FullMatrix<T>* b) const {
 }
 
 template<typename T>
+void HMatrix<T>::solveLlt(FullMatrix<T>* b) const {
+  DECLARE_CONTEXT;
+  // L*L^T * X = B
+  // B <- solution of L * Y = B : Y = L^T * X
+  this->solveLowerTriangularLeft(b, false);
+
+  // B <- solution of L^T X = B :  the solution X we are looking for is stored in B
+  this->solveUpperTriangularLeft(b, false, true);
+}
+
+template<typename T>
 void HMatrix<T>::checkNan() const {
   return;
   if (isLeaf()) {
