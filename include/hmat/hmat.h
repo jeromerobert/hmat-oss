@@ -397,6 +397,16 @@ hmat
      */
     int (*extract_diagonal)(hmat_matrix_t* holder, void* diag, int size);
 
+    /**
+     * @brief Solve system op(L)*X=B
+       \warning There is no check to ensure that matrix has been factorized.
+     * \param hmatrix A hmatrix
+     * \param transpose if different from 0, transposed matrix is used
+     * \param b  right-hand sides, overwritten by solution X at exit
+     * \param nrhs number of right-hand sides
+     */
+    int (*solve_lower_triangular)(hmat_matrix_t* hmatrix, int transpose, void* b, int nrhs);
+
     /** For internal use only */
     void * internal;
 

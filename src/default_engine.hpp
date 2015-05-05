@@ -44,6 +44,7 @@ public:
   void gemm(char transA, char transB, T alpha, const DefaultEngine<T> & a, const DefaultEngine<T>& b, T beta);
   void solve(FullMatrix<T>& b, hmat_factorization_t) const;
   void solve(DefaultEngine<T>& b) const;
+  void solveLower(FullMatrix<T>& b, hmat_factorization_t t, bool transpose=false) const;
   void copy(DefaultEngine<T> & result) const;
   void transpose() {}
   void createPostcriptFile(const char* filename) const;

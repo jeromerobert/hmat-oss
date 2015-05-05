@@ -136,6 +136,19 @@ void HMatInterface<T, E>::solve(HMatInterface<T, E>& b) const {
   engine.solve(b.engine);
 }
 
+template<typename T, template <typename> class E>
+void HMatInterface<T, E>::solveLower(FullMatrix<T>& b, bool transpose) const {
+  DISABLE_THREADING_IN_BLOCK;
+  if (transpose)
+    reorderVector<T>(&b, engine.hmat->rows()->indices());
+  else
+    reorderVector<T>(&b, engine.hmat->cols()->indices());
+  engine.solveLower(b, factorizationType, transpose);
+  if (transpose)
+    restoreVectorOrder<T>(&b, engine.hmat->rows()->indices());
+  else
+    restoreVectorOrder<T>(&b, engine.hmat->cols()->indices());
+}
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>* HMatInterface<T, E>::copy() const {

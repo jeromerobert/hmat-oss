@@ -155,6 +155,15 @@ void DefaultEngine<T>::solve(DefaultEngine<T>& b) const {
 }
 
 template<typename T>
+void DefaultEngine<T>::solveLower(FullMatrix<T>& b, hmat_factorization_t t, bool transpose) const {
+  bool unitriangular = (t == hmat_factorization_lu || t == hmat_factorization_ldlt);
+  if (transpose)
+    hmat->solveUpperTriangularLeft(&b, unitriangular, true);
+  else
+    hmat->solveLowerTriangularLeft(&b, unitriangular);
+}
+
+template<typename T>
 void DefaultEngine<T>::createPostcriptFile(const char* filename) const {
     hmat->createPostcriptFile(filename);
 }

@@ -271,6 +271,16 @@ int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
   return 0;
 }
 
+template<typename T, template <typename> class E>
+int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nrhs)
+{
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
+  hmat::FullMatrix<T> mb((T*) b, hmat->cols()->size(), nrhs);
+  hmat->solveLower(mb, transpose);
+  return 0;
+}
+
 }  // end anonymous namespace
 
 namespace hmat {
@@ -301,6 +311,7 @@ static void createCInterface(hmat_interface_t * i)
     i->dump_info = hmat_dump_info<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
     i->extract_diagonal = extract_diagonal<T, E>;
+    i->solve_lower_triangular = solve_lower_triangular<T, E>;
 }
 
 }  // end namespace hmat
