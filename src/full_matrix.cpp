@@ -419,7 +419,7 @@ void FullMatrix<T>::luDecomposition() {
 // solve LX = (P ^ -1 B), which is done by ZLASWP with
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
-void FullMatrix<T>::solveLowerTriangular(FullMatrix<T>* x, bool unitriangular) const {
+void FullMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangular) const {
   myAssert(pivots || diagonal);
   {
     const size_t _m = rows, _n = x->cols;
@@ -439,7 +439,7 @@ void FullMatrix<T>::solveLowerTriangular(FullMatrix<T>* x, bool unitriangular) c
 //  the matrix was factorized before.
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangular(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
