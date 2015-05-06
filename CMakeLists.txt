@@ -308,6 +308,7 @@ hmat_add_example(cylinder cylinder.cpp)
 hmat_add_example(c-cylinder c-cylinder.c)
 hmat_add_example(c-simple-cylinder c-simple-cylinder.c)
 hmat_add_example(c-simple-kriging c-simple-kriging.c)
+hmat_add_example(c-cholesky c-cholesky.c)
 
 
 install(DIRECTORY include/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
