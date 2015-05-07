@@ -115,7 +115,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
       for (int j = 0; j < 2; ++j) {
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           ClusterTree* colChild = static_cast<ClusterTree*>(_cols->getChild(j));
-          this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric)));
+          this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
          }
        }
      }
@@ -214,7 +214,7 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols,
       const ClusterTree* rowChild = static_cast<const ClusterTree*>(h->data.rows->getChild(i));
       for (int j = 0; j < 2; ++j) {
         const ClusterTree* colChild = static_cast<const ClusterTree*>(h->data.cols->getChild(j));
-        h->insertChild(i, j, HMatrix<T>::Zero(rowChild, colChild, settings));
+        h->insertChild(i, j, HMatrix<T>::Zero(rowChild, colChild, settings, admissibilityCondition));
       }
     }
   }
