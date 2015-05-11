@@ -94,8 +94,9 @@ largestDimension(const hmat::ClusterTree& node)
   int maxDim = -1;
   double maxSize = -1.0;
   hmat::AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
-  for (int i = 0; i < 3; i++) {
-    double size = (bbox->bbMax.xyz[i] - bbox->bbMin.xyz[i]);
+  const int dimension = node.data.coordinates()->dimension();
+  for (int i = 0; i < dimension; i++) {
+    double size = (bbox->bbMax[i] - bbox->bbMin[i]);
     if (size > maxSize) {
       maxSize = size;
       maxDim = i;
@@ -109,8 +110,9 @@ volume(const hmat::ClusterTree& node)
 {
   hmat::AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
   double result = 1.;
-  for (int dim = 0; dim < 3; dim++) {
-    result *= (bbox->bbMax.xyz[dim] - bbox->bbMin.xyz[dim]);
+  const int dimension = node.data.coordinates()->dimension();
+  for (int dim = 0; dim < dimension; dim++) {
+    result *= (bbox->bbMax[dim] - bbox->bbMin[dim]);
   }
   return result;
 }
@@ -135,11 +137,11 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   AxisAlignedBoundingBox* bbox = new AxisAlignedBoundingBox(current.data);
   current.clusteringAlgoData_ = bbox;
 
-  double middle = .5 * (bbox->bbMin.xyz[dim] + bbox->bbMax.xyz[dim]);
+  double middle = .5 * (bbox->bbMin[dim] + bbox->bbMax[dim]);
   int middleIndex = 0;
   int* myIndices = current.data.indices() + current.data.offset();
   const double* coord = &current.data.coordinates()->get(0,0);
-  while (coord[myIndices[middleIndex]*3+dim] < middle) {
+  while (coord[myIndices[middleIndex]*spatialDimension_+dim] < middle) {
     middleIndex++;
   }
   if (NULL != current.data.group_index())
@@ -153,12 +155,20 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
       int lower = middleIndex-1;
       while (upper < current.data.size() && group_index[upper] == group)
         ++upper;
-      while (lower > 0 && group_index[lower] == group)
+      while (lower >= 0 && group_index[lower] == group)
         --lower;
-      if (lower == 0 || (coord[myIndices[upper]*3+dim] + coord[myIndices[lower]*3+dim] < 2.0 * middle))
+      if (lower < 0 && upper == current.data.size())
+      {
+        // All degrees of freedom belong to the same group, this is fine
+      }
+      else if (lower < 0)
+        middleIndex = upper;
+      else if (upper == current.data.size())
+        middleIndex = lower + 1;
+      else if (coord[myIndices[upper]*spatialDimension_+dim] + coord[myIndices[lower]*spatialDimension_+dim] < 2.0 * middle)
         middleIndex = upper;
       else
-        middleIndex = lower;
+        middleIndex = lower + 1;
     }
   }
   children.push_back(current.slice(current.data.offset(), middleIndex));
@@ -197,12 +207,20 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
       int lower = middleIndex-1;
       while (upper < current.data.size() && group_index[upper] == group)
         ++upper;
-      while (lower > 0 && group_index[lower] == group)
+      while (lower >= 0 && group_index[lower] == group)
         --lower;
-      if (lower == 0 || (upper + lower < 2 * middleIndex))
+      if (lower < 0 && upper == current.data.size())
+      {
+        // All degrees of freedom belong to the same group, this is fine
+      }
+      else if (lower < 0)
+        middleIndex = upper;
+      else if (upper == current.data.size())
+        middleIndex = lower + 1;
+      else if (upper + lower < 2 * middleIndex)
         middleIndex = upper;
       else
-        middleIndex = lower;
+        middleIndex = lower + 1;
     }
   }
   children.push_back(current.slice(current.data.offset(), middleIndex));

@@ -192,26 +192,42 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
 }
 
 AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
+  : dimension_(data.coordinates()->dimension())
+  , bbMin(new double[dimension_])
+  , bbMax(new double[dimension_])
 {
   int* myIndices = data.indices() + data.offset();
   const double* coord = &data.coordinates()->get(0, 0);
-  bbMin = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
-  bbMax = Point(coord[3*myIndices[0]], coord[3*myIndices[0]+1], coord[3*myIndices[0]+2]);
+  memcpy(&bbMin[0], &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
+  memcpy(&bbMax[0], &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
 
   for (int i = 0; i < data.size(); ++i) {
     int index = myIndices[i];
-    const double* p = &coord[3*index];
-    for (int dim = 0; dim < 3; ++dim) {
-      bbMin.xyz[dim] = std::min(bbMin.xyz[dim], p[dim]);
-      bbMax.xyz[dim] = std::max(bbMax.xyz[dim], p[dim]);
+    const double* p = &coord[dimension_*index];
+    for (int dim = 0; dim < dimension_; ++dim) {
+      bbMin[dim] = std::min(bbMin[dim], p[dim]);
+      bbMax[dim] = std::max(bbMax[dim], p[dim]);
     }
   }
+}
+
+AxisAlignedBoundingBox::~AxisAlignedBoundingBox()
+{
+  delete [] bbMin;
+  delete [] bbMax;
 }
 
 double
 AxisAlignedBoundingBox::diameter() const
 {
-  return bbMax.distanceTo(bbMin);
+  double result = 0.0;
+  for(int i = 0; i < dimension_; ++i)
+  {
+    double delta = bbMin[i] - bbMax[i];
+    result += delta * delta;
+  }
+
+  return sqrt(result);
 }
 
 double
@@ -220,20 +236,13 @@ AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) const
   double result = 0.;
   double difference = 0.;
 
-  difference = std::max(0., bbMin.xyz[0] - other.bbMax.xyz[0]);
-  result += difference * difference;
-  difference = std::max(0., other.bbMin.xyz[0] - bbMax.xyz[0]);
-  result += difference * difference;
-
-  difference = std::max(0., bbMin.xyz[1] - other.bbMax.xyz[1]);
-  result += difference * difference;
-  difference = std::max(0., other.bbMin.xyz[1] - bbMax.xyz[1]);
-  result += difference * difference;
-
-  difference = std::max(0., bbMin.xyz[2] - other.bbMax.xyz[2]);
-  result += difference * difference;
-  difference = std::max(0., other.bbMin.xyz[2] - bbMax.xyz[2]);
-  result += difference * difference;
+  for(int i = 0; i < dimension_; ++i)
+  {
+    difference = std::max(0., bbMin[i] - other.bbMax[i]);
+    result += difference * difference;
+    difference = std::max(0., other.bbMin[i] - bbMax[i]);
+    result += difference * difference;
+  }
 
   return sqrt(result);
 }

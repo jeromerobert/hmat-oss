@@ -203,10 +203,14 @@ class AxisAlignedBoundingBox
 {
 public:
   explicit AxisAlignedBoundingBox(const ClusterData& node);
-  Point bbMin, bbMax;
+  ~AxisAlignedBoundingBox();
 
   double diameter() const;
   double distanceTo(const AxisAlignedBoundingBox& other) const;
+private:
+  const int dimension_;
+public:
+  double *bbMin, *bbMax;
 };
 
 }  // end namespace hmat

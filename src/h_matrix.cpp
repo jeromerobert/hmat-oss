@@ -1286,7 +1286,8 @@ void HMatrix<T>::dumpTreeToFile(const char* filename) const {
   ofstream file;
   const DofCoordinates* points = rows()->coordinates();
   const double* coord = &points->get(0, 0);
-  int* indices = rows()->indices();
+  const int* indices = rows()->indices();
+  const int dimension = points->dimension();
   string delimiter;
 
   file.open(filename);
@@ -1295,8 +1296,11 @@ void HMatrix<T>::dumpTreeToFile(const char* filename) const {
        << "  \"points\": [" << endl;
   delimiter = "";
   for (int i = 0; i < points->size(); i++) {
-    file << "    " << delimiter << "[" << coord[3*i] << ", " << coord[3*i+1] << ", " << coord[3*i+2]
-         << "]" << endl;
+    file << "    " << delimiter << "[" << coord[dimension*i];
+    for (int dim = 0; dim < dimension; ++dim) {
+      file << ", " << coord[dimension*i+dim];
+    }
+    file << "]" << endl;
     delimiter = " ,";
   }
   // Mapping
@@ -1321,18 +1325,33 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
   }
   AxisAlignedBoundingBox rows_bbox(data.rows->data);
   AxisAlignedBoundingBox cols_bbox(data.cols->data);
+  const int rows_dimension(data.rows->data.coordinates()->dimension());
+  const int cols_dimension(data.cols->data.coordinates()->dimension());
 
   f << prefix << "{\"isLeaf\": " << (isLeaf() ? "true" : "false") << "," << endl
     << prefix << " \"depth\": " << depth << "," << endl
     << prefix << " \"rows\": " << "{\"offset\": " << rows()->offset() << ", \"n\": " << rows()->size() << ", "
-    << "\"boundingBox\": [[" << rows_bbox.bbMin.x << ", " << rows_bbox.bbMin.y << ", " << rows_bbox.bbMin.z << "], ["
-    << rows_bbox.bbMax.x << ", " << rows_bbox.bbMax.y << ", " << rows_bbox.bbMax.z << "]]},"
-    << endl
+    << "\"boundingBox\": [[" << rows_bbox.bbMin[0];
+  for (int dim = 1; dim < rows_dimension; ++dim) {
+    f << ", " << rows_bbox.bbMin[dim];
+  }
+  f << "], [" << rows_bbox.bbMax[0];
+  for (int dim = 1; dim < rows_dimension; ++dim) {
+    f << ", " << rows_bbox.bbMax[dim];
+  }
+  f << "]]}," << endl
     << prefix << " \"cols\": " << "{\"offset\": " << cols()->offset() << ", \"n\": " << cols()->size() << ", "
-    << "\"boundingBox\": [[" << cols_bbox.bbMin.x << ", " << cols_bbox.bbMin.y << ", " << cols_bbox.bbMin.z << "], ["
-    << cols_bbox.bbMax.x << ", " << cols_bbox.bbMax.y << ", " << cols_bbox.bbMax.z << "]]},";
+    << "\"boundingBox\": [[" << cols_bbox.bbMin[0];
+  for (int dim = 1; dim < cols_dimension; ++dim) {
+    f << ", " << cols_bbox.bbMin[dim];
+  }
+  f << "], [" << cols_bbox.bbMax[0];
+  for (int dim = 1; dim < cols_dimension; ++dim) {
+    f << ", " << cols_bbox.bbMax[dim];
+  }
+  f << "]]}," << endl;
   if (!isLeaf()) {
-    f << endl << prefix << " \"children\": [" << endl;
+    f << prefix << " \"children\": [" << endl;
     string delimiter("");
     for (int i = 0; i < 4; i++) {
       const HMatrix<T>* child = static_cast<const HMatrix<T>*>(getChild(i));
@@ -1346,13 +1365,13 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
   } else {
     // It's a leaf
     if (isFullMatrix()) {
-      f << endl << prefix << " \"leaf_type\": \"Full\"";
+      f << prefix << " \"leaf_type\": \"Full\"";
     } else if (isRkMatrix()) {
-      f << endl << prefix << " \"leaf_type\": \"Rk\", \"k\": " << data.rk->k << ",";
+      f << prefix << " \"leaf_type\": \"Rk\", \"k\": " << data.rk->k << ",";
       // f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
-      f << endl << prefix << " \"method\": " << this->data.rk->method;
+      f << prefix << " \"method\": " << this->data.rk->method;
     } else {
-      f << endl << prefix << " \"leaf_type\": \"N/A\"";
+      f << prefix << " \"leaf_type\": \"N/A\"";
     }
   }
   f << "}";
