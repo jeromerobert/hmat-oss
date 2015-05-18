@@ -641,32 +641,52 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
   }
 }
 
-/** @brief AXPY where this and B are supposed to have the same layout */
+/**
+ * @brief generic AXPY implementation that dispatch to others or recurse
+ */
 template<typename T>
-void HMatrix<T>::axpy(T alpha, const HMatrix<T>* b) {
-  myAssert(*rows() == *b->rows());
-  myAssert(*cols() == *b->cols());
-
-  if (isLeaf()) {
-    if (isRkMatrix()) {
-      myAssert(b->isRkMatrix());
-      if (b->data.rk->k == 0) {
-        return;
-      }
-      data.rk->axpy(alpha, b->data.rk);
+void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
+    if(*rows() == *x->rows() && *cols() == *x->cols()) {
+        if (isLeaf()) {
+            if (isRkMatrix()) {
+                if(x->isRkMatrix()) {
+                    if (x->data.rk->k == 0) {
+                        return;
+                    }
+                    data.rk->axpy(alpha, x->data.rk);
+                } else if(!x->isLeaf()){
+                    strongAssert(false);
+                    // TODO: use formattedAddParts as in coarsening
+                } else {
+                    // b is a full matrix
+                    // TODO:
+                    strongAssert(false);
+                }
+            } else {
+                myAssert(x->isFullMatrix());
+                data.m->axpy(alpha, x->data.m);
+            }
+        } else {
+            for (int i = 0; i < 2; i++) {
+                for (int j = 0; j < 2; j++) {
+                    HMatrix<T>* child = get(i, j);
+                    HMatrix<T>* bChild = x->get(i, j);
+                    child->axpy(alpha, bChild);
+                }
+            }
+        }
     } else {
-      myAssert(b->isFullMatrix());
-      data.m->axpy(alpha, b->data.m);
+        if(x->isFullMatrix()) {
+            axpy(alpha, x->data.m, x->rows(), x->cols());
+            return;
+        }
+        else if(x->isRkMatrix()) {
+            axpy(alpha, x->data.rk);
+            return;
+        }
+        else
+            strongAssert(false);
     }
-  } else {
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
-        HMatrix<T>* child = get(i, j);
-        HMatrix<T>* bChild = b->get(i, j);
-        child->axpy(alpha, bChild);
-      }
-    }
-  }
 }
 
 /** @brief AXPY between this an a subset of B with B a RkMatrix */
