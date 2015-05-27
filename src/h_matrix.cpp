@@ -1276,13 +1276,13 @@ const ClusterData* HMatrix<T>::cols() const {
 }
 
 template<typename T>
-void HMatrix<T>::createPostcriptFile(const char* filename) const {
+void HMatrix<T>::createPostcriptFile(const std::string& filename) const {
     PostscriptDumper<T> dumper;
     dumper.write(this, filename);
 }
 
 template<typename T>
-void HMatrix<T>::dumpTreeToFile(const char* filename) const {
+void HMatrix<T>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& nodeDumper) const {
   ofstream file;
   const DofCoordinates* points = rows()->coordinates();
   const double* coord = &points->get(0, 0);
@@ -1290,7 +1290,7 @@ void HMatrix<T>::dumpTreeToFile(const char* filename) const {
   const int dimension = points->dimension();
   string delimiter;
 
-  file.open(filename);
+  file.open(filename.c_str());
   // Points
   file << "{" << endl
        << "  \"points\": [" << endl;
@@ -1316,12 +1316,12 @@ void HMatrix<T>::dumpTreeToFile(const char* filename) const {
   }
   file << "]," << endl;
   file << "  \"tree\":" << endl;
-  dumpSubTree(file, 0);
+  dumpSubTree(file, 0, nodeDumper);
   file << "}" << endl;
 }
 
 template<typename T>
-void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
+void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>& nodeDumper) const {
   string prefix("    ");
   for (int i = 0; i < depth; i++) {
     prefix += "  ";
@@ -1353,6 +1353,10 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
     f << ", " << cols_bbox.bbMax[dim];
   }
   f << "]]}," << endl;
+  const std::string extra_info(nodeDumper.dumpExtraInfo(*this, " "+prefix));
+  if (!extra_info.empty()) {
+    f << prefix << " " << extra_info << "," << endl;
+  }
   if (!isLeaf()) {
     f << prefix << " \"children\": [" << endl;
     string delimiter("");
@@ -1360,7 +1364,7 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth) const {
       const HMatrix<T>* child = static_cast<const HMatrix<T>*>(getChild(i));
       if (!child) continue;
       f << delimiter;
-      child->dumpSubTree(f, depth + 1);
+      child->dumpSubTree(f, depth + 1, nodeDumper);
       f << endl;
       delimiter = ",";
     }
@@ -2202,6 +2206,11 @@ template class HMatrix<S_t>;
 template class HMatrix<D_t>;
 template class HMatrix<C_t>;
 template class HMatrix<Z_t>;
+
+template class HMatrixNodeDumper<S_t>;
+template class HMatrixNodeDumper<D_t>;
+template class HMatrixNodeDumper<C_t>;
+template class HMatrixNodeDumper<Z_t>;
 
 template void reorderVector(FullMatrix<S_t>* v, int* indices);
 template void reorderVector(FullMatrix<D_t>* v, int* indices);

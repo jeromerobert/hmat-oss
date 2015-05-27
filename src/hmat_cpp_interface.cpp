@@ -188,13 +188,19 @@ std::pair<size_t, size_t> HMatInterface<T, E>::fullrkRatio() const {
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::createPostcriptFile(const char* filename) const {
+void HMatInterface<T, E>::createPostcriptFile(const std::string& filename) const {
     engine.createPostcriptFile(filename);
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::dumpTreeToFile(const char* filename) const {
-    engine.dumpTreeToFile(filename);
+void HMatInterface<T, E>::dumpTreeToFile(const std::string& filename) const {
+    HMatrixVoidNodeDumper<T> dumper_extra;
+    dumpTreeToFile(filename, dumper_extra);
+}
+
+template<typename T, template <typename> class E>
+void HMatInterface<T, E>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const {
+    engine.dumpTreeToFile(filename, dumper_extra);
 }
 
 template<typename T, template <typename> class E>

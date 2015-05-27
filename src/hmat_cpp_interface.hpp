@@ -284,7 +284,7 @@ public:
 
     @param filename output filename.
    */
-  void createPostcriptFile(const char* filename) const;
+  void createPostcriptFile(const std::string& filename) const;
   /*! \brief Dump some HMatrix metadata to a Python-readable file.
 
     This function create a file that is readable by Python's eval()
@@ -303,7 +303,8 @@ public:
 
     \param filename path to the output file.
    */
-  void dumpTreeToFile(const char* filename) const;
+  void dumpTreeToFile(const std::string& filename) const;
+  void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;
   /** Return the number of block cluster tree nodes.
    */
   int nodesCount() const;

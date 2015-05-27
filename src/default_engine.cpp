@@ -164,13 +164,13 @@ void DefaultEngine<T>::solveLower(FullMatrix<T>& b, hmat_factorization_t t, bool
 }
 
 template<typename T>
-void DefaultEngine<T>::createPostcriptFile(const char* filename) const {
+void DefaultEngine<T>::createPostcriptFile(const std::string& filename) const {
     hmat->createPostcriptFile(filename);
 }
 
 template<typename T>
-void DefaultEngine<T>::dumpTreeToFile(const char* filename) const {
-    hmat->dumpTreeToFile(filename);
+void DefaultEngine<T>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const {
+    hmat->dumpTreeToFile(filename, dumper_extra);
 }
 
 template<typename T> double DefaultEngine<T>::norm() const {

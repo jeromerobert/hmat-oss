@@ -247,8 +247,8 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
   fileps += ".ps";
   std::string filejson(prefix);
   filejson += ".json";
-  hmat->createPostcriptFile( fileps.c_str());
-  hmat->dumpTreeToFile( filejson.c_str() );
+  hmat->createPostcriptFile( fileps );
+  hmat->dumpTreeToFile( filejson );
   return 0;
 }
 

@@ -81,6 +81,23 @@ template<typename T> void reorderVector(FullMatrix<T>* v, int* indices);
  */
 template<typename T> void restoreVectorOrder(FullMatrix<T>* v, int *indices);
 
+template<typename T> class HMatrix;
+/** Class to write user defined data when dumping matrix onto disk.
+
+    This class is used by dumpTreeToFile to write extra information into
+    json file; the returned string must thus be a valid json fragment text.
+ */
+template<typename T> class HMatrixNodeDumper {
+public:
+  HMatrixNodeDumper() {}
+  virtual std::string dumpExtraInfo(const HMatrix<T>& node, const std::string& prefix) const = 0;
+};
+
+template<typename T>
+class HMatrixVoidNodeDumper : public HMatrixNodeDumper<T> {
+public:
+  virtual std::string dumpExtraInfo(const HMatrix<T>& node, const std::string& prefix) const { return ""; }
+};
 
 /*! \brief Data held by an HMatrix tree node.
  */
@@ -224,7 +241,7 @@ public:
 
     \param filename output filename.
    */
-  void createPostcriptFile(const char* filename) const;
+  void createPostcriptFile(const std::string& filename) const;
   /*! \brief Dump some HMatrix metadata to a Python-readable file.
 
     This function create a file that is readable by Python's eval()
@@ -243,7 +260,7 @@ public:
 
     \param filename path to the output file.
    */
-  void dumpTreeToFile(const char* filename) const;
+  void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& nodeDumper) const;
   /** this <- o (copy)
 
       \param o The HMatrix t copy
@@ -291,7 +308,7 @@ public:
 private:
   /*! \brief Auxiliary function used by HMatrix::dumpTreeToFile().
    */
-  void dumpSubTree(std::ofstream& f, int depth) const;
+  void dumpSubTree(std::ofstream& f, int depth, const HMatrixNodeDumper<T>& nodeDumper) const;
 
 public:
   /*! \brief Build a "fake" HMatrix for internal use only

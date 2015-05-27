@@ -112,9 +112,9 @@ static double writeHeader(ofstream & file, int maxDim)
 namespace hmat {
 
 template<typename T>
-void PostscriptDumper<T>::write(const Tree<4> * tree, const char * filename) const {
+void PostscriptDumper<T>::write(const Tree<4> * tree, const std::string& filename) const {
     ofstream file;
-    file.open(filename);
+    file.open(filename.c_str());
     const HMatrix<T> * m = cast(tree);
     double scale = writeHeader(file, max(m->rows()->size(), m->cols()->size()));
     recursiveDrawing(tree, file, 0, scale);
