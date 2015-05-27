@@ -48,7 +48,7 @@ public:
   {}
   bool operator() (int i, int j) {
     if (group_index_ == NULL || group_index_[i] == group_index_[j])
-      return coordinates_[i * dimension_ + axis] < coordinates_[j * dimension_ + axis];
+      return coordinates_[i * dimension_ + axis_] < coordinates_[j * dimension_ + axis_];
     return group_index_[i] < group_index_[j];
   }
 };
