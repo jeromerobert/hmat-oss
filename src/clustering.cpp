@@ -30,30 +30,25 @@
 namespace {
 
 /*! \brief Comparateur pour deux indices selon une de leur coordonnee.
-
-  On utilise les templates pour eviter un trop grand cout a
-  l'execution ou le copier-coller, avec pour le parametre du template :
-    - 0 pour une comparaison selon x
-    - 1 pour une comparaison selon y
-    - 2 pour une comparaison selon z
  */
-template<int N>
 class IndicesComparator
 {
 private:
   const double* coordinates_;
   const int* group_index_;
   const int dimension_;
+  const int axis_;
 
 public:
-  IndicesComparator(const hmat::ClusterData& data)
+  IndicesComparator(int axis, const hmat::ClusterData& data)
     : coordinates_(&data.coordinates()->get(0,0))
     , group_index_(data.group_index())
     , dimension_(data.coordinates()->dimension())
+    , axis_(axis)
   {}
   bool operator() (int i, int j) {
     if (group_index_ == NULL || group_index_[i] == group_index_[j])
-      return coordinates_[i * dimension_ + N] < coordinates_[j * dimension_ + N];
+      return coordinates_[i * dimension_ + axis] < coordinates_[j * dimension_ + axis];
     return group_index_[i] < group_index_[j];
   }
 };
@@ -61,19 +56,7 @@ public:
 void sortByDimension(hmat::ClusterTree& node, int dim)
 {
   int* myIndices = node.data.indices() + node.data.offset();
-  switch (dim) {
-  case 0:
-    std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator<0>(node.data));
-    break;
-  case 1:
-    std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator<1>(node.data));
-    break;
-  case 2:
-    std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator<2>(node.data));
-    break;
-  default:
-    strongAssert(false);
-  }
+  std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator(dim, node.data));
 }
 
 hmat::AxisAlignedBoundingBox*
