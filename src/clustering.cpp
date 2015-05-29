@@ -109,11 +109,12 @@ void
 GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
 {
   int dim;
+  if (spatialDimension_ < 0) {
+    spatialDimension_ = current.data.coordinates()->dimension();
+  }
   if (axisIndex_ < 0) {
     dim = largestDimension(current);
   } else {
-    if (spatialDimension_ < 0)
-      spatialDimension_ = current.data.coordinates()->dimension();
     dim = ((axisIndex_ + current.depth) % spatialDimension_);
   }
   sortByDimension(current, dim);
