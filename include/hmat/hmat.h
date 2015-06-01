@@ -164,6 +164,21 @@ hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
  */
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
 
+/** Information on a cluster tree */
+typedef struct
+{
+  /* ! Spatial dimension of degrees of freedom */
+  int spatial_dimension;
+
+  /* ! Number of degrees of freedom */
+  int dimension;
+
+  /* ! Number of tree nodes */
+  size_t nr_tree_nodes;
+} hmat_cluster_info_t;
+
+int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);
+
 /* Opaque pointer */
 typedef struct hmat_admissibility_condition hmat_admissibility_t;
 

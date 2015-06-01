@@ -70,6 +70,15 @@ int hmat_tree_nodes_count(hmat_cluster_tree_t * tree)
     return ((ClusterTree*)tree)->nodesCount();
 }
 
+int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
+{
+    ClusterTree* cl          = static_cast<ClusterTree*>((void*) tree);
+    info->spatial_dimension  = cl->data.coordinates()->dimension();
+    info->dimension          = cl->data.coordinates()->size();
+    info->nr_tree_nodes      = cl->nodesCount();
+    return 0;
+}
+
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
 {
     return static_cast<hmat_admissibility_t*>((void*) new hmat::StandardAdmissibilityCondition(eta));
