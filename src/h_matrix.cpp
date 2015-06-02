@@ -1296,9 +1296,12 @@ void HMatrix<T>::dumpTreeToFile(const char* filename) const {
        << "  \"points\": [" << endl;
   delimiter = "";
   for (int i = 0; i < points->size(); i++) {
-    file << "    " << delimiter << "[" << coord[dimension*i];
-    for (int dim = 0; dim < dimension; ++dim) {
-      file << ", " << coord[dimension*i+dim];
+    file << "    " << delimiter << "[";
+    if (dimension > 0) {
+      file << coord[dimension*i];
+      for (int dim = 1; dim < dimension; ++dim) {
+        file << ", " << coord[dimension*i+dim];
+      }
     }
     file << "]" << endl;
     delimiter = " ,";
