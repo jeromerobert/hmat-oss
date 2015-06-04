@@ -454,8 +454,6 @@ typedef struct
   int compressionMethod;
   /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
    int compressionMinLeafSize;
-  /*! \brief Formula for cluster subdivision */
-  hmat_clustering_algorithm_t * clustering;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
   int maxLeafSize;
   /*! \brief max(|L0|) */
