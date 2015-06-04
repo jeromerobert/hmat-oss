@@ -178,7 +178,7 @@ void PostscriptDumper<T>::drawMatrix(const Tree<4> * tree, const HMatrix<T> * m,
               << startX << " " << startY;
             f << " 0 " << color << " 0 "
               << " greenrectangle" << endl;
-            f << startX << " " << startY + (lengthY * .95) << " " << -.7 * lengthY
+            f << startX << " " << startY + (lengthY * .95) << " " << .7 * std::min(lengthX, - lengthY)
               << " (" << m->data.rk->k << ") showrank" << endl;
         } else if (m->isFullMatrix()) {
             f << 0 << " "<< -lengthY << " "
