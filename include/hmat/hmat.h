@@ -110,20 +110,21 @@ The supported cases are:
 
 Regarding the indexing: For all indices in this function, the "C"
 conventions are followed, ie indices start at 0, the lower bound is
-included and the upper bound is excluded. The indexing is relative
+included and the upper bound is excluded. In contrast with
+hmat_prepare_func_t, the indexing is relative
 to the block, that is the row i is the i-th row within the block.
 
-\param v_data opaque pointer, as set by \a prepare_func()
-\param row_start starting row
-\param row_count number of rows
-\param col_start starting column
-\param col_count number of columns
+\param v_data opaque pointer, as set by \a prepare_func() in field user_data of hmat_block_info_t
+\param block_row_start starting row in the block
+\param block_row_count number of rows to be computed
+\param block_col_start starting column in the block
+\param block_col_count number of columns to be computed
 \param block pointer to the output buffer. No padding is allowed,
 that is the leading dimension of the buffer must be its real leading
 dimension (1 for a row). Column-major order is assumed.
  */
-typedef void (*hmat_compute_func_t)(void* v_data, int row_start, int row_count,
-                             int col_start, int col_count, void* block);
+typedef void (*hmat_compute_func_t)(void* v_data, int block_row_start, int block_row_count,
+                             int block_col_start, int block_col_count, void* block);
 
 /*! \brief Compute a single matrix term
 
