@@ -285,6 +285,7 @@ int main(int argc, char **argv) {
 
   clustering = hmat_create_clustering_median();
   cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering);
+  hmat_delete_clustering(clustering);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree, 1);
   hmat.get_info(hmatrix, &mat_info);
@@ -405,8 +406,10 @@ int main(int argc, char **argv) {
   free(drhsCopy1);
   free(drhsCopy2);
   free(drhsCopy3);
-  hmat.finalize();
+  hmat.destroy(hmatrix);
   hmat_delete_cluster_tree(cluster_tree);
+  hmat.finalize();
+  free(points);
   return 0;
 
 }

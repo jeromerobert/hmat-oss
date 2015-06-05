@@ -281,6 +281,7 @@ int main(int argc, char **argv) {
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix_admissibility(
             cluster_tree, cluster_tree, 0, admissibilityCondition);
+  hmat_delete_admissibility(admissibilityCondition);
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
   rc = hmat.assemble(hmatrix, &problem_data, prepare_hmat, compute_hmat, 0);
@@ -297,7 +298,9 @@ int main(int argc, char **argv) {
     return rc;
   }
 
-  hmat.finalize();
+  hmat.destroy(hmatrix);
   hmat_delete_cluster_tree(cluster_tree);
+  hmat.finalize();
+  free(points);
   return 0;
 }

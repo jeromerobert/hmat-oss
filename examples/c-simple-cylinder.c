@@ -183,9 +183,11 @@ int main(int argc, char **argv) {
 
   clustering = hmat_create_clustering_median();
   cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering);
+  hmat_delete_clustering(clustering);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix_admissibility(cluster_tree, cluster_tree,
                                                     0, admissibilityCondition);
+  hmat_delete_admissibility(admissibilityCondition);
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
   if (type == HMAT_SIMPLE_PRECISION || type == HMAT_DOUBLE_PRECISION)
@@ -205,7 +207,8 @@ int main(int argc, char **argv) {
     return rc;
   }
 
-  hmat.finalize();
+  hmat.destroy(hmatrix);
   hmat_delete_cluster_tree(cluster_tree);
+  hmat.finalize();
   return rc;
 }
