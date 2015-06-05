@@ -252,6 +252,15 @@ ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo)
   algo_.push_front(std::pair<int, ClusteringAlgorithm*>(0, algo.clone()));
 }
 
+ClusterTreeBuilder::~ClusterTreeBuilder()
+{
+  for (std::list<std::pair<int, ClusteringAlgorithm*> >::iterator it = algo_.begin(); it != algo_.end(); ++it)
+  {
+    delete it->second;
+    it->second = NULL;
+  }
+}
+
 ClusterTree*
 ClusterTreeBuilder::build(const DofCoordinates& coordinates, int* group_index)
 {

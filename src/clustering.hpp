@@ -41,6 +41,7 @@ class ClusteringAlgorithm;
 class ClusterTreeBuilder {
 public:
   explicit ClusterTreeBuilder(const ClusteringAlgorithm& algo);
+  ~ClusterTreeBuilder();
 
   /*! \brief Specify an algorithm for nodes at given depth and below */
   ClusterTreeBuilder& addAlgorithm(int depth, const ClusteringAlgorithm& algo);
