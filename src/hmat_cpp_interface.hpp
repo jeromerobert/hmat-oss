@@ -59,7 +59,6 @@ public:
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
       \f]
    */
-  int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
   size_t elementsPerBlock; ///< Maximum size of an admissible block
   bool coarsening; ///< Coarsen the matrix structure after assembly.
@@ -74,7 +73,6 @@ private:
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(Svd),  compressionMinLeafSize(100),
-                   maxLeafSize(100),
                    maxParallelLeaves(5000),
                    elementsPerBlock(5000000),
                    coarsening(false),

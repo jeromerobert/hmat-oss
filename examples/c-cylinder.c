@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
   hmat_info_t mat_info;
   int n;
   char arithmetic;
-  hmat_clustering_algorithm_t* clustering;
+  hmat_clustering_algorithm_t* clustering, * clustering_algo;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t* hmatrix;
   int rc;
@@ -273,9 +273,11 @@ int main(int argc, char **argv) {
   problem_data.k = k;
   problem_data.type = scalar_type;
 
-  clustering = hmat_create_clustering_median();
+  clustering_algo = hmat_create_clustering_median();
+  clustering = hmat_create_clustering_max_dof(clustering_algo, 80);
   cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering);
   hmat_delete_clustering(clustering);
+  hmat_delete_clustering(clustering_algo);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix_admissibility(
             cluster_tree, cluster_tree, 0, admissibilityCondition);

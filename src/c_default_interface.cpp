@@ -51,6 +51,14 @@ void hmat_delete_clustering(hmat_clustering_algorithm_t* algo)
     delete (ClusteringAlgorithm*) algo;
 }
 
+hmat_clustering_algorithm_t*
+hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof)
+{
+  ClusteringAlgorithm* result = static_cast<const ClusteringAlgorithm*>((void*) algo)->clone();
+  result->setMaxLeafSize(max_dof);
+  return static_cast<hmat_clustering_algorithm_t*>((void*) result);
+}
+
 hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo)
 {
     DofCoordinates dofs(coord, dimension, size, true);
@@ -124,7 +132,6 @@ void hmat_get_parameters(hmat_settings_t* settings)
       break;
     }
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
-    settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
     settings->elementsPerBlock = settingsCxx.elementsPerBlock;
     settings->coarsening = settingsCxx.coarsening;
@@ -161,7 +168,6 @@ int hmat_set_parameters(hmat_settings_t* settings)
       break;
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
-    settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.maxParallelLeaves = settings->maxParallelLeaves;
     settingsCxx.elementsPerBlock = settings->elementsPerBlock;
     settingsCxx.coarsening = settings->coarsening;

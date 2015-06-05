@@ -247,8 +247,7 @@ HybridBisectionAlgorithm::clean(ClusterTree& current) const
   geometricAlgorithm_.clean(current);
 }
 
-ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo, int maxLeafSize)
-  : maxLeafSize_(maxLeafSize)
+ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo)
 {
   algo_.push_front(std::pair<int, ClusteringAlgorithm*>(0, algo.clone()));
 }
@@ -318,9 +317,9 @@ ClusterTreeBuilder::addAlgorithm(int depth, const ClusteringAlgorithm& algo)
 void
 ClusterTreeBuilder::divide_recursive(ClusterTree& current) const
 {
-  if (current.data.size() <= maxLeafSize_)
-    return;
   ClusteringAlgorithm* algo = getAlgorithm(current.depth);
+  if (current.data.size() <= algo->getMaxLeafSize())
+    return;
 
   // Sort degrees of freedom and partition current node
   std::vector<ClusterTree*> children;

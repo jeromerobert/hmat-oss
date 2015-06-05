@@ -84,8 +84,7 @@ void HMatSettings::printSettings(std::ostream& out) const {
 ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgorithm& algo) {
   DECLARE_CONTEXT;
 
-  const HMatSettings& settings = HMatSettings::getInstance();
-  ClusterTreeBuilder ctb(algo, settings.maxLeafSize);
+  ClusterTreeBuilder ctb(algo);
   return ctb.build(dls);
 }
 

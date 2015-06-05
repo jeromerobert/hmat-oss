@@ -40,7 +40,7 @@ class ClusteringAlgorithm;
 
 class ClusterTreeBuilder {
 public:
-  explicit ClusterTreeBuilder(const ClusteringAlgorithm& algo, int maxLeafSize = 100);
+  explicit ClusterTreeBuilder(const ClusteringAlgorithm& algo);
 
   /*! \brief Specify an algorithm for nodes at given depth and below */
   ClusterTreeBuilder& addAlgorithm(int depth, const ClusteringAlgorithm& algo);
@@ -61,12 +61,14 @@ private:
 private:
   // Sequence of algorithms applied
   std::list<std::pair<int, ClusteringAlgorithm*> > algo_;
-  const int maxLeafSize_;
 };
 
 class ClusteringAlgorithm
 {
 public:
+  /*! \brief Default constructor */
+  ClusteringAlgorithm() : maxLeafSize_(100) {}
+
   /*! \brief Virtual constructor */
   virtual ClusteringAlgorithm* clone() const = 0;
 
@@ -81,6 +83,12 @@ public:
 
   /*! \brief Called by ClusterTreeBuilder::clean_recursive to free data which may be allocated by partition  */
   virtual void clean(ClusterTree& current) const {}
+
+  void setMaxLeafSize(int maxLeafSize) { maxLeafSize_ = maxLeafSize; }
+  int getMaxLeafSize() { return maxLeafSize_; }
+
+private:
+  int maxLeafSize_;
 };
 
 

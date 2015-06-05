@@ -141,9 +141,15 @@ typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
 /* Opaque pointer */
 typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
 
+/* Median clustering */
 hmat_clustering_algorithm_t* hmat_create_clustering_median();
+/* Geometric clustering */
 hmat_clustering_algorithm_t* hmat_create_clustering_geometric();
+/* Hybrid clustering */
 hmat_clustering_algorithm_t* hmat_create_clustering_hybrid();
+/* Create a new clustering algorithm by setting the maximum number of degrees of freedom in a leaf */
+hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
+/* Delete clustering algorithm */
 void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
 
 /*! \brief Create a ClusterTree from the DoFs coordinates.
@@ -454,8 +460,6 @@ typedef struct
   int compressionMethod;
   /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
    int compressionMinLeafSize;
-  /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
-  int maxLeafSize;
   /*! \brief max(|L0|) */
   int maxParallelLeaves;
   /*! \brief Maximum size of an admissible block. Should be size_t ! */
