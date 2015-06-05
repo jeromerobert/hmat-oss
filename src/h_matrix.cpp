@@ -104,7 +104,6 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     if (admissible) {
       data.rk = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
     }
-    return;
   } else {
     isUpper = false;
     isLower = (symFlag == kLowerSymmetric ? true : false);
@@ -120,6 +119,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
        }
      }
   }
+  admissibilityCondition->clean(*(data.rows));
+  admissibilityCondition->clean(*(data.cols));
 }
 
 template<typename T>

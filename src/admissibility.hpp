@@ -49,6 +49,9 @@ public:
 
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  /*! \brief Clean up data which may be allocated by isAdmissible  */
+  virtual void clean(const ClusterTree& current) const {}
+
   virtual std::string str() const = 0;
 };
 
@@ -64,6 +67,7 @@ class StandardAdmissibilityCondition : public AdmissibilityCondition
 public:
   StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 5000000);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
   static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;

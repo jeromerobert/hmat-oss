@@ -66,6 +66,13 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
     return std::min(rows_bbox->diameter(), cols_bbox->diameter()) <= eta_ * rows_bbox->distanceTo(*cols_bbox);
 }
 
+void
+StandardAdmissibilityCondition::clean(const ClusterTree& current) const
+{
+    delete static_cast<AxisAlignedBoundingBox*>(current.admissibilityAlgoData_);
+    current.admissibilityAlgoData_ = NULL;
+}
+
 std::string
 StandardAdmissibilityCondition::str() const
 {
