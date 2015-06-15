@@ -460,6 +460,8 @@ typedef struct
   int compressionMethod;
   /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
    int compressionMinLeafSize;
+  /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
+  int maxLeafSize;
   /*! \brief max(|L0|) */
   int maxParallelLeaves;
   /*! \brief Maximum size of an admissible block. Should be size_t ! */

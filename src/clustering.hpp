@@ -68,7 +68,7 @@ class ClusteringAlgorithm
 {
 public:
   /*! \brief Default constructor */
-  ClusteringAlgorithm() : maxLeafSize_(100) {}
+  ClusteringAlgorithm() : maxLeafSize_(0) {}
 
   /*! \brief Virtual constructor */
   virtual ClusteringAlgorithm* clone() const = 0;
@@ -85,8 +85,8 @@ public:
   /*! \brief Called by ClusterTreeBuilder::clean_recursive to free data which may be allocated by partition  */
   virtual void clean(ClusterTree& current) const {}
 
-  void setMaxLeafSize(int maxLeafSize) { maxLeafSize_ = maxLeafSize; }
-  int getMaxLeafSize() { return maxLeafSize_; }
+  int getMaxLeafSize() const;
+  void setMaxLeafSize(int maxLeafSize);
 
 private:
   int maxLeafSize_;

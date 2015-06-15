@@ -23,6 +23,7 @@
 #include "clustering.hpp"
 #include "cluster_tree.hpp"
 #include "common/my_assert.h"
+#include "hmat_cpp_interface.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -104,6 +105,21 @@ volume(const hmat::ClusterTree& node)
 
 
 namespace hmat {
+
+void
+ClusteringAlgorithm::setMaxLeafSize(int maxLeafSize)
+{
+  maxLeafSize_ = maxLeafSize;
+}
+
+int
+ClusteringAlgorithm::getMaxLeafSize() const
+{
+  if (maxLeafSize_ > 0)
+    return maxLeafSize_;
+  const HMatSettings& settings = HMatSettings::getInstance();
+  return settings.maxLeafSize;
+}
 
 void
 GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
