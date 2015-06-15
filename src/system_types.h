@@ -35,8 +35,7 @@
 # include <time.h>
 #endif
   /* See what has to be done for WIN32... */
-#if (defined (_WIN64) || defined (_WIN32)) && \
-    !(defined (__MINGW64__) || defined(__MINGW32__))
+#if defined(_WIN32) && !defined(__MINGW32__)
 # include <io.h>
 # include <process.h>
 # ifndef HAVE_MODE_T
