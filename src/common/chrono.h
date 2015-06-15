@@ -42,8 +42,7 @@
 #include <windows.h>
 #endif
 
-#if defined(_WIN32) && \
-    !(defined (__MINGW64__) || defined(__MINGW32__))
+#if defined(_WIN32) && !defined(__MINGW32__)
 struct my_timespec {
 	int64_t tv_sec;
 	int64_t tv_nsec;
