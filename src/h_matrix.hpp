@@ -465,7 +465,7 @@ public:
     \return the i-th child of this.
    */
   HMatrix<T>* getChild(int i) const {
-    return static_cast<HMatrix<T>*>(Tree::getChild(i));
+    return static_cast<HMatrix<T>*>(Tree<4>::getChild(i));
   }
 
   /*! Return the child (i, j) of this.
@@ -477,7 +477,7 @@ public:
     \return the (i,j) child of this.
    */
   HMatrix<T>* get(int i, int j) const {
-    return static_cast<HMatrix<T>*>(Tree::getChild(i + j * 2));
+    return static_cast<HMatrix<T>*>(Tree<4>::getChild(i + j * 2));
   }
 
   /*! Set the i-th child of this.
@@ -488,7 +488,7 @@ public:
     \param child the i-th child of this.
    */
   void insertChild(int i, HMatrix<T>* child) {
-    Tree::insertChild(i, child) ;
+    Tree<4>::insertChild(i, child) ;
   }
 
   /*! Set the child (i, j) of this.
@@ -500,7 +500,7 @@ public:
     \param child the child (i, j) of this.
    */
   void insertChild(int i, int j, HMatrix<T>* child) {
-    Tree::insertChild(i+j*2, static_cast<Tree*>(child)) ;
+    Tree<4>::insertChild(i+j*2, static_cast<Tree<4>*>(child)) ;
   }
 
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
