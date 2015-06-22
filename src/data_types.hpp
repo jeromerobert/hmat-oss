@@ -50,10 +50,10 @@ typedef enum {
 
 template<typename T> class Constants {
 public:
-  static T zero;
-  static T pone;
-  static T mone;
-  static int code;
+  static const T zero;
+  static const T pone;
+  static const T mone;
+  static const int code;
 };
 
 /** Multipliers used in the operations count.
