@@ -159,7 +159,7 @@ public:
       \param o The matrix sum
       \return truncate(*this + m) A new matrix.
    */
-  RkMatrix<T> *formattedAdd(const FullMatrix<T>* o) const;
+  RkMatrix<T> *formattedAdd(const FullMatrix<T>* o, T alpha = Constants<T>::pone) const;
   /** Addition of a matrix and formatted a RkMatrix.
 
       The two matrices must be on the same sets of indices in the case

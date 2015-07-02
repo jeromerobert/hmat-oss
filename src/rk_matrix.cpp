@@ -306,12 +306,12 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const RkMatrix<T>* o
   return formattedAddParts(alpha, parts, 1);
 }
 
-template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>* o) const {
+template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>* o, T alpha) const {
   const FullMatrix<T>* parts[1] = {o};
   const IndexSet* rowsList[1] = {rows};
   const IndexSet* colsList[1] = {cols};
-  T alpha[1] = {Constants<T>::pone};
-  return formattedAddParts(alpha, parts, rowsList, colsList, 1);
+  T alphaArray[1] = {alpha};
+  return formattedAddParts(alphaArray, parts, rowsList, colsList, 1);
 }
 
 template<typename T>

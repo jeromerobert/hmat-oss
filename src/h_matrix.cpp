@@ -645,6 +645,27 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
 }
 
 /**
+ * @brief List all Rk matrice in the m matrice.
+ * @return true if the matrix contains only rk matrices, fall if it contains
+ * both rk and full matrices
+ */
+template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<T>*> & result) {
+    if(m == NULL) {
+        // do nothing
+    } else if(m->isRkMatrix())
+        result.push_back(m->data.rk);
+    else if(m->isLeaf())
+        return false;
+    else {
+        for(int i = 0; i < 4; i++) {
+            if(!listAllRk(m->getChild(i), result))
+                return false;
+        }
+    }
+    return true;
+}
+
+/**
  * @brief generic AXPY implementation that dispatch to others or recurse
  */
 template<typename T>
@@ -658,22 +679,38 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     }
                     data.rk->axpy(alpha, x->data.rk);
                 } else if(!x->isLeaf()){
-                    strongAssert(false);
-                    // TODO: use formattedAddParts as in coarsening
+                    vector<const RkMatrix<T>*> rkLeaves;
+                    if(listAllRk(x, rkLeaves)) {
+                        vector<T> alphas(rkLeaves.size(), alpha);
+                        RkMatrix<T>* tmp = data.rk->formattedAddParts(&alphas[0], &rkLeaves[0], rkLeaves.size());
+                        data.rk->swap(*tmp);
+                        delete tmp;
+                    } else {
+                        // x has contains both full and Rk matrices, this is not
+                        // supported yet.
+                        strongAssert(false);
+                    }
                 } else {
-                    // b is a full matrix
-                    // TODO:
-                    strongAssert(false);
+                    RkMatrix<T>* tmp = data.rk->formattedAdd(x->data.m, alpha);
+                    data.rk->swap(*tmp);
+                    delete tmp;
                 }
             } else {
-                myAssert(x->isFullMatrix());
-                data.m->axpy(alpha, x->data.m);
+                if(x->isFullMatrix()) {
+                    data.m->axpy(alpha, x->data.m);
+                } else if(x->isRkMatrix()) {
+                    FullMatrix<T> * f = x->data.rk->eval();
+                    data.m->axpy(alpha, f);
+                    delete f;
+                } else {
+                    // nothing TODO
+                }
             }
         } else {
             for (int i = 0; i < 2; i++) {
                 for (int j = 0; j < 2; j++) {
                     HMatrix<T>* child = get(i, j);
-                    HMatrix<T>* bChild = x->get(i, j);
+                    const HMatrix<T>* bChild = x->isLeaf() ? x : x->get(i, j);
                     child->axpy(alpha, bChild);
                 }
             }
@@ -687,8 +724,11 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
             axpy(alpha, x->data.rk);
             return;
         }
-        else
+        else if(x->isLeaf()){
+            // X is an empty leaf, so nothing to do
+        } else {
             strongAssert(false);
+        }
     }
 }
 
@@ -718,15 +758,19 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     if (needResizing) {
       rk = b->subset(rows(), cols());
     }
-    if (isFullMatrix()) {
+    if (isRkMatrix()) {
+      data.rk->axpy(alpha, rk);
+    } else {
       // In this case, the matrix has small size
       // then evaluating the Rk-matrix is cheaper
       FullMatrix<T>* rkMat = rk->eval();
-      data.m->axpy(alpha, rkMat);
-      delete rkMat;
-    } else {
-      myAssert(isRkMatrix());
-      data.rk->axpy(alpha, rk);
+      if(data.m) {
+        data.m->axpy(alpha, rkMat);
+        delete rkMat;
+      } else {
+        data.m = rkMat;
+        data.m->scale(alpha);
+      }
     }
     if (needResizing) {
       delete rk;
