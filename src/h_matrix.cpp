@@ -96,9 +96,10 @@ template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<4>(NULL),
-    data(HMatrixData<T>(_rows, _cols)),
-    isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), admissible(false), localSettings(settings) {
+    data(HMatrixData<T>(_rows, _cols)), isUpper(false), isLower(false),
+    isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
+    localSettings(settings)
+{
   admissible = admissibilityCondition->isAdmissible(*(data.rows), *(data.cols));
   if (_rows->isLeaf() || _cols->isLeaf() || admissible) {
     if (admissible) {
@@ -126,7 +127,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<4>(NULL), data(HMatrixData<T>()), isUpper(false),
-    isLower(false), admissible(false), localSettings(settings) {}
+    isLower(false), admissible(false), temporary(false), localSettings(settings)
+    {}
 
 template<typename T>
 HMatrix<T>* HMatrix<T>::copyStructure() const {
