@@ -52,6 +52,7 @@ namespace mem_instr {
    * memory instrumentation
    */
   size_t getNanoTime();
+  ptrdiff_t getTotal();
 }
 
 #define REGISTER_ALLOC(ptr, size) mem_instr::addAlloc(ptr, +(size))

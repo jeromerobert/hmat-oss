@@ -64,14 +64,19 @@ namespace mem_instr {
 
   /// True if the memory tracking is enabled.
   static bool enabled = false;
-
+  static ptrdiff_t total = 0;
   void addAlloc(void* ptr, ptrdiff_t size, char type) {
     if (!enabled) {
       return;
     }
     allocs.recordSynchronized(Event(size, type));
+    if(!type)
+        total += size;
   }
 
+  ptrdiff_t getTotal() {
+      return total;
+  }
   void toFile(const std::string& filename) {
     allocs.toFile(filename.c_str());
   }
