@@ -533,6 +533,7 @@ private:
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
 
 #ifdef DEBUG_LDLT
   /*  \brief verifie que la matrice est bien Lower i.e. avec des fils NULL au-dessus

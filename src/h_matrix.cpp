@@ -1060,6 +1060,28 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     }
 }
 
+/**
+ * Get a subset of the "a" or "b" part of this RkMatrix and return
+ * it as a full HMatrix.
+ * The columns (or row if col is true) subset of the return matrix has no meaning
+ * @param subset the row subset to extract or the columns subset if col is true
+ * @param col true to get the "b" part of the matrix
+ */
+template<typename T> HMatrix<T> * HMatrix<T>::fullRkSubset(const IndexSet* subset, bool col) const {
+    myAssert(isRkMatrix() && data.rk->k > 0);
+    HMatrix<T> * r = this->subset(col ? this->rows() : subset, col ? subset : this->cols());
+    FullMatrix<T> * a = col ? r->data.rk->b : r->data.rk->a;
+    r->data.m = new FullMatrix<T>(a->m, a->rows, a->cols, a->lda);
+    if(col) {
+        // the "b" part of a rk matrice is stored transposed
+        std::swap(r->data.rows, r->data.cols);
+    }
+    delete r->data.rk;
+    r->data.cols = r->data.cols->slice(r->data.cols->data.offset(), a->cols);
+    r->data.rk = NULL;
+    return r;
+}
+
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
   if ((transA == 'T') && (transB == 'T')) {
@@ -1073,6 +1095,28 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     this->transpose();
     myAssert(tmp_rows == *rows());
     myAssert(tmp_cols == *cols());
+    return;
+  }
+  if(isRkMatrix() && b->isRkMatrix() && data.rk->b == b->data.rk->b) {
+    if(data.rk->k == 0)
+        return;
+    HMatrix<T> * cSubset = this->fullRkSubset(a->rows(), false);
+    HMatrix<T> * bSubset = b->fullRkSubset(a->cols(), false);
+    cSubset->gemm(transA, transB, alpha, a, bSubset, beta);
+    delete cSubset;
+    delete bSubset;
+    return;
+  }
+
+  if(isRkMatrix() && a->isRkMatrix() && data.rk->a == a->data.rk->a) {
+    if(data.rk->k == 0)
+        return;
+    HMatrix<T> * cSubset = this->fullRkSubset(b->cols(), true);
+    HMatrix<T> * aSubset = a->fullRkSubset(b->rows(), true);
+    // transpose because cSubset and aSubset are transposed
+    cSubset->gemm(transA == 'N' ? 'T' : 'N', transB, alpha, b, aSubset, beta);
+    delete cSubset;
+    delete aSubset;
     return;
   }
 
@@ -1610,7 +1654,14 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
         if (b->data.rk->k == 0) {
           return;
         }
-        this->solveLowerTriangularLeft(b->data.rk->a, unitriangular);
+        HMatrix<T> * tmp;
+        if(*cols() == *b->rows())
+            tmp = b;
+        else
+            tmp = b->subset(this->cols(), b->cols());
+        this->solveLowerTriangularLeft(tmp->data.rk->a, unitriangular);
+        if(tmp != b)
+            delete tmp;
       }
     } else {
       // B isn't a leaf, then 'this' is one
@@ -1652,10 +1703,6 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
 template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
-  myAssert(*b->cols() == *this->rows());
-  myAssert(*this->rows() == *this->cols());
-  myAssert(*b->cols() == *this->cols());
-
   // The recursion one (simple case)
   if (!isLeaf() && !b->isLeaf()) {
     const HMatrix<T>* u11 = get(0, 0);
@@ -1694,7 +1741,14 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
         if (b->data.rk->k == 0) {
           return;
         }
-        this->solveUpperTriangularRight(b->data.rk->b, unitriangular, lowerStored);
+        HMatrix<T> * tmp;
+        if(*rows() == *b->cols())
+            tmp = b;
+        else
+            tmp = b->subset(b->rows(), this->rows());
+        this->solveUpperTriangularRight(tmp->data.rk->b, unitriangular, lowerStored);
+        if(tmp != b)
+            delete tmp;
       }
     } else {
       // B is not a leaf, then so is L
