@@ -203,6 +203,7 @@ class AxisAlignedBoundingBox
 {
 public:
   explicit AxisAlignedBoundingBox(const ClusterData& node);
+  AxisAlignedBoundingBox(int dim, const double *bboxMin, const double *bboxMax);
   ~AxisAlignedBoundingBox();
 
   double diameter() const;

@@ -211,6 +211,15 @@ AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
   }
 }
 
+AxisAlignedBoundingBox::AxisAlignedBoundingBox(int dim, const double *bboxMin, const double *bboxMax)
+  : dimension_(dim)
+  , bbMin(new double[dimension_])
+  , bbMax(new double[dimension_])
+{
+  memcpy(&bbMin[0], &bboxMin, sizeof(double) * dimension_);
+  memcpy(&bbMax[0], &bboxMax, sizeof(double) * dimension_);
+}
+
 AxisAlignedBoundingBox::~AxisAlignedBoundingBox()
 {
   delete [] bbMin;
