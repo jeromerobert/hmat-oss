@@ -1076,8 +1076,8 @@ template<typename T> HMatrix<T> * HMatrix<T>::fullRkSubset(const IndexSet* subse
         // the "b" part of a rk matrice is stored transposed
         std::swap(r->data.rows, r->data.cols);
     }
-    delete r->data.rk;
     r->data.cols = r->data.cols->slice(r->data.cols->data.offset(), a->cols);
+    delete r->data.rk;
     r->data.rk = NULL;
     return r;
 }
