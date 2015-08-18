@@ -1053,8 +1053,6 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     } else {
         // It's not optimal to concider that the result is a FullMatrix but
         // this is a H*F case and it almost never happen
-        std::cout << "GEMM with a full matrix result. This is implemented "
-                  << "but as it almost never happen, it is not well tested" << std::endl;
         fullMat->scale(alpha);
         data.m = fullMat;
     }
