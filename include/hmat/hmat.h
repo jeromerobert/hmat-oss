@@ -57,6 +57,7 @@ typedef enum {
 } hmat_block_t;
 
 typedef enum {
+    hmat_factorization_none = -1,
     hmat_factorization_lu,
     hmat_factorization_ldlt,
     hmat_factorization_llt
@@ -217,6 +218,53 @@ typedef struct
 
 typedef struct hmat_matrix_struct hmat_matrix_t;
 
+/** Allow to implement a progress bar associated to assemble or factorize */
+typedef struct hmat_progress_struct {
+    int max;
+    int current;
+    /** Called each time assembling or factorization progress */
+    void (*update)(struct hmat_progress_struct* context);
+} hmat_progress_t;
+
+/**
+ * Argument of the assemble_generic function.
+ * Only one of block_compute, simple_compute or assembly can be non NULL.
+ */
+typedef struct {
+    /**
+     * The user context to pass to the prepare or simple_compute function. The default is NULL.
+     */
+    void* user_context;
+    /**
+     * The user context to pass to the prepare function.
+     * This is ignored if block_compute is NULL.
+     */
+    hmat_prepare_func_t prepare;
+    hmat_compute_func_t block_compute;
+    hmat_interaction_func_t simple_compute;
+    /** Copy left lower values to the upper right of the matrix */
+    int lower_symmetric;
+    /** The type of factorization to do after this assembling. The default is hmat_factorization_none. */
+    hmat_factorization_t factorization;
+    /** NULL disable progress display. The default is to use the hmat progress internal implementation. */
+    hmat_progress_t * progress;
+    /** The assembly scenario */
+    void * assembly;
+} hmat_assemble_context_t;
+
+/** Init a hmat_assemble_context_t with default values */
+void hmat_assemble_context_init(hmat_assemble_context_t * context);
+
+typedef struct {
+    /** The type of factorization to do after this assembling. The default is hmat_factorization_lu. */
+    hmat_factorization_t factorization;
+    /** NULL disable progress display. The default is to use the hmat progress internal implementation. */
+    hmat_progress_t * progress;
+} hmat_factorization_context_t;
+
+/** Init a hmat_factorization_context_t with default values */
+void hmat_factorization_context_init(hmat_factorization_context_t * context);
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
@@ -287,6 +335,10 @@ typedef struct
                                             void* user_context,
                                             hmat_interaction_func_t compute,
                                             int lower_symmetric);
+
+    /*! Assemble a HMatrix */
+    void (*assemble_generic)(hmat_matrix_t* matrix, hmat_assemble_context_t * context);
+
     /*! \brief Return a copy of a HMatrix.
 
       \param from_hmat the source matrix
@@ -305,6 +357,10 @@ typedef struct
       \return 0 for success
     */
     int (*factorize)(hmat_matrix_t *hmatrix, hmat_factorization_t);
+
+    /*! Factorize a HMatrix */
+    void (*factorize_generic)(hmat_matrix_t* matrix, hmat_factorization_context_t * context);
+
     /*! \brief Destroy a HMatrix.
 
       \param hmatrix the matrix to destroy

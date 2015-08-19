@@ -68,7 +68,6 @@ public:
   bool validationReRun; ///< For blocks above error threshold, re-run the compression algorithm
   bool validationDump; ///< For blocks above error threshold, dump the faulty block to disk
   double validationErrorThreshold; ///< Error threshold for the compression validation
-
 private:
   /** This constructor sets the default values.
    */
@@ -120,6 +119,17 @@ DofCoordinates* createCoordinates(double* coord, int dim, int size);
  */
 ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgorithm& algo = MedianBisectionAlgorithm());
 
+class DefaultProgress
+{
+    public:
+        static hmat_progress_t * getInstance();
+        hmat_progress_t delegate;
+    private:
+        DefaultProgress();
+        DefaultProgress(DefaultProgress const &);
+        void operator=(DefaultProgress const&);
+};
+
 /** C++ interface to the HMatrix library.
 
     This is the sole entry point to the HMatrix library.
@@ -163,6 +173,7 @@ public:
       @param symmetric If kLowerSymmetric, only lower triangular structure is created
       @return a new HMatInterface instance.
    */
+
   HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
                 AdmissibilityCondition * admissibilityCondition =
                 &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
@@ -183,7 +194,8 @@ public:
                  block to store upper counterpart.
       @param synchronize
    */
-  void assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize=true);
+  void assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize=true,
+                hmat_progress_t * progress = DefaultProgress::getInstance());
 
   /** Compute a \f$LU\f$ or \f$LDL^T\f$ decomposition of the HMatrix, in place.
 
@@ -192,7 +204,7 @@ public:
       HMatInterface<T>::assemble()), and if HMatSettings::useLdlt is
       true. Otherwise an LU decomposition is done.
    */
-  void factorize(hmat_factorization_t);
+  void factorize(hmat_factorization_t, hmat_progress_t * progress = DefaultProgress::getInstance());
 
   /** Matrix-Vector product.
 
@@ -329,7 +341,6 @@ private:
   /// Disallow the copy
   HMatInterface(const HMatInterface<T, E>& o);
 };
-
 }  // end namespace hmat
 
 #endif

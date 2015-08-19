@@ -50,6 +50,7 @@ public:
   void createPostcriptFile(const std::string& filename) const;
   void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;
   double norm() const;
+  void progress(const hmat_progress_t *){}
 };
 
 }  // end namespace hmat

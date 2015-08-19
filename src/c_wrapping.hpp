@@ -27,6 +27,7 @@
 #include <cstring>
 
 #include "common/context.hpp"
+#include "common/my_assert.h"
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
 
@@ -77,16 +78,43 @@ public:
 };
 
 template<typename T, template <typename> class E>
+void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
+    DECLARE_CONTEXT;
+    hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)matrix;
+    bool assembleOnly = ctx->factorization == hmat_factorization_none;
+    hmat::SymmetryFlag sf = ctx->lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric;
+    if(ctx->assembly != NULL) {
+        strongAssert(ctx->block_compute == NULL && ctx->simple_compute == NULL);
+        hmat::Assembly<T> * cppAssembly = (hmat::Assembly<T> *)ctx->assembly;
+        hmat->assemble(*cppAssembly, sf, assembleOnly, ctx->progress);
+    } else if(ctx->block_compute != NULL) {
+        strongAssert(ctx->simple_compute == NULL && ctx->assembly == NULL);
+        hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), ctx->user_context,
+                                         ctx->prepare,  ctx->block_compute);
+        hmat->assemble(f, sf, assembleOnly, ctx->progress);
+    } else {
+        strongAssert(ctx->block_compute == NULL && ctx->assembly == NULL);
+        SimpleCAssemblyFunction<T> f(ctx->user_context, ctx->simple_compute);
+        hmat->assemble(f, sf, assembleOnly, ctx->progress);
+    }
+    if(!assembleOnly)
+        hmat->factorize(ctx->factorization, ctx->progress);
+}
+
+template<typename T, template <typename> class E>
 int assemble(hmat_matrix_t * holder,
                               void* user_context,
                               hmat_prepare_func_t prepare,
                               hmat_compute_func_t compute,
                               int lower_symmetric) {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), user_context, prepare, compute);
-  hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric, true);
-  return 0;
+    hmat_assemble_context_t ctx;
+    hmat_assemble_context_init(&ctx);
+    ctx.user_context = user_context;
+    ctx.prepare = prepare;
+    ctx.block_compute = compute;
+    ctx.lower_symmetric = lower_symmetric;
+    assemble_generic<T, E>(holder, &ctx);
+    return 0;
 }
 
 template<typename T, template <typename> class E>
@@ -95,12 +123,15 @@ int assemble_factor(hmat_matrix_t * holder,
                               hmat_prepare_func_t prepare,
                               hmat_compute_func_t compute,
                               int lower_symmetric, hmat_factorization_t f_type) {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), user_context, prepare, compute);
-  hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric, false);
-  hmat->factorize(f_type);
-  return 0;
+    hmat_assemble_context_t ctx;
+    hmat_assemble_context_init(&ctx);
+    ctx.user_context = user_context;
+    ctx.prepare = prepare;
+    ctx.block_compute = compute;
+    ctx.lower_symmetric = lower_symmetric;
+    ctx.factorization = f_type;
+    assemble_generic<T, E>(holder, &ctx);
+    return 0;
 }
 
 template<typename T, template <typename> class E>
@@ -108,11 +139,13 @@ int assemble_simple_interaction(hmat_matrix_t * holder,
                           void* user_context,
                           hmat_interaction_func_t compute,
                           int lower_symmetric) {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  SimpleCAssemblyFunction<T> f(user_context, compute);
-  hmat->assemble(f, lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
-  return 0;
+    hmat_assemble_context_t ctx;
+    hmat_assemble_context_init(&ctx);
+    ctx.user_context = user_context;
+    ctx.simple_compute = compute;
+    ctx.lower_symmetric = lower_symmetric;
+    assemble_generic<T, E>(holder, &ctx);
+    return 0;
 }
 
 template<typename T, template <typename> class E>
@@ -128,11 +161,19 @@ int destroy(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
+void factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx) {
+    DECLARE_CONTEXT;
+    hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
+    hmat->factorize(ctx->factorization, ctx->progress);
+}
+
+template<typename T, template <typename> class E>
 int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat->factorize(t);
-  return 0;
+    hmat_factorization_context_t ctx;
+    hmat_factorization_context_init(&ctx);
+    ctx.factorization = t;
+    factorize_generic<T, E>(holder, &ctx);
+    return 0;
 }
 
 template<typename T, template <typename> class E>
@@ -312,6 +353,8 @@ static void createCInterface(hmat_interface_t * i)
     i->set_cluster_trees = set_cluster_trees<T, E>;
     i->extract_diagonal = extract_diagonal<T, E>;
     i->solve_lower_triangular = solve_lower_triangular<T, E>;
+    i->assemble_generic = assemble_generic<T, E>;
+    i->factorize_generic = factorize_generic<T, E>;
 }
 
 }  // end namespace hmat

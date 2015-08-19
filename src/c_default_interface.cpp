@@ -198,3 +198,19 @@ const char * hmat_get_build_date()
 {
   return "Built on " __DATE__ " at " __TIME__ "" ;
 }
+
+void hmat_assemble_context_init(hmat_assemble_context_t * context) {
+    context->assembly = NULL;
+    context->block_compute = NULL;
+    context->factorization = hmat_factorization_none;
+    context->lower_symmetric = 0;
+    context->prepare = NULL;
+    context->simple_compute = NULL;
+    context->user_context = NULL;
+    context->progress = DefaultProgress::getInstance();
+}
+
+void hmat_factorization_context_init(hmat_factorization_context_t *context) {
+    context->factorization = hmat_factorization_lu;
+    context->progress = DefaultProgress::getInstance();
+}

@@ -71,14 +71,16 @@ HMatInterface<T, E>::HMatInterface(HMatrix<T>* h) :
 
 //TODO remove the synchronize parameter which is parallel specific
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize) {
+void HMatInterface<T, E>::assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize, hmat_progress_t * progress) {
   DISABLE_THREADING_IN_BLOCK;
+  engine.progress(progress);
   engine.assembly(f, sym, synchronize);
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::factorize(hmat_factorization_t t) {
+void HMatInterface<T, E>::factorize(hmat_factorization_t t, hmat_progress_t * progress) {
   DISABLE_THREADING_IN_BLOCK;
+  engine.progress(progress);
   engine.factorization(t);
   factorizationType = t;
 }

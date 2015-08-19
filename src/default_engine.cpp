@@ -28,6 +28,25 @@
 
 namespace hmat {
 
+static void default_progress_update(hmat_progress_t * ctx) {
+    double progress = (100. * ctx->current) / ctx->max;
+    std::cout << '\r' << "Progress: " << progress << "% ("
+              << ctx->current << " / " << ctx->max << ")      ";
+    if(ctx->current == ctx->max) {
+        std::cout << std::endl;
+    }
+    std::cout.flush();
+}
+
+DefaultProgress::DefaultProgress(): delegate({0,0,default_progress_update}) {
+}
+
+hmat_progress_t * DefaultProgress::getInstance()
+{
+    static DefaultProgress instance;
+    return &instance.delegate;
+}
+
 template<typename T>
 static void setTemplatedParameters(const HMatSettings& s) {
   RkMatrix<T>::approx.assemblyEpsilon = s.assemblyEpsilon;
