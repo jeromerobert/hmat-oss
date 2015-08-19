@@ -224,6 +224,7 @@ typedef struct hmat_progress_struct {
     int current;
     /** Called each time assembling or factorization progress */
     void (*update)(struct hmat_progress_struct* context);
+    void * user_data;
 } hmat_progress_t;
 
 /**
