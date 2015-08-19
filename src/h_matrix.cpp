@@ -1264,12 +1264,11 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
     if (get(1, 0)) {
       get(1, 0)->multiplyWithDiagOrDiagInv(left ? d->get(1, 1) : d->get(0, 0), inverse, left);
     }
-  } else if (isRkMatrix()) {
+  } else if (isRkMatrix() && data.rk->k > 0) {
     myAssert(!data.rk->a->isTriUpper && !data.rk->b->isTriUpper);
     myAssert(!data.rk->a->isTriLower && !data.rk->b->isTriLower);
     data.rk->multiplyWithDiagOrDiagInv(d, inverse, left);
-  } else {
-    myAssert(isFullMatrix());
+  } else if(isFullMatrix()){
     if (d->isFullMatrix()) {
       data.m->multiplyWithDiagOrDiagInv(d->data.m->diagonal, inverse, left);
     } else {
@@ -1277,6 +1276,8 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
       d->extractDiagonal(diag.v, d->rows()->size());
       data.m->multiplyWithDiagOrDiagInv(&diag, inverse, left);
     }
+  } else {
+    // this is a null matrix (either full of Rk) so nothing to do
   }
 }
 
@@ -1324,8 +1325,8 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
         delete data.rk;
       }
       const RkMatrix<T>* oRk = o->data.rk;
-      FullMatrix<T>* newA = oRk->b->copy();
-      FullMatrix<T>* newB = oRk->a->copy();
+      FullMatrix<T>* newA = oRk->b ? oRk->b->copy() : NULL;
+      FullMatrix<T>* newB = oRk->a ? oRk->a->copy() : NULL;
       data.rk = new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method);
     } else {
       myAssert(o->isFullMatrix());
@@ -1998,7 +1999,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 
       h22->mdmtProduct(m21, d11);
       h22->mdmtProduct(m22, d22);
-    } else if (m->isRkMatrix()) {
+    } else if (m->isRkMatrix() && m->data.rk->k > 0) {
       HMatrix<T>* m_copy = Zero(m);
       m_copy->copy(m);
 
@@ -2010,8 +2011,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 
       this->axpy(Constants<T>::mone, rkMat);
       delete rkMat;
-    } else {
-      myAssert(m->isFullMatrix());
+    } else if(m->isFullMatrix()){
       HMatrix<T>* copy_m = Zero(m);
       strongAssert(copy_m);
       copy_m->copy(m);
@@ -2023,11 +2023,13 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 
       this->axpy(Constants<T>::mone, fullMat, rows(), cols());
       delete fullMat;
+    } else {
+      // m is a null matrix (either Rk or Full) so nothing to do.
     }
   } else {
     myAssert(isFullMatrix());
 
-    if (m->isRkMatrix()) {
+    if (m->isRkMatrix() && m->data.rk->k > 0) {
       // this : full
       // m    : rk
       // Strategy: compute mdm^T as FullMatrix and then do this<-this - mdm^T
