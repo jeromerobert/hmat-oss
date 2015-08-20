@@ -33,6 +33,7 @@
 #include "full_matrix.hpp"
 #include "cluster_tree.hpp"
 #include "admissibility.hpp"
+#include "common/my_assert.h"
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -99,26 +100,6 @@ public:
   virtual std::string dumpExtraInfo(const HMatrix<T>& node, const std::string& prefix) const { return ""; }
 };
 
-/*! \brief Data held by an HMatrix tree node.
- */
-template<typename T> class HMatrixData {
-public:
-  /// Rows of this HMatrix block
-  ClusterTree * rows;
-  /// Columns of this HMatrix block
-  ClusterTree * cols;
-  /// Compressed block, or NULL if the block is not a leaf or is full.
-  RkMatrix<T> *rk;
-  /// Full block, or NULL if the block is not a leaf or is compressed.
-  FullMatrix<T> *m;
-
-public:
-  HMatrixData() : rows(NULL), cols(NULL), rk(NULL), m(NULL) {}
-  HMatrixData(ClusterTree* _rows, ClusterTree* _cols)
-  : rows(_rows), cols(_cols), rk(NULL), m(NULL) {}
-  ~HMatrixData();
-};
-
 /*! \brief The HMatrix class, representing a HMatrix.
 
   It is a tree of arity arity(ClusterTree)^2, 4 in this case.
@@ -130,6 +111,28 @@ public:
  */
 template<typename T> class HMatrix : public Tree<4> {
   friend class RkMatrix<T>;
+
+  /// Rows of this HMatrix block
+  const ClusterTree * rows_;
+  /// Columns of this HMatrix block
+  const ClusterTree * cols_;
+  union {
+   /// Compressed block, or NULL if the block is not a leaf or is full.
+   RkMatrix<T> * rk_;
+   /// Full block, or NULL if the block is not a leaf or is compressed.
+   FullMatrix<T> * full_;
+  };
+  /// -3 for an unitialized matrix, -2 for non leaf, -1 for full a matrix
+  int rank_;
+  void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
+  /*! \brief Auxiliary function used by HMatrix::dumpTreeToFile().
+   */
+  void dumpSubTree(std::ofstream& f, int depth, const HMatrixNodeDumper<T>& nodeDumper) const;
+  /** Only used by internalCopy */
+  HMatrix(const MatrixSettings * settings);
 public:
   /*! \brief Create a HMatrix based on a row and column ClusterTree.
 
@@ -139,6 +142,14 @@ public:
   HMatrix(ClusterTree* _rows, ClusterTree* _cols, const MatrixSettings * settings,
        SymmetryFlag symmetryFlag = kNotSymmetric,
        AdmissibilityCondition * admissibilityCondition = &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
+
+  /*! \brief Create a copy of this matrix for internal use only.
+   * Only copy this node, not the whole tree. The created matrix
+   * is an uninitialized leaf with same rows and cols as this.
+   */
+  HMatrix<T> * internalCopy(bool temporary = false, bool withChildren = false) const;
+  ~HMatrix();
+
   /*! \brief HMatrix assembly.
    */
   void assemble(Assembly<T>& f);
@@ -305,15 +316,7 @@ public:
    */
   void ldltDecomposition();
   void lltDecomposition();
-private:
-  /*! \brief Auxiliary function used by HMatrix::dumpTreeToFile().
-   */
-  void dumpSubTree(std::ofstream& f, int depth, const HMatrixNodeDumper<T>& nodeDumper) const;
 
-public:
-  /*! \brief Build a "fake" HMatrix for internal use only
-   */
-  HMatrix(const MatrixSettings * settings);
   /** This <- This + alpha * b
 
       \param alpha
@@ -337,18 +340,18 @@ public:
   /*! Return true if this is a full block.
    */
   inline bool isFullMatrix() const {
-    return isLeaf() && data.m;
-  };
+    return rank_ == -1 && full_ != NULL;
+  }
   /* Return the full matrix corresponding to the current leaf
    */
   FullMatrix<T>* getFullMatrix() const {
     assert(isFullMatrix());
-    return data.m;
+    return full_;
   }
   /*! Return true if this is a compressed block.
    */
   inline bool isRkMatrix() const {
-    return isLeaf() && data.rk;
+    return rank_ >= 0;
   }
   /*! \brief Return F * H (F Full, H divided)
    */
@@ -453,7 +456,7 @@ public:
   void checkNan() const;
   /** Recursively set the isTriLower flag on this matrix */
   void setTriLower(bool value);
-public:
+
   const ClusterData* rows() const;
   const ClusterData* cols() const;
 
@@ -510,7 +513,6 @@ public:
   */
   void extractDiagonal(T* diag, int size) const;
 
-public:
   /// Should try to coarsen the matrix at assembly
   static bool coarsening;
   /// Should recompress the matrix after assembly
@@ -523,17 +525,52 @@ public:
   static bool validationDump;
   /// Error threshold for the compression validation
   static double validationErrorThreshold;
-  HMatrixData<T> data;
   char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
        admissible:1, temporary:1;
   LocalSettings localSettings;
 
-private:
-  void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
-  void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
-  void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
-  HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
+  int rank() const {
+      myAssert(rank_ >= 0);
+      return rank_;
+  }
+
+  RkMatrix<T> * rk() const {
+      strongAssert(rank_ >= 0);
+      return rk_;
+  }
+
+  void rk(RkMatrix<T> * m) {
+      rk_ = m;
+      rank_ = m->rank();
+  }
+
+  FullMatrix<T> * full() const {
+      strongAssert(rank_ == -1);
+      return full_;
+  }
+
+  void full(FullMatrix<T> * m) {
+      full_ = m;
+      rank_ = -1;
+  }
+
+  bool isNull() const {
+      strongAssert(rank_ >= -1);
+      return rank_ == 0 || (rank_ == -1 && full_ == NULL);
+  }
+
+  bool isAssembled() const {
+      return rank_ > -3;
+  }
+
+  const ClusterTree * rowsTree() const {
+      return rows_;
+  }
+
+  const ClusterTree * colsTree() const {
+      return cols_;
+  }
 
 #ifdef DEBUG_LDLT
   /*  \brief verifie que la matrice est bien Lower i.e. avec des fils NULL au-dessus

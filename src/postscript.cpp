@@ -164,8 +164,8 @@ void PostscriptDumper<T>::drawMatrix(const Tree<4> * tree, const HMatrix<T> * m,
     int lengthY = -m->rows()->size();
 
     if (m->isLeaf()) {
-        if (m->isRkMatrix() && m->data.rk->a) {
-            pair<size_t, size_t> p = m->data.rk->compressionRatio();
+        if (m->isRkMatrix() && !m->isNull()) {
+            pair<size_t, size_t> p = m->rk()->compressionRatio();
             double ratio = p.first / ((double) p.second);
             double color = 0;
             if (ratio < .20) {
@@ -179,7 +179,7 @@ void PostscriptDumper<T>::drawMatrix(const Tree<4> * tree, const HMatrix<T> * m,
             f << " 0 " << color << " 0 "
               << " greenrectangle" << endl;
             f << startX << " " << startY + (lengthY * .95) << " " << .7 * std::min(lengthX, - lengthY)
-              << " (" << m->data.rk->k << ") showrank" << endl;
+              << " (" << m->rank() << ") showrank" << endl;
         } else if (m->isFullMatrix()) {
             f << 0 << " "<< -lengthY << " "
               << -lengthX << " " << 0 << " "

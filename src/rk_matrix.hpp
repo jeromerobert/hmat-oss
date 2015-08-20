@@ -74,13 +74,21 @@ public:
 
 
 template<typename T> class RkMatrix {
+
+  /**  Swaps members of two RkMatrix instances.
+       Since rows and cols are constant, they cannot be swaped and
+       the other instance must have the same members.
+
+       \param other  other RkMatrix instance.
+  */
+  void swap(RkMatrix<T>& other);
+
 public:
   const IndexSet *rows;
   const IndexSet *cols;
   // A B^t
   FullMatrix<T>* a;
   FullMatrix<T>* b;
-  int k; /// Rank
   CompressionMethod method; /// Method used to compress this RkMatrix
 
 public:
@@ -91,7 +99,6 @@ public:
   // Type double precision associated to T
   typedef typename Types<T>::dp dp_t;
 
-public:
   /** Construction of a RkMatrix .
 
        A Rk-matrix is a compressed representation of a matrix of size
@@ -107,13 +114,11 @@ public:
            FullMatrix<T>* _b, const IndexSet* _cols,
            CompressionMethod _method);
   ~RkMatrix();
-  /**  Swaps members of two RkMatrix instances.
-       Since rows and cols are constant, they cannot be swaped and
-       the other instance must have the same members.
 
-       \param other  other RkMatrix instance.
-   */
-  void swap(RkMatrix<T>& other);
+  int rank() const {
+      return a ? a->cols : 0;
+  }
+
   /**  Gives a pointer to a RkMatrix representing a subset of indices.
        The pointer is supposed to be read-only (for efficiency reasons).
 

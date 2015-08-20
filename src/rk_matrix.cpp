@@ -65,7 +65,6 @@ template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _r
     cols(_cols),
     a(_a),
     b(_b),
-    k(0),
     method(_method)
 {
 
@@ -73,11 +72,8 @@ template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _r
   if ((!a) && (!b)) {
     return;
   }
-  k = _a->cols;
   myAssert(a->rows == rows->size());
-  myAssert(a->cols == k);
   myAssert(b->rows == cols->size());
-  myAssert(b->cols == k);
 }
 
 template<typename T> RkMatrix<T>::~RkMatrix() {
@@ -93,7 +89,7 @@ template<typename T> RkMatrix<T>::~RkMatrix() {
 
 template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {
   // Special case of the empty matrix, assimilated to the zero matrix.
-  if (k == 0) {
+  if (rank() == 0) {
     return FullMatrix<T>::Zero(rows->size(), cols->size());
   }
   FullMatrix<T>* result = new FullMatrix<T>(a->rows, b->rows);
@@ -110,7 +106,7 @@ template<typename T> void RkMatrix<T>::scale(T alpha) {
 
 template<typename T>
 void RkMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
-  if (k == 0) {
+  if (rank() == 0) {
     if (beta != Constants<T>::pone) {
       y->scale(beta);
     }
@@ -135,19 +131,19 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
   myAssert(subCols->isSubset(*cols));
   FullMatrix<T>* subA = NULL;
   FullMatrix<T>* subB = NULL;
-  if(k > 0) {
+  if(rank() > 0) {
     // The offset in the matrix, and not in all the indices
     int rowsOffset = subRows->offset() - rows->offset();
     int colsOffset = subCols->offset() - cols->offset();
-    subA = new FullMatrix<T>(a->m + rowsOffset, subRows->size(), k, a->lda);
-    subB = new FullMatrix<T>(b->m + colsOffset, subCols->size(), k, b->lda);
+    subA = new FullMatrix<T>(a->m + rowsOffset, subRows->size(), rank(), a->lda);
+    subB = new FullMatrix<T>(b->m + colsOffset, subCols->size(), rank(), b->lda);
   }
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
 
 template<typename T> std::pair<size_t, size_t> RkMatrix<T>::compressionRatio() {
-  std::pair<size_t, size_t> result = std::pair<size_t, size_t>(0, 0);
-  result.first = rows->size() * k + cols->size() * k;
+  std::pair<size_t, size_t> result(0, 0);
+  result.first = rows->size() * rank() + cols->size() * rank();
   result.second = rows->size() * cols->size();
   return result;
 }
@@ -155,18 +151,18 @@ template<typename T> std::pair<size_t, size_t> RkMatrix<T>::compressionRatio() {
 template<typename T> void RkMatrix<T>::truncate() {
   DECLARE_CONTEXT;
 
-  if (k == 0) {
+  if (rank() == 0) {
     myAssert(!(a || b));
     return;
   }
 
-  myAssert(rows->size() >= k);
+  myAssert(rows->size() >= rank());
   // Case: more columns than one dimension of the matrix.
   // In this case, the calculation of the SVD of the matrix "R_a R_b^t" is more
   // expensive than computing the full SVD matrix. We make then a full matrix conversion,
   // and compress it with RkMatrix::fromMatrix().
   // TODO: in this case, the epsilon of recompression is not respected
-  if (k > std::min(rows->size(), cols->size())) {
+  if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
     RkMatrix<T>* rk = compressMatrix(tmp, rows, cols);
     // "Move" rk into this, and delete the old "this".
@@ -218,8 +214,8 @@ template<typename T> void RkMatrix<T>::truncate() {
     //
     // However, there is no multiplication of two triangular matrices in BLAS,
     // left matrix must be converted into full matrix first.
-    FullMatrix<T> rAFull(k, k);
-    for (int col = 0; col < k; col++) {
+    FullMatrix<T> rAFull(rank(), rank());
+    for (int col = 0; col < rank(); col++) {
       for (int row = 0; row <= col; row++) {
         rAFull.get(row, col) = a->get(row, col);
       }
@@ -233,10 +229,10 @@ template<typename T> void RkMatrix<T>::truncate() {
   }
 
   // Control of approximation
-  int newK = approx.findK(sigma->v, k, approx.recompressionEpsilon);
+  int newK = approx.findK(sigma->v, rank(), approx.recompressionEpsilon);
 
   // We put the root of singular values in sigma
-  for (int i = 0; i < k; i++) {
+  for (int i = 0; i < rank(); i++) {
     sigma->v[i] = sqrt(sigma->v[i]);
   }
 
@@ -245,7 +241,7 @@ template<typename T> void RkMatrix<T>::truncate() {
   FullMatrix<T>* newA = FullMatrix<T>::Zero(rows->size(), newK);
   for (int col = 0; col < newK; col++) {
     T alpha = sigma->v[col];
-    for (int row = 0; row < k; row++) {
+    for (int row = 0; row < rank(); row++) {
       newA->get(row, col) = u->get(row, col) * alpha;
     }
   }
@@ -260,7 +256,7 @@ template<typename T> void RkMatrix<T>::truncate() {
   // Copy with transposing
   for (int col = 0; col < newK; col++) {
     T alpha = sigma->v[col];
-    for (int row = 0; row < k; row++) {
+    for (int row = 0; row < rank(); row++) {
       newB->get(row, col) = vt->get(col, row) * alpha;
     }
   }
@@ -273,7 +269,6 @@ template<typename T> void RkMatrix<T>::truncate() {
   a = newA;
   delete b;
   b = newB;
-  k = newK;
 }
 
 // Swap members with members from another instance.
@@ -284,7 +279,6 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
   myAssert(cols == other.cols);
   std::swap(a, other.a);
   std::swap(b, other.b);
-  std::swap(k, other.k);
   std::swap(method, other.method);
 }
 
@@ -320,8 +314,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   DECLARE_CONTEXT;
   // If only one of the parts is non-zero, then the recompression is not necessary to
   // get exactly the same result.
-  int notNullParts = (k == 0 ? 0 : 1);
-  int kTotal = k;
+  int notNullParts = (rank() == 0 ? 0 : 1);
+  int kTotal = rank();
   CompressionMethod minMethod = method;
   for (int i = 0; i < n; i++) {
     // Check that partial RkMatrix indices are subsets of their global indices set.
@@ -333,9 +327,9 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
 
     myAssert(parts[i]->rows->isSubset(*rows));
     myAssert(parts[i]->cols->isSubset(*cols));
-    kTotal += parts[i]->k;
+    kTotal += parts[i]->rank();
     minMethod = std::min(minMethod, parts[i]->method);
-    if (parts[i]->k != 0) {
+    if (parts[i]->rank() != 0) {
       notNullParts += 1;
     }
   }
@@ -366,7 +360,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   FullMatrix<T>* resultB = new FullMatrix<T>(cols->size(), kTotal);
   resultB->clear();
   // Special case if the original matrix is empty.
-  if (k > 0) {
+  if (rank() > 0) {
     resultA->copyMatrixAtOffset(a, 0, 0);
     resultB->copyMatrixAtOffset(b, 0, 0);
   }
@@ -378,11 +372,11 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // for rows, and size
   //      parts [i] -> rows-> nx parts [i] -> k (rows x columns)
   // Same for columns.
-  int kOffset = k;
+  int kOffset = rank();
   for (int i = 0; i < n; i++) {
     int rowOffset = parts[i]->rows->offset() - rows->offset();
     int rowCount = parts[i]->rows->size();
-    int colCount = parts[i]->k;
+    int colCount = parts[i]->rank();
     if ((rowCount == 0) || (colCount == 0)) {
       continue;
     }
@@ -395,7 +389,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     }
     rowOffset = parts[i]->cols->offset() - cols->offset();
     resultB->copyMatrixAtOffset(parts[i]->b, rowOffset, kOffset);
-    kOffset += parts[i]->k;
+    kOffset += parts[i]->rank();
   }
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
   if (notNullParts > 1) {
@@ -509,7 +503,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
   //   m =h.data.bt->data.second->data.n
   // So H^t size is m x n and the product is m x cols(B)
   // and the number of columns of B is k.
-  int p = rk->k;
+  int p = rk->rank();
 
   myAssert(b->cols == p);
   FullMatrix<T>* resB = new FullMatrix<T>(transH == 'N' ? h->cols()->size() : h->rows()->size(), p);
@@ -525,7 +519,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
                                       const HMatrix<T>* h, const RkMatrix<T>* rk) {
 
   DECLARE_CONTEXT;
-  if (rk->k == 0) {
+  if (rk->rank() == 0) {
     const IndexSet* newRows = ((transH == 'N') ? h-> rows() : h->cols());
     const IndexSet* newCols = ((transR == 'N') ? rk->cols : rk->rows);
     return new RkMatrix<T>(NULL, newRows, NULL, newCols, rk->method);
@@ -544,8 +538,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   }
   const IndexSet *rkCols = ((transR == 'N' )? rk->cols : rk->rows);
   int n = ((transH == 'N')? h->rows()->size() : h->cols()->size());
-  myAssert(a->cols == rk->k);
-  int p = rk->k;
+  int p = rk->rank();
   FullMatrix<T>* resA = new FullMatrix<T>(n, p);
   resA->clear();
   h->gemv(transH, Constants<T>::pone, a, Constants<T>::zero, resA);
@@ -574,8 +567,8 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
 
   myAssert(Ab->rows == Ba->rows); // compatibility of the multiplication
 
-  FullMatrix<T>* tmp = new FullMatrix<T>(a->k, b->k);
-  FullMatrix<T>* newA = new FullMatrix<T>(Aa->rows, b->k);
+  FullMatrix<T>* tmp = new FullMatrix<T>(a->rank(), b->rank());
+  FullMatrix<T>* newA = new FullMatrix<T>(Aa->rows, b->rank());
 
   myAssert(tmp->rows == Ab->cols);
   myAssert(tmp->cols == Ba->cols);
@@ -597,7 +590,7 @@ size_t RkMatrix<T>::computeRkRkMemorySize(char transA, char transB,
     FullMatrix<T>* Bb = (transB == 'N' ? b->b : b->a);
     FullMatrix<T>* Aa = (transA == 'N' ? a->a : a->b);
     return Bb == NULL ? 0 : Bb->memorySize() +
-           Aa == NULL ? 0 : Aa->rows * b->k * sizeof(T);
+           Aa == NULL ? 0 : Aa->rows * b->rank() * sizeof(T);
 }
 
 template<typename T>
@@ -617,7 +610,7 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
 
   // left multiplication by d of b (if M<-M*D : left = false) or a (if M<-D*M : left = true)
   FullMatrix<T>* aOrB = (left ? a : b);
-  for (int j = 0; j < k; j++) {
+  for (int j = 0; j < rank(); j++) {
     for (int i = 0; i < aOrB->rows; i++) {
       aOrB->get(i, j) *= diag[i];
     }
@@ -658,8 +651,8 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     RkMatrix<T>* rk = NULL;
     // One of the product matrix is a leaf
     if (ha->isRkMatrix() || hb->isRkMatrix()) {
-      if ((ha->isRkMatrix() && ha->data.rk->k == 0)
-          || (hb->isRkMatrix() && hb->data.rk->k == 0)) {
+      if ((ha->isRkMatrix() && ha->isNull())
+          || (hb->isRkMatrix() && hb->isNull())) {
         return;
       }
       rk = HMatrix<T>::multiplyRkMatrix(transHA, transHB, ha, hb);
@@ -680,18 +673,13 @@ template<typename T> void RkMatrix<T>::copy(RkMatrix<T>* o) {
   delete b;
   rows = o->rows;
   cols = o->cols;
-  k = o->k;
-  if (k != 0) {
-    myAssert(o->a);
-    myAssert(o->b);
-  }
   a = (o->a ? o->a->copy() : NULL);
   b = (o->b ? o->b->copy() : NULL);
 }
 
 
 template<typename T> void RkMatrix<T>::checkNan() const {
-  if (k == 0) {
+  if (rank() == 0) {
     return;
   }
   a->checkNan();

@@ -755,7 +755,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
            << "|M|  = " << fullNorm << std::endl
            << "|Rk| = " << approxNorm << std::endl
            << "|M - Rk| / |M| = " << diffNorm / fullNorm << std::endl
-           << "Rank = " << rk->k << " / " << min(full->rows, full->cols) << std::endl << std::endl;
+           << "Rank = " << rk->rank() << " / " << min(full->rows, full->cols) << std::endl << std::endl;
 
       if (HMatrix<T>::validationReRun) {
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
