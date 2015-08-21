@@ -38,7 +38,11 @@ static void default_progress_update(hmat_progress_t * ctx) {
     std::cout.flush();
 }
 
-DefaultProgress::DefaultProgress(): delegate({0,0,default_progress_update}) {
+DefaultProgress::DefaultProgress() {
+    delegate.max = 0;
+    delegate.current = 0;
+    delegate.user_data = NULL;
+    delegate.update = default_progress_update;
 }
 
 hmat_progress_t * DefaultProgress::getInstance()
