@@ -542,7 +542,7 @@ public:
 
   void rk(RkMatrix<T> * m) {
       rk_ = m;
-      rank_ = m->rank();
+      rank_ = m == NULL ? 0 : m->rank();
   }
 
   FullMatrix<T> * full() const {
