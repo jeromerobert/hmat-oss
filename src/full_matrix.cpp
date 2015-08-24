@@ -570,7 +570,7 @@ void FullMatrix<T>::axpy(T alpha, const FullMatrix<T>* a) {
 }
 
 template<typename T>
-double FullMatrix<T>::norm() const {
+double FullMatrix<T>::normSqr() const {
   size_t size = ((size_t) rows) * cols;
   T result = Constants<T>::zero;
 
@@ -582,9 +582,12 @@ double FullMatrix<T>::norm() const {
   for (int col = 0; col < cols; col++) {
     result += proxy_cblas_convenience::dot_c(rows, m + col * lda, 1, m + col * lda, 1);
   }
-  return sqrt(hmat::real(result));
+  return hmat::real(result);
 }
 
+template<typename T> double FullMatrix<T>::norm() const {
+  return sqrt(normSqr());
+}
 
 template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
   int ierr;

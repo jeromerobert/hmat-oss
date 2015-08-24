@@ -524,26 +524,22 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
   }
 }
 
-template<typename T>
-double HMatrix<T>::norm() const {
+template<typename T> double HMatrix<T>::normSqr() const {
   double result = 0.;
   if (isLeaf()) {
     if (isRkMatrix()) {
-      // TODO: This is not optimized and problematic for
-      // RKMatrix of too big size.
-      FullMatrix<T>* mat = rk()->eval();
-      result = mat->norm();
-      delete mat;
+      // Approximate ||a * bt|| by ||a||*||b|| so we return a
+      // upper bound of the actual norm
+      result = rk()->a->normSqr() * rk()->b->normSqr();
     } else {
-      result = full()->norm();
+      result = full()->normSqr();
     }
   } else {
     for (int i = 0; i < 4; i++) {
       if (getChild(i)) {
-        result += pow(static_cast<HMatrix<T>*>(getChild(i))->norm(), 2.) ;
+        result += getChild(i)->normSqr();
       }
     }
-    result = sqrt(result) ;
   }
   return result;
 }

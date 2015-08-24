@@ -196,7 +196,7 @@ void DefaultEngine<T>::dumpTreeToFile(const std::string& filename, const HMatrix
 }
 
 template<typename T> double DefaultEngine<T>::norm() const {
-    return hmat->norm();
+    return sqrt(hmat->normSqr());
 }
 
 template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result) const {

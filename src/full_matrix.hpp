@@ -198,6 +198,11 @@ public:
     \param a the Matrix A
    */
   void axpy(T alpha, const FullMatrix<T>* a);
+  /*! \brief Return square of the Frobenius norm of the matrix.
+
+    \return the matrix norm.
+   */
+  double normSqr() const;
   /*! \brief Return the Frobenius norm of the matrix.
 
     \return the matrix norm.

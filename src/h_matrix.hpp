@@ -283,9 +283,9 @@ public:
       allocated) mirroring the structure of this.
    */
   HMatrix<T>* copyStructure() const;
-  /*! \brief Return the Frobenius norm of the matrix.
+  /*! \brief Return square of the Frobenius norm of the matrix.
    */
-  double norm() const;
+  double normSqr() const;
   /** Set a matrix to 0.
    */
   void clear();
