@@ -351,7 +351,8 @@ void FullMatrix<T>::ldltDecomposition() {
 
     v[j] = get(j,j);
     for (int i = 0; i < j; i++)
-      v[j] -= get(j,i) * v[i];
+      // Do not use the -= operator because it's buggy in the intel compiler
+      v[j] = v[j] - get(j,i) * v[i];
 
     get(j,j) = v[j];
     for (int i = 0; i < j; i++)
