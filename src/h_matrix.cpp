@@ -526,7 +526,7 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
 
 template<typename T> double HMatrix<T>::normSqr() const {
   double result = 0.;
-  if (isLeaf()) {
+  if (isLeaf() && !isNull()) {
     if (isRkMatrix()) {
       // Approximate ||a * bt|| by ||a||*||b|| so we return a
       // upper bound of the actual norm
@@ -534,7 +534,7 @@ template<typename T> double HMatrix<T>::normSqr() const {
     } else {
       result = full()->normSqr();
     }
-  } else {
+  } else if(!isLeaf()){
     for (int i = 0; i < 4; i++) {
       if (getChild(i)) {
         result += getChild(i)->normSqr();
