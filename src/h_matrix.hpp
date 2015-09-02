@@ -33,7 +33,6 @@
 #include "full_matrix.hpp"
 #include "cluster_tree.hpp"
 #include "admissibility.hpp"
-#include "common/my_assert.h"
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -531,12 +530,12 @@ public:
   LocalSettings localSettings;
 
   int rank() const {
-      myAssert(rank_ >= 0);
+      assert(rank_ >= 0);
       return rank_;
   }
 
   RkMatrix<T> * rk() const {
-      strongAssert(rank_ >= 0);
+      assert(rank_ >= 0);
       return rk_;
   }
 
@@ -546,7 +545,7 @@ public:
   }
 
   FullMatrix<T> * full() const {
-      strongAssert(rank_ == -1);
+      assert(rank_ == -1);
       return full_;
   }
 
@@ -556,7 +555,7 @@ public:
   }
 
   bool isNull() const {
-      strongAssert(rank_ >= -1);
+      assert(rank_ >= -1);
       return rank_ == 0 || (rank_ == -1 && full_ == NULL);
   }
 
