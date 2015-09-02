@@ -578,7 +578,7 @@ double FullMatrix<T>::normSqr() const {
   // Fast path
   if ((size < 1000000000) && (lda == rows)) {
     result += proxy_cblas_convenience::dot_c(size, m, 1, m, 1);
-    return sqrt(hmat::real(result));
+    return hmat::real(result);
   }
   for (int col = 0; col < cols; col++) {
     result += proxy_cblas_convenience::dot_c(rows, m + col * lda, 1, m + col * lda, 1);
