@@ -23,11 +23,64 @@
 #ifndef _MY_ASSERT_H
 #define _MY_ASSERT_H
 
-#include <cassert>
-#define strongAssert(x) assert(x)
-#ifdef HMAT_NO_ASSERT
-#define myAssert(x)
+#include <assert.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+
+
+#if __GNUC__
+#  define HMAT_FUNCTION __PRETTY_FUNCTION__
+#elif defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+#  define HMAT_FUNCTION __func__
+#elif defined _MSC_VER
+#  define HMAT_FUNCTION __FUNCTION__
 #else
-#define myAssert(x) assert(x)
+#  define HMAT_FUNCTION ((const char *) 0)
 #endif
+
+#ifdef __GLIBC__
+#include <execinfo.h>
+#include <unistd.h>
+inline static void hmat_backtrace(){
+    void * stack[32];
+    int n = backtrace(stack, 32);
+    backtrace_symbols_fd(stack, n, STDERR_FILENO);
+}
+#else
+  inline static void hmat_backtrace(){}
+#endif
+
+#ifdef __GNUC__
+  #define HMAT_NORETURN __attribute__((noreturn))
+#elif defined _MSC_VER
+  #define HMAT_NORETURN __declspec(noreturn)
+#else
+  #define HMAT_NORETURN
+#endif
+
+HMAT_NORETURN inline static void hmat_assert(const char * format, ...) {
+    va_list arglist;
+    va_start(arglist, format);
+    vfprintf(stderr, format, arglist);
+    va_end(arglist);
+    hmat_backtrace();
+    fprintf(stderr, "\n");
+    abort();
+}
+
+#define HMAT_ASSERT(x) do { if (!(x)) \
+    hmat_assert("\n\n[hmat] assert failure %s at %s:%d %s\n", \
+    #x, __FILE__, __LINE__, HMAT_FUNCTION); \
+    } while(0)
+
+#define HMAT_ASSERT_MSG(x, format, ...) do { if (!(x)) \
+    hmat_assert("\n\n[hmat] assert failure %s at %s:%d %s, " format "\n", \
+                #x, __FILE__, __LINE__, HMAT_FUNCTION, ## __VA_ARGS__); \
+    } while(0)
+
+// TODO to be removed
+#define strongAssert(x) HMAT_ASSERT(x)
+#define myAssert(x) assert(x)
+
 #endif
