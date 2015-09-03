@@ -24,7 +24,7 @@
 #include "assembly.hpp"
 #include "full_matrix.hpp"
 #include "common/context.hpp"
-#include "common/my_assert.h"
+#include <assert.h>
 #include <iostream>
 #include "h_matrix.hpp"
 #include "rk_matrix.hpp"
@@ -152,7 +152,7 @@ void BlockFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* 
   prepare(rows->offset(), rows->size(), cols->offset(), cols->size(), rowMapping, rowReverseMapping,
           colMapping, colReverseMapping, matrixUserData, block_info);
   // check memory leak
-  myAssert((block_info->user_data == NULL) == (block_info->release_user_data == NULL));
+  assert((block_info->user_data == NULL) == (block_info->release_user_data == NULL));
 }
 
 template<typename T>
@@ -167,7 +167,7 @@ void BlockFunction<T>::getRow(const ClusterData* rows,
                                        int rowIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
   DECLARE_CONTEXT;
-  myAssert(handle);
+  assert(handle);
   compute(handle, rowIndex, 1, 0, cols->size(), (void*) result->v);
 }
 
@@ -177,12 +177,12 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
                                        int colIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
   DECLARE_CONTEXT;
-  myAssert(handle);
+  assert(handle);
   compute(handle, 0, rows->size(), colIndex, 1, (void*) result->v);
 
   // for (int i = 0; i < rows->size(); i++) {
   //   if (result->v[i] == Constants<T>::zero) {
-  //     myAssert(false);
+  //     assert(false);
   //   }
   // }
 }

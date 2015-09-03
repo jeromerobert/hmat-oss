@@ -67,9 +67,9 @@ static void setTemplatedParameters(const HMatSettings& s) {
 
 
 void HMatSettings::setParameters() const {
-  strongAssert(assemblyEpsilon > 0.);
-  strongAssert(recompressionEpsilon > 0.);
-  strongAssert(validationErrorThreshold >= 0.);
+  HMAT_ASSERT(assemblyEpsilon > 0.);
+  HMAT_ASSERT(recompressionEpsilon > 0.);
+  HMAT_ASSERT(validationErrorThreshold >= 0.);
   setTemplatedParameters<S_t>(*this);
   setTemplatedParameters<D_t>(*this);
   setTemplatedParameters<C_t>(*this);
@@ -136,7 +136,7 @@ void DefaultEngine<T>::factorization(hmat_factorization_t t) {
       hmat->lltDecomposition();
       break;
   default:
-      strongAssert(false);
+      HMAT_ASSERT(false);
   }
 }
 
@@ -167,7 +167,7 @@ void DefaultEngine<T>::solve(FullMatrix<T>& b, hmat_factorization_t t) const {
       break;
   default:
      // not supported
-     strongAssert(false);
+     HMAT_ASSERT(false);
   }
 }
 

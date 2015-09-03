@@ -156,7 +156,7 @@ template<typename T, template <typename> class E>
 HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
   HMatInterface<T, E>* result = new HMatInterface<T, E>(NULL);
   engine.copy(result->engine);
-  strongAssert(result->engine.hmat);
+  assert(result->engine.hmat);
   return result;
 }
 

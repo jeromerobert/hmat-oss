@@ -56,7 +56,7 @@ template<> int svdCall<hmat::S_t>(int order, char jobu, char jobv, int m, int n,
       throw hmat::LapackException("gesvd", result);
   workSize = (int) workSize_S + 1;
   hmat::S_t* work = new hmat::S_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
       throw hmat::LapackException("gesvd", result);
@@ -81,7 +81,7 @@ template<> int svdCall<hmat::D_t>(int order, char jobu, char jobv, int m, int n,
       throw hmat::LapackException("gesvd", result);
   workSize = (int) workSize_D + 1;
   hmat::D_t* work = new hmat::D_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
       throw hmat::LapackException("gesvd", result);
@@ -103,7 +103,7 @@ template<> int svdCall<hmat::C_t>(int order, char jobu, char jobv, int m, int n,
       throw hmat::LapackException("gesvd", result);
   workSize = (int) workSize_C.real() + 1;
   hmat::C_t* work = new hmat::C_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
       throw hmat::LapackException("gesvd", result);
@@ -128,7 +128,7 @@ template<> int svdCall<hmat::Z_t>(int order, char jobu, char jobv, int m, int n,
       throw hmat::LapackException("gesvd", result);
   workSize = (int) workSize_Z.real() + 1;
   hmat::Z_t* work = new hmat::Z_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
   if(result != 0)
       throw hmat::LapackException("gesvd", result);
@@ -153,7 +153,7 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
   *sigma = Vector<double>::Zero(p);
   *vt = FullMatrix<T>::Zero(p, cols);
 
-  myAssert(m->lda >= m->rows);
+  assert(m->lda >= m->rows);
 
   char jobz = 'S';
   int mm = rows;
@@ -178,7 +178,7 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
   if (info) {
     cerr << "Erreur dans xGESVD: " << info << endl;
   }
-  strongAssert(!info);
+  HMAT_ASSERT(!info);
   return info;
 }
 
@@ -207,14 +207,14 @@ template<typename T> T* qrDecomposition(FullMatrix<T>* m) {
   T workSize_S;
   // int info = LAPACKE_sgeqrf(LAPACK_COL_MAJOR, rows, cols, m->m, rows, *tau);
   info = proxy_lapack::geqrf(rows, cols, m->m, rows, tau, &workSize_S, -1);
-  strongAssert(!info);
+  HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_S) + 1;
   T* work = new T[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   info = proxy_lapack::geqrf(rows, cols, m->m, rows, tau, work, workSize);
   delete[] work;
 
-  strongAssert(!info);
+  HMAT_ASSERT(!info);
   return tau;
 }
 
@@ -258,7 +258,7 @@ int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c)
   int n = c->cols;
   int k = qr->cols;
   T* a = qr->m;
-  myAssert((side == 'L') ? qr->rows == m : qr->rows == n);
+  assert((side == 'L') ? qr->rows == m : qr->rows == n);
   int ldq = qr->lda;
   int ldc = c->lda;
   int info;
@@ -271,12 +271,12 @@ int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c)
     increment_flops(Multipliers<T>::mul * muls + Multipliers<T>::add * adds);
   }
   info = proxy_lapack_convenience::or_un_mqr(side, trans, m, n, k, a, ldq, tau, c->m, ldc, &workSize_req, -1);
-  strongAssert(!info);
+  HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_req) + 1;
   T* work = new T[workSize];
-  strongAssert(work);
+  HMAT_ASSERT(work);
   info = proxy_lapack_convenience::or_un_mqr(side, trans, m, n, k, a, ldq, tau, c->m, ldc, work, workSize);
-  strongAssert(!info);
+  HMAT_ASSERT(!info);
   delete[] work;
   return 0;
 }

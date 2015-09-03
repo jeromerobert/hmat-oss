@@ -23,8 +23,8 @@
 #include "hmat/config.h"
 
 #include "context.hpp"
-#include "my_assert.h"
 
+#include <assert.h>
 #include <cstring>
 #include <cstdio>
 #include <vector>
@@ -64,7 +64,7 @@ namespace trace {
 
   void Node::enterContext(const char* name) {
     Node* current = currentNode();
-    myAssert(current);
+    assert(current);
     Node* child = current->findChild(name);
     int index = currentNodeIndex();
     void* enclosing = enclosingContext[index];
@@ -73,7 +73,7 @@ namespace trace {
       child = new Node(name, current);
       current->children.push_back(child);
     }
-    myAssert(child);
+    assert(child);
     currentNodes[index][enclosing] = child;
     current = child;
     current->data.lastEnterTime = now();
@@ -84,7 +84,7 @@ namespace trace {
     int index = currentNodeIndex();
     void* enclosing = enclosingContext[index];
     Node* current = currentNodes[index][enclosing];
-    myAssert(current);
+    assert(current);
 
     current->data.totalTime += time_diff_in_nanos(current->data.lastEnterTime, now());
 
@@ -180,7 +180,7 @@ namespace trace {
       char *name = const_cast<char*>("root");
       if (id != 0) {
         name = strdup("Worker #XXX - 0xXXXXXXXXXXXXXXXX"); // Worker ID - enclosing
-        strongAssert(name);
+        assert(name);
         sprintf(name, "Worker #%03d - %p", id, enclosing);
       }
       current = new Node(name, NULL);

@@ -103,7 +103,7 @@ void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
     case HMAT_DOUBLE_PRECISION: createCInterface<D_t, DefaultEngine>(i); break;
     case HMAT_SIMPLE_COMPLEX: createCInterface<C_t, DefaultEngine>(i); break;
     case HMAT_DOUBLE_COMPLEX: createCInterface<Z_t, DefaultEngine>(i); break;
-    default: strongAssert(false);
+    default: HMAT_ASSERT(false);
     }
 }
 
@@ -145,7 +145,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
 
 int hmat_set_parameters(hmat_settings_t* settings)
 {
-    strongAssert(settings != NULL);
+    HMAT_ASSERT(settings != NULL);
     int rc = 0;
     HMatSettings& settingsCxx = HMatSettings::getInstance();
     settingsCxx.assemblyEpsilon = settings->assemblyEpsilon;

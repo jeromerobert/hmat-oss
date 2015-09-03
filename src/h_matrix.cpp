@@ -142,8 +142,8 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
             for(int j = 0; j < 2; j++) {
                 HMatrix<T>* child = new HMatrix<T>(localSettings.global);
                 child->temporary = temporary;
-                myAssert(rows_->getChild(i) != NULL);
-                myAssert(cols_->getChild(j) != NULL);
+                assert(rows_->getChild(i) != NULL);
+                assert(cols_->getChild(j) != NULL);
                 child->rows_ = dynamic_cast<ClusterTree*>(rows_->getChild(i));
                 child->cols_ = dynamic_cast<ClusterTree*>(cols_->getChild(j));
                 child->rk(new RkMatrix<T>(NULL, &child->rows_->data,
@@ -252,7 +252,7 @@ void HMatrix<T>::assemble(Assembly<T>& f) {
     FullMatrix<T> * m = NULL;
     RkMatrix<T>* assembledRk = NULL;
     f.assemble(localSettings, *rows_, *cols_, admissible, m, assembledRk);
-    strongAssert(m == NULL || assembledRk == NULL);
+    HMAT_ASSERT(m == NULL || assembledRk == NULL);
     if(assembledRk) {
         if(rk_)
             delete rk_;
@@ -302,8 +302,8 @@ void HMatrix<T>::assemble(Assembly<T>& f) {
           delete[] children;
           children = NULL;
           rk(candidate);
-          myAssert(isLeaf());
-          myAssert(isRkMatrix());
+          assert(isLeaf());
+          assert(isRkMatrix());
         } else {
           delete candidate;
         }
@@ -319,8 +319,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
     if (!upper){
       upper = this;
     }
-    myAssert(*this->rows() == *upper->cols());
-    myAssert(*this->cols() == *upper->rows());
+    assert(*this->rows() == *upper->cols());
+    assert(*this->cols() == *upper->rows());
   }
 
   if (isLeaf()) {
@@ -363,7 +363,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           for (int j = 0; j <= i; j++) {
             HMatrix<T> *child = get(i, j);
             HMatrix<T> *upperChild = get(j, i);
-            myAssert(child != NULL);
+            assert(child != NULL);
             child->assembleSymmetric(f, upperChild);
           }
         }
@@ -410,8 +410,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
               rk(candidate);
               upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
                                         candidate->a->copy(), upper->cols(), candidate->method));
-              myAssert(isLeaf() && upper->isLeaf());
-              myAssert(isRkMatrix() && upper->isRkMatrix());
+              assert(isLeaf() && upper->isLeaf());
+              assert(isRkMatrix() && upper->isRkMatrix());
             } else {
               delete candidate;
             }
@@ -550,7 +550,7 @@ void HMatrix<T>::scale(T alpha) {
     if (isRkMatrix()) {
       rk()->scale(alpha);
     } else {
-      myAssert(isFullMatrix());
+      assert(isFullMatrix());
       full()->scale(alpha);
     }
   } else {
@@ -589,14 +589,14 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
           continue;
         else if (isLower)
         {
-          myAssert(i == 2);
+          assert(i == 2);
           child = static_cast<HMatrix<T>*>(get(1, 0));
           trans = (trans == 'N' ? 'T' : 'N');
         }
         else
         {
-          myAssert(isUpper);
-          myAssert(i == 1);
+          assert(isUpper);
+          assert(i == 1);
           child = static_cast<HMatrix<T>*>(get(0, 1));
           trans = (trans == 'N' ? 'T' : 'N');
         }
@@ -606,15 +606,15 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
       int rowsOffset = childRows->offset() - myRows->offset();
       int colsOffset = childCols->offset() - myCols->offset();
       if (trans == 'N') {
-        myAssert(colsOffset + childCols->size() <= x->rows);
-        myAssert(rowsOffset + childRows->size() <= y->rows);
+        assert(colsOffset + childCols->size() <= x->rows);
+        assert(rowsOffset + childRows->size() <= y->rows);
         FullMatrix<T> subX(x->m + colsOffset, childCols->size(), x->cols, x->lda);
         FullMatrix<T> subY(y->m + rowsOffset, childRows->size(), y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
       } else {
-        myAssert(trans == 'T');
-        myAssert(rowsOffset + childRows->size() <= x->rows);
-        myAssert(colsOffset + childCols->size() <= y->rows);
+        assert(trans == 'T');
+        assert(rowsOffset + childRows->size() <= x->rows);
+        assert(colsOffset + childCols->size() <= y->rows);
         FullMatrix<T> subX(x->m + rowsOffset, childRows->size(), x->cols, x->lda);
         FullMatrix<T> subY(y->m + colsOffset, childCols->size(), y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
@@ -676,7 +676,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     } else {
                         // x has contains both full and Rk matrices, this is not
                         // supported yet.
-                        strongAssert(false);
+                        HMAT_ASSERT(false);
                     }
                 } else {
                     RkMatrix<T>* tmp = rk()->formattedAdd(x->full(), alpha);
@@ -715,7 +715,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
         else if(x->isLeaf()){
             // X is an empty leaf, so nothing to do
         } else {
-            strongAssert(false);
+            HMAT_ASSERT(false);
         }
     }
 }
@@ -725,8 +725,8 @@ template<typename T>
 void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   DECLARE_CONTEXT;
   // this += alpha * b
-  myAssert(b->rows->isSuperSet(*rows()));
-  myAssert(b->cols->isSuperSet(*cols()));
+  assert(b->rows->isSuperSet(*rows()));
+  assert(b->cols->isSuperSet(*cols()));
 
   if (b->rank() == 0) {
     return;
@@ -773,7 +773,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
                       const IndexSet* cols) {
   DECLARE_CONTEXT;
   // this += alpha * b
-  myAssert(rows->isSuperSet(*this->rows()) && cols->isSuperSet(*this->cols()));
+  assert(rows->isSuperSet(*this->rows()) && cols->isSuperSet(*this->cols()));
   if (!isLeaf()) {
     for (int i = 0; i < 4; i++) {
       HMatrix<T>* child = static_cast<HMatrix<T>*>(getChild(i));
@@ -800,7 +800,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
     if (isFullMatrix()) {
       full()->axpy(alpha, &subMat);
     } else {
-      myAssert(isRkMatrix());
+      assert(isRkMatrix());
       rk()->axpy(alpha, &subMat);
       rank_ = rk()->rank();
     }
@@ -824,12 +824,12 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
             tmpMatrix->cols_ = cols_->slice(cols->offset(), cols->size());
         } else {
             //TODO not yet implemented but will happen
-            strongAssert(false);
+            HMAT_ASSERT(false);
         }
         return tmpMatrix;
     } else {
         //TODO not yet implemented by should not happen
-        strongAssert(false);
+        HMAT_ASSERT(false);
     }
 }
 
@@ -893,7 +893,7 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
         delete vc;
     // writing on a subset of an RkMatrix is not possible without
     // modifying the whole matrix
-    myAssert(!isRkMatrix() || vvc == this);
+    assert(!isRkMatrix() || vvc == this);
     vvc->leafGemm(transA, transB, alpha, vva, vvb, beta);
     if(vva != a)
         delete vva;
@@ -923,11 +923,11 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                     const HMatrix<T>* childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
                     const HMatrix<T>* childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
                     if (!childA && (a->isTriUpper || a->isTriLower)) {
-                        myAssert(*a->rows() == *a->cols());
+                        assert(*a->rows() == *a->cols());
                         continue;
                     }
                     if (!childB && (b->isTriUpper || b->isTriLower)) {
-                        myAssert(*b->rows() == *b->cols());
+                        assert(*b->rows() == *b->cols());
                         continue;
                     }
 
@@ -951,12 +951,12 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
 
 template<typename T> void
 HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta) {
-    myAssert((transA == 'N' ? *a->cols() : *a->rows()) == ( transB == 'N' ? *b->rows() : *b->cols())); // pour le produit A*B
-    myAssert((transA == 'N' ? *a->rows() : *a->cols()) == *this->rows()); // compatibility of A*B + this : Rows
-    myAssert((transB == 'N' ? *b->cols() : *b->rows()) == *this->cols()); // compatibility of A*B + this : columns
+    assert((transA == 'N' ? *a->cols() : *a->rows()) == ( transB == 'N' ? *b->rows() : *b->cols())); // pour le produit A*B
+    assert((transA == 'N' ? *a->rows() : *a->cols()) == *this->rows()); // compatibility of A*B + this : Rows
+    assert((transB == 'N' ? *b->cols() : *b->rows()) == *this->cols()); // compatibility of A*B + this : columns
 
     // One of the matrices is a leaf
-    myAssert(isLeaf() || a->isLeaf() || b->isLeaf());
+    assert(isLeaf() || a->isLeaf() || b->isLeaf());
 
     // the resulting matrix is not a leaf.
     if (!isLeaf()) {
@@ -974,7 +974,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         } else {
             // None of the matrices of the product is a Rk-matrix so one of them is
             // a full matrix so as the result.
-            myAssert(a->isFullMatrix() || b->isFullMatrix());
+            assert(a->isFullMatrix() || b->isFullMatrix());
             fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
         }
         // The resulting matrix is added to a H-matrix with the H-matrix class operations.
@@ -982,7 +982,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
             axpy(alpha, rkMat);
             delete rkMat;
         } else {
-            myAssert(fullMat);
+            assert(fullMat);
             axpy(alpha, fullMat, rows(), cols());
             delete fullMat;
         }
@@ -1012,10 +1012,10 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 
         // Cases a, b and c give an Hmatrix which has to be hierarchically converted into a Rkmatrix.
         // Cases c, d, e and f give a RkMatrix
-        myAssert(isRkMatrix());
-        myAssert((transA == 'N' ? *a->cols() : *a->rows()) == (transB == 'N' ? *b->rows() : *b->cols()));
-        myAssert(*rows() == (transA == 'N' ? *a->rows() : *a->cols()));
-        myAssert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
+        assert(isRkMatrix());
+        assert((transA == 'N' ? *a->cols() : *a->rows()) == (transB == 'N' ? *b->rows() : *b->cols()));
+        assert(*rows() == (transA == 'N' ? *a->rows() : *a->cols()));
+        assert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
         rk()->gemmRk(transA, transB, alpha, a, b, beta);
         rank_ = rk()->rank();
         return;
@@ -1024,7 +1024,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     // The resulting matrix is a full matrix
     FullMatrix<T>* fullMat;
     if (a->isRkMatrix() || b->isRkMatrix()) {
-        myAssert(a->isRkMatrix() || b->isRkMatrix());
+        assert(a->isRkMatrix() || b->isRkMatrix());
         if ((a->isRkMatrix() && a->isNull())
                 || (b->isRkMatrix() && b->isNull())) {
             return;
@@ -1036,7 +1036,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
     } else {
         // TODO not yet implemented
-        strongAssert(false);
+        HMAT_ASSERT(false);
     }
     if(isFullMatrix()) {
         full()->axpy(alpha, fullMat);
@@ -1057,7 +1057,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
  * @param col true to get the "b" part of the matrix
  */
 template<typename T> HMatrix<T> * HMatrix<T>::fullRkSubset(const IndexSet* subset, bool col) const {
-    myAssert(isRkMatrix() && !isNull());
+    assert(isRkMatrix() && !isNull());
     HMatrix<T> * r = this->subset(col ? this->rows() : subset, col ? subset : this->cols());
     FullMatrix<T> * a = col ? r->rk()->b : r->rk()->a;
     FullMatrix<T> * newFull = new FullMatrix<T>(a->m, a->rows, a->cols, a->lda);
@@ -1074,16 +1074,16 @@ template<typename T> HMatrix<T> * HMatrix<T>::fullRkSubset(const IndexSet* subse
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
   if ((transA == 'T') && (transB == 'T')) {
-    strongAssert(false); // This assertion is only a warning, this code has *not* been tested.
+    HMAT_ASSERT(false); // This assertion is only a warning, this code has *not* been tested.
     const ClusterData& tmp_rows = *this->rows();
     const ClusterData& tmp_cols = *this->cols();
     this->transpose();
-    myAssert(tmp_rows == *cols());
-    myAssert(tmp_cols == *rows());
+    assert(tmp_rows == *cols());
+    assert(tmp_cols == *rows());
     this->gemm('N', 'N', alpha, b, a, beta);
     this->transpose();
-    myAssert(tmp_rows == *rows());
-    myAssert(tmp_cols == *cols());
+    assert(tmp_rows == *rows());
+    assert(tmp_cols == *cols());
     return;
   }
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
@@ -1135,7 +1135,7 @@ template<typename T>
 FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
                                          const HMatrix<T>* h,
                                          const FullMatrix<T>* mat) {
-  myAssert((transH == 'N' ? h->cols()->size() : h->rows()->size())
+  assert((transH == 'N' ? h->cols()->size() : h->rows()->size())
            == (transM == 'N' ? mat->rows : mat->cols));
   FullMatrix<T>* result =
     new FullMatrix<T>((transH == 'N' ? h->rows()->size() : h->cols()->size()),
@@ -1154,7 +1154,7 @@ template<typename T>
 RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b){
   // We know that one of the matrices is a RkMatrix
   assert((transA == 'N') || (transB == 'N')); // Exclusion of the case At * Bt
-  myAssert(a->isRkMatrix() || b->isRkMatrix());
+  assert(a->isRkMatrix() || b->isRkMatrix());
   RkMatrix<T> *rk = NULL;
   // Matrices range compatibility
   if((transA == 'N') && (transB == 'N'))
@@ -1172,26 +1172,26 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
   //  - A F,  B Rk
   if (a->isRkMatrix() && !b->isLeaf()) {
     rk = RkMatrix<T>::multiplyRkH(transA, transB, a->rk(), b);
-    strongAssert(rk);
+    HMAT_ASSERT(rk);
   }
   else if (!a->isLeaf() && b->isRkMatrix()) {
     rk = RkMatrix<T>::multiplyHRk(transA, transB, a, b->rk());
-    strongAssert(rk);
+    HMAT_ASSERT(rk);
   }
   else if (a->isRkMatrix() && b->isRkMatrix()) {
     rk = RkMatrix<T>::multiplyRkRk(transA, transB, a->rk(), b->rk());
-    strongAssert(rk);
+    HMAT_ASSERT(rk);
   }
   else if (a->isRkMatrix() && b->isFullMatrix()) {
     rk = RkMatrix<T>::multiplyRkFull(transA, transB, a->rk(), b->full(), (transB == 'N' ? b->cols() : b->rows()));
-    strongAssert(rk);
+    HMAT_ASSERT(rk);
   }
   else if (a->isFullMatrix() && b->isRkMatrix()) {
     rk = RkMatrix<T>::multiplyFullRk(transA, transB, a->full(), b->rk(), (transA == 'N' ? a->rows() : a->cols()));
-    strongAssert(rk);
+    HMAT_ASSERT(rk);
   } else {
     // None of the above cases, impossible.
-    strongAssert(false);
+    HMAT_ASSERT(false);
   }
   return rk;
 }
@@ -1202,8 +1202,8 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
                                               const HMatrix<T>* b) {
   // At least one full matrix, and not RkMatrix.
   assert((transA == 'N') || (transB == 'N'));// Not for the products At*Bt
-  myAssert(a->isFullMatrix() || b->isFullMatrix());
-  myAssert(!(a->isRkMatrix() || b->isRkMatrix()));
+  assert(a->isFullMatrix() || b->isFullMatrix());
+  assert(!(a->isRkMatrix() || b->isRkMatrix()));
   FullMatrix<T> *result = NULL;
   // The cases are:
   //  - A H, B F
@@ -1211,20 +1211,20 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
   //  - A F, B F
   if (!a->isLeaf() && b->isFullMatrix()) {
     result = HMatrix<T>::multiplyHFull(transA, transB, a, b->full());
-    strongAssert(result);
+    HMAT_ASSERT(result);
   } else if (a->isFullMatrix() && !b->isLeaf()) {
     result = HMatrix<T>::multiplyFullH(transA, transB, a->full(), b);
-    strongAssert(result);
+    HMAT_ASSERT(result);
   } else if (a->isFullMatrix() && b->isFullMatrix()) {
     int aRows = ((transA == 'N')? a->full()->rows : a->full()->cols);
     int bCols = ((transB == 'N')? b->full()->cols : b->full()->rows);
     result = new FullMatrix<T>(aRows, bCols);
     result->gemm(transA, transB, Constants<T>::pone, a->full(), b->full(),
                  Constants<T>::zero);
-    strongAssert(result);
+    HMAT_ASSERT(result);
   } else {
     // None of above, impossible
-    strongAssert(false);
+    HMAT_ASSERT(false);
   }
   return result;
 }
@@ -1237,9 +1237,9 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left) {
 
 template<typename T>
 void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bool left) {
-  myAssert(*d->rows() == *d->cols());
-  myAssert(left || (*cols() == *d->rows()));
-  myAssert(!left || (*rows() == *d->cols()));
+  assert(*d->rows() == *d->cols());
+  assert(left || (*cols() == *d->rows()));
+  assert(!left || (*rows() == *d->cols()));
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!isLeaf()) {
@@ -1252,8 +1252,8 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
       get(1, 0)->multiplyWithDiagOrDiagInv(left ? d->get(1, 1) : d->get(0, 0), inverse, left);
     }
   } else if (isRkMatrix() && !isNull()) {
-    myAssert(!rk()->a->isTriUpper && !rk()->b->isTriUpper);
-    myAssert(!rk()->a->isTriLower && !rk()->b->isTriLower);
+    assert(!rk()->a->isTriUpper && !rk()->b->isTriUpper);
+    assert(!rk()->a->isTriLower && !rk()->b->isTriLower);
     rk()->multiplyWithDiagOrDiagInv(d, inverse, left);
   } else if(isFullMatrix()){
     if (d->isFullMatrix()) {
@@ -1292,7 +1292,7 @@ void HMatrix<T>::transpose() {
       swap(rk()->a, rk()->b);
       swap(rk()->rows, rk()->cols);
     } else if (isFullMatrix()) {
-      myAssert(full()->lda == full()->rows);
+      assert(full()->lda == full()->rows);
       full()->transpose();
     }
   }
@@ -1300,14 +1300,14 @@ void HMatrix<T>::transpose() {
 
 template<typename T>
 void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
-  myAssert(o);
-  myAssert(*this->rows() == *o->cols());
-  myAssert(*this->cols() == *o->rows());
-  myAssert(isLeaf() == o->isLeaf());
+  assert(o);
+  assert(*this->rows() == *o->cols());
+  assert(*this->cols() == *o->rows());
+  assert(isLeaf() == o->isLeaf());
 
   if (isLeaf()) {
     if (o->isRkMatrix()) {
-      myAssert(!isFullMatrix());
+      assert(!isFullMatrix());
       if (rk()) {
         delete rk();
       }
@@ -1316,7 +1316,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       FullMatrix<T>* newB = oRk->a ? oRk->a->copy() : NULL;
       rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method));
     } else {
-      myAssert(o->isFullMatrix());
+      assert(o->isFullMatrix());
       if (full()) {
         delete full();
       }
@@ -1325,7 +1325,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       if (oF->diagonal) {
         if (!full()->diagonal) {
           full()->diagonal = new Vector<T>(oF->rows);
-          strongAssert(full()->diagonal);
+          HMAT_ASSERT(full()->diagonal);
         }
         memcpy(full()->diagonal->v, oF->diagonal->v, oF->rows * sizeof(T));
       }
@@ -1465,15 +1465,15 @@ template<typename T>
 void HMatrix<T>::copy(const HMatrix<T>* o) {
   DECLARE_CONTEXT;
 
-  myAssert(*rows() == *o->rows());
-  myAssert(*cols() == *o->cols());
+  assert(*rows() == *o->rows());
+  assert(*cols() == *o->cols());
 
   isLower = o->isLower;
   isUpper = o->isUpper;
   isTriUpper = o->isTriUpper;
   isTriLower = o->isTriLower;
   if (isLeaf()) {
-    myAssert(o->isLeaf());
+    assert(o->isLeaf());
     if (isNull() && o->isNull()) {
       return;
     }
@@ -1483,34 +1483,34 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
     } else if (o->isRkMatrix() && !rk()) {
       rk(new RkMatrix<T>(NULL, o->rk()->rows, NULL, o->rk()->cols, o->rk()->method));
     }
-    myAssert((isRkMatrix() == o->isRkMatrix())
+    assert((isRkMatrix() == o->isRkMatrix())
            && (isFullMatrix() == o->isFullMatrix()));
     if (o->isRkMatrix()) {
       rk()->copy(o->rk());
       rank_ = rk()->rank();
     } else {
-      myAssert(isFullMatrix());
+      assert(isFullMatrix());
       if (o->full()->diagonal) {
         if (!full()->diagonal) {
           full()->diagonal = new Vector<T>(o->full()->rows);
-          strongAssert(full()->diagonal);
+          HMAT_ASSERT(full()->diagonal);
         }
         memcpy(full()->diagonal->v, o->full()->diagonal->v, o->full()->rows * sizeof(T));
       }
       full()->isTriLower = o->full()->isTriLower;
       full()->isTriUpper = o->full()->isTriUpper;
       full()->copyMatrixAtOffset(o->full(), 0, 0);
-      myAssert(full()->m);
+      assert(full()->m);
     }
   } else {
     rank_ = o->rank_;
     for (int i = 0; i < 2; i++) {
       for (int j = 0; j < 2; j++) {
         if (o->get(i, j)) {
-          myAssert(get(i, j));
+          assert(get(i, j));
           get(i, j)->copy(o->get(i, j));
         } else {
-          myAssert(!get(i, j));
+          assert(!get(i, j));
         }
       }
     }
@@ -1545,14 +1545,14 @@ void HMatrix<T>::inverse(HMatrix<T>* tmp, int depth) {
     tmp = HMatrix<T>::Zero(this);
   }
 
-  myAssert(*(rows()) == *(tmp->rows()));
-  myAssert(*(cols()) == *(tmp->cols()));
+  assert(*(rows()) == *(tmp->rows()));
+  assert(*(cols()) == *(tmp->cols()));
 
   if (this->isLeaf()) {
-    myAssert(isFullMatrix());
+    assert(isFullMatrix());
     full()->inverse();
   } else {
-    myAssert(!tmp->isLeaf());
+    assert(!tmp->isLeaf());
     HMatrix<T>* m11 = static_cast<HMatrix<T>*>(get(0, 0));
     HMatrix<T>* m21 = static_cast<HMatrix<T>*>(get(1, 0));
     HMatrix<T>* m12 = static_cast<HMatrix<T>*>(get(0, 1));
@@ -1637,7 +1637,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
       if (b->isFullMatrix()) {
         this->solveLowerTriangularLeft(b->full(), unitriangular);
       } else {
-        myAssert(b->isRkMatrix());
+        assert(b->isRkMatrix());
         if (b->isNull()) {
           return;
         }
@@ -1652,7 +1652,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
       }
     } else {
       // B isn't a leaf, then 'this' is one
-      myAssert(this->isLeaf());
+      assert(this->isLeaf());
       // Evaluate B, solve by column, and restore in the matrix
       // TODO: check if it's not too bad
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
@@ -1669,10 +1669,10 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
 template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) const {
   DECLARE_CONTEXT;
-  myAssert(*rows() == *cols());
-  myAssert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
+  assert(*rows() == *cols());
+  assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
   if (this->isLeaf()) {
-    myAssert(this->isFullMatrix());
+    assert(this->isFullMatrix());
     // LAPACK resolution
     full()->solveLowerTriangularLeft(b, unitriangular);
   } else {
@@ -1724,7 +1724,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
         //   - Xb^t U = Bb^t
         // Xb is stored without been transposed
         // it become again a resolution by column of Bb
-        myAssert(b->isRkMatrix());
+        assert(b->isRkMatrix());
         if (b->isNull()) {
           return;
         }
@@ -1739,8 +1739,8 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
       }
     } else {
       // B is not a leaf, then so is L
-      myAssert(isLeaf());
-      myAssert(isFullMatrix());
+      assert(isLeaf());
+      assert(isFullMatrix());
       // Evaluate B, solve by column and restore all in the matrix
       // TODO: check if it's not too bad
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
@@ -1801,14 +1801,14 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
       if (b->isFullMatrix()) {
         this->solveUpperTriangularLeft(b->full(), unitriangular, lowerStored);
       } else {
-        myAssert(b->isRkMatrix());
+        assert(b->isRkMatrix());
         if (!b->isNull()) {
           this->solveUpperTriangularLeft(b->rk()->a, unitriangular, lowerStored);
         }
       }
     } else {
       // B isn't a leaf, then so is L
-      myAssert(this->isLeaf());
+      assert(this->isLeaf());
       // Evaluate B, solve by column, and restore in the matrix
       // TODO: check if it's not too bad
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
@@ -1824,11 +1824,11 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
 template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
-  myAssert(*rows() == *cols());
+  assert(*rows() == *cols());
   // B is supposed given in form of a row vector, but transposed
   // so we can deal it with a subset as usual.
   if (this->isLeaf()) {
-    myAssert(this->isFullMatrix());
+    assert(this->isFullMatrix());
     FullMatrix<T>* bCopy = b->copyAndTranspose();
     full()->solveUpperTriangularRight(bCopy, unitriangular, lowerStored);
     bCopy->transpose();
@@ -1851,7 +1851,7 @@ void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular,
 template<typename T>
 void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
-  myAssert(*rows() == *cols());
+  assert(*rows() == *cols());
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, unitriangular, lowerStored);
   } else {
@@ -1888,8 +1888,8 @@ template<typename T> void HMatrix<T>::lltDecomposition() {
     if(isLeaf()) {
         full()->lltDecomposition();
     } else {
-        strongAssert(isLower);
-        strongAssert(!get(0,1));
+        HMAT_ASSERT(isLower);
+        HMAT_ASSERT(!get(0,1));
         HMatrix<T>* h11 = get(0,0);
         HMatrix<T>* h21 = get(1,0);
         HMatrix<T>* h22 = get(1,1);
@@ -1917,7 +1917,7 @@ void HMatrix<T>::luDecomposition() {
   DECLARE_CONTEXT;
 
   if (isLeaf()) {
-    myAssert(isFullMatrix());
+    assert(isFullMatrix());
     full()->luDecomposition();
     full()->checkNan();
   } else {
@@ -1951,10 +1951,10 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 #ifdef DEBUG_LDLT
   assertLower();
 #endif
-  myAssert(*d->rows() == *d->cols());       // D is square
-  myAssert(*this->rows() == *this->cols()); // this is square
-  myAssert(*m->cols() == *d->rows());       // Check if we can have the produit M*D and D*M^T
-  myAssert(*this->rows() == *m->rows());
+  assert(*d->rows() == *d->cols());       // D is square
+  assert(*this->rows() == *this->cols()); // this is square
+  assert(*m->cols() == *d->rows());       // Check if we can have the produit M*D and D*M^T
+  assert(*this->rows() == *m->rows());
 
   if(!isLeaf()) {
     HMatrix<T>* h11 = get(0,0);
@@ -1980,7 +1980,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 
       HMatrix<T>* y = Zero(m22);
       y->copy(m22);
-      myAssert(*y->cols() == *d22->rows());
+      assert(*y->cols() == *d22->rows());
       y->multiplyWithDiag(d22, false);
       h21->gemm('N', 'T', Constants<T>::mone, y, m12, Constants<T>::pone);
       delete y;
@@ -1991,8 +1991,8 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       HMatrix<T>* m_copy = Zero(m);
       m_copy->copy(m);
 
-      myAssert(*m->cols() == *d->rows());
-      myAssert(*m_copy->rk()->cols == *d->rows());
+      assert(*m->cols() == *d->rows());
+      assert(*m_copy->rk()->cols == *d->rows());
       m_copy->multiplyWithDiagOrDiagInv(d, false, false); // right multiplication by D
       RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
       delete m_copy;
@@ -2001,12 +2001,12 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       delete rkMat;
     } else if(m->isFullMatrix()){
       HMatrix<T>* copy_m = Zero(m);
-      strongAssert(copy_m);
+      HMAT_ASSERT(copy_m);
       copy_m->copy(m);
       copy_m->multiplyWithDiagOrDiagInv(d, false, false); // right multiplication by D
 
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix('N', 'T', copy_m, m);
-      strongAssert(fullMat);
+      HMAT_ASSERT(fullMat);
       delete copy_m;
 
       this->axpy(Constants<T>::mone, fullMat, rows(), cols());
@@ -2015,7 +2015,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       // m is a null matrix (either Rk or Full) so nothing to do.
     }
   } else {
-    myAssert(isFullMatrix());
+    assert(isFullMatrix());
 
     if (m->isRkMatrix() && !m->isNull()) {
       // this : full
@@ -2039,10 +2039,10 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       delete fullMat;
     } else if (m->isFullMatrix()) {
       // S <- S - M*D*M^T
-      myAssert(!full()->isTriUpper);
-      myAssert(!full()->isTriLower);
-      myAssert(!m->full()->isTriUpper);
-      myAssert(!m->full()->isTriLower);
+      assert(!full()->isTriUpper);
+      assert(!full()->isTriLower);
+      assert(!m->full()->isTriUpper);
+      assert(!m->full()->isTriLower);
       FullMatrix<T> mTmp(m->full()->rows, m->full()->cols);
       mTmp.copyMatrixAtOffset(m->full(), 0, 0);
       if (d->isFullMatrix()) {
@@ -2061,9 +2061,9 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 template<typename T>
 bool HMatrix<T>::assertLdlt() const {
   if (isLeaf()) {
-    myAssert(this->isFullMatrix());
-    myAssert(data.m->diagonal);
-    myAssert(data.m->isTriLower);
+    assert(this->isFullMatrix());
+    assert(data.m->diagonal);
+    assert(data.m->isTriLower);
     return ((data.m->diagonal != NULL) && data.m->isTriLower);
   } else
     assert(isTriLower);
@@ -2075,8 +2075,8 @@ void HMatrix<T>::assertLower() {
   if (this->isLeaf()) {
     return;
   } else {
-    myAssert(isLower);
-    myAssert(!get(0,1));
+    assert(isLower);
+    assert(!get(0,1));
     get(0,0)->assertLower(); //isLower || get(0,0)->isLeaf());
     get(1,1)->assertLower(); // isLower || get(1,1)->isLeaf());
   }
@@ -2087,8 +2087,8 @@ void HMatrix<T>::assertUpper() {
   if (this->isLeaf()) {
     return;
   } else {
-    myAssert(isUpper);
-    myAssert(!get(1,0));
+    assert(isUpper);
+    assert(!get(1,0));
     get(0,0)->assertUpper(); //isLower || get(0,0)->isLeaf());
     get(1,1)->assertUpper(); // isLower || get(1,1)->isLeaf());
     get(0,1)->assertAllocFull();
@@ -2099,7 +2099,7 @@ template<typename T>
 void HMatrix<T>::assertAllocFull() {
   if (this->isLeaf()) {
     if (isFullMatrix())
-      myAssert(data.m->m);
+      assert(data.m->m);
   } else {
     for (int i = 0; i < 2; i++)
       for (int j = 0; j < 2; j++)
@@ -2120,9 +2120,9 @@ void HMatrix<T>::ldltDecomposition() {
     //The basic case of the recursion is necessarily a full matrix leaf
     //since the recursion is done with *rows() == *cols().
 
-    myAssert(isFullMatrix());
+    assert(isFullMatrix());
     full()->ldltDecomposition();
-    myAssert(full()->diagonal);
+    assert(full()->diagonal);
   } else {
     HMatrix<T>* h11 = get(0,0);
     HMatrix<T>* h21 = get(1,0);
@@ -2133,7 +2133,7 @@ void HMatrix<T>::ldltDecomposition() {
 
     h11->ldltDecomposition();
 #ifdef DEBUG_LDLT
-    myAssert(h11->assertLdlt());
+    assert(h11->assertLdlt());
 #endif
 
     HMatrix<T>* y = Zero(h11); // H11 is lower triangular, therefore either upper or lower part is NULL
@@ -2150,8 +2150,8 @@ void HMatrix<T>::ldltDecomposition() {
     y->transpose();
     // H21 <- solution of X*Y = H21, with Y = (L11 * D11)^T give L21
     // stored in H21
-    myAssert(y->isUpper || y->isLeaf());
-    myAssert(!y->isLower);
+    assert(y->isUpper || y->isLeaf());
+    assert(!y->isLower);
     y->solveUpperTriangularRight(h21, false, false);
 #ifdef DEBUG_LDLT
     y->assertUpper();
@@ -2185,7 +2185,7 @@ template<typename T>
 void HMatrix<T>::extractDiagonal(T* diag, int size) const {
   DECLARE_CONTEXT;
   if(isLeaf()) {
-    myAssert(isFullMatrix());
+    assert(isFullMatrix());
     if(full()->diagonal) {
       // LDLt
       memcpy(diag, full()->diagonal->v, full()->rows * sizeof(T));
@@ -2195,7 +2195,7 @@ void HMatrix<T>::extractDiagonal(T* diag, int size) const {
         diag[i] = full()->m[i*full()->rows + i];
     }
   } else {
-    myAssert(size == get(0,0)->rows()->size() + get(1,1)->rows()->size());
+    assert(size == get(0,0)->rows()->size() + get(1,1)->rows()->size());
     get(0,0)->extractDiagonal(diag, get(0,0)->rows()->size());
     get(1,1)->extractDiagonal(diag + get(0,0)->rows()->size(), get(1,1)->rows()->size());
   }

@@ -79,8 +79,4 @@ HMAT_NORETURN inline static void hmat_assert(const char * format, ...) {
                 #x, __FILE__, __LINE__, HMAT_FUNCTION, ## __VA_ARGS__); \
     } while(0)
 
-// TODO to be removed
-#define strongAssert(x) HMAT_ASSERT(x)
-#define myAssert(x) assert(x)
-
 #endif

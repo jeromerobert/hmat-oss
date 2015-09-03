@@ -79,7 +79,7 @@ public:
     info.is_null_row = NULL;
     info.user_data = NULL;
     f.prepareBlock(rows, cols, &info);
-    myAssert((info.user_data == NULL) == (info.release_user_data == NULL));
+    assert((info.user_data == NULL) == (info.release_user_data == NULL));
   }
   ~ClusterAssemblyFunction() {
     f.releaseBlock(&info);
@@ -269,9 +269,9 @@ template<typename T>
 RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
                             const IndexSet* cols) {
   DECLARE_CONTEXT;
-  myAssert(m->rows == rows->size());
-  myAssert(m->cols == cols->size());
-  myAssert(m->lda >= m->rows);
+  assert(m->rows == rows->size());
+  assert(m->cols == cols->size());
+  assert(m->lda >= m->rows);
 
   //TODO replace with a case with m==NULL
   bool zeroMatrix = true;
@@ -292,7 +292,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   Vector<double>* sigma = NULL;
 
   int info = truncatedSvd<T>(m, &u, &sigma, &vt);
-  strongAssert(info == 0);
+  HMAT_ASSERT(info == 0);
   // Control of the approximation
 
   int maxK = min(rowCount, colCount);
@@ -579,7 +579,7 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
       j_star = bVec->absoluteMaxIndex();
       dp_t pivot = bVec->v[j_star];
-      strongAssert(pivot != Constants<dp_t>::zero);
+      HMAT_ASSERT(pivot != Constants<dp_t>::zero);
       // Calculate a
       block.getCol(j_star, *aVec);
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
@@ -590,7 +590,7 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
       i_star = aVec->absoluteMaxIndex();
       dp_t pivot = aVec->v[i_star];
-      strongAssert(pivot != Constants<dp_t>::zero);
+      HMAT_ASSERT(pivot != Constants<dp_t>::zero);
       // Calculate b
       block.getRow(i_star, *bVec);
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
@@ -671,7 +671,7 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
     }
   } while (k < maxK);
 
-  myAssert(k > 0);
+  assert(k > 0);
   FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(block.rows->size(), k);
   for (int i = 0; i < k; i++) {
     memcpy(newA->m + (i * newA->rows), aCols[i]->v, sizeof(dp_t) * newA->rows);
@@ -710,7 +710,7 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
     break;
   case NoCompression:
     // Must not happen
-    strongAssert(false);
+    HMAT_ASSERT(false);
     break;
   }
 
@@ -743,7 +743,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     if (isnan(approxNorm)) {
       rkFull->toFile("Rk");
       full->toFile("Full");
-      strongAssert(false);
+      HMAT_ASSERT(false);
     }
 
     rkFull->axpy(Constants<T>::mone, full);

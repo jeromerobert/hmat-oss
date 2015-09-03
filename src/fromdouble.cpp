@@ -21,7 +21,7 @@
 */
 
 #include "fromdouble.hpp"
-#include "common/my_assert.h"
+#include <assert.h>
 
 namespace hmat {
 
@@ -40,8 +40,8 @@ FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f) {
     return NULL;
   }
   FullMatrix<T>* result = new FullMatrix<T>(f->rows, f->cols);
-  strongAssert(result);
-  strongAssert(f->lda == f->rows);
+  assert(result);
+  assert(f->lda == f->rows);
   const size_t size = ((size_t) f->rows) * f->cols;
   T* const r = result->m;
   const typename Types<T>::dp* m = f->m;
