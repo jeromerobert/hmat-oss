@@ -539,6 +539,8 @@ public:
       return rk_;
   }
 
+  void rk(const FullMatrix<T> * a, const FullMatrix<T> * b);
+
   void rk(RkMatrix<T> * m) {
       rk_ = m;
       rank_ = m == NULL ? 0 : m->rank();

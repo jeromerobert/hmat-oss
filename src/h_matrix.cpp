@@ -2285,6 +2285,21 @@ template<typename T> void HMatrix<T>::setTriLower(bool value)
     }
 }
 
+template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMatrix<T> * b) {
+    assert(isRkMatrix());
+    // TODO: if the matrices exist and are of the right size (same rank),
+    // reuse them.
+    if (rk_->a) {
+      delete rk_->a;
+    }
+    if (rk_->b) {
+      delete rk_->b;
+    }
+    rk_->a = a == NULL ? NULL : a->copy();
+    rk_->b = b == NULL ? NULL : b->copy();
+    rank_ = rk_->rank();
+}
+
 // Templates declaration
 template class HMatrix<S_t>;
 template class HMatrix<D_t>;
