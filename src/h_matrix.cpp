@@ -747,6 +747,8 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       newRk = b->subset(rows(), cols());
     }
     if (isRkMatrix()) {
+      if(!rk())
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
       rk()->axpy(alpha, newRk);
       rank_ = rk()->rank();
     } else {
@@ -991,10 +993,11 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 
     // This matrix is not yet initialized but we know it will be a RkMatrix if
     // a or b is a RkMatrix
-    if(rank_ == -3 && (a->isRkMatrix() || b->isRkMatrix() ||
+    if((rank_ == -3 && (a->isRkMatrix() || b->isRkMatrix() ||
         // this choice might be bad if a or b contains lot's of full matrices
         // but this case should almost never happen
         (!a->isLeaf() && !b->isLeaf())))
+        ||(isRkMatrix() && rk() == NULL))
     {
         rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
     }
