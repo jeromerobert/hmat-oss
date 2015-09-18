@@ -246,10 +246,10 @@ HybridBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   if (children.size() != 2)
     return;
   double currentVolume = volume(current);
-  double leftVolume = volume(*children[0]);
-  double rightVolume = volume(*children[1]);
-  double maxRatio = std::max(rightVolume / currentVolume, leftVolume / currentVolume);
-  if (maxRatio > thresholdRatio_)
+  double leftVolume    = volume(*children[0]);
+  double rightVolume   = volume(*children[1]);
+  double maxVolume     = std::max(rightVolume, leftVolume);
+  if (maxVolume > thresholdRatio_*currentVolume)
   {
     children.clear();
     geometricAlgorithm_.partition(current, children);
