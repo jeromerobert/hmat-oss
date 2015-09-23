@@ -2294,6 +2294,8 @@ template<typename T> void HMatrix<T>::setTriLower(bool value)
 
 template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMatrix<T> * b) {
     assert(isRkMatrix());
+    if(a == NULL && isNull())
+        return;
     // TODO: if the matrices exist and are of the right size (same rank),
     // reuse them.
     if (rk_->a) {
