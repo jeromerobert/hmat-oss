@@ -229,7 +229,7 @@ template<typename T>
 void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* cols) {
     rows_ = rows;
     cols_ = cols;
-    if(isRkMatrix()) {
+    if(isRkMatrix() && rk()) {
         rk()->rows = &(rows->data);
         rk()->cols = &(cols->data);
     } else if(!isLeaf()) {
