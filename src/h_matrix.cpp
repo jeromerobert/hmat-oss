@@ -1644,10 +1644,10 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
       if (b->isFullMatrix()) {
         this->solveLowerTriangularLeft(b->full(), unitriangular);
       } else {
-        assert(b->isRkMatrix());
         if (b->isNull()) {
           return;
         }
+        assert(b->isRkMatrix());
         HMatrix<T> * tmp;
         if(*cols() == *b->rows())
             tmp = b;
