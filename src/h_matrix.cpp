@@ -428,11 +428,11 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
         size_t s = ((size_t)rows()->size()) * cols()->size();
         result.uncompressed_size += s;
         if(isRkMatrix()) {
-            result.compressed_size += isNull() ? 0 : rk()->compressedSize();
+            if(!isNull()) {
+                result.compressed_size += rank() * (((size_t)rows()->size()) + cols()->size());
+            }
             result.rk_count++;
             result.rk_size += s;
-            //std::cout << rank() << " " << rows()->size() << " " << cols()->size() << std::endl;
-            //std::cout << result.compressed_size << " " << result.uncompressed_size << " " <<rk()->compressedSize() << " " << s << " " << ((double)rk()->compressedSize()) / s << std::endl;
         } else {
             result.full_count ++;
             result.full_size += s;
@@ -2268,7 +2268,7 @@ template<typename T> void HMatrix<T>::setTriLower(bool value)
     }
 }
 
-template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMatrix<T> * b) {
+template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMatrix<T> * b, bool updateRank) {
     assert(isRkMatrix());
     if(a == NULL && isNull())
         return;
@@ -2282,7 +2282,8 @@ template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMat
     }
     rk_->a = a == NULL ? NULL : a->copy();
     rk_->b = b == NULL ? NULL : b->copy();
-    rank_ = rk_->rank();
+    if(updateRank)
+        rank_ = rk_->rank();
 }
 
 // Templates declaration

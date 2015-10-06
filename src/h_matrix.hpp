@@ -532,7 +532,7 @@ public:
       return rk_;
   }
 
-  void rk(const FullMatrix<T> * a, const FullMatrix<T> * b);
+  void rk(const FullMatrix<T> * a, const FullMatrix<T> * b, bool updateRank = true);
 
   void rk(RkMatrix<T> * m) {
       rk_ = m;
