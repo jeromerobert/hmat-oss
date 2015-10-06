@@ -270,13 +270,7 @@ template<typename T, template <typename> class E>
 int hmat_get_info(hmat_matrix_t* holder, hmat_info_t* info) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  std::pair<size_t, size_t> p = hmat->compressionRatio();
-  info->compressed_size       = p.first;
-  info->uncompressed_size     = p.second;
-  p                           = hmat->fullrkRatio();
-  info->full_size             = p.first;
-  info->rk_size               = p.second;
-  info->nr_block_clusters     = hmat->nodesCount();
+  hmat->info(*info);
   return 0;
 }
 

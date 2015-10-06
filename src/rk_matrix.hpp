@@ -129,7 +129,10 @@ public:
   const RkMatrix* subset(const IndexSet* subRows, const IndexSet* subCols) const;
   /** Returns the compression ratio (stored_elements, total_elements).
    */
-  std::pair<size_t, size_t> compressionRatio();
+  size_t compressedSize();
+
+  size_t uncompressedSize();
+
   /** Returns a pointer to a new matrix M = AB^t (uncompressed)
    */
   FullMatrix<T>* eval() const;

@@ -141,11 +141,12 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
 
-template<typename T> std::pair<size_t, size_t> RkMatrix<T>::compressionRatio() {
-  std::pair<size_t, size_t> result(0, 0);
-  result.first = rows->size() * rank() + cols->size() * rank();
-  result.second = rows->size() * cols->size();
-  return result;
+template<typename T> size_t RkMatrix<T>::compressedSize() {
+    return ((size_t)rows->size()) * rank() + ((size_t)cols->size()) * rank();
+}
+
+template<typename T> size_t RkMatrix<T>::uncompressedSize() {
+    return ((size_t)rows->size()) * cols->size();
 }
 
 template<typename T> void RkMatrix<T>::truncate() {

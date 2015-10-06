@@ -182,16 +182,9 @@ public:
     \param _cols Columns of the result matrix
    */
   void evalPart(FullMatrix<T>* result, const IndexSet* _rows, const IndexSet* _cols) const;
-  /*! Compute the compression ratio of the HMatrix.
 
-    \return the pair (elements_stored, total_elements).
-   */
-  std::pair<size_t, size_t> compressionRatio() const;
-  /*! Compute the full/rk ratio of the HMatrix.
+  void info(hmat_info_t &);
 
-    \return the pair (full_elements, rk_elements).
-   */
-  std::pair<size_t, size_t> fullrkRatio() const;
   /** This *= alpha
 
       \param alpha scaling factor

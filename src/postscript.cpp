@@ -165,8 +165,7 @@ void PostscriptDumper<T>::drawMatrix(const Tree<4> * tree, const HMatrix<T> * m,
 
     if (m->isLeaf()) {
         if (m->isRkMatrix() && !m->isNull()) {
-            pair<size_t, size_t> p = m->rk()->compressionRatio();
-            double ratio = p.first / ((double) p.second);
+            double ratio = m->rk()->compressedSize() / m->rk()->uncompressedSize();
             double color = 0;
             if (ratio < .20) {
                 color = 1 - 5 * ratio;

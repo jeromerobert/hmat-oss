@@ -422,52 +422,28 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
   }
 }
 
-template<typename T>
-pair<size_t, size_t> HMatrix<T>::compressionRatio() const {
-  pair<size_t, size_t> result(0, 0);
-  if (isLeaf()) {
-    result.first = rows()->size() * cols()->size();
-    if (isFullMatrix()) {
-      result.second = result.first;
-    } else if (isRkMatrix()) {
-      result = rk()->compressionRatio();
-    }
-    return result;
-  }
-  for (int i = 0; i < 4; i++) {
-    HMatrix<T> *child = static_cast<HMatrix<T>*>(getChild(i));
-    if (child) {
-      pair<size_t, size_t> p = child->compressionRatio();
-      result.first += p.first;
-      result.second += p.second;
-    }
-  }
-  return result;
-}
-
-template<typename T>
-pair<size_t, size_t> HMatrix<T>::fullrkRatio() const {
-  pair<size_t, size_t> result(0, 0);
-  if (isLeaf()) {
-    int s = rows()->size() * cols()->size();
-    if (isFullMatrix()) {
-      result.first  = s;
-      result.second = 0;
+template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
+    if(isLeaf()) {
+        result.nr_block_clusters++;
+        size_t s = ((size_t)rows()->size()) * cols()->size();
+        result.uncompressed_size += s;
+        if(isRkMatrix()) {
+            result.compressed_size += isNull() ? 0 : rk()->compressedSize();
+            result.rk_count++;
+            result.rk_size += s;
+            //std::cout << rank() << " " << rows()->size() << " " << cols()->size() << std::endl;
+            //std::cout << result.compressed_size << " " << result.uncompressed_size << " " <<rk()->compressedSize() << " " << s << " " << ((double)rk()->compressedSize()) / s << std::endl;
+        } else {
+            result.full_count ++;
+            result.full_size += s;
+        }
     } else {
-      result.first  = 0;
-      result.second = s;
+        for (int i = 0; i < 4; i++) {
+            HMatrix<T> *child = getChild(i);
+            if (child)
+                child->info(result);
+        }
     }
-    return result;
-  }
-  for (int i = 0; i < 4; i++) {
-    HMatrix<T> *child = static_cast<HMatrix<T>*>(getChild(i));
-    if (child) {
-      pair<size_t, size_t> p = child->fullrkRatio();
-      result.first += p.first;
-      result.second += p.second;
-    }
-  }
-  return result;
 }
 
 template<typename T>

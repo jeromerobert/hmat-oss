@@ -273,20 +273,13 @@ public:
   /** this <- alpha * this
    */
   void scale(T alpha);
-  /** Return the compression ratio of the HMatrix.
 
-    @note This is only meaningful once the HMatrix has been assembled.
+  /**
+   * Fill a hmat_info_t structure with information of this matrix.
+   * @note This is only meaningful once the HMatrix has been assembled.
+   */
+  void info(hmat_info_t &) const;
 
-    @return The pair (element_stored, total_element).
-  */
-  std::pair<size_t, size_t> compressionRatio() const;
-  /** Return the ratio between full and rk leaves of the HMatrix.
-
-    @note This is only meaningful once the HMatrix has been assembled.
-
-    @return The pair (full_leaves_size, rk_leaves_size).
-  */
-  std::pair<size_t, size_t> fullrkRatio() const;
   /** Create a Postscript file representing the HMatrix.
 
     The result .ps file shows the matrix structure and the compression ratio. In

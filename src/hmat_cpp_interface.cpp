@@ -27,7 +27,7 @@
 #include "common/context.hpp"
 #include "disable_threading.hpp"
 
-#include <utility>
+#include <cstring>
 
 namespace hmat {
 
@@ -180,13 +180,9 @@ void HMatInterface<T, E>::scale(T alpha) {
 }
 
 template<typename T, template <typename> class E>
-std::pair<size_t, size_t> HMatInterface<T, E>::compressionRatio() const {
-  return engine.hmat->compressionRatio();
-}
-
-template<typename T, template <typename> class E>
-std::pair<size_t, size_t> HMatInterface<T, E>::fullrkRatio() const {
-  return engine.hmat->fullrkRatio();
+void HMatInterface<T, E>::info(hmat_info_t & result) const {
+    memset(&result, 0, sizeof(hmat_info_t));
+    engine.hmat->info(result);
 }
 
 template<typename T, template <typename> class E>
