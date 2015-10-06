@@ -285,7 +285,7 @@ void HMatrix<T>::assemble(Assembly<T>& f) {
           break;
         } else {
           childrenArray[i] = child->rk();
-          childrenElements += (childrenArray[i]->rows->size()
+          childrenElements += ((size_t)childrenArray[i]->rows->size()
                                + childrenArray[i]->cols->size()) * childrenArray[i]->rank();
         }
       }
