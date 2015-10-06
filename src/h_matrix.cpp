@@ -434,6 +434,7 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
             result.rk_count++;
             result.rk_size += s;
         } else {
+            result.compressed_size += s;
             result.full_count ++;
             result.full_size += s;
         }
