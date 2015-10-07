@@ -1093,10 +1093,11 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       this->scale(beta);
     }
   }
-  if(a->isLeaf() && a->isNull())
+  if((a->isLeaf() && a->isNull()) || (b->isLeaf() && b->isNull())) {
+      if(!isAssembled())
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
       return;
-  if(b->isLeaf() && b->isNull())
-      return;
+  }
 
   // Once the scaling is done, beta is reset to 1
   // to avoid an other scaling.
