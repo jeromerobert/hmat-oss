@@ -158,9 +158,10 @@ void go(const DofCoordinates& coord, double k) {
     Configuration<T, E>().configure(hmat);
     hmat.assemble(f, kNotSymmetric, false);
     hmat.factorize(hmat_factorization_lu);
-    std::pair<size_t, size_t> compressionRatio = hmat.compressionRatio();
+    hmat_info_t info;
+    hmat.info(info);
     std::cout << "Compression Ratio = "
-              << 100 * ((double) compressionRatio.first) / compressionRatio.second
+              << 100 * ((double) info.compressed_size) / info.uncompressed_size
               << "%" << std::endl;
     hmat.createPostcriptFile("h_matrix.ps");
   }

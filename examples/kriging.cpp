@@ -157,10 +157,10 @@ int go(const char* pointsFilename) {
   settings.setParameters();
 
   hmat.assemble(f, kLowerSymmetric);
-
-  std::pair<size_t, size_t> compressionRatio = hmat.compressionRatio();
+  hmat_info_t info;
+  hmat.info(info);
   std::cout << "Compression Ratio = "
-            << 100 * ((double) compressionRatio.first) / compressionRatio.second
+            << 100 * ((double) info.compressed_size) / info.uncompressed_size
             << "%" << std::endl;
 
   std::cout << "done.\nFactorisation...";
