@@ -122,7 +122,7 @@ FullMatrix<T>::FullMatrix(int _rows, int _cols)
   size_t size = ((size_t) rows) * cols * sizeof(T);
   m = (T*) calloc(size, 1);
   REGISTER_ALLOC(m, size);
-  HMAT_ASSERT(m);
+  HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed", size);
 #ifdef POISON_ALLOCATION
   // This memory is not initialized, fill it with NaNs to force a
   // crash when using it.
