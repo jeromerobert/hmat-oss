@@ -503,6 +503,8 @@ hmat
      */
     int (*solve_lower_triangular)(hmat_matrix_t* hmatrix, int transpose, void* b, int nrhs);
 
+    hmat_value_t value_type;
+
     /** For internal use only */
     void * internal;
 

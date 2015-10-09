@@ -98,6 +98,7 @@ void hmat_delete_admissibility(hmat_admissibility_t * cond) {
 
 void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
 {
+    i->value_type = type;
     switch (type) {
     case HMAT_SIMPLE_PRECISION: createCInterface<S_t, DefaultEngine>(i); break;
     case HMAT_DOUBLE_PRECISION: createCInterface<D_t, DefaultEngine>(i); break;
