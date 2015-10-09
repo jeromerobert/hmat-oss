@@ -429,7 +429,20 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
         result.uncompressed_size += s;
         if(isRkMatrix()) {
             if(!isNull()) {
-                result.compressed_size += rank() * (((size_t)rows()->size()) + cols()->size());
+                size_t mem = rank() * (((size_t)rows()->size()) + cols()->size());
+                result.compressed_size += mem;
+                int dim = result.largest_rk_dim_cols + result.largest_rk_dim_rows;
+                if(rows()->size() + cols()->size() > dim) {
+                    result.largest_rk_dim_cols = cols()->size();
+                    result.largest_rk_dim_rows = rows()->size();
+                }
+
+                size_t old_s = ((size_t)result.largest_rk_mem_cols + result.largest_rk_mem_rows) * result.largest_rk_mem_rank;
+                if(mem > old_s) {
+                    result.largest_rk_mem_cols = cols()->size();
+                    result.largest_rk_mem_rows = rows()->size();
+                    result.largest_rk_mem_rank = rank();
+                }
             }
             result.rk_count++;
             result.rk_size += s;

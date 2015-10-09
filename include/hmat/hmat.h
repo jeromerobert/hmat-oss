@@ -220,6 +220,17 @@ typedef struct
 
   /*! Total number of block cluster tree nodes in the HMatrix */
   int nr_block_clusters;
+
+  /*! Number of rows in the largest Rk matrice with rows + cols criteria */
+  int largest_rk_dim_rows;
+  /*! Number of cols in the largest Rk matrice with rows + cols criteria */
+  int largest_rk_dim_cols;
+  /*! Number of rows in the largest Rk matrice with memory criteria */
+  int largest_rk_mem_rows;
+  /*! Number of cols in the largest Rk matrice with memory criteria */
+  int largest_rk_mem_cols;
+  /*! Rank of the largest Rk matrice with memory criteria */
+  int largest_rk_mem_rank;
 } hmat_info_t;
 
 typedef struct hmat_matrix_struct hmat_matrix_t;
