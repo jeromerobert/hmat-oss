@@ -122,7 +122,8 @@ public:
     \param handle The handle that is storing the associated data.
   */
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            hmat_block_info_t * block_info, const AllocationObserver &) const {}
+                            hmat_block_info_t * block_info, const AllocationObserver &) const
+  { initBlockInfo(block_info); }
   /*! \brief Release a block prepared with \a AssemblyFunction::releaseBlock().
 
     \param handle the handle passed to \a AssemblyFunction::releaseBlock().
