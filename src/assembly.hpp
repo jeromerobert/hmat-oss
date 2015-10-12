@@ -38,6 +38,14 @@ template<typename T> class Function;
 template<typename T> class BlockFunction;
 template<typename T> class SimpleFunction;
 
+
+/** Allow to be notified when the prepareBlock method need to allocate memory */
+class AllocationObserver {
+public:
+    virtual void allocate(size_t) const {}
+    virtual void free(size_t) const {}
+};
+
 /**
  * Abstract class, describing the creation of the H-matrix blocks
  */
@@ -52,7 +60,8 @@ public:
     virtual void assemble(const LocalSettings & settings,
                           const ClusterTree & rows, const ClusterTree & cols,
                           bool admissible,
-                          FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix ) = 0;
+                          FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
+                          const AllocationObserver & = AllocationObserver()) = 0;
 };
 
 /**
@@ -64,7 +73,8 @@ public:
     virtual void assemble(const LocalSettings & settings,
                           const ClusterTree & rows, const ClusterTree & cols,
                           bool admissible,
-                          FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix );
+                          FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
+                          const AllocationObserver & = AllocationObserver());
 protected:
     const Function<T> & function_;
 };
@@ -99,7 +109,8 @@ public:
   virtual ~Function() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
-                                                      const hmat_block_info_t * block_info=NULL) const = 0;
+                                                      const hmat_block_info_t * block_info = NULL,
+                                                      const AllocationObserver & = AllocationObserver()) const = 0;
   /*! \brief Prepare the Assembly function to optimize getRow() and getCol().
 
     In some cases, it is more efficient to tell the client code that a
@@ -111,12 +122,12 @@ public:
     \param handle The handle that is storing the associated data.
   */
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            hmat_block_info_t * block_info) const {}
+                            hmat_block_info_t * block_info, const AllocationObserver &) const {}
   /*! \brief Release a block prepared with \a AssemblyFunction::releaseBlock().
 
     \param handle the handle passed to \a AssemblyFunction::releaseBlock().
   */
-  virtual void releaseBlock(hmat_block_info_t *) const {}
+  virtual void releaseBlock(hmat_block_info_t *, const AllocationObserver & allocator) const {}
 
   /*! \brief Return a row of a matrix block.
 
@@ -150,6 +161,12 @@ public:
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const = 0;
+
+  /**
+   * \brief Initialiaze a hmat_bloc_info_t structure.
+   * Should be used in any prepareBlock implementations
+   */
+  static void initBlockInfo(hmat_block_info_t * info);
 };
 
 /** Simple \a AssemblyFunction that allows to only redefine \a AssemblyFunction::interaction().
@@ -167,7 +184,8 @@ public:
   virtual ~SimpleFunction() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
-                                                      const hmat_block_info_t * block_info=NULL) const;
+                                                      const hmat_block_info_t * block_info = NULL,
+                                                      const AllocationObserver & = AllocationObserver()) const;
   virtual void getRow(const ClusterData* rows, const ClusterData* cols,
                       int rowIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const;
@@ -186,7 +204,8 @@ private:
   int* rowReverseMapping;
   int* colMapping;
   int* colReverseMapping;
-
+  void prepareImpl(const ClusterData* rows, const ClusterData* cols,
+                   hmat_block_info_t * block_info) const;
 public:
   BlockFunction(const ClusterData* _rowData, const ClusterData* _colData,
                          void* matrixUserData,
@@ -194,10 +213,11 @@ public:
   ~BlockFunction();
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,
-                                              const hmat_block_info_t * block_info=NULL) const;
+                                              const hmat_block_info_t * block_info,
+                                              const AllocationObserver &) const;
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            hmat_block_info_t * block_info) const;
-  virtual void releaseBlock(hmat_block_info_t * block_info) const;
+                            hmat_block_info_t * block_info, const AllocationObserver &) const;
+  virtual void releaseBlock(hmat_block_info_t * block_info, const AllocationObserver &) const;
 
   virtual void getRow(const ClusterData* rows, const ClusterData* cols,
                       int rowIndex, void* handle, Vector<typename Types<T>::dp>* result) const;

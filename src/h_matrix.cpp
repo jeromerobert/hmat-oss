@@ -245,13 +245,13 @@ void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* col
 }
 
 template<typename T>
-void HMatrix<T>::assemble(Assembly<T>& f) {
+void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
   if (isLeaf()) {
     // If the leaf is admissible, matrix assembly and compression.
     // if not we keep the matrix.
     FullMatrix<T> * m = NULL;
     RkMatrix<T>* assembledRk = NULL;
-    f.assemble(localSettings, *rows_, *cols_, admissible, m, assembledRk);
+    f.assemble(localSettings, *rows_, *cols_, admissible, m, assembledRk, ao);
     HMAT_ASSERT(m == NULL || assembledRk == NULL);
     if(assembledRk) {
         if(rk_)
@@ -268,7 +268,7 @@ void HMatrix<T>::assemble(Assembly<T>& f) {
     rank_ = -2;
     for (int i = 0; i < 4; i++) {
       HMatrix<T> *child = static_cast<HMatrix*>(getChild(i));
-      child->assemble(f);
+      child->assemble(f, ao);
     }
     if (coarsening) {
       // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
@@ -314,7 +314,7 @@ void HMatrix<T>::assemble(Assembly<T>& f) {
 
 template<typename T>
 void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
-   HMatrix<T>* upper, bool onlyLower) {
+   HMatrix<T>* upper, bool onlyLower, const AllocationObserver & ao) {
   if (!onlyLower) {
     if (!upper){
       upper = this;
@@ -326,7 +326,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
   if (isLeaf()) {
     // If the leaf is admissible, matrix assembly and compression.
     // if not we keep the matrix.
-    this->assemble(f);
+    this->assemble(f, ao);
     if (isRkMatrix()) {
       if ((!onlyLower) && (upper != this)) {
         // Admissible leaf: a matrix represented by AB^t is transposed by exchanging A and B.
@@ -354,7 +354,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           if ((*rows() == *cols()) && (j > i)) {
             continue;
           }
-          get(i,j)->assembleSymmetric(f, NULL, true);
+          get(i,j)->assembleSymmetric(f, NULL, true, ao);
         }
       }
     } else {
@@ -364,7 +364,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
             HMatrix<T> *child = get(i, j);
             HMatrix<T> *upperChild = get(j, i);
             assert(child != NULL);
-            child->assembleSymmetric(f, upperChild);
+            child->assembleSymmetric(f, upperChild, false, ao);
           }
         }
       } else {
@@ -372,7 +372,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           for (int j = 0; j < 2; j++) {
             HMatrix<T> *child = get(i, j);
             HMatrix<T> *upperChild = upper->get(j, i);
-            child->assembleSymmetric(f, upperChild);
+            child->assembleSymmetric(f, upperChild, false, ao);
           }
         }
         if (coarsening) {

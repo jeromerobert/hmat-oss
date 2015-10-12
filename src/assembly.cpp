@@ -38,7 +38,8 @@ void AssemblyFunction<T>::assemble(const LocalSettings & settings,
                                      const ClusterTree &cols,
                                      bool admissible,
                                      FullMatrix<T> *&fullMatrix,
-                                     RkMatrix<T> *&rkMatrix) {
+                                     RkMatrix<T> *&rkMatrix,
+                                     const AllocationObserver & allocationObserver) {
     if (admissible) {
       // Always compress the smallest blocks using an SVD. Small blocks tend to have
       // a bad compression ratio anyways, and the SVD is not very costly in this
@@ -47,21 +48,23 @@ void AssemblyFunction<T>::assemble(const LocalSettings & settings,
       if (std::max(rows.data.size(), cols.data.size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
         method = Svd;
       }
-      RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data));
+      RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data),
+                                                          allocationObserver);
       if (HMatrix<T>::recompress) {
         rkDp->truncate();
       }
       rkMatrix = fromDoubleRk<T>(rkDp);
     } else {
-      fullMatrix = fromDoubleFull<T>(function_.assemble(&(rows.data), &(cols.data)));
+      fullMatrix = fromDoubleFull<T>(function_.assemble(&(rows.data), &(cols.data), NULL, allocationObserver));
     }
 }
 
 template<typename T>
 FullMatrix<typename Types<T>::dp>*
 SimpleFunction<T>::assemble(const ClusterData* rows,
-                                    const ClusterData* cols,
-                                    const hmat_block_info_t * block_info) const {
+                            const ClusterData* cols,
+                            const hmat_block_info_t *,
+                            const AllocationObserver &) const {
   FullMatrix<typename Types<T>::dp>* result =
     new FullMatrix<typename Types<T>::dp>(rows->size(), cols->size());
   const int* rows_indices = rows->indices() + rows->offset();
@@ -119,7 +122,8 @@ template<typename T>
 FullMatrix<typename Types<T>::dp>*
 BlockFunction<T>::assemble(const ClusterData* rows,
                                    const ClusterData* cols,
-                                   const hmat_block_info_t * block_info) const {
+                                   const hmat_block_info_t * block_info,
+                                   const AllocationObserver & allocator) const {
   DECLARE_CONTEXT;
   FullMatrix<typename Types<T>::dp>* result =
     FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
@@ -127,7 +131,7 @@ BlockFunction<T>::assemble(const ClusterData* rows,
   hmat_block_info_t local_block_info ;
 
   if (!block_info)
-    prepareBlock(rows, cols, &local_block_info);
+    prepareBlock(rows, cols, &local_block_info, allocator);
   else
     local_block_info = *block_info ;
 
@@ -135,30 +139,47 @@ BlockFunction<T>::assemble(const ClusterData* rows,
     compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->m);
 
   if (!block_info)
-    releaseBlock(&local_block_info);
+    releaseBlock(&local_block_info, allocator);
 
   return result;
 }
 
 template<typename T>
-void BlockFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
-    hmat_block_info_t * block_info) const {
-  // TODO factorize block_info init with ClusterAssemblyFunction
-  block_info->block_type = hmat_block_full;
-  block_info->release_user_data = NULL;
-  block_info->is_null_col = NULL;
-  block_info->is_null_row = NULL;
-  block_info->user_data = NULL;
-  prepare(rows->offset(), rows->size(), cols->offset(), cols->size(), rowMapping, rowReverseMapping,
-          colMapping, colReverseMapping, matrixUserData, block_info);
-  // check memory leak
-  assert((block_info->user_data == NULL) == (block_info->release_user_data == NULL));
+void Function<T>::initBlockInfo(hmat_block_info_t * info) {
+    info->block_type = hmat_block_full;
+    info->release_user_data = NULL;
+    info->is_null_col = NULL;
+    info->is_null_row = NULL;
+    info->user_data = NULL;
+    info->needed_memory = -1;
 }
 
 template<typename T>
-void BlockFunction<T>::releaseBlock(hmat_block_info_t * block_info) const {
+void BlockFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
+                                    hmat_block_info_t * block_info, const AllocationObserver & ao) const {
+    Function<T>::initBlockInfo(block_info);
+    prepareImpl(rows, cols, block_info);
+    if(block_info->needed_memory != -1) {
+        ao.allocate(block_info->needed_memory);
+        prepareImpl(rows, cols, block_info);
+    }
+    // check memory leak
+    assert((block_info->user_data == NULL) == (block_info->release_user_data == NULL));
+}
+
+template<typename T>
+void BlockFunction<T>::prepareImpl(const ClusterData* rows, const ClusterData* cols,
+    hmat_block_info_t * block_info) const {
+  prepare(rows->offset(), rows->size(), cols->offset(), cols->size(), rowMapping, rowReverseMapping,
+          colMapping, colReverseMapping, matrixUserData, block_info);
+}
+
+template<typename T>
+void BlockFunction<T>::releaseBlock(hmat_block_info_t * block_info, const AllocationObserver & ao) const {
   if(block_info->release_user_data)
     block_info->release_user_data(block_info->user_data);
+  if(block_info->needed_memory > 0)
+    ao.free(block_info->needed_memory);
 }
 
 template<typename T>

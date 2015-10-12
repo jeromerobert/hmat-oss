@@ -69,20 +69,16 @@ public:
   const ClusterData* rows;
   const ClusterData* cols;
   hmat_block_info_t info;
+  const AllocationObserver & allocationObserver_;
   ClusterAssemblyFunction(const Function<T>& _f,
-                        const ClusterData* _rows, const ClusterData* _cols)
-    : f(_f), rows(_rows), cols(_cols) {
-    // TODO factorize block_info init with BlockAssemblyFunction<T>::prepareBlock
-    info.block_type = hmat_block_full;
-    info.release_user_data = NULL;
-    info.is_null_col = NULL;
-    info.is_null_row = NULL;
-    info.user_data = NULL;
-    f.prepareBlock(rows, cols, &info);
+                          const ClusterData* _rows, const ClusterData* _cols,
+                          const AllocationObserver & allocationObserver)
+    : f(_f), rows(_rows), cols(_cols), allocationObserver_(allocationObserver) {
+    f.prepareBlock(rows, cols, &info, allocationObserver_);
     assert((info.user_data == NULL) == (info.release_user_data == NULL));
   }
   ~ClusterAssemblyFunction() {
-    f.releaseBlock(&info);
+    f.releaseBlock(&info, allocationObserver_);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
     if (info.block_type != hmat_block_sparse || !info.is_null_row(&info, index))
@@ -94,7 +90,7 @@ public:
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
     if (info.block_type != hmat_block_null)
-      return f.assemble(rows, cols, &info) ;
+      return f.assemble(rows, cols, &info, allocationObserver_) ;
     else
       // TODO return
       return FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
@@ -723,10 +719,11 @@ template<typename T>
 RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
                                           const Function<T>& f,
                                           const ClusterData* rows,
-                                          const ClusterData* cols) {
+                                          const ClusterData* cols,
+                                          const AllocationObserver & ao) {
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
-  ClusterAssemblyFunction<T> block(f, rows, cols);
+  ClusterAssemblyFunction<T> block(f, rows, cols, ao);
 
   rk = compressWithoutValidation(method, block);
 
@@ -793,10 +790,10 @@ template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const IndexSet* rows,
 template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const IndexSet* rows, const IndexSet* cols);
 template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const IndexSet* rows, const IndexSet* cols);
 
-template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols);
-template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const Function<Z_t>& f, const ClusterData* rows, const ClusterData* cols);
+template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const Function<Z_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
 
 }  // end namespace hmat
 

@@ -27,18 +27,13 @@
 
 /** Choice of the compression method.
  */
+#include "assembly.hpp"
 
 namespace hmat {
 
 enum CompressionMethod {
   Svd, AcaFull, AcaPartial, AcaPlus, NoCompression
 };
-
-// Forward declarations
-template<typename T> class Function;
-template<typename T> class FullMatrix;
-template<typename T> class RkMatrix;
-class ClusterData;
 class IndexSet;
 
 /** Compress a FullMatrix into an RkMatrix.
@@ -66,7 +61,8 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
 template<typename T>
 RkMatrix<typename Types<T>::dp>*
 compress(CompressionMethod method, const Function<T>& f,
-         const ClusterData* rows, const ClusterData* cols);
+         const ClusterData* rows, const ClusterData* cols,
+         const AllocationObserver & = AllocationObserver());
 
 }  // end namespace hmat
 #endif

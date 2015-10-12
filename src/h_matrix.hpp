@@ -151,7 +151,7 @@ public:
 
   /*! \brief HMatrix assembly.
    */
-  void assemble(Assembly<T>& f);
+  void assemble(Assembly<T>& f, const AllocationObserver & = AllocationObserver());
   /*! \brief HMatrix assembly.
 
     \param f the assembly function
@@ -160,7 +160,8 @@ public:
     \param onlyLower if true, only assemble the lower part of the matrix, ie don't copy.
    */
   void assembleSymmetric(Assembly<T>& f,
-     HMatrix<T>* upper=NULL, bool onlyLower=false);
+     HMatrix<T>* upper=NULL, bool onlyLower=false,
+     const AllocationObserver & = AllocationObserver());
   /*! \brief Evaluate the HMatrix, ie converts it to a full matrix.
 
     This conversion does the reorderng of the unknowns such that the resulting

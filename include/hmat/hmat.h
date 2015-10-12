@@ -74,6 +74,13 @@ struct hmat_block_info_t_struct {
     void (*release_user_data)(void* user_data);
     char (*is_null_row)(const struct hmat_block_info_t_struct * block_info, int i);
     char (*is_null_col)(const struct hmat_block_info_t_struct * block_info, int i);
+    /**
+     * The memory needed to assemble the block.
+     * When set to -1 the hmat_prepare_func_t should reset it to the
+     * expected value and return. The hmat_prepare_func_t will then
+     * be called a second time to run the actual preparation.
+     */
+    size_t needed_memory;
 };
 
 typedef struct hmat_block_info_t_struct hmat_block_info_t;
