@@ -63,6 +63,10 @@ typedef enum {
     hmat_factorization_llt
 } hmat_factorization_t;
 
+// -1 seems to be a good portable alternative to SIZE_T_MAX
+/** The value of hmat_block_info_t.needed_memory when unset */
+#define HMAT_NEEDED_MEMORY_UNSET -1
+
 struct hmat_block_info_t_struct {
     hmat_block_t block_type;
     /**
@@ -76,8 +80,8 @@ struct hmat_block_info_t_struct {
     char (*is_null_col)(const struct hmat_block_info_t_struct * block_info, int i);
     /**
      * The memory needed to assemble the block.
-     * When set to -1 the hmat_prepare_func_t should reset it to the
-     * expected value and return. The hmat_prepare_func_t will then
+     * When set to HMAT_NEEDED_MEMORY_UNSET the hmat_prepare_func_t should reset it
+     * to the expected value and return. The hmat_prepare_func_t will then
      * be called a second time to run the actual preparation.
      */
     size_t needed_memory;
