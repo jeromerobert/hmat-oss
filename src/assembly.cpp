@@ -207,6 +207,11 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
   //   }
   // }
 }
+template<typename T>
+void Function<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
+             hmat_block_info_t * block_info, const AllocationObserver &) const {
+   initBlockInfo(block_info);
+}
 
 
 // Template declaration
