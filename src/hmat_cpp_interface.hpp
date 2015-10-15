@@ -148,7 +148,7 @@ class HMatInterface {
   static bool initialized; ///< True if the library has been initialized.
 
 private:
-  E<T> engine;
+  E<T> engine_;
   hmat_factorization_t factorizationType;
 
 public:
@@ -314,23 +314,26 @@ public:
    */
   int nodesCount() const;
 
-  typename E<T>::Settings & engineSettings() { return engine.settings; }
+  typename E<T>::Settings & engineSettings() { return engine_.settings; }
 
   const ClusterData * rows() const {
-      return engine.hmat->rows();
+      return engine_.hmat->rows();
   }
 
   const ClusterData * cols() const {
-      return engine.hmat->cols();
+      return engine_.hmat->cols();
   }
 
   HMatrix<T> * matrix() const {
-      return engine.hmat;
+      return engine_.hmat;
   }
-private:
-  HMatInterface(HMatrix<T>* h);
+
+  const E<T> engine() const {
+      return engine_;
+  }
 
 private:
+  HMatInterface(HMatrix<T>* h);
   /// Disallow the copy
   HMatInterface(const HMatInterface<T, E>& o);
 };

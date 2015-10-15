@@ -55,33 +55,33 @@ HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, Symme
                                    AdmissibilityCondition * admissibilityCondition)
 {
   DECLARE_CONTEXT;
-  engine.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym, admissibilityCondition);
+  engine_.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym, admissibilityCondition);
 }
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>::~HMatInterface() {
-  engine.destroy();
-  delete engine.hmat;
+  engine_.destroy();
+  delete engine_.hmat;
 }
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>::HMatInterface(HMatrix<T>* h) :
-    engine(h)
+    engine_(h)
 {}
 
 //TODO remove the synchronize parameter which is parallel specific
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize, hmat_progress_t * progress) {
   DISABLE_THREADING_IN_BLOCK;
-  engine.progress(progress);
-  engine.assembly(f, sym, synchronize);
+  engine_.progress(progress);
+  engine_.assembly(f, sym, synchronize);
 }
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::factorize(hmat_factorization_t t, hmat_progress_t * progress) {
   DISABLE_THREADING_IN_BLOCK;
-  engine.progress(progress);
-  engine.factorization(t);
+  engine_.progress(progress);
+  engine_.factorization(t);
   factorizationType = t;
 }
 
@@ -89,11 +89,11 @@ template<typename T, template <typename> class E>
 void HMatInterface<T, E>::gemv(char trans, T alpha, FullMatrix<T>& x, T beta,
                             FullMatrix<T>& y) const {
   DISABLE_THREADING_IN_BLOCK;
-  reorderVector(&x, trans == 'N' ? engine.hmat->cols()->indices() : engine.hmat->rows()->indices());
-  reorderVector(&y, trans == 'N' ? engine.hmat->rows()->indices() : engine.hmat->cols()->indices());
-  engine.gemv(trans, alpha, x, beta, y);
-  restoreVectorOrder(&x, trans == 'N' ? engine.hmat->cols()->indices() : engine.hmat->rows()->indices());
-  restoreVectorOrder(&y, trans == 'N' ? engine.hmat->rows()->indices() : engine.hmat->cols()->indices());
+  reorderVector(&x, trans == 'N' ? engine_.hmat->cols()->indices() : engine_.hmat->rows()->indices());
+  reorderVector(&y, trans == 'N' ? engine_.hmat->rows()->indices() : engine_.hmat->cols()->indices());
+  engine_.gemv(trans, alpha, x, beta, y);
+  restoreVectorOrder(&x, trans == 'N' ? engine_.hmat->cols()->indices() : engine_.hmat->rows()->indices());
+  restoreVectorOrder(&y, trans == 'N' ? engine_.hmat->rows()->indices() : engine_.hmat->cols()->indices());
 }
 
 template<typename T, template <typename> class E>
@@ -101,7 +101,7 @@ void HMatInterface<T, E>::gemm(char transA, char transB, T alpha,
                             const HMatInterface<T, E>* a,
                             const HMatInterface<T, E>* b, T beta) {
     DISABLE_THREADING_IN_BLOCK;
-    engine.gemm(transA, transB, alpha, a->engine, b->engine, beta);
+    engine_.gemm(transA, transB, alpha, a->engine_, b->engine_, beta);
 }
 
 template<typename T, template <typename> class E>
@@ -127,67 +127,67 @@ void HMatInterface<T, E>::gemm(FullMatrix<T>& c, char transA, char transB, T alp
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::solve(FullMatrix<T>& b) const {
   DISABLE_THREADING_IN_BLOCK;
-  reorderVector<T>(&b, engine.hmat->cols()->indices());
-  engine.solve(b, factorizationType);
-  restoreVectorOrder<T>(&b, engine.hmat->cols()->indices());
+  reorderVector<T>(&b, engine_.hmat->cols()->indices());
+  engine_.solve(b, factorizationType);
+  restoreVectorOrder<T>(&b, engine_.hmat->cols()->indices());
 }
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::solve(HMatInterface<T, E>& b) const {
   DISABLE_THREADING_IN_BLOCK;
-  engine.solve(b.engine);
+  engine_.solve(b.engine_);
 }
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::solveLower(FullMatrix<T>& b, bool transpose) const {
   DISABLE_THREADING_IN_BLOCK;
   if (transpose)
-    reorderVector<T>(&b, engine.hmat->rows()->indices());
+    reorderVector<T>(&b, engine_.hmat->rows()->indices());
   else
-    reorderVector<T>(&b, engine.hmat->cols()->indices());
-  engine.solveLower(b, factorizationType, transpose);
+    reorderVector<T>(&b, engine_.hmat->cols()->indices());
+  engine_.solveLower(b, factorizationType, transpose);
   if (transpose)
-    restoreVectorOrder<T>(&b, engine.hmat->rows()->indices());
+    restoreVectorOrder<T>(&b, engine_.hmat->rows()->indices());
   else
-    restoreVectorOrder<T>(&b, engine.hmat->cols()->indices());
+    restoreVectorOrder<T>(&b, engine_.hmat->cols()->indices());
 }
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
   HMatInterface<T, E>* result = new HMatInterface<T, E>(NULL);
-  engine.copy(result->engine);
-  assert(result->engine.hmat);
+  engine_.copy(result->engine_);
+  assert(result->engine_.hmat);
   return result;
 }
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::transpose() {
-  engine.hmat->transpose();
-  engine.transpose();
+  engine_.hmat->transpose();
+  engine_.transpose();
 }
 
 
 template<typename T, template <typename> class E>
 double HMatInterface<T, E>::norm() const {
   DISABLE_THREADING_IN_BLOCK;
-  return engine.norm();
+  return engine_.norm();
 }
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::scale(T alpha) {
   DISABLE_THREADING_IN_BLOCK;
-  engine.hmat->scale(alpha);
+  engine_.hmat->scale(alpha);
 }
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::info(hmat_info_t & result) const {
     memset(&result, 0, sizeof(hmat_info_t));
-    engine.hmat->info(result);
+    engine_.hmat->info(result);
 }
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::createPostcriptFile(const std::string& filename) const {
-    engine.createPostcriptFile(filename);
+    engine_.createPostcriptFile(filename);
 }
 
 template<typename T, template <typename> class E>
@@ -198,13 +198,13 @@ void HMatInterface<T, E>::dumpTreeToFile(const std::string& filename) const {
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const {
-    engine.dumpTreeToFile(filename, dumper_extra);
+    engine_.dumpTreeToFile(filename, dumper_extra);
 }
 
 template<typename T, template <typename> class E>
 int HMatInterface<T, E>::nodesCount() const {
   DISABLE_THREADING_IN_BLOCK;
-  return engine.hmat->nodesCount();
+  return engine_.hmat->nodesCount();
 }
 
 } // end namespace hmat
