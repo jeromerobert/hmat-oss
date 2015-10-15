@@ -144,8 +144,7 @@ BlockFunction<T>::assemble(const ClusterData* rows,
   return result;
 }
 
-template<typename T>
-void Function<T>::initBlockInfo(hmat_block_info_t * info) {
+void initBlockInfo(hmat_block_info_t * info) {
     info->block_type = hmat_block_full;
     info->release_user_data = NULL;
     info->is_null_col = NULL;
@@ -157,7 +156,7 @@ void Function<T>::initBlockInfo(hmat_block_info_t * info) {
 template<typename T>
 void BlockFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
                                     hmat_block_info_t * block_info, const AllocationObserver & ao) const {
-    Function<T>::initBlockInfo(block_info);
+    initBlockInfo(block_info);
     prepareImpl(rows, cols, block_info);
     if(block_info->needed_memory != HMAT_NEEDED_MEMORY_UNSET) {
         ao.allocate(block_info->needed_memory);

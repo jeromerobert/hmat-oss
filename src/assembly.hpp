@@ -161,13 +161,13 @@ public:
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
                       Vector<typename Types<T>::dp>* result) const = 0;
-
-  /**
-   * \brief Initialiaze a hmat_bloc_info_t structure.
-   * Should be used in any prepareBlock implementations
-   */
-  static void initBlockInfo(hmat_block_info_t * info);
 };
+
+/**
+ * \brief Initialiaze a hmat_bloc_info_t structure.
+ * Should be used in any prepareBlock implementations
+ */
+void initBlockInfo(hmat_block_info_t * info);
 
 /** Simple \a AssemblyFunction that allows to only redefine \a AssemblyFunction::interaction().
 
