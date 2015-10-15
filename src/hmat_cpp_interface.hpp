@@ -328,7 +328,7 @@ public:
       return engine_.hmat;
   }
 
-  const E<T> engine() const {
+  const E<T> & engine() const {
       return engine_;
   }
 
