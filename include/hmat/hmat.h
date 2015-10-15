@@ -65,7 +65,7 @@ typedef enum {
 
 // -1 seems to be a good portable alternative to SIZE_T_MAX
 /** The value of hmat_block_info_t.needed_memory when unset */
-#define HMAT_NEEDED_MEMORY_UNSET -1
+#define HMAT_NEEDED_MEMORY_UNSET ((size_t)-1)
 
 struct hmat_block_info_t_struct {
     hmat_block_t block_type;

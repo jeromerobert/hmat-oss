@@ -159,7 +159,7 @@ void BlockFunction<T>::prepareBlock(const ClusterData* rows, const ClusterData* 
                                     hmat_block_info_t * block_info, const AllocationObserver & ao) const {
     Function<T>::initBlockInfo(block_info);
     prepareImpl(rows, cols, block_info);
-    if(block_info->needed_memory != static_cast<size_t>(HMAT_NEEDED_MEMORY_UNSET)) {
+    if(block_info->needed_memory != HMAT_NEEDED_MEMORY_UNSET) {
         ao.allocate(block_info->needed_memory);
         prepareImpl(rows, cols, block_info);
     }
@@ -178,7 +178,7 @@ template<typename T>
 void BlockFunction<T>::releaseBlock(hmat_block_info_t * block_info, const AllocationObserver & ao) const {
   if(block_info->release_user_data)
     block_info->release_user_data(block_info->user_data);
-  if(block_info->needed_memory != static_cast<size_t>(HMAT_NEEDED_MEMORY_UNSET))
+  if(block_info->needed_memory != HMAT_NEEDED_MEMORY_UNSET)
     ao.free(block_info->needed_memory);
 }
 
