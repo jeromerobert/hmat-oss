@@ -67,7 +67,7 @@ namespace mem_instr {
 #define REGISTER_FREE(ptr, size) do { (void)ptr; (void)size; } while (0)
 #define REGISTER_T_ALLOC(ptr, size, type) do {} while (0)
 #define REGISTER_T_FREE(ptr, size, type) do { (void)ptr; (void)size; } while (0)
-#define MEMORY_INSTRUMENTATION_TO_FILE(filename) do {} while (0)
+#define MEMORY_INSTRUMENTATION_TO_FILE(filename) while (0) { (void)filename; }
 #define MEMORY_INSTRUMENTATION_ENABLE do {} while (0)
 #define MEMORY_INSTRUMENTATION_DISABLE do {} while (0)
 #endif // __cplusplus > 199711L
