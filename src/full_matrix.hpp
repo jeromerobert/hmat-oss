@@ -40,9 +40,14 @@ namespace hmat {
   @data_types.hpp.
  */
 template<typename T> class FullMatrix {
-private:
   /*! True if the matrix owns its memory, ie has to free it upon destruction */
-  bool ownsMemory;
+  char ownsMemory:1;
+  /*! Is this matrix upper triangular? */
+  char triUpper_:1;
+  /*! Is this matrix lower triangular? */
+  char triLower_:1;
+  /// Disallow the copy
+  FullMatrix(const FullMatrix<T>& o);
 
 public:
   /// Fortran style pointer (columnwise)
@@ -57,12 +62,7 @@ public:
   int* pivots;
   /*! Diagonal in an LDL^t factored matrix */
   Vector<T>* diagonal;
-  /*! Is this matrix upper triangular? */
-  bool isTriUpper;
-  /*! Is this matrix lower triangular? */
-  bool isTriLower;
 
-public:
   /** \brief Initialize the matrix with existing data.
 
       In this case the matrix doesn't own the data (the memory is not
@@ -91,6 +91,15 @@ public:
    */
   static FullMatrix* Zero(int rows, int cols);
   ~FullMatrix();
+
+  bool isTriUpper() {
+      return triUpper_;
+  }
+
+  bool isTriLower() {
+      return triLower_;
+  }
+
   /** This <- 0.
    */
   void clear();
@@ -104,7 +113,7 @@ public:
   void transpose();
   /** Return a copy of this.
    */
-  FullMatrix<T>* copy() const;
+  FullMatrix<T>* copy(FullMatrix<T>* result = NULL) const;
   /** \brief Return a new matrix that is a transposed version of this.
    */
   FullMatrix<T>* copyAndTranspose() const;
@@ -240,10 +249,6 @@ public:
    */
   void checkNan() const;
   size_t memorySize() const;
-
-private:
-  /// Disallow the copy
-  FullMatrix(const FullMatrix<T>& o);
 };
 
 

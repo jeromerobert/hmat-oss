@@ -1250,8 +1250,8 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
       get(1, 0)->multiplyWithDiagOrDiagInv(left ? d->get(1, 1) : d->get(0, 0), inverse, left);
     }
   } else if (isRkMatrix() && !isNull()) {
-    assert(!rk()->a->isTriUpper && !rk()->b->isTriUpper);
-    assert(!rk()->a->isTriLower && !rk()->b->isTriLower);
+    assert(!rk()->a->isTriUpper() && !rk()->b->isTriUpper());
+    assert(!rk()->a->isTriLower() && !rk()->b->isTriLower());
     rk()->multiplyWithDiagOrDiagInv(d, inverse, left);
   } else if(isFullMatrix()){
     if (d->isFullMatrix()) {
@@ -1476,8 +1476,8 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
       return;
     }
     // When the matrix has not allocated but only the structure
-    if (o->isFullMatrix() && !full()) {
-      full(FullMatrix<T>::Zero(o->full()->rows, o->full()->cols));
+    if (o->isFullMatrix()) {
+      full(o->full()->copy(full()));
     } else if (o->isRkMatrix() && !rk()) {
       rk(new RkMatrix<T>(NULL, o->rk()->rows, NULL, o->rk()->cols, o->rk()->method));
     }
@@ -1486,19 +1486,6 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
     if (o->isRkMatrix()) {
       rk()->copy(o->rk());
       rank_ = rk()->rank();
-    } else {
-      assert(isFullMatrix());
-      if (o->full()->diagonal) {
-        if (!full()->diagonal) {
-          full()->diagonal = new Vector<T>(o->full()->rows);
-          HMAT_ASSERT(full()->diagonal);
-        }
-        memcpy(full()->diagonal->v, o->full()->diagonal->v, o->full()->rows * sizeof(T));
-      }
-      full()->isTriLower = o->full()->isTriLower;
-      full()->isTriUpper = o->full()->isTriUpper;
-      full()->copyMatrixAtOffset(o->full(), 0, 0);
-      assert(full()->m);
     }
   } else {
     rank_ = o->rank_;
@@ -2037,10 +2024,10 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       delete fullMat;
     } else if (m->isFullMatrix()) {
       // S <- S - M*D*M^T
-      assert(!full()->isTriUpper);
-      assert(!full()->isTriLower);
-      assert(!m->full()->isTriUpper);
-      assert(!m->full()->isTriLower);
+      assert(!full()->isTriUpper());
+      assert(!full()->isTriLower());
+      assert(!m->full()->isTriUpper());
+      assert(!m->full()->isTriLower());
       FullMatrix<T> mTmp(m->full()->rows, m->full()->cols);
       mTmp.copyMatrixAtOffset(m->full(), 0, 0);
       if (d->isFullMatrix()) {

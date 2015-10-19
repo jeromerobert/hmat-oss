@@ -77,8 +77,8 @@ namespace hmat {
 /** FullMatrix */
 template<typename T>
 FullMatrix<T>::FullMatrix(T* _m, int _rows, int _cols, int _lda)
-  : ownsMemory(false), m(_m), rows(_rows), cols(_cols), lda(_lda), pivots(NULL),
-    diagonal(NULL), isTriUpper(false), isTriLower(false) {
+  : ownsMemory(false), triUpper_(false), triLower_(false),
+    m(_m), rows(_rows), cols(_cols), lda(_lda), pivots(NULL), diagonal(NULL) {
   if (lda == -1) {
     lda = rows;
   }
@@ -117,8 +117,8 @@ template<> static void poisonArray(Z_t* array, size_t n) {
 
 template<typename T>
 FullMatrix<T>::FullMatrix(int _rows, int _cols)
-  : ownsMemory(true), rows(_rows), cols(_cols), lda(_rows), pivots(NULL),
-    diagonal(NULL), isTriUpper(false), isTriLower(false) {
+  : ownsMemory(true), triUpper_(false), triLower_(false),
+    rows(_rows), cols(_cols), lda(_rows), pivots(NULL), diagonal(NULL) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
   m = (T*) calloc(size, 1);
   REGISTER_ALLOC(m, size);
@@ -227,17 +227,18 @@ template<typename T> void FullMatrix<T>::transpose() {
     }
   }
 #endif
-  if (isTriUpper) {
-    isTriUpper = false;
-    isTriLower = true;
-  } else if (isTriLower) {
-    isTriLower = false;
-    isTriUpper = true;
+  if (triUpper_) {
+    triUpper_ = false;
+    triLower_ = true;
+  } else if (triLower_) {
+    triLower_ = false;
+    triUpper_ = true;
   }
 }
 
-template<typename T> FullMatrix<T>* FullMatrix<T>::copy() const {
-  FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
+template<typename T> FullMatrix<T>* FullMatrix<T>::copy(FullMatrix<T>* result) const {
+  if(result == NULL)
+    result = new FullMatrix<T>(rows, cols);
 
   if (lda == rows) {
     size_t size = ((size_t) rows) * cols * sizeof(T);
@@ -249,6 +250,14 @@ template<typename T> FullMatrix<T>* FullMatrix<T>::copy() const {
       memcpy(result->m + resultOffset, m + offset, rows * sizeof(T));
     }
   }
+
+  if (diagonal) {
+    if(!result->diagonal)
+      result->diagonal = new Vector<T>(rows);
+    memcpy(result->diagonal->v, diagonal->v, rows * sizeof(T));
+  }
+  result->triLower_ = triLower_;
+  result->triUpper_ = triUpper_;
   return result;
 }
 
@@ -371,8 +380,8 @@ void FullMatrix<T>::ldltDecomposition() {
       get(i,j) = Constants<T>::zero;
   }
 
-  isTriLower = true;
-  assert(!isTriUpper);
+  triLower_ = true;
+  assert(!isTriUpper());
   delete[] v;
 }
 
@@ -388,7 +397,7 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
     if(info != 0)
         // throw a pointer to be compliant with the Status class
         throw hmat::LapackException("potrf", info);
-    isTriLower = true;
+    triLower_ = true;
     for (int j = 0; j < this->cols; j++) {
         for(int i = 0; i < j; i++) {
             get(i,j) = Constants<T>::zero;
