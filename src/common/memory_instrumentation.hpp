@@ -26,49 +26,78 @@
 */
 #ifndef _MEMORY_INSTRUMENTATION_H
 #define _MEMORY_INSTRUMENTATION_H
-// We use things from C++11, so test for the standard level.
-#if ((__cplusplus > 199711L) || defined(HAVE_CPP11)) && HAVE_MEM_INSTR
 #include <string>
+#include <vector>
+#include <stdio.h>
 #include <stddef.h>
+#include "common/chrono.h"
+
 /*! \brief Memory Tracking.
 
   This system is only suited for the specific purpose of the \a HMatrix code.
  */
-namespace mem_instr {
-  /*! \brief Add an allocation to the tracking.
+namespace hmat {
 
-    \param size positive or negative integer, size in bytes.
-   */
-  void addAlloc(void* ptr, ptrdiff_t size, char type = 0);
-  /*! \brief Dumps the data to filename.
-   */
-  void toFile(const std::string& filename);
+class MemoryInstrumenter {
+public:
+    typedef ptrdiff_t mem_t ;
+    typedef size_t (*HookFunction)(void*);
+private:
+    void allocImpl(mem_t size, char type);
+    void freeImpl(mem_t size, char type);
+    std::vector<std::string> labels_;
+    std::vector<bool> cumulatives_;
+    std::vector<HookFunction> hooks_;
+    std::vector<void *> hookParams_;
+    std::string filename_;
+    FILE * output_;
+    bool enabled_;
+    Time start_;
+    mem_t fullMatrixMem_;
+public:
+    static const char FULL_MATRIX = 1;
+    static const char FIRST_AVAIL = 11;
+    MemoryInstrumenter();
+    ~MemoryInstrumenter();
+    void setFile(const std::string & filename);
+    char addType(const std::string & label, bool cumulative, HookFunction hook = NULL, void * param = NULL);
+    void alloc(size_t size, char type) {
+#ifdef HMAT_MEM_INSTR
+        allocImpl(size, type);
+#endif
+    }
 
-  void enable();
-  void disable();
+    void free(size_t size, char type) {
+#ifdef HMAT_MEM_INSTR
+        freeImpl(size, type);
+#endif
+    }
 
-  /**
-   * Return the current time with the same reference as
-   * memory instrumentation
-   */
-  size_t getNanoTime();
-  ptrdiff_t getTotal();
+    void trig() {
+#ifdef MEM_INSTR
+        allocImpl(size, -1);
+#endif
+    }
+
+    void enable();
+    void disable();
+    void finish();
+    /**
+       * Return the current time with the same reference as
+       * memory instrumentation
+       */
+    size_t nanoTime();
+
+    size_t fullMatrixMem() {
+        return fullMatrixMem_;
+    }
+
+    static MemoryInstrumenter& instance()
+    {
+        static MemoryInstrumenter INSTANCE;
+        return INSTANCE;
+    }
+};
 }
 
-#define REGISTER_ALLOC(ptr, size) mem_instr::addAlloc(ptr, +(size))
-#define REGISTER_FREE(ptr, size) mem_instr::addAlloc(ptr, -(size))
-#define REGISTER_T_ALLOC(ptr, size, type) mem_instr::addAlloc(ptr, +(size), type)
-#define REGISTER_T_FREE(ptr, size, type) mem_instr::addAlloc(ptr, -(size), type)
-#define MEMORY_INSTRUMENTATION_TO_FILE(filename) mem_instr::toFile(filename)
-#define MEMORY_INSTRUMENTATION_ENABLE mem_instr::enable()
-#define MEMORY_INSTRUMENTATION_DISABLE mem_instr::disable()
-#else
-#define REGISTER_ALLOC(ptr, size) do {} while (0)
-#define REGISTER_FREE(ptr, size) do { (void)ptr; (void)size; } while (0)
-#define REGISTER_T_ALLOC(ptr, size, type) do {} while (0)
-#define REGISTER_T_FREE(ptr, size, type) do { (void)ptr; (void)size; } while (0)
-#define MEMORY_INSTRUMENTATION_TO_FILE(filename) while (0) { (void)filename; }
-#define MEMORY_INSTRUMENTATION_ENABLE do {} while (0)
-#define MEMORY_INSTRUMENTATION_DISABLE do {} while (0)
-#endif // __cplusplus > 199711L
 #endif

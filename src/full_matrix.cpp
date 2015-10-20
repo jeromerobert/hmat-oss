@@ -121,8 +121,8 @@ FullMatrix<T>::FullMatrix(int _rows, int _cols)
     rows(_rows), cols(_cols), lda(_rows), pivots(NULL), diagonal(NULL) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
   m = (T*) calloc(size, 1);
-  REGISTER_ALLOC(m, size);
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed", size);
+  MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
 #ifdef POISON_ALLOCATION
   // This memory is not initialized, fill it with NaNs to force a
   // crash when using it.
@@ -143,7 +143,7 @@ FullMatrix<T>* FullMatrix<T>::Zero(int rows, int cols) {
 template<typename T> FullMatrix<T>::~FullMatrix() {
   if (ownsMemory) {
     size_t size = ((size_t) rows) * cols * sizeof(T);
-    REGISTER_FREE(m, size);
+    MemoryInstrumenter::instance().free(size, MemoryInstrumenter::FULL_MATRIX);
     free(m);
     m = NULL;
   }
@@ -750,7 +750,7 @@ template<typename T> Vector<T>::Vector(int _rows)
   : ownsMemory(true), rows(_rows) {
   size_t size = rows * sizeof(T);
   v = (T*) calloc(size, 1);
-  REGISTER_ALLOC(v, size);
+  MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
   HMAT_ASSERT(v);
 }
 
@@ -758,7 +758,7 @@ template<typename T> Vector<T>::~Vector() {
   if (ownsMemory) {
     size_t size = rows * sizeof(T);
     free(v);
-    REGISTER_FREE(v, size);
+    MemoryInstrumenter::instance().free(size, MemoryInstrumenter::FULL_MATRIX);
   }
   v = NULL;
 }
