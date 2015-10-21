@@ -119,7 +119,7 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
 
 #ifdef __linux__
         mallinfo_sub_sampling++;
-        if(mallinfo_sub_sampling == 10) {
+        if(mallinfo_sub_sampling >= 100) {
           global_mallinfo = mallinfo();
           mallinfo_sub_sampling = 0;
         }
