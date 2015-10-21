@@ -125,9 +125,7 @@ BlockFunction<T>::assemble(const ClusterData* rows,
                                    const hmat_block_info_t * block_info,
                                    const AllocationObserver & allocator) const {
   DECLARE_CONTEXT;
-  FullMatrix<typename Types<T>::dp>* result =
-    FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
-
+  FullMatrix<typename Types<T>::dp>* result = NULL;
   hmat_block_info_t local_block_info ;
 
   if (!block_info)
@@ -135,8 +133,10 @@ BlockFunction<T>::assemble(const ClusterData* rows,
   else
     local_block_info = *block_info ;
 
-  if (local_block_info.block_type != hmat_block_null)
+  if (local_block_info.block_type != hmat_block_null) {
+    result = FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
     compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->m);
+  }
 
   if (!block_info)
     releaseBlock(&local_block_info, allocator);
