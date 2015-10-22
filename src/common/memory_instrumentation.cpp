@@ -48,7 +48,7 @@ static struct mallinfo global_mallinfo;
 static int mallinfo_sub_sampling;
 #endif
 
-MemoryInstrumenter::MemoryInstrumenter(): enabled_(true) {
+MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
     addType("Time", false);
 #if __GNUC__
     addType("FullMatrix", false);
@@ -89,6 +89,7 @@ void MemoryInstrumenter::setFile(const std::string & filename) {
     start_ = now();
     fullMatrixMem_ = 0;
     mallinfo_sub_sampling = 0;
+    enabled_ = true;
 #endif
 }
 
@@ -103,10 +104,10 @@ char MemoryInstrumenter::addType(const std::string & label, bool cumul,
 }
 
 void MemoryInstrumenter::allocImpl(mem_t size, char type) {
-    std::vector<mem_t> buffer(labels_.size());
-    assert(output_ != NULL);
-    assert(type < buffer.size() - 1);
     if(enabled_) {
+        std::vector<mem_t> buffer(labels_.size());
+        assert(output_ != NULL);
+        assert(type < buffer.size() - 1);
         std::fill(buffer.begin(), buffer.end(), 0);
         buffer[0] = nanoTime();
 #ifdef __GNUC__
@@ -181,6 +182,7 @@ void MemoryInstrumenter::finish() {
     }
     fclose(output_);
     output_ = NULL;
+    enabled_ = false;
 
     FILE * labelsf = fopen((filename_+".labels").c_str(), "w");
     for(int i = 0; i < labels_.size(); i++) {
