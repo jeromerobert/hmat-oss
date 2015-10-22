@@ -31,6 +31,7 @@
 #include <cmath>
 #include <vector>
 #include <cstdio>
+#include <algorithm>
 
 using namespace hmat;
 

@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <sstream>
+#include <algorithm>
 
 namespace hmat {
 
