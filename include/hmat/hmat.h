@@ -523,21 +523,6 @@ hmat
 
 void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);
 
-/*! \brief Set the maximum amount of memory used for some operations.
-
-  This setting is not universal since the HMatrix solver uses as
-  much memory as needed to store the matrices. It is only used for
-  handling the vectors in gemv() and solve().
-
-  \param memory_in_bytes the amount of memory in bytes.
-  \return 0 for success
- */
-int hmatrix_set_max_memory(size_t memory_in_bytes);
-
-/*! Get the value set by \a hmatrix_set_max_memory().
- */
-size_t hmatrix_get_max_memory();
-
 typedef struct
 {
   /*! \brief Tolerance for the assembly. */
