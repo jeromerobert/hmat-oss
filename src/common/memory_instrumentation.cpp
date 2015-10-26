@@ -25,9 +25,12 @@
   \brief Memory Allocation tracking.
 */
 #include "memory_instrumentation.hpp"
-#include <malloc.h>
 #include "common/my_assert.h"
 #include <algorithm>
+
+#ifdef __linux__
+#include <malloc.h>
+#endif
 
 namespace hmat {
 
