@@ -28,8 +28,11 @@
 #include "common/my_assert.h"
 #include <algorithm>
 
-#ifdef __linux__
+#ifdef __GLIBC__
 #include <malloc.h>
+// Do not care about thread safety. This is an acceptable approximation.
+static struct mallinfo global_mallinfo;
+static int mallinfo_sub_sampling;
 #endif
 
 namespace hmat {
@@ -45,12 +48,6 @@ static size_t get_res_mem(void *)
     return resident * 4096;
 }
 
-#ifdef __linux__
-// Do not care about thread safety. This is an acceptable approximation.
-static struct mallinfo global_mallinfo;
-static int mallinfo_sub_sampling;
-#endif
-
 MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
     addType("Time", false);
 #if __GNUC__
@@ -58,7 +55,7 @@ MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
 #else
     addType("FullMatrix", true);
 #endif
-#ifdef __linux__
+#ifdef __GLIBC__
     // Same as executable maps + arena so not needed when MALLOC_ARENA_MAX=1
     addType("RSS", false, get_res_mem, NULL);
 
@@ -129,7 +126,7 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
         if(type > 0)
             buffer[type] = size;
 
-#ifdef __linux__
+#ifdef __GLIBC__
         mallinfo_sub_sampling++;
         if(mallinfo_sub_sampling >= 100) {
           global_mallinfo = mallinfo();
