@@ -89,6 +89,14 @@ void MemoryInstrumenter::setFile(const std::string & filename) {
     start_ = now();
     fullMatrixMem_ = 0;
     mallinfo_sub_sampling = 0;
+
+    FILE * labelsf = fopen((filename_+".labels").c_str(), "w");
+    for(int i = 0; i < labels_.size(); i++) {
+        fputs(labels_[i].c_str(), labelsf);
+        fputc('\n', labelsf);
+    }
+    fclose(labelsf);
+
     enabled_ = true;
 #endif
 }
@@ -183,13 +191,6 @@ void MemoryInstrumenter::finish() {
     fclose(output_);
     output_ = NULL;
     enabled_ = false;
-
-    FILE * labelsf = fopen((filename_+".labels").c_str(), "w");
-    for(int i = 0; i < labels_.size(); i++) {
-        fputs(labels_[i].c_str(), labelsf);
-        fputc('\n', labelsf);
-    }
-    fclose(labelsf);
 }
 
 MemoryInstrumenter::~MemoryInstrumenter() {
