@@ -32,8 +32,11 @@
 #include <malloc.h>
 // Do not care about thread safety. This is an acceptable approximation.
 static struct mallinfo global_mallinfo;
-static int mallinfo_sub_sampling;
+static int mallinfo_counter;
 #endif
+static int write_counter;
+static int mallinfo_sampling;
+static int write_sampling;
 
 namespace hmat {
 
@@ -79,6 +82,10 @@ MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
     // addType("Total free space (fordblks)", false);
     addType("Top-most, releasable (keepcost)", false);
 #endif
+    char * ws = getenv("HMAT_MEMINSTR_WS");
+    write_sampling = ws ? atoi(ws) : 1;
+    char * mi = getenv("HMAT_MEMINSTR_MI");
+    mallinfo_sampling = mi ? atoi(mi) : 100;
 }
 
 void MemoryInstrumenter::setFile(const std::string & filename) {
@@ -88,7 +95,7 @@ void MemoryInstrumenter::setFile(const std::string & filename) {
     HMAT_ASSERT_MSG(output_ != NULL, "Cannot open %s", filename.c_str());
     start_ = now();
     fullMatrixMem_ = 0;
-    mallinfo_sub_sampling = 0;
+    mallinfo_counter = 0;
 
     FILE * labelsf = fopen((filename_+".labels").c_str(), "w");
     for(int i = 0; i < labels_.size(); i++) {
@@ -104,6 +111,8 @@ void MemoryInstrumenter::setFile(const std::string & filename) {
 char MemoryInstrumenter::addType(const std::string & label, bool cumul,
                                  HookFunction hook, void * param) {
     HMAT_ASSERT_MSG(output_ == NULL, "Cannot call addType after setFile");
+    HMAT_ASSERT_MSG(write_sampling == 1 || !cumul,
+                    "Cannot use write sub sampling with cumulative records.");
     cumulatives_.push_back(cumul);
     labels_.push_back(label);
     hooks_.push_back(hook);
@@ -127,10 +136,10 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
             buffer[type] = size;
 
 #ifdef __GLIBC__
-        mallinfo_sub_sampling++;
-        if(mallinfo_sub_sampling >= 100) {
-          global_mallinfo = mallinfo();
-          mallinfo_sub_sampling = 0;
+        mallinfo_counter ++;
+        if(mallinfo_counter >= mallinfo_sampling) {
+            global_mallinfo = mallinfo();
+            mallinfo_counter = 0;
         }
         int k = 3;
         buffer[k++] = global_mallinfo.arena;
@@ -151,8 +160,12 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
             }
         }
         assert(buffer[0] > 0);
-        fwrite(buffer.data(), sizeof(size_t), buffer.size(), output_);
-        fflush(output_);
+        write_counter ++;
+        if(write_counter >= write_sampling) {
+            fwrite(buffer.data(), sizeof(size_t), buffer.size(), output_);
+            fflush(output_);
+            write_counter = 0;
+        }
     }
 }
 
