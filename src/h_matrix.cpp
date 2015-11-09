@@ -1703,16 +1703,12 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
         b->full()->transpose();
         this->solveUpperTriangularRight(b->full(), unitriangular, lowerStored);
         b->full()->transpose();
-      } else {
+      } else if(!b->isNull() && b->isRkMatrix()){
         // Xa Xb^t U = Ba Bb^t
         //   - Xa = Ba
         //   - Xb^t U = Bb^t
         // Xb is stored without been transposed
         // it become again a resolution by column of Bb
-        assert(b->isRkMatrix());
-        if (b->isNull()) {
-          return;
-        }
         HMatrix<T> * tmp;
         if(*rows() == *b->cols())
             tmp = b;
@@ -1721,6 +1717,8 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
         this->solveUpperTriangularRight(tmp->rk()->b, unitriangular, lowerStored);
         if(tmp != b)
             delete tmp;
+      } else {
+        // b is a null block so nothing to do
       }
     } else {
       // B is not a leaf, then so is L
