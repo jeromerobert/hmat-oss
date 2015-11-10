@@ -2275,6 +2275,8 @@ template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMat
     assert(isRkMatrix());
     if(a == NULL && isNull())
         return;
+    if(rk_ == NULL)
+        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), Svd));
     // TODO: if the matrices exist and are of the right size (same rank),
     // reuse them.
     if (rk_->a) {
