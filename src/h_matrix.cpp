@@ -1472,12 +1472,15 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
   isTriLower = o->isTriLower;
   if (isLeaf()) {
     assert(o->isLeaf());
-    if (isNull() && o->isNull()) {
+    if (isAssembled() && isNull() && o->isNull()) {
       return;
     }
     // When the matrix has not allocated but only the structure
-    if (o->isFullMatrix()) {
-      full(o->full()->copy(full()));
+    if (o->isFullMatrix() && isFullMatrix()) {
+      o->full()->copy(full());
+    } else if(o->isFullMatrix()) {
+      assert(!isAssembled() || isNull());
+      full(o->full()->copy());
     } else if (o->isRkMatrix() && !rk()) {
       rk(new RkMatrix<T>(NULL, o->rk()->rows, NULL, o->rk()->cols, o->rk()->method));
     }
