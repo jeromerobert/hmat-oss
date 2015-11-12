@@ -162,7 +162,6 @@ HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
 
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::transpose() {
-  engine_.hmat->transpose();
   engine_.transpose();
 }
 

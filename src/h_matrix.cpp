@@ -1266,23 +1266,29 @@ void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bo
   }
 }
 
+template<typename T> void HMatrix<T>::transposeNoRecurse() {
+    // if the matrix is symmetric, inverting it(Upper/Lower)
+    if (isLower || isUpper) {
+        isLower = !isLower;
+        isUpper = !isUpper;
+    }
+    // if the matrix is triangular, on inverting it (isTriUpper/isTriLower)
+    if (isTriLower || isTriUpper) {
+        isTriLower = !isTriLower;
+        isTriUpper = !isTriUpper;
+    }
+    swap(children[1 + 0 * 2], children[0 + 1 * 2]);
+    swap(rows_, cols_);
+}
+
 template<typename T>
 void HMatrix<T>::transpose() {
   if (!isLeaf()) {
-    if (isLower || isUpper) { // if the matrix is symmetric, inverting it(Upper/Lower)
-      isLower = !isLower;
-      isUpper = !isUpper;
-    }
-    if (isTriLower || isTriUpper) { // if the matrix is triangular, on inverting it (isTriUpper/isTriLower)
-      isTriLower = !isTriLower;
-      isTriUpper = !isTriUpper;
-    }
+    this->transposeNoRecurse();
     get(1, 1)->transpose();
     get(0, 0)->transpose();
-    swap(children[1 + 0 * 2], children[0 + 1 * 2]);
     if (get(1, 0)) get(1, 0)->transpose();
     if (get(0, 1)) get(0, 1)->transpose();
-    swap(rows_, cols_);
   } else {
     swap(rows_, cols_);
     if (isRkMatrix() && rk()) {

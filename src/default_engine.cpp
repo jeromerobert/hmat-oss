@@ -204,6 +204,10 @@ template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result) cons
     result.hmat->copy(hmat);
 }
 
+template<typename T> void DefaultEngine<T>::transpose() {
+    hmat->transpose();
+}
+
 }  // end namespace hmat
 
 #include "hmat_cpp_interface.cpp"

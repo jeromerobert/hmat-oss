@@ -293,6 +293,13 @@ public:
   /*! \brief Transpose the H-matrix in place
    */
   void transpose();
+
+  /**
+   * Swap non diagonal blocks and cluster trees.
+   * Only used internally.
+   */
+  void transposeNoRecurse();
+
   /*! \brief this <- o^t
 
     \param o

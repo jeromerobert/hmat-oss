@@ -46,7 +46,7 @@ public:
   void solve(DefaultEngine<T>& b) const;
   void solveLower(FullMatrix<T>& b, hmat_factorization_t t, bool transpose=false) const;
   void copy(DefaultEngine<T> & result) const;
-  void transpose() {}
+  void transpose();
   void createPostcriptFile(const std::string& filename) const;
   void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;
   double norm() const;
