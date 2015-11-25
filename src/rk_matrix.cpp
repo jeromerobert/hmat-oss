@@ -434,6 +434,10 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   assert((transR == 'N') || (transM == 'N'));// we do not manage the case R^T*M^T
   assert(((transR == 'N') ? rk->cols->size() : rk->rows->size()) == ((transM == 'N') ? m->rows : m->cols));
 
+  if(rk->rank() == 0) {
+      return new RkMatrix<T>(NULL, transR ? rk->cols : rk->rows,
+                             NULL, mCols, NoCompression);
+  }
   RkMatrix<T>* rkCopy = (transR == 'N' ? new RkMatrix<T>(rk->a, rk->rows, rk->b, rk->cols, rk->method)
                          : new RkMatrix<T>(rk->b, rk->cols, rk->a, rk->rows, rk->method));
 
@@ -651,21 +655,23 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   } else {
     RkMatrix<T>* rk = NULL;
     // One of the product matrix is a leaf
-    if (ha->isRkMatrix() || hb->isRkMatrix()) {
-      if ((ha->isRkMatrix() && ha->isNull())
-          || (hb->isRkMatrix() && hb->isNull())) {
-        return;
-      }
+    if ((ha->isLeaf() && ha->isNull()) || (hb->isLeaf() && hb->isNull())) {
+      // Nothing to do
+    } else if (ha->isRkMatrix() || hb->isRkMatrix()) {
       rk = HMatrix<T>::multiplyRkMatrix(transHA, transHB, ha, hb);
     } else {
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
-      rk = compressMatrix(fullMat, (transHA == 'N' ? ha->rows() : ha->cols()),
-                          (transHB == 'N' ? hb->cols() : hb->rows()));
-      delete fullMat;
+      if(fullMat) {
+        rk = compressMatrix(fullMat, (transHA == 'N' ? ha->rows() : ha->cols()),
+                           (transHB == 'N' ? hb->cols() : hb->rows()));
+        delete fullMat;
+      }
     }
-    axpy(alpha, rk);
-    delete rk;
+    if(rk) {
+      axpy(alpha, rk);
+      delete rk;
+    }
   }
 }
 

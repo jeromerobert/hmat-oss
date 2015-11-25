@@ -1187,6 +1187,9 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
   else if (a->isFullMatrix() && b->isRkMatrix()) {
     rk = RkMatrix<T>::multiplyFullRk(transA, transB, a->full(), b->rk(), (transA == 'N' ? a->rows() : a->cols()));
     HMAT_ASSERT(rk);
+  } else if(a->isNull() || b->isNull()) {
+    return new RkMatrix<T>(NULL, transA ? a->cols() : a->rows(),
+                           NULL, transB ? b->rows() : b->cols(), NoCompression);
   } else {
     // None of the above cases, impossible.
     HMAT_ASSERT(false);
@@ -1220,6 +1223,8 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
     result->gemm(transA, transB, Constants<T>::pone, a->full(), b->full(),
                  Constants<T>::zero);
     HMAT_ASSERT(result);
+  } else if(a->isNull() || b->isNull()) {
+    return NULL;
   } else {
     // None of above, impossible
     HMAT_ASSERT(false);
@@ -1792,11 +1797,9 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
     if (b->isLeaf()) {
       if (b->isFullMatrix()) {
         this->solveUpperTriangularLeft(b->full(), unitriangular, lowerStored);
-      } else {
+      } else if(!b->isNull()){
         assert(b->isRkMatrix());
-        if (!b->isNull()) {
-          this->solveUpperTriangularLeft(b->rk()->a, unitriangular, lowerStored);
-        }
+        this->solveUpperTriangularLeft(b->rk()->a, unitriangular, lowerStored);
       }
     } else {
       // B isn't a leaf, then so is L
