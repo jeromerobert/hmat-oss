@@ -1107,7 +1107,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     }
   }
   if((a->isLeaf() && a->isNull()) || (b->isLeaf() && b->isNull())) {
-      if(!isAssembled())
+      if(!isAssembled() && isLeaf())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
       return;
   }
