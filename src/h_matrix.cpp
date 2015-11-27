@@ -674,6 +674,8 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     rk(tmp);
                 }
             } else {
+                if(full() == NULL)
+                    full(new FullMatrix<T>(rows()->size(), cols()->size()));
                 if(x->isFullMatrix()) {
                     full()->axpy(alpha, x->full());
                 } else if(x->isRkMatrix()) {
