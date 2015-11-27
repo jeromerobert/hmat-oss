@@ -1878,10 +1878,7 @@ template<typename T> void HMatrix<T>::lltDecomposition() {
 // h22 = L*Lt + L2 * L2t => L2 = (h22 - L*Lt).lltDecomposition()
 //
 //
-
-#ifdef DEBUG_LDLT
-    assertLower();
-#endif
+    assertLower(this);
     if(isLeaf()) {
         full()->lltDecomposition();
     } else {
@@ -1945,9 +1942,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   // D is stored separately in full matrix of diagonal leaves (see full_matrix.hpp).
   // this is symmetric and stored as lower triangular.
   // Warning: d must be the result of an ldlt factorization
-#ifdef DEBUG_LDLT
-  assertLower();
-#endif
+  assertLower(this);
   assert(*d->rows() == *d->cols());       // D is square
   assert(*this->rows() == *this->cols()); // this is square
   assert(*m->cols() == *d->rows());       // Check if we can have the produit M*D and D*M^T
@@ -2054,64 +2049,49 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   }
 }
 
+template<typename T> void assertLdlt(const HMatrix<T> * me) {
 #ifdef DEBUG_LDLT
-template<typename T>
-bool HMatrix<T>::assertLdlt() const {
-  if (isLeaf()) {
-    assert(this->isFullMatrix());
-    assert(data.m->diagonal);
-    assert(data.m->isTriLower);
-    return ((data.m->diagonal != NULL) && data.m->isTriLower);
-  } else
-    assert(isTriLower);
-    return (get(0,0)->assertLdlt()) && (get(1,1)->assertLdlt());
-}
-
-template<typename T>
-void HMatrix<T>::assertLower() {
-  if (this->isLeaf()) {
-    return;
-  } else {
-    assert(isLower);
-    assert(!get(0,1));
-    get(0,0)->assertLower(); //isLower || get(0,0)->isLeaf());
-    get(1,1)->assertLower(); // isLower || get(1,1)->isLeaf());
-  }
-}
-
-template<typename T>
-void HMatrix<T>::assertUpper() {
-  if (this->isLeaf()) {
-    return;
-  } else {
-    assert(isUpper);
-    assert(!get(1,0));
-    get(0,0)->assertUpper(); //isLower || get(0,0)->isLeaf());
-    get(1,1)->assertUpper(); // isLower || get(1,1)->isLeaf());
-    get(0,1)->assertAllocFull();
-  }
-}
-
-template<typename T>
-void HMatrix<T>::assertAllocFull() {
-  if (this->isLeaf()) {
-    if (isFullMatrix())
-      assert(data.m->m);
-  } else {
-    for (int i = 0; i < 2; i++)
-      for (int j = 0; j < 2; j++)
-        if (get(i,j))
-          get(i,j)->assertAllocFull();
-  }
-}
+    assert(me->isTriLower);
+    if (me->isLeaf()) {
+        assert(me->isFullMatrix());
+        assert(me->full()->diagonal);
+    } else {
+        assertLdlt(me->get(0,0));
+        assertLdlt(me->get(1,1));
+    }
 #endif
+}
+
+template<typename T> void assertLower(const HMatrix<T> * me) {
+#ifdef DEBUG_LDLT
+    if (me->isLeaf()) {
+        return;
+    } else {
+        assert(me->isLower);
+        assert(!me->get(0,1));
+        assertLower(me->get(0,0));
+        assertLower(me->get(1,1));
+    }
+#endif
+}
+
+template<typename T> void assertUpper(const HMatrix<T> * me) {
+#ifdef DEBUG_LDLT
+    if (me->isLeaf()) {
+        return;
+    } else {
+        assert(me->isUpper);
+        assert(!me->get(1,0));
+        assertUpper(me->get(0,0));
+        assertUpper(me->get(1,1));
+    }
+#endif
+}
 
 template<typename T>
 void HMatrix<T>::ldltDecomposition() {
   DECLARE_CONTEXT;
-#ifdef DEBUG_LDLT
-  this->assertLower();
-#endif
+  assertLower(this);
 
   if (isLeaf()) {
     //The basic case of the recursion is necessarily a full matrix leaf
@@ -2129,9 +2109,7 @@ void HMatrix<T>::ldltDecomposition() {
 
 
     h11->ldltDecomposition();
-#ifdef DEBUG_LDLT
-    assert(h11->assertLdlt());
-#endif
+    assertLdlt(h11);
 
     HMatrix<T>* y = Zero(h11); // H11 is lower triangular, therefore either upper or lower part is NULL
     y->copy(h11); // X <- copy(L11)
@@ -2139,9 +2117,8 @@ void HMatrix<T>::ldltDecomposition() {
 
     y->multiplyWithDiag(h11); // MultiplyWithDiag takes into account the fact that "y" is Upper or Lower
     // Y <- Y^T
-#ifdef DEBUG_LDLT
-    y->assertLower();
-#endif
+    assertLower(y);
+
     // The transpose function keeps the Upper or Lower matrix but
     //     reverse storage.
     y->transpose();
@@ -2150,19 +2127,13 @@ void HMatrix<T>::ldltDecomposition() {
     assert(y->isUpper || y->isLeaf());
     assert(!y->isLower);
     y->solveUpperTriangularRight(h21, false, false);
-#ifdef DEBUG_LDLT
-    y->assertUpper();
-    y->assertAllocFull();
-#endif
+    assertUpper(y);
     delete y;
 
     // H22 <- H22 - L21 * D11 * L21^T
     // D11 is contained on the diagonal leaves (which are full)
     h22->mdmtProduct(h21, h11);
-#ifdef DEBUG_LDLT
-    h22->assertAllocFull();
-    h22->assertLower();
-#endif
+    assertLower(h22);
     h22->ldltDecomposition();
   }
   isTriLower = true;
@@ -2226,9 +2197,7 @@ void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
 template<typename T>
 void HMatrix<T>::solveLdlt(FullMatrix<T>* b) const {
   DECLARE_CONTEXT;
-#ifdef DEBUG_LDLT
-  assertLdlt();
-#endif
+  assertLdlt(this);
   // L*D*L^T * X = B
   // B <- solution of L * Y = B : Y = D*L^T * X
   this->solveLowerTriangularLeft(b, true);

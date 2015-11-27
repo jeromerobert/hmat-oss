@@ -573,26 +573,6 @@ public:
   const ClusterTree * colsTree() const {
       return cols_;
   }
-
-#ifdef DEBUG_LDLT
-  /*  \brief verifie que la matrice est bien Lower i.e. avec des fils NULL au-dessus
-   */
-  void assertLower();
-  /*  \brief verifie que la matrice est bien Upper i.e. avec des fils NULL au-dessous
-   */
-  void assertUpper();
-  /* \brief verifie que toutes les feuilles full de la hmatrice sont bien allouees
-   */
-  void assertAllocFull();
-  /* \brief verifie juste que les matrices diagonales full ont bien une "diagonale" et sont isTriLower
-   */
-  bool assertLdlt() const;
-  /* \brief fait le produit LDL^T pour verifier la decomposition
-     Calcule la norme de L2 de deux matrices
-     \param originalCopy hmatrice avant decomposition LDL^T
-   */
-  void testLdlt(HMatrix<T> * originalCopy) ;
-#endif
 };
 
 }  // end namespace hmat
