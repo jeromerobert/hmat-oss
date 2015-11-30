@@ -59,6 +59,13 @@ hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_
   return static_cast<hmat_clustering_algorithm_t*>((void*) result);
 }
 
+hmat_clustering_algorithm_t*
+hmat_create_void_clustering(const hmat_clustering_algorithm_t* algo)
+{
+  VoidClusteringAlgorithm* result = new VoidClusteringAlgorithm(*(static_cast<const ClusteringAlgorithm*>((void*) algo)));
+  return static_cast<hmat_clustering_algorithm_t*>((void*) result);
+}
+
 hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo)
 {
     DofCoordinates dofs(coord, dimension, size, true);

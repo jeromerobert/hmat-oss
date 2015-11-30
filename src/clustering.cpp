@@ -263,6 +263,24 @@ HybridBisectionAlgorithm::clean(ClusterTree& current) const
   geometricAlgorithm_.clean(current);
 }
 
+void
+VoidClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+{
+  if (current.depth % 2 == 0)
+  {
+    algo_->partition(current, children);
+  } else {
+    children.push_back(current.slice(current.data.offset(), current.data.size()));
+    children.push_back(current.slice(current.data.offset() + current.data.size(), 0));
+  }
+}
+
+void
+VoidClusteringAlgorithm::clean(ClusterTree& current) const
+{
+  algo_->clean(current);
+}
+
 ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo)
 {
   algo_.push_front(std::pair<int, ClusteringAlgorithm*>(0, algo.clone()));

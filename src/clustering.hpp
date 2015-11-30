@@ -181,6 +181,22 @@ private:
   const double thresholdRatio_;
 };
 
+class VoidClusteringAlgorithm : public ClusteringAlgorithm
+{
+public:
+  explicit VoidClusteringAlgorithm(const ClusteringAlgorithm &algo)
+    : ClusteringAlgorithm(), algo_(algo.clone()) {}
+
+  ClusteringAlgorithm* clone() const { return new VoidClusteringAlgorithm(*this); }
+  std::string str() const { return "VoidClusteringAlgorithm"; }
+
+  void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+  void clean(ClusterTree& current) const;
+
+private:
+  const ClusteringAlgorithm *algo_;
+};
+
 }  // end namespace hmat
 
 #endif  /* _HMAT_CLUSTERING_HPP */
