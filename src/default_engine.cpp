@@ -172,8 +172,8 @@ void DefaultEngine<T>::solve(FullMatrix<T>& b, hmat_factorization_t t) const {
 }
 
 template<typename T>
-void DefaultEngine<T>::solve(DefaultEngine<T>& b) const {
-    hmat->solve(b.hmat);
+void DefaultEngine<T>::solve(DefaultEngine<T>& b, hmat_factorization_t f) const {
+    hmat->solve(b.hmat, f);
 }
 
 template<typename T>

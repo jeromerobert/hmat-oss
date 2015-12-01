@@ -431,6 +431,7 @@ public:
      \param b Input: B, Output: X
    */
   void solveDiagonal(FullMatrix<T>* b) const;
+  void solveDiagonal(HMatrix<T>* b) const;
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
@@ -440,7 +441,7 @@ public:
 
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
-  void solve(HMatrix<T>* b) const;
+  void solve(HMatrix<T>* b, hmat_factorization_t) const;
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.

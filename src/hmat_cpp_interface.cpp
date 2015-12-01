@@ -135,7 +135,7 @@ void HMatInterface<T, E>::solve(FullMatrix<T>& b) const {
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::solve(HMatInterface<T, E>& b) const {
   DISABLE_THREADING_IN_BLOCK;
-  engine_.solve(b.engine_);
+  engine_.solve(b.engine_, factorizationType);
 }
 
 template<typename T, template <typename> class E>

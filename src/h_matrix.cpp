@@ -2170,28 +2170,73 @@ void HMatrix<T>::extractDiagonal(T* diag, int size) const {
 }
 
 /* Solve M.X=B with M hmat LU factorized*/
-template<typename T>
-void HMatrix<T>::solve(HMatrix<T>* b) const {
-  DECLARE_CONTEXT;
-  /* Solve LX=B, result in B */
-  this->solveLowerTriangularLeft(b, true);
-  /* Solve UX=B, result in B */
-  this->solveUpperTriangularLeft(b, false, false);
+template<typename T> void HMatrix<T>::solve(
+        HMatrix<T>* b,
+        hmat_factorization_t factorizationType) const {
+    DECLARE_CONTEXT;
+    /* Solve LX=B, result in B */
+    this->solveLowerTriangularLeft(b, true);
+    /* Solve UX=B, result in B */
+    switch(factorizationType) {
+    case hmat_factorization_lu:
+        this->solveUpperTriangularLeft(b, false, false);
+        break;
+    case hmat_factorization_ldlt:
+        this->solveDiagonal(b);
+        this->solveUpperTriangularLeft(b, true, true);
+        break;
+    case hmat_factorization_llt:
+        this->solveUpperTriangularLeft(b, false, true);
+        break;
+    default:
+        HMAT_ASSERT(false);
+    }
 }
 
-template<typename T>
-void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
-  // Solve D*X = B and store result into B
-  // Diagonal extraction
-  T* diag = new T[cols()->size()];
-  extractDiagonal(diag, cols()->size());
-  // TODO: use BLAS for that
-  for (int j = 0; j < b->cols; j++) {
-    for (int i = 0; i < b->rows; i++) {
-      b->get(i, j) = b->get(i, j) / diag[i];
+template<typename T> void HMatrix<T>::solveDiagonal(HMatrix<T>* b) const {
+    if(b->isLeaf()) {
+        FullMatrix<T> * toUpdate;
+        if(b->isFullMatrix())
+            toUpdate = b->full();
+        else if(b->isRkMatrix() && !b->isNull())
+            toUpdate = b->rk()->a;
+        else {
+            assert(b->isNull());
+            return;
+        }
+        solveDiagonal(toUpdate);
+    } else if(isLeaf()) {
+        // Not yet implemented
+        HMAT_ASSERT(false);
+    } else {
+        get(0, 0)->solveDiagonal(b->get(0, 0));
+        get(0, 0)->solveDiagonal(b->get(0, 1));
+        get(1, 1)->solveDiagonal(b->get(1, 0));
+        get(1, 1)->solveDiagonal(b->get(1, 1));
     }
-  }
-  delete[] diag;
+}
+
+template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
+    // Solve D*X = B and store result into B
+    // Diagonal extraction
+    T* diag;
+    bool extracted = false;
+    if(isFullMatrix() && full()->diagonal) {
+        // LDLt
+        diag = full()->diagonal->v;
+    } else {
+        // LLt
+        diag = new T[cols()->size()];
+        extractDiagonal(diag, cols()->size());
+        extracted = true;
+    }
+    for (int j = 0; j < b->cols; j++) {
+        for (int i = 0; i < b->rows; i++) {
+            b->get(i, j) = b->get(i, j) / diag[i];
+        }
+    }
+    if(extracted)
+        delete[] diag;
 }
 
 template<typename T>
