@@ -1327,18 +1327,21 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       FullMatrix<T>* newB = oRk->a ? oRk->a->copy() : NULL;
       rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method));
     } else {
-      assert(o->isFullMatrix());
       if (full()) {
         delete full();
       }
       const FullMatrix<T>* oF = o->full();
-      full(oF->copyAndTranspose());
-      if (oF->diagonal) {
-        if (!full()->diagonal) {
-          full()->diagonal = new Vector<T>(oF->rows);
-          HMAT_ASSERT(full()->diagonal);
+      if(oF == NULL) {
+        full(NULL);
+      } else {
+        full(oF->copyAndTranspose());
+        if (oF->diagonal) {
+          if (!full()->diagonal) {
+            full()->diagonal = new Vector<T>(oF->rows);
+            HMAT_ASSERT(full()->diagonal);
+          }
+          memcpy(full()->diagonal->v, oF->diagonal->v, oF->rows * sizeof(T));
         }
-        memcpy(full()->diagonal->v, oF->diagonal->v, oF->rows * sizeof(T));
       }
     }
   } else {
