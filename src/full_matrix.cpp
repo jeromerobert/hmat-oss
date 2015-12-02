@@ -342,6 +342,9 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
 
 template<typename T>
 void FullMatrix<T>::ldltDecomposition() {
+  // Void matrix
+  if (rows == 0 || cols == 0) return;
+
   int n = this->rows;
   diagonal = new Vector<T>(n);
   HMAT_ASSERT(diagonal);
@@ -388,6 +391,9 @@ void FullMatrix<T>::ldltDecomposition() {
 }
 
 template<typename T> void FullMatrix<T>::lltDecomposition() {
+    // Void matrix
+    if (rows == 0 || cols == 0) return;
+
     // from http://www.netlib.org/lapack/lawnspdf/lawn41.pdf page 120
     const size_t n2 = ((size_t) rows) * rows;
     const size_t n3 = n2 * rows;
@@ -409,6 +415,9 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
 
 template<typename T>
 void FullMatrix<T>::luDecomposition() {
+  // Void matrix
+  if (rows == 0 || cols == 0) return;
+
   pivots = (int*) calloc(rows, sizeof(int));
   HMAT_ASSERT(pivots);
   int info;
@@ -432,6 +441,9 @@ void FullMatrix<T>::luDecomposition() {
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
 void FullMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangular) const {
+  // Void matrix
+  if (x->rows == 0 || x->cols == 0) return;
+
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
@@ -451,6 +463,9 @@ void FullMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangula
 
 template<typename T>
 void FullMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
+  // Void matrix
+  if (x->rows == 0 || x->cols == 0) return;
+
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
@@ -463,6 +478,9 @@ void FullMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* x, bool unitriangul
 
 template<typename T>
 void FullMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
+  // Void matrix
+  if (x->rows == 0 || x->cols == 0) return;
+
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_n - 1) / 2;
@@ -475,6 +493,9 @@ void FullMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangula
 
 template<typename T>
 void FullMatrix<T>::solve(FullMatrix<T>* x) const {
+  // Void matrix
+  if (x->rows == 0 || x->cols == 0) return;
+
   assert(pivots);
   int ierr = 0;
   {

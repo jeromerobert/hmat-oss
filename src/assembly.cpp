@@ -54,7 +54,7 @@ void AssemblyFunction<T>::assemble(const LocalSettings &,
         rkDp->truncate();
       }
       rkMatrix = fromDoubleRk<T>(rkDp);
-    } else {
+    } else if (rows.data.size() && cols.data.size()) {
       fullMatrix = fromDoubleFull<T>(function_.assemble(&(rows.data), &(cols.data), NULL, allocationObserver));
     }
 }

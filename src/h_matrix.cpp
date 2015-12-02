@@ -517,6 +517,9 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
 
 template<typename T> double HMatrix<T>::normSqr() const {
   double result = 0.;
+  if (rows()->size() == 0 || cols()->size() == 0) {
+    return result;
+  }
   if (isLeaf() && !isNull()) {
     if (isRkMatrix()) {
       // Approximate ||a * bt|| by ||a||*||b|| so we return a
@@ -721,7 +724,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   assert(b->rows->isSuperSet(*rows()));
   assert(b->cols->isSuperSet(*cols()));
 
-  if (b->rank() == 0) {
+  if (b->rank() == 0 || rows()->size() == 0 || cols()->size() == 0) {
     return;
   }
 
@@ -874,6 +877,7 @@ makeCompatible(bool row_a, bool row_b,
  */
 template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
                                                   const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
+    if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
     HMatrix<T> * va = NULL;
     HMatrix<T> * vb = NULL;
     HMatrix<T> * vc = NULL;;
@@ -920,6 +924,9 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
 
 template<typename T> void
 HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta) {
+    // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
+    if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
+
     // None of the matrices is a leaf
     if (!isLeaf() && !a->isLeaf() && !b->isLeaf()) {
         for (int i = 0; i < 2; i++) {
@@ -928,6 +935,8 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                 if (!child) { // symmetric or triangular case
                     continue;
                 }
+                // Void child
+                if (child->rows()->size() == 0 || child->cols()->size() == 0) continue;
                 for (int k = 0; k < 2; k++) {
                     char tA = transA, tB = transB;
                     // childA states :
@@ -1081,6 +1090,9 @@ template<typename T> HMatrix<T> * HMatrix<T>::fullRkSubset(const IndexSet* subse
 
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
+  // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
+  if (rows()->size() == 0 || cols()->size() == 0) return;
+
   if ((transA == 'T') && (transB == 'T')) {
     // This code has *not* been tested because it's currently not used.
     HMAT_ASSERT(false);
@@ -1247,6 +1259,8 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
   assert(*d->rows() == *d->cols());
   assert(left || (*cols() == *d->rows()));
   assert(!left || (*rows() == *d->cols()));
+
+  if (rows()->size() == 0 || cols()->size() == 0) return;
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!isLeaf()) {
@@ -1525,6 +1539,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
 
 template<typename T>
 void HMatrix<T>::clear() {
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   if (isLeaf()) {
     if (isFullMatrix()) {
       full()->clear();
@@ -1611,6 +1626,7 @@ void HMatrix<T>::inverse(HMatrix<T>* tmp, int depth) {
 template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) const {
   DECLARE_CONTEXT;
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)
   if (!isLeaf() && !b->isLeaf()) {
     //  Forward substitution:
@@ -1677,6 +1693,7 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
     // LAPACK resolution
@@ -1696,6 +1713,7 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
 template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   // The recursion one (simple case)
   if (!isLeaf() && !b->isLeaf()) {
     const HMatrix<T>* u11 = get(0, 0);
@@ -1774,6 +1792,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
 template<typename T>
 void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)
   if (!isLeaf() && !b->isLeaf()) {
     //  Backward substitution:
@@ -1827,6 +1846,7 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   // B is supposed given in form of a row vector, but transposed
   // so we can deal it with a subset as usual.
   if (this->isLeaf()) {
@@ -1854,6 +1874,7 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, unitriangular, lowerStored);
   } else {
@@ -1884,6 +1905,7 @@ template<typename T> void HMatrix<T>::lltDecomposition() {
 //
 //
     assertLower(this);
+    if (rows()->size() == 0 || cols()->size() == 0) return;
     if(isLeaf()) {
         full()->lltDecomposition();
     } else {
@@ -1915,6 +1937,7 @@ void HMatrix<T>::luDecomposition() {
 //
   DECLARE_CONTEXT;
 
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   if (isLeaf()) {
     assert(isFullMatrix());
     full()->luDecomposition();
@@ -1942,6 +1965,7 @@ void HMatrix<T>::luDecomposition() {
 template<typename T>
 void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   DECLARE_CONTEXT;
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   // this <- this - M * D * M^T
   //
   // D is stored separately in full matrix of diagonal leaves (see full_matrix.hpp).
@@ -1953,6 +1977,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   assert(*m->cols() == *d->rows());       // Check if we can have the produit M*D and D*M^T
   assert(*this->rows() == *m->rows());
 
+  if (m->rows()->size() == 0 || m->cols()->size() == 0) return;
   if(!isLeaf()) {
     HMatrix<T>* h11 = get(0,0);
     HMatrix<T>* h21 = get(1,0);
@@ -2055,6 +2080,8 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 }
 
 template<typename T> void assertLdlt(const HMatrix<T> * me) {
+    // Void block (row & col)
+    if (me->rows()->size() == 0 && me->cols()->size() == 0) return;
 #ifdef DEBUG_LDLT
     assert(me->isTriLower);
     if (me->isLeaf()) {
@@ -2104,6 +2131,7 @@ void HMatrix<T>::ldltDecomposition() {
   DECLARE_CONTEXT;
   assertLower(this);
 
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   if (isLeaf()) {
     //The basic case of the recursion is necessarily a full matrix leaf
     //since the recursion is done with *rows() == *cols().
@@ -2117,8 +2145,6 @@ void HMatrix<T>::ldltDecomposition() {
     HMatrix<T>* h22 = get(1,1);
 
     // H11 <- L11 and D11 is stored additionally to each diagonal leaf
-
-
     h11->ldltDecomposition();
     assertLdlt(h11);
 
@@ -2163,6 +2189,7 @@ void HMatrix<T>::solve(FullMatrix<T>* b) const {
 template<typename T>
 void HMatrix<T>::extractDiagonal(T* diag, int size) const {
   DECLARE_CONTEXT;
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   if(isLeaf()) {
     assert(isFullMatrix());
     if(full()->diagonal) {
@@ -2209,6 +2236,7 @@ template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
     // Diagonal extraction
     T* diag;
     bool extracted = false;
+    if (rows()->size() == 0 || cols()->size() == 0) return;
     if(isFullMatrix() && full()->diagonal) {
         // LDLt
         diag = full()->diagonal->v;

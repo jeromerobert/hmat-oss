@@ -231,6 +231,14 @@ template<typename T> void RkMatrix<T>::truncate() {
 
   // Control of approximation
   int newK = approx.findK(sigma->v, rank(), approx.recompressionEpsilon);
+  if (newK == 0)
+  {
+    delete a;
+    a = NULL;
+    delete b;
+    b = NULL;
+    return;
+  }
 
   // We put the root of singular values in sigma
   for (int i = 0; i < rank(); i++) {
@@ -635,6 +643,39 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   DECLARE_CONTEXT;
   // TODO: remove this limitation, if needed.
   assert(beta == Constants<T>::pone);
+
+  // This is ugly!  When ha node is void, we replace ha by its non-void child
+  // so that further computations are similar to the non-void case.
+  while (!ha->isLeaf())
+  {
+    if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
+    {
+      ha = ha->get(1, 1);
+      continue;
+    }
+    if (ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
+    {
+      ha = ha->get(0, 0);
+      continue;
+    }
+    break;
+  }
+  while (!hb->isLeaf())
+  {
+    if (hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
+    {
+      hb = hb->get(1, 1);
+      continue;
+    }
+    if (hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
+    {
+      hb = hb->get(0, 0);
+      continue;
+    }
+    break;
+  }
+  // void matrix
+  if (ha->rows()->size() == 0 || ha->cols()->size() == 0 || hb->rows()->size() == 0 || hb->cols()->size() == 0) return;
 
   if (!(ha->isLeaf() || hb->isLeaf())) {
     RkMatrix<T>* subRks[2 * 2];
