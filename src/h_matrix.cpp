@@ -976,28 +976,20 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     // the resulting matrix is not a leaf.
     if (!isLeaf()) {
         // If the resulting matrix is subdivided then at least one of the matrices of the product is a leaf.
-        RkMatrix<T>* rkMat = NULL;
-        FullMatrix<T>* fullMat = NULL;
-
         // One matrix is a RkMatrix
         if (a->isRkMatrix() || b->isRkMatrix()) {
             if ((a->isRkMatrix() && a->isNull())
                     || (b->isRkMatrix() && b->isNull())) {
                 return;
             }
-            rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
+            RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
+            axpy(alpha, rkMat);
+            delete rkMat;
         } else {
             // None of the matrices of the product is a Rk-matrix so one of them is
             // a full matrix so as the result.
             assert(a->isFullMatrix() || b->isFullMatrix());
-            fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
-        }
-        // The resulting matrix is added to a H-matrix with the H-matrix class operations.
-        if (rkMat) {
-            axpy(alpha, rkMat);
-            delete rkMat;
-        } else {
-            assert(fullMat);
+            FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
             axpy(alpha, fullMat, rows(), cols());
             delete fullMat;
         }
