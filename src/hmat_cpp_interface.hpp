@@ -72,7 +72,7 @@ private:
   /** This constructor sets the default values.
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
-                   compressionMethod(Svd),  compressionMinLeafSize(100),
+                   compressionMethod(AcaPlus),  compressionMinLeafSize(100),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
                    elementsPerBlock(5000000),
