@@ -154,27 +154,6 @@ ClusterTree::slice(int offset, int size) const
   return result;
 }
 
-/* Implemente la condition d'admissibilite des bounding box.
- */
-bool ClusterTree::isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const {
-  size_t elements = ((size_t) data.size()) * other->data.size();
-  if(elements >= max_size || data.size() <= 1)
-    return false;
-  AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(admissibilityAlgoData_);
-  if (bbox == NULL)
-  {
-    bbox = new AxisAlignedBoundingBox(data);
-    admissibilityAlgoData_ = bbox;
-  }
-  AxisAlignedBoundingBox* bbox_other = static_cast<AxisAlignedBoundingBox*>(other->admissibilityAlgoData_);
-  if (bbox_other == NULL)
-  {
-    bbox_other = new AxisAlignedBoundingBox(other->data);
-    other->admissibilityAlgoData_ = bbox_other;
-  }
-  return std::min(bbox->diameter(), bbox_other->diameter()) <= eta * bbox->distanceTo(*bbox_other);
-}
-
 ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   ClusterTree* result = NULL;
   if (!copyFather) {

@@ -572,6 +572,13 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
 
   assert(Ab->rows == Ba->rows); // compatibility of the multiplication
 
+  // We want to compute the matrix Aa.t^Ab.Ba.t^Bb and return an Rk matrix
+  // Usually, the best way is to start with tmp=t^Ab.Ba which produces a 'small' matrix rank_a x rank_b
+  // Then we can either :
+  // - compute Aa.tmp : the cost is rank_a.rank_b.row_a, the resulting Rk has rank rank_b
+  // - compute tmp.Bb : the cost is rank_a.rank_b.col_b, the resulting Rk has rank rank_a
+  // the best choice depends on the ranks & dimensions, and also on our priority (flops or resulting rank)
+
   FullMatrix<T>* tmp = new FullMatrix<T>(a->rank(), b->rank());
   FullMatrix<T>* newA = new FullMatrix<T>(Aa->rows, b->rank());
 

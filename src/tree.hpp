@@ -84,7 +84,7 @@ public:
     child->depth = depth + 1;
   }
 
-  /*! \brief Remove a children, and delete it if necessary.
+  /*! \brief Remove a child, and delete it if necessary.
    */
   void removeChild(int index) {
     delete children[index];

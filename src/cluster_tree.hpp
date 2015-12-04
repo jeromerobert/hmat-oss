@@ -174,25 +174,6 @@ public:
 
   ClusterTree* slice(int offset, int size) const;
 
-  /*! \brief Returns true if 2 nodes are admissible together.
-
-    This is used for the tree construction on which we develop the HMatrix.
-    Two leaves are admissible if they satisfy the criterion allowing the
-    compression of the resulting matrix block.
-
-    In the default implementation in the base class, the criterion kept is:
-       min (diameter (), other-> diameter ()) <= eta * distanceTo (other);
-
-    \param other  the other node of the couple.
-    \param eta    a parameter used in the evaluation of the admissibility.
-    \param max_size should be used with AcaFull and Svd compression to limit
-           memory size of a block. A value of 0 will be ignored and should be
-           used with AcaPlus.
-    \return true  if 2 nodes are admissible.
-
-   */
-  bool isAdmissibleWith(const ClusterTree* other, double eta, size_t max_size) const;
-
   /*! \brief Return a copy to this.
    */
   ClusterTree* copy(const ClusterTree* copyFather=NULL) const;

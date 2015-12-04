@@ -28,7 +28,7 @@
 
 #include "data_types.hpp"
 
-#ifdef HAVE_MKL_H
+#ifdef HAVE_MKL_CBLAS_H
 #include "mkl_cblas.h"
 #else
 #include "cblas.h"

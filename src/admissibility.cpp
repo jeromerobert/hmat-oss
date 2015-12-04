@@ -48,7 +48,8 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
         if(elements > maxElementsPerBlock)
             return false;
     }
-    // TODO may be this test should be done out of the AdmissibilityCondition
+
+    // TODO check if this test is still usefull / meaningfull
     if(rows.data.size() < 2 || cols.data.size() < 2)
         return false;
 
