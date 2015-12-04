@@ -1327,7 +1327,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       FullMatrix<T>* newB = oRk->a ? oRk->a->copy() : NULL;
       rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method));
     } else {
-      if (full()) {
+      if (isFullMatrix()) {
         delete full();
       }
       const FullMatrix<T>* oF = o->full();
