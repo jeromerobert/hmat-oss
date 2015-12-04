@@ -222,8 +222,6 @@ list(REMOVE_ITEM HMAT_SOURCES src/hmat_cpp_interface.cpp)
 link_directories(${PROJECT_BINARY_DIR} ${BLAS_LIBRARY_DIRS})
 
 add_definitions(-D_GNU_SOURCE)
-#  We want to enforce assertions even in Release mode
-add_definitions(-UNDEBUG)
 
 if (MSVC)
     add_definitions(-D__func__=__FUNCTION__)
