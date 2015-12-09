@@ -822,17 +822,17 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         }
         return tmpMatrix;
     } else {
-        //TODO not yet implemented by should not happen
+        //TODO not yet implemented but should not happen
         HMAT_ASSERT(false);
     }
 }
 
 /**
- * @brief Ensure that matrices have compatible cluter trees.
+ * @brief Ensure that matrices have compatible cluster trees.
  * @param row_a If true check the number of row of A is compatible else check columns
  * @param row_b If true check the number of row of B is compatible else check columns
  * @param in_a The input A matrix whose dimension must be checked
- * @param in_b The input A matrix whose dimension must be checked
+ * @param in_b The input B matrix whose dimension must be checked
  * @param out_a A subset of the A matrix which have compatible dimension with out_b.
  *  out_a is a view on in_a, no data are copied. It can possibly return in_a if matrices
  *  are already compatibles.
@@ -852,7 +852,7 @@ makeCompatible(bool row_a, bool row_b,
     else
         out_a = in_a->subset(in_a->rows(), cdb);
 
-    if(out_a == in_a) {
+    if(out_a == in_a) { // if a has not changed, b won't change either so we bypass this second step
         // suppose than B is bigger than A
         const IndexSet * cda = row_a ? in_a->rows() : in_a->cols();
         if(row_b)
@@ -867,6 +867,9 @@ makeCompatible(bool row_a, bool row_b,
 /**
  * @brief A GEMM implementation which do not require matrices have compatible
  * cluster tree.
+ *
+ *  We compute the product alpha.f(a).f(b)+beta.c -> c (with c=this)
+ *  f(a)=transpose(a) if transA='T', f(a)=a if transA='N' (idem for b)
  */
 template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
                                                   const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
@@ -876,19 +879,36 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     HMatrix<T> * vva = NULL;
     HMatrix<T> * vvb = NULL;
     HMatrix<T> * vvc = NULL;
+
+    // Create va & vb = the subsets of a & b that match each other for doing the product f(a).f(b)
+    // We modify the columns of f(a) and the rows of f(b)
     makeCompatible<T>(transA != 'N', transB == 'N', a, b, va, vb);
+
+    // Create vva & vc = the subsets of va & c (=this) that match each other for doing the sum c+f(a).f(b)
+    // We modify the rows of f(a) and the rows of c
     makeCompatible<T>(transA == 'N', true, va, this, vva, vc);
+
+
+    // Create vvb & vvc = the subsets of vb & vc that match each other for doing the sum c+f(a).f(b)
+    // We modify the columns of f(b) and the columns of c
+    makeCompatible<T>(transB != 'N', false, vb, vc, vvb, vvc);
+
+    // Delete the intermediate matrices, except if subset() in makecompatible() has returned the original matrix
     if(va != vva && va != a)
         delete va;
-    makeCompatible<T>(transB != 'N', false, vb, vc, vvb, vvc);
     if(vb != vvb && vb != b)
         delete vb;
     if(vc != vvc && vc != this)
         delete vc;
+
     // writing on a subset of an RkMatrix is not possible without
     // modifying the whole matrix
     assert(!isRkMatrix() || vvc == this);
+
+    // Do the product on the matrices that are now compatible
     vvc->leafGemm(transA, transB, alpha, vva, vvb, beta);
+
+    // Delete the temporary matrices
     if(vva != a)
         delete vva;
     if(vvb != b)
