@@ -35,9 +35,9 @@ namespace hmat {
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
 int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
-  // Control of approximation for fixed approx.k != 0
+  // Control of approximation for fixed approx.k >= 0
   int newK = k;
-  if (newK != 0) {
+  if (newK >= 0) {
     newK = std::min(newK, maxK);
   } else {
     assert(epsilon >= 0.);

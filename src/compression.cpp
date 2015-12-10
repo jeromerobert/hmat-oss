@@ -339,7 +339,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
 
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows, m->cols);
-  if (RkMatrix<dp_t>::approx.k > 0) {
+  if (RkMatrix<dp_t>::approx.k >= 0) {
     maxK = min(maxK, RkMatrix<dp_t>::approx.k);
   }
 

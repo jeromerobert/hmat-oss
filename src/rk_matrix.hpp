@@ -39,14 +39,14 @@ class IndexSet;
 
 /** Control the approximation of Rk-matrices.
 
-     In the case where k != 0, we do an approximation with a fixed rank k,
+     In the case where k >= 0, we do an approximation with a fixed rank k,
      otherwise the approximation is adaptive, it stops when the
      singular value is less than an error relative to the
      sum of the singular values in the SVD.
  */
 class RkApproximationControl {
 public:
-  int k; /// If != 0, fixed-rank approximation
+  int k; /// If >= 0, fixed-rank approximation
   double assemblyEpsilon; /// Tolerance for the assembly
   double recompressionEpsilon; /// Tolerance for the recompressions
   CompressionMethod method;
@@ -54,7 +54,7 @@ public:
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : k(0), assemblyEpsilon(-1.),
+  RkApproximationControl() : k(-1), assemblyEpsilon(-1.),
                              recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
   /** Returns the number of singular values to keep.
 
