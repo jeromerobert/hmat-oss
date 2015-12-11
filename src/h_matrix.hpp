@@ -41,7 +41,7 @@
 namespace hmat {
 
 template<typename T> class Vector;
-template<typename T> class RkMatrix;
+class RkApproximationControl;
 
 /** Flag used to describe the symmetry of a matrix.
  */
@@ -54,7 +54,9 @@ struct MatrixSettings {
 /** Settings local to a matrix bloc */
 struct LocalSettings {
     const MatrixSettings * global;
-    explicit LocalSettings(const MatrixSettings * s): global(s) {}
+    RkApproximationControl * approx;
+    LocalSettings(const MatrixSettings * s,
+    		RkApproximationControl * _approx): global(s), approx(_approx){}
     //TODO add epsilons
 };
 

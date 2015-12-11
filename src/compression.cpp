@@ -262,7 +262,7 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
 
 
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
+RkMatrix<T>* compressMatrix(const RkApproximationControl *approx, FullMatrix<T>* m, const IndexSet* rows,
                             const IndexSet* cols) {
   DECLARE_CONTEXT;
   assert(m->rows == rows->size());
@@ -277,7 +277,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
     if (!zeroMatrix) break;
   }
   if (zeroMatrix) {
-    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+    return new RkMatrix<T>(NULL, rows, NULL, cols, approx);
   }
   // In the case of non-square matrix, we don't calculated singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
@@ -292,10 +292,10 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   // Control of the approximation
 
   int maxK = min(rowCount, colCount);
-  int k = RkMatrix<T>::approx.findK(sigma->v, maxK, RkMatrix<T>::approx.assemblyEpsilon);
+  int k = const_cast<RkApproximationControl* >(approx)->findK(sigma->v, maxK, approx->assemblyEpsilon);
 
   if(k == 0)
-    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+    return new RkMatrix<T>(NULL, rows, NULL, cols, approx);
 
   for (int col = 0; col < k; col++) {
     for (int row = 0; row < rowCount; row++) {
@@ -312,18 +312,18 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   delete vt;
   delete sigma;
   FullMatrix<T>* a = uTilde;
-  return new RkMatrix<T>(a, rows, vTilde, cols, Svd);
+  return new RkMatrix<T>(a, rows, vTilde, cols, approx);
 }
 
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressSvd(const ClusterAssemblyFunction<T>& block) {
+compressSvd(const RkApproximationControl *approx, const ClusterAssemblyFunction<T>& block) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = block.assemble();
-  RkMatrix<dp_t>* result = compressMatrix(m, block.rows, block.cols);
+  RkMatrix<dp_t>* result = compressMatrix(approx, m, block.rows, block.cols);
   delete m;
   return result;
 }
@@ -331,7 +331,7 @@ compressSvd(const ClusterAssemblyFunction<T>& block) {
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaFull(const ClusterAssemblyFunction<T>& block) {
+compressAcaFull(const RkApproximationControl *approx, const ClusterAssemblyFunction<T>& block) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
@@ -339,8 +339,8 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
 
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows, m->cols);
-  if (RkMatrix<dp_t>::approx.k >= 0) {
-    maxK = min(maxK, RkMatrix<dp_t>::approx.k);
+  if (approx->k >= 0) {
+    maxK = min(maxK, approx->k);
   }
 
   FullMatrix<dp_t> tmpA(m->rows, maxK);
@@ -393,7 +393,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
       // Evaluate the stopping criterion
       // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
       // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-      double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
+      double epsilon = approx->assemblyEpsilon;
       if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
         break;
       }
@@ -402,7 +402,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   delete m;
 
   if (nu == 0) {
-    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaFull);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, approx);
   }
 
   FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(tmpA.rows, nu);
@@ -412,13 +412,13 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   newB->clear();
   memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
 
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaFull);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, approx);
 }
 
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
+compressAcaPartial(const RkApproximationControl *approx, const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   double estimateSquaredNorm = 0;
 
@@ -503,7 +503,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       // Evaluate the stopping criterion
       // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
       // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-      double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
+      double epsilon = approx->assemblyEpsilon;
       if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
         break;
       }
@@ -526,16 +526,16 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
     }
   } else {
     // If k == 0, block is only made of zeros.
-    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaPartial);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, approx);
   }
 
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaPartial);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, approx);
 }
 
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
+compressAcaPlus(const RkApproximationControl *approx, const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   double estimateSquaredNorm = 0;
   int i_ref, j_ref;
@@ -548,7 +548,7 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   j_ref = findCol(block, colFree, aRef);
   if (j_ref == -1) {
 	// The block is completely zero.
-    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaPlus);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, approx);
   }
 
   // The reference row is chosen such that it intersects the reference
@@ -616,7 +616,7 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
     // Evaluate the stopping criterion
     // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
     // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-    double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
+    double epsilon = approx->assemblyEpsilon;
     if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
       break;
     }
@@ -680,29 +680,29 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
     delete bCols[i];
     bCols[i] = NULL;
   }
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaPlus);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, approx);
 }
 
 #include <iostream>
 
 template<typename T>
-RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod method,
+RkMatrix<typename Types<T>::dp>* compressWithoutValidation(const RkApproximationControl *approx,
                                                            const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
 
-  switch (method) {
+  switch (approx->method) {
   case Svd:
-    rk = compressSvd(block);
+    rk = compressSvd(approx, block);
     break;
   case AcaFull:
-    rk = compressAcaFull(block);
+    rk = compressAcaFull(approx, block);
     break;
   case AcaPartial:
-    rk = compressAcaPartial(block);
+    rk = compressAcaPartial(approx, block);
     break;
   case AcaPlus:
-    rk = compressAcaPlus(block);
+    rk = compressAcaPlus(approx, block);
     break;
   case NoCompression:
     // Must not happen
@@ -716,7 +716,7 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
 
 /* Appele par HMatrix<T>::assemble() */
 template<typename T>
-RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
+RkMatrix<typename Types<T>::dp>* compress(const RkApproximationControl *approx,
                                           const Function<T>& f,
                                           const ClusterData* rows,
                                           const ClusterData* cols,
@@ -725,7 +725,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
   RkMatrix<dp_t>* rk = NULL;
   ClusterAssemblyFunction<T> block(f, rows, cols, ao);
 
-  rk = compressWithoutValidation(method, block);
+  rk = compressWithoutValidation(approx, block);
 
   if (HMatrix<T>::validateCompression) {
     FullMatrix<dp_t>* full = block.assemble();
@@ -758,7 +758,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
         RkMatrix<dp_t>* rk_bis = NULL;
 
-        rk_bis = compressWithoutValidation(method, block);
+        rk_bis = compressWithoutValidation(approx, block);
         delete rk_bis ;
       }
 
@@ -785,15 +785,15 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 }
 
 // Declaration of the used templates
-template RkMatrix<S_t>* compressMatrix(FullMatrix<S_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<S_t>* compressMatrix(const RkApproximationControl *approx, FullMatrix<S_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<D_t>* compressMatrix(const RkApproximationControl *approx, FullMatrix<D_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<C_t>* compressMatrix(const RkApproximationControl *approx, FullMatrix<C_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<Z_t>* compressMatrix(const RkApproximationControl *approx, FullMatrix<Z_t>* m, const IndexSet* rows, const IndexSet* cols);
 
-template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
-template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
-template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
-template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const Function<Z_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<S_t>::dp>* compress<S_t>(const RkApproximationControl *approx, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<D_t>::dp>* compress<D_t>(const RkApproximationControl *approx, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<C_t>::dp>* compress<C_t>(const RkApproximationControl *approx, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(const RkApproximationControl *approx, const Function<Z_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
 
 }  // end namespace hmat
 

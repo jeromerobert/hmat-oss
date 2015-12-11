@@ -25,6 +25,7 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 #include "hmat/hmat.h"
+#include "rk_matrix.hpp"
 
 namespace hmat {
 
@@ -53,10 +54,16 @@ hmat_progress_t * DefaultProgress::getInstance()
 
 template<typename T>
 static void setTemplatedParameters(const HMatSettings& s) {
-  RkMatrix<T>::approx.assemblyEpsilon = s.assemblyEpsilon;
-  RkMatrix<T>::approx.recompressionEpsilon = s.recompressionEpsilon;
-  RkMatrix<T>::approx.method = s.compressionMethod;
-  RkMatrix<T>::approx.compressionMinLeafSize = s.compressionMinLeafSize;
+  RkApproximationControl::DEFAULT_APPROX.assemblyEpsilon = s.assemblyEpsilon;
+  RkApproximationControl::DEFAULT_APPROX.recompressionEpsilon = s.recompressionEpsilon;
+  RkApproximationControl::DEFAULT_APPROX.method = s.compressionMethod;
+  RkApproximationControl::DEFAULT_APPROX.compressionMinLeafSize = s.compressionMinLeafSize;
+
+  RkApproximationControl::SVD_APPROX.assemblyEpsilon = s.assemblyEpsilon;
+  RkApproximationControl::SVD_APPROX.recompressionEpsilon = s.recompressionEpsilon;
+  RkApproximationControl::SVD_APPROX.method = Svd;
+  RkApproximationControl::SVD_APPROX.compressionMinLeafSize = s.compressionMinLeafSize;
+
   HMatrix<T>::validateCompression = s.validateCompression;
   HMatrix<T>::validationErrorThreshold = s.validationErrorThreshold;
   HMatrix<T>::validationReRun = s.validationReRun;

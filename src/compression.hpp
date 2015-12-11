@@ -30,7 +30,7 @@
 #include "assembly.hpp"
 
 namespace hmat {
-
+class RkApproximationControl;
 enum CompressionMethod {
   Svd, AcaFull, AcaPartial, AcaPlus, NoCompression
 };
@@ -47,7 +47,7 @@ class IndexSet;
     \return A RkMatrix approximationg the argument \a m.
 */
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
+RkMatrix<T>* compressMatrix(const RkApproximationControl *approx, FullMatrix<T>* m, const IndexSet* rows,
                             const IndexSet* cols);
 
 /** Compress a block into an RkMatrix.
@@ -60,7 +60,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
 */
 template<typename T>
 RkMatrix<typename Types<T>::dp>*
-compress(CompressionMethod method, const Function<T>& f,
+compress(const RkApproximationControl *approx, const Function<T>& f,
          const ClusterData* rows, const ClusterData* cols,
          const AllocationObserver & = AllocationObserver());
 

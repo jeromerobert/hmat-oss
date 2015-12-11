@@ -33,7 +33,10 @@
 namespace hmat {
 
 /** RkApproximationControl */
-template<typename T> RkApproximationControl RkMatrix<T>::approx;
+RkApproximationControl RkApproximationControl::DEFAULT_APPROX = RkApproximationControl(-1, 1e-3, 1e-3, AcaPlus, 100);
+/** RkApproximationControl */
+RkApproximationControl RkApproximationControl::SVD_APPROX = RkApproximationControl(-1, 1e-3, 1e-3, Svd, 100);
+
 int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
   // Control of approximation for fixed approx.k >= 0
   int newK = k;
@@ -60,12 +63,12 @@ int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
 /** RkMatrix */
 template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _rows,
                                            FullMatrix<T>* _b, const IndexSet* _cols,
-                                           CompressionMethod _method)
+                                           const RkApproximationControl *_approx)
   : rows(_rows),
     cols(_cols),
     a(_a),
     b(_b),
-    method(_method)
+    approx(_approx)
 {
 
   // We make a special case for empty matrices.
@@ -138,7 +141,7 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
     subA = new FullMatrix<T>(a->m + rowsOffset, subRows->size(), rank(), a->lda);
     subB = new FullMatrix<T>(b->m + colsOffset, subCols->size(), rank(), b->lda);
   }
-  return new RkMatrix<T>(subA, subRows, subB, subCols, method);
+  return new RkMatrix<T>(subA, subRows, subB, subCols, approx);
 }
 
 template<typename T> size_t RkMatrix<T>::compressedSize() {
@@ -165,7 +168,7 @@ template<typename T> void RkMatrix<T>::truncate() {
   // TODO: in this case, the epsilon of recompression is not respected
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
-    RkMatrix<T>* rk = compressMatrix(tmp, rows, cols);
+    RkMatrix<T>* rk = compressMatrix(approx, tmp, rows, cols);
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
     delete rk;
@@ -230,7 +233,7 @@ template<typename T> void RkMatrix<T>::truncate() {
   }
 
   // Control of approximation
-  int newK = approx.findK(sigma->v, rank(), approx.recompressionEpsilon);
+  int newK = const_cast<RkApproximationControl *>(approx)->findK(sigma->v, rank(), approx->recompressionEpsilon);
 
   // We put the root of singular values in sigma
   for (int i = 0; i < rank(); i++) {
@@ -280,7 +283,7 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
   assert(cols == other.cols);
   std::swap(a, other.a);
   std::swap(b, other.b);
-  std::swap(method, other.method);
+  std::swap(approx, other.approx);
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
@@ -317,7 +320,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // get exactly the same result.
   int notNullParts = (rank() == 0 ? 0 : 1);
   int kTotal = rank();
-  CompressionMethod minMethod = method;
+  CompressionMethod minMethod = approx->method;
+  const RkApproximationControl * minApprox = approx;
   for (int i = 0; i < n; i++) {
     // Check that partial RkMatrix indices are subsets of their global indices set.
     // According to the indices organization, it is necessary to check that the indices
@@ -329,7 +333,10 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     assert(parts[i]->rows->isSubset(*rows));
     assert(parts[i]->cols->isSubset(*cols));
     kTotal += parts[i]->rank();
-    minMethod = std::min(minMethod, parts[i]->method);
+    if(parts[i]->approx->method < minMethod) {
+     minMethod = parts[i]->approx->method;
+     minApprox = parts[i]->approx;
+    }
     if (parts[i]->rank() != 0) {
       notNullParts += 1;
     }
@@ -392,7 +399,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     resultB->copyMatrixAtOffset(parts[i]->b, rowOffset, kOffset);
     kOffset += parts[i]->rank();
   }
-  RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
+  RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minApprox);
   if (notNullParts > 1) {
     rk->truncate();
   }
@@ -419,7 +426,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** part
       }
     }
   }
-  RkMatrix<T>* result = compressMatrix(me, rows, cols);
+  RkMatrix<T>* result = compressMatrix(approx, me, rows, cols);
   delete me;
   return result;
 }
@@ -436,10 +443,10 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
 
   if(rk->rank() == 0) {
       return new RkMatrix<T>(NULL, transR ? rk->cols : rk->rows,
-                             NULL, mCols, NoCompression);
+                             NULL, mCols, rk->approx);
   }
-  RkMatrix<T>* rkCopy = (transR == 'N' ? new RkMatrix<T>(rk->a, rk->rows, rk->b, rk->cols, rk->method)
-                         : new RkMatrix<T>(rk->b, rk->cols, rk->a, rk->rows, rk->method));
+  RkMatrix<T>* rkCopy = (transR == 'N' ? new RkMatrix<T>(rk->a, rk->rows, rk->b, rk->cols, rk->approx)
+                         : new RkMatrix<T>(rk->b, rk->cols, rk->a, rk->rows, rk->approx));
 
   FullMatrix<T>* newB = new FullMatrix<T>((transM == 'N')? m->cols : m->rows, rkCopy->b->cols);
   if (transM == 'N') {
@@ -455,7 +462,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   }
 
   FullMatrix<T>* newA = rkCopy->a->copy();
-  RkMatrix<T>* result =  new RkMatrix<T>(newA, rkCopy->rows, newB, mCols, rkCopy->method);
+  RkMatrix<T>* result =  new RkMatrix<T>(newA, rkCopy->rows, newB, mCols, rkCopy->approx);
   rkCopy->a = NULL;
   rkCopy->b = NULL;
   delete rkCopy;
@@ -488,7 +495,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
     newA->gemm('T', 'N',Constants<T>::pone, m, a, Constants<T>::zero);
   }
   FullMatrix<T>* newB = b->copy();
-  return new RkMatrix<T>(newA, mRows, newB, rkCols, rk->method);
+  return new RkMatrix<T>(newA, mRows, newB, rkCols, rk->approx);
 }
 
 template<typename T>
@@ -516,7 +523,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
   h->gemv(transH == 'N' ? 'T' : 'N', Constants<T>::pone, b, Constants<T>::zero, resB);
   FullMatrix<T>* newA = a->copy();
   const IndexSet *newCols = ((transH == 'N' )? h->cols() : h->rows());
-  return new RkMatrix<T>(newA, rkRows, resB, newCols, rk->method);
+  return new RkMatrix<T>(newA, rkRows, resB, newCols, rk->approx);
 }
 
 template<typename T>
@@ -527,7 +534,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   if (rk->rank() == 0) {
     const IndexSet* newRows = ((transH == 'N') ? h-> rows() : h->cols());
     const IndexSet* newCols = ((transR == 'N') ? rk->cols : rk->rows);
-    return new RkMatrix<T>(NULL, newRows, NULL, newCols, rk->method);
+    return new RkMatrix<T>(NULL, newRows, NULL, newCols, rk->approx);
   }
   // M R = (M A) B^t
   // The size of the HMatrix is n x m
@@ -554,7 +561,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   if (transR == 'T') {
     std::swap(a, b);
   }
-  return new RkMatrix<T>(resA, newRows, newB, rkCols, rk->method);
+  return new RkMatrix<T>(resA, newRows, newB, rkCols, rk->approx);
 }
 
 template<typename T>
@@ -591,8 +598,12 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
   delete tmp;
   FullMatrix<T>* newB = Bb->copy();
 
-  CompressionMethod combined = std::min(a->method, b->method);
-  return new RkMatrix<T>(newA, ((transA == 'N') ? a->rows : a->cols), newB, ((transB == 'N') ? b->cols : b->rows), combined);
+  CompressionMethod combined = a->approx->method;
+  const RkApproximationControl *approx_0 =  const_cast<RkApproximationControl *>(a->approx);
+  if(b->approx->method < a->approx->method) {
+    approx_0 = b->approx ;
+  }
+  return new RkMatrix<T>(newA, ((transA == 'N') ? a->rows : a->cols), newB, ((transB == 'N') ? b->cols : b->rows), approx_0);
 }
 
 template<typename T>
@@ -642,7 +653,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       for (int j = 0; j < 2; j++) {
         const IndexSet* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
         const IndexSet* subCols = (transHB == 'N' ? hb->get(i, j)->cols() : hb->get(j, i)->rows());
-        subRks[i + j * 2] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
+        subRks[i + j * 2] = new RkMatrix<T>(NULL, subRows, NULL, subCols, approx);
         for (int k = 0; k < 2; k++) {
           // C_ij = A_ik * B_kj
           const HMatrix<T>* a_ik = (transHA == 'N' ? ha->get(i, k) : ha->get(k, i));
@@ -670,7 +681,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = compressMatrix(fullMat, (transHA == 'N' ? ha->rows() : ha->cols()),
+        rk = compressMatrix(approx, fullMat, (transHA == 'N' ? ha->rows() : ha->cols()),
                            (transHB == 'N' ? hb->cols() : hb->rows()));
         delete fullMat;
       }

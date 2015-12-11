@@ -56,6 +56,12 @@ public:
    */
   RkApproximationControl() : k(-1), assemblyEpsilon(-1.),
                              recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
+  /** Initialization with impossible values by default
+     */
+  RkApproximationControl(int _k, double _assemblyEpsilon, double _recompressionEpsilon, CompressionMethod _method,
+		                     int _compressionMinLeafSize) : k(_k), assemblyEpsilon(_assemblyEpsilon),
+                             recompressionEpsilon(_recompressionEpsilon), method(_method),
+							 compressionMinLeafSize(_compressionMinLeafSize) {}
   /** Returns the number of singular values to keep.
 
        The stop criterion is (assuming that the singular value
@@ -70,6 +76,8 @@ public:
        note : the parameters maxK and sigma seem have contradictory explanation
    */
   int findK(double *sigma, int maxK, double epsilon);
+  static RkApproximationControl DEFAULT_APPROX;
+  static RkApproximationControl SVD_APPROX;
 };
 
 
@@ -89,12 +97,12 @@ public:
   // A B^t
   FullMatrix<T>* a;
   FullMatrix<T>* b;
-  CompressionMethod method; /// Method used to compress this RkMatrix
+
 
 public:
-  /// Control of the approximation. See \a RkApproximationControl for more
+  /// Control of the approximation. See \a RkApproximationControl and LocalSettings for more
   /// details.
-  static RkApproximationControl approx;
+  const RkApproximationControl *approx;
 
   // Type double precision associated to T
   typedef typename Types<T>::dp dp_t;
@@ -112,7 +120,7 @@ public:
    */
   RkMatrix(FullMatrix<T>* _a, const IndexSet* _rows,
            FullMatrix<T>* _b, const IndexSet* _cols,
-           CompressionMethod _method);
+           const RkApproximationControl *approx);
   ~RkMatrix();
 
   int rank() const {

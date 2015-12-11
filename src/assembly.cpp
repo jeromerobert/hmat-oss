@@ -41,14 +41,8 @@ void AssemblyFunction<T>::assemble(const LocalSettings & settings,
                                      RkMatrix<T> *&rkMatrix,
                                      const AllocationObserver & allocationObserver) {
     if (admissible) {
-      // Always compress the smallest blocks using an SVD. Small blocks tend to have
-      // a bad compression ratio anyways, and the SVD is not very costly in this
-      // case.
-      CompressionMethod method = RkMatrix<T>::approx.method;
-      if (std::max(rows.data.size(), cols.data.size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
-        method = Svd;
-      }
-      RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data),
+
+      RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(settings.approx, function_, &(rows.data), &(cols.data),
                                                           allocationObserver);
       if (HMatrix<T>::recompress) {
         rkDp->truncate();

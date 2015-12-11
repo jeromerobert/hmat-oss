@@ -100,12 +100,21 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   : Tree<4>(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(-3),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
-    localSettings(settings)
+    localSettings(settings, &RkApproximationControl::DEFAULT_APPROX)
 {
+  // Always compress the smallest blocks using an SVD. Small blocks tend to have
+  // a bad compression ratio anyways, and the SVD is not very costly in this
+  // case.
+  if (std::max(rows_->data.size(), cols_->data.size()) < RkApproximationControl::DEFAULT_APPROX.compressionMinLeafSize) {
+		 localSettings.approx = &RkApproximationControl::SVD_APPROX;
+  }else {
+	  	 localSettings.approx = &RkApproximationControl::DEFAULT_APPROX;
+  }
+ 
   admissible = admissibilityCondition->isAdmissible(*(rows_), *(cols_));
   if (_rows->isLeaf() || _cols->isLeaf() || admissible) {
     if (admissible) {
-      rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+      rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), localSettings.approx ));
     }
   } else {
     isUpper = false;
@@ -129,7 +138,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<4>(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(-3), isUpper(false),
-    isLower(false), admissible(false), temporary(false), localSettings(settings)
+    isLower(false), admissible(false), temporary(false), localSettings(settings, & RkApproximationControl::DEFAULT_APPROX)
     {}
 
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withChildren) const {
@@ -148,7 +157,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
                 child->cols_ = dynamic_cast<ClusterTree*>(cols_->getChild(j));
                 child->rk(new RkMatrix<T>(NULL, &child->rows_->data,
                                                  NULL, &child->cols_->data,
-                                                 NoCompression));
+                                                 localSettings.approx));
                 r->insertChild(i, j, child);
             }
         }
@@ -290,7 +299,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
         }
       }
       if (allRkLeaves) {
-        RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
+        RkMatrix<T> dummy(NULL, rows(), NULL, cols(), localSettings.approx);
         T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
         RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
         size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
@@ -331,7 +340,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
       if ((!onlyLower) && (upper != this)) {
         // Admissible leaf: a matrix represented by AB^t is transposed by exchanging A and B.
         RkMatrix<T>* newRk = new RkMatrix<T>(NULL, upper->rows(),
-                                          NULL, upper->cols(), rk()->method);
+                                          NULL, upper->cols(), rk()->approx);
         newRk->a = rk()->b ? rk()->b->copy() : NULL;
         newRk->b = rk()->a ? rk()->a->copy() : NULL;
         if(upper->rk() != NULL)
@@ -395,7 +404,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           }
           if (allRkLeaves) {
             T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
-            RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
+            RkMatrix<T> dummy(NULL, rows(), NULL, cols(), localSettings.approx);
             RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
             size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
             if (elements < childrenElements) {
@@ -410,7 +419,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
               upper->children = NULL;
               rk(candidate);
               upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
-                                        candidate->a->copy(), upper->cols(), candidate->method));
+                                        candidate->a->copy(), upper->cols(), candidate->approx));
               assert(isLeaf() && upper->isLeaf());
               assert(isRkMatrix() && upper->isRkMatrix());
             } else {
@@ -741,7 +750,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     }
     if (isRkMatrix()) {
       if(!rk())
-          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), localSettings.approx));
       rk()->axpy(alpha, newRk);
       rank_ = rk()->rank();
     } else {
@@ -1012,7 +1021,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         (!a->isLeaf() && !b->isLeaf())))
         ||(isRkMatrix() && rk() == NULL))
     {
-        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), localSettings.approx));
     }
 
     if (isRkMatrix()) {
@@ -1131,7 +1140,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   }
   if((a->isLeaf() && a->isNull()) || (b->isLeaf() && b->isNull())) {
       if(!isAssembled() && isLeaf())
-          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), localSettings.approx));
       return;
   }
 
@@ -1212,7 +1221,7 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
     HMAT_ASSERT(rk);
   } else if(a->isNull() || b->isNull()) {
     return new RkMatrix<T>(NULL, transA ? a->cols() : a->rows(),
-                           NULL, transB ? b->rows() : b->cols(), NoCompression);
+                           NULL, transB ? b->rows() : b->cols(), a->localSettings.approx);		
   } else {
     // None of the above cases, impossible.
     HMAT_ASSERT(false);
@@ -1340,7 +1349,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       const RkMatrix<T>* oRk = o->rk();
       FullMatrix<T>* newA = oRk->b ? oRk->b->copy() : NULL;
       FullMatrix<T>* newB = oRk->a ? oRk->a->copy() : NULL;
-      rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method));
+      rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->approx));
     } else {
       if (isFullMatrix()) {
         delete full();
@@ -1482,7 +1491,7 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>&
     } else if (isRkMatrix()) {
       f << prefix << " \"leaf_type\": \"Rk\", \"k\": " << rank() << ",";
       // f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
-      f << prefix << " \"method\": " << rk()->method;
+      f << prefix << " \"method\": " << rk()->approx->method;
     } else {
       f << prefix << " \"leaf_type\": \"N/A\"";
     }
@@ -1513,7 +1522,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
       assert(!isAssembled() || isNull());
       full(o->full()->copy());
     } else if (o->isRkMatrix() && !rk()) {
-      rk(new RkMatrix<T>(NULL, o->rk()->rows, NULL, o->rk()->cols, o->rk()->method));
+      rk(new RkMatrix<T>(NULL, o->rk()->rows, NULL, o->rk()->cols, o->rk()->approx));
     }
     assert((isRkMatrix() == o->isRkMatrix())
            && (isFullMatrix() == o->isFullMatrix()));
@@ -1543,7 +1552,7 @@ void HMatrix<T>::clear() {
       full()->clear();
     } else if(isRkMatrix()){
       delete rk();
-      rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+      rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), localSettings.approx));
     }
   } else {
     for (int i = 0; i < 4; i++) {
@@ -2296,7 +2305,7 @@ template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMat
     if(a == NULL && isNull())
         return;
     if(rk_ == NULL)
-        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), Svd));
+        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(),&RkApproximationControl::SVD_APPROX));
     // TODO: if the matrices exist and are of the right size (same rank),
     // reuse them.
     if (rk_->a) {

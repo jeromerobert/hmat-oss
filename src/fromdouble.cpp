@@ -67,7 +67,7 @@ template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* 
                                         rk->rows,
                                         fromDoubleFull<T>(rk->b),
                                         rk->cols,
-                                        rk->method);
+                                        rk->approx);
   rk->a= NULL;
   rk->b = NULL;
   delete rk;
