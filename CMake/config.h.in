@@ -43,6 +43,11 @@
 #cmakedefine HAVE_ZGEMM3M
 
 #cmakedefine HAVE_MKL_H
+#cmakedefine HAVE_MKL_CBLAS_H
+#cmakedefine HAVE_MKL_LAPACKE_H
+#cmakedefine HAVE_MKL_SERVICE_H
+#cmakedefine HAVE_MKL_BLAS_H
+#cmakedefine HAVE_MKL_TYPES_H
 
 #cmakedefine HAVE_MKL_IMATCOPY
 
