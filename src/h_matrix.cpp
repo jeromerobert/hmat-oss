@@ -2339,6 +2339,27 @@ template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMat
         rank_ = rk_->rank();
 }
 
+template<typename T> std::string HMatrix<T>::toString() const {
+    std::vector<Tree<4>*> leaves;
+    listAllLeaves(leaves);
+    int nbAssembled = 0;
+    int nbNullFull = 0;
+    for(int i = 0; i < leaves.size(); i++) {
+        HMatrix<T> * l = static_cast<HMatrix<T>*>(leaves[i]);
+        if(l->isAssembled()) {
+            nbAssembled++;
+            if(!l->isRkMatrix() && l->isNull())
+                nbNullFull++;
+        }
+    }
+    std::stringstream sstm;
+    sstm << "HMatrix(rows=[" << rows()->offset() << ", " << rows()->size() <<
+            "], cols=[" << cols()->offset() << ", " << cols()->size() <<
+            "], pointer=" << (void*)this << ", leaves=" << leaves.size() <<
+            ", assembled=" << nbAssembled << ", nullFull=" << nbNullFull << ")";
+    return sstm.str();
+}
+
 // Templates declaration
 template class HMatrix<S_t>;
 template class HMatrix<D_t>;

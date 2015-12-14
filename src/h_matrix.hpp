@@ -574,6 +574,12 @@ public:
   const ClusterTree * colsTree() const {
       return cols_;
   }
+
+  /**
+   * Convert this HMatrix to a string for debug.
+   * This is better than overriding << because it allows to use printf.
+   */
+  std::string toString() const;
 };
 
 }  // end namespace hmat
