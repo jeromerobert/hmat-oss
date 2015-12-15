@@ -375,6 +375,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
             child->assembleSymmetric(f, upperChild, false, ao);
           }
         }
+        upper->rank_ = -2;
         if (coarsening) {
             // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
             // This is done if the memory of the resulting leaf is less than the sum of the initial
