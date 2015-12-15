@@ -50,6 +50,8 @@ class ClusteringAlgorithm;
 //TODO remove all global settings
 class HMatSettings: public hmat::MatrixSettings {
 public:
+  double taux_global;
+  double factamp;
   double assemblyEpsilon; ///< Tolerance for the assembly.
   double recompressionEpsilon; ///< Tolerance for the recompression (using SVD)
   CompressionMethod compressionMethod; ///< Compression method
@@ -71,7 +73,7 @@ public:
 private:
   /** This constructor sets the default values.
    */
-  HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
+  HMatSettings() : taux_global(1.0), factamp(1.0), assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(AcaPlus),  compressionMinLeafSize(100),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),

@@ -53,6 +53,8 @@ hmat_progress_t * DefaultProgress::getInstance()
 
 template<typename T>
 static void setTemplatedParameters(const HMatSettings& s) {
+  RkMatrix<T>::approx.taux_global = s.taux_global;
+  RkMatrix<T>::approx.factamp = s.factamp;
   RkMatrix<T>::approx.assemblyEpsilon = s.assemblyEpsilon;
   RkMatrix<T>::approx.recompressionEpsilon = s.recompressionEpsilon;
   RkMatrix<T>::approx.method = s.compressionMethod;

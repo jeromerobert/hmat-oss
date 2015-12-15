@@ -111,6 +111,8 @@ void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
 void hmat_get_parameters(hmat_settings_t* settings)
 {
     HMatSettings& settingsCxx = HMatSettings::getInstance();
+    settings->taux_global     = settingsCxx.taux_global;
+    settings->factamp         = settingsCxx.factamp;
     settings->assemblyEpsilon = settingsCxx.assemblyEpsilon;
     settings->recompressionEpsilon = settingsCxx.recompressionEpsilon;
     switch (settingsCxx.compressionMethod) {

@@ -525,6 +525,8 @@ void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);
 
 typedef struct
 {
+  double taux_global;
+  double factamp;
   /*! \brief Tolerance for the assembly. */
   double assemblyEpsilon;
   /*! \brief Tolerance for the recompression (using SVD) */

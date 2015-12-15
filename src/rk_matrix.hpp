@@ -38,23 +38,23 @@ class ClusterData;
 class IndexSet;
 
 /** Control the approximation of Rk-matrices.
-
-     In the case where k != 0, we do an approximation with a fixed rank k,
-     otherwise the approximation is adaptive, it stops when the
-     singular value is less than an error relative to the
-     sum of the singular values in the SVD.
+    New formula to control rank compression
  */
 class RkApproximationControl {
 public:
-  int k; /// If != 0, fixed-rank approximation
-  double assemblyEpsilon; /// Tolerance for the assembly
-  double recompressionEpsilon; /// Tolerance for the recompressions
+
+  double taux_global; ///   >=0 <=1  taux_global = %(compression needed), rank_global = (rows*cols)/(rows+cols) * taux_global;
+  double factamp;     ///  >= 1 : rank = max(rank_global, rank_assemble * factamp)
+                      ///   rank_new = min( rank , maxK, rank_epsilon);
+
+  double assemblyEpsilon; /// Tolerance for the assembly;
+  double recompressionEpsilon; /// Tolerance for the recompressions;
   CompressionMethod method;
   int compressionMinLeafSize;
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : k(0), assemblyEpsilon(-1.),
+  RkApproximationControl() : taux_global(0.0), factamp(1.0),  assemblyEpsilon(-1.),
                              recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
   /** Returns the number of singular values to keep.
 
@@ -69,7 +69,7 @@ public:
 
        note : the parameters maxK and sigma seem have contradictory explanation
    */
-  int findK(double *sigma, int maxK, double epsilon);
+  int findK(double *sigma, int minK, int maxK, int rows, int cols, double epsilon);
 };
 
 
@@ -90,6 +90,8 @@ public:
   FullMatrix<T>* a;
   FullMatrix<T>* b;
   CompressionMethod method; /// Method used to compress this RkMatrix
+  int rank_assemble;
+
 
 public:
   /// Control of the approximation. See \a RkApproximationControl for more
@@ -119,6 +121,12 @@ public:
       return a ? a->cols : 0;
   }
 
+  void save_rank() {
+	  rank_assemble = rank();
+  }
+  int rank_a() const {
+	  return rank_assemble;
+  }
   /**  Gives a pointer to a RkMatrix representing a subset of indices.
        The pointer is supposed to be read-only (for efficiency reasons).
 

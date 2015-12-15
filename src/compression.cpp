@@ -292,7 +292,8 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   // Control of the approximation
 
   int maxK = min(rowCount, colCount);
-  int k = RkMatrix<T>::approx.findK(sigma->v, maxK, RkMatrix<T>::approx.assemblyEpsilon);
+  int minK = maxK; assert(RkMatrix<T>::approx.factamp >= 1);
+  int k = RkMatrix<T>::approx.findK(sigma->v, minK, maxK, rowCount, colCount, RkMatrix<T>::approx.assemblyEpsilon);
 
   if(k == 0)
     return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
@@ -339,9 +340,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
 
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows, m->cols);
-  if (RkMatrix<dp_t>::approx.k > 0) {
-    maxK = min(maxK, RkMatrix<dp_t>::approx.k);
-  }
+
 
   FullMatrix<dp_t> tmpA(m->rows, maxK);
   tmpA.clear();

@@ -50,8 +50,10 @@ void AssemblyFunction<T>::assemble(const LocalSettings & settings,
       }
       RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data),
                                                           allocationObserver);
+      rkDp->save_rank();
       if (HMatrix<T>::recompress) {
         rkDp->truncate();
+        rkDp->save_rank();
       }
       rkMatrix = fromDoubleRk<T>(rkDp);
     } else {

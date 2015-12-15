@@ -34,25 +34,25 @@ namespace hmat {
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
-int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
-  // Control of approximation for fixed approx.k != 0
-  int newK = k;
-  if (newK != 0) {
-    newK = std::min(newK, maxK);
-  } else {
-    assert(epsilon >= 0.);
-    double sumSingularValues = 0.;
-    for (int i = 0; i < maxK; i++) {
-      sumSingularValues += sigma[i];
-    }
-    int i = 0;
-    for (i = 0; i < maxK; i++) {
-      if (sigma[i] <= epsilon * sumSingularValues) {
-        break;
-      }
-    }
-    newK = i;
+int  RkApproximationControl::findK(double *sigma, int minK, int maxK, int rows, int cols, double epsilon){
+  // fixed compression
+  int rank_global = taux_global * rows * cols / (rows + cols);
+  int newK = std::max(rank_global, int(factamp * minK));
+  int Keps;
+  assert(epsilon >= 0.);
+  double sumSingularValues = 0.;
+  for (int i = 0; i < maxK; i++) {
+	  sumSingularValues += sigma[i];
   }
+  int i = 0;
+  for (i = 0; i < maxK; i++) {
+	  if (sigma[i] <= epsilon * sumSingularValues) {
+		  break;
+	  }
+  }
+  Keps = i;
+  newK = std::min(newK, Keps);
+
   return newK;
 }
 
@@ -67,7 +67,7 @@ template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _r
     b(_b),
     method(_method)
 {
-
+  save_rank(); 
   // We make a special case for empty matrices.
   if ((!a) && (!b)) {
     return;
@@ -229,8 +229,8 @@ template<typename T> void RkMatrix<T>::truncate() {
     HMAT_ASSERT(!ierr);
   }
 
-  // Control of approximation
-  int newK = approx.findK(sigma->v, rank(), approx.recompressionEpsilon);
+  // Control of approximation rank_assemble <= rank
+  int newK = approx.findK(sigma->v, rank_a(), rank(), rows->size(), cols->size(), approx.recompressionEpsilon);
 
   // We put the root of singular values in sigma
   for (int i = 0; i < rank(); i++) {
