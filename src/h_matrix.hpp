@@ -375,19 +375,14 @@ public:
       Le resultat est alors une matrice pleine.
   */
   static FullMatrix<T>* multiplyFullMatrix(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b);
-  /*! \brief B <- B*D : ou B = this et D est en argument
+  /*! \brief B <- B*D where B is this
 
-    \warning D doit avoir ete decomposee en LDL^T avant
+    \warning D must a have been decomposed by LDLt
     \param d matrice D
+    \param left run B <- D*B instead of B <- B*D
+    \param inverse run B <- B * D^-1
   */
-  void multiplyWithDiag(const HMatrix<T>* d, bool left = false);
-  /*! \brief B <- B*D ou B <- B*D^-1  (ou idem a gauche) : ou B = this et D est en argument
-
-     \param d matrice D
-     \param inverse true : B<-B*D^-1, false B<-B*D
-     \param left true : B<-D*B, false B<-B*D
-  */
-  void multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bool left = false);
+  void multiplyWithDiag(const HMatrix<T>* d, bool left = false, bool inverse = false) const;
   /*! \brief Resolution du systeme L X = B, avec this = L, et X = B.
 
     \param b la matrice B en entree, et X en sortie.

@@ -1256,26 +1256,20 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
 }
 
 template<typename T>
-void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left) {
-  DECLARE_CONTEXT;
-  multiplyWithDiagOrDiagInv(d, false, left);
-}
-
-template<typename T>
-void HMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T>* d, bool inverse, bool left) {
+void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) const {
   assert(*d->rows() == *d->cols());
   assert(left || (*cols() == *d->rows()));
   assert(!left || (*rows() == *d->cols()));
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!isLeaf()) {
-    get(0,0)->multiplyWithDiagOrDiagInv(d->get(0,0), inverse, left);
-    get(1,1)->multiplyWithDiagOrDiagInv(d->get(1,1), inverse, left);
+    get(0,0)->multiplyWithDiag(d->get(0,0), left, inverse);
+    get(1,1)->multiplyWithDiag(d->get(1,1), left, inverse);
     if (get(0, 1)) {
-      get(0, 1)->multiplyWithDiagOrDiagInv(left ? d->get(0, 0) : d->get(1, 1), inverse, left);
+      get(0, 1)->multiplyWithDiag(left ? d->get(0, 0) : d->get(1, 1), left, inverse);
     }
     if (get(1, 0)) {
-      get(1, 0)->multiplyWithDiagOrDiagInv(left ? d->get(1, 1) : d->get(0, 0), inverse, left);
+      get(1, 0)->multiplyWithDiag(left ? d->get(1, 1) : d->get(0, 0), left, inverse);
     }
   } else if (isRkMatrix() && !isNull()) {
     assert(!rk()->a->isTriUpper() && !rk()->b->isTriUpper());
@@ -1997,7 +1991,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       HMatrix<T>* y = Zero(m22);
       y->copy(m22);
       assert(*y->cols() == *d22->rows());
-      y->multiplyWithDiag(d22, false);
+      y->multiplyWithDiag(d22);
       h21->gemm('N', 'T', Constants<T>::mone, y, m12, Constants<T>::pone);
       delete y;
 
@@ -2009,7 +2003,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 
       assert(*m->cols() == *d->rows());
       assert(*m_copy->rk()->cols == *d->rows());
-      m_copy->multiplyWithDiagOrDiagInv(d, false, false); // right multiplication by D
+      m_copy->multiplyWithDiag(d); // right multiplication by D
       RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
       delete m_copy;
 
@@ -2019,7 +2013,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       HMatrix<T>* copy_m = Zero(m);
       HMAT_ASSERT(copy_m);
       copy_m->copy(m);
-      copy_m->multiplyWithDiagOrDiagInv(d, false, false); // right multiplication by D
+      copy_m->multiplyWithDiag(d); // right multiplication by D
 
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix('N', 'T', copy_m, m);
       HMAT_ASSERT(fullMat);
@@ -2045,7 +2039,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       // 5) this <- this - fullMat
       HMatrix<T>* m_copy = Zero(m);
       m_copy->copy(m);
-      m_copy->multiplyWithDiagOrDiagInv(d, false, false);
+      m_copy->multiplyWithDiag(d);
 
       RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
       FullMatrix<T>* fullMat = rkMat->eval();
@@ -2206,7 +2200,7 @@ template<typename T> void HMatrix<T>::solve(
         this->solveUpperTriangularLeft(b, false, false);
         break;
     case hmat_factorization_ldlt:
-        this->solveDiagonal(b);
+        this->multiplyWithDiag(b, true, true);
         this->solveUpperTriangularLeft(b, true, true);
         break;
     case hmat_factorization_llt:
@@ -2214,29 +2208,6 @@ template<typename T> void HMatrix<T>::solve(
         break;
     default:
         HMAT_ASSERT(false);
-    }
-}
-
-template<typename T> void HMatrix<T>::solveDiagonal(HMatrix<T>* b) const {
-    if(b->isLeaf()) {
-        FullMatrix<T> * toUpdate;
-        if(b->isFullMatrix())
-            toUpdate = b->full();
-        else if(b->isRkMatrix() && !b->isNull())
-            toUpdate = b->rk()->a;
-        else {
-            assert(b->isNull());
-            return;
-        }
-        solveDiagonal(toUpdate);
-    } else if(isLeaf()) {
-        // Not yet implemented
-        HMAT_ASSERT(false);
-    } else {
-        get(0, 0)->solveDiagonal(b->get(0, 0));
-        get(0, 0)->solveDiagonal(b->get(0, 1));
-        get(1, 1)->solveDiagonal(b->get(1, 0));
-        get(1, 1)->solveDiagonal(b->get(1, 1));
     }
 }
 
