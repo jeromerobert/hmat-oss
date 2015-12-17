@@ -73,7 +73,7 @@ public:
 private:
   /** This constructor sets the default values.
    */
-  HMatSettings() : taux_global(1.0), factamp(1.0), assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
+  HMatSettings() : taux_global(2.0), factamp(1.0), assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(AcaPlus),  compressionMinLeafSize(100),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),

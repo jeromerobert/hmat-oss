@@ -54,7 +54,7 @@ public:
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : taux_global(0.0), factamp(1.0),  assemblyEpsilon(-1.),
+  RkApproximationControl() : taux_global(2.0), factamp(1.0),  assemblyEpsilon(-1.),
                              recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
   /** Returns the number of singular values to keep.
 

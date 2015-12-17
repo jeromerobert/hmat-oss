@@ -37,22 +37,49 @@ template<typename T> RkApproximationControl RkMatrix<T>::approx;
 int  RkApproximationControl::findK(double *sigma, int minK, int maxK, int rows, int cols, double epsilon){
   // fixed compression
   int rank_global = taux_global * rows * cols / (rows + cols);
-  int newK = std::max(rank_global, int(factamp * minK));
-  int Keps;
+
+  int newK ;
+  int Keps, Keps_g_1, Keps_g_2;
   assert(epsilon >= 0.);
   double sumSingularValues = 0.;
   for (int i = 0; i < maxK; i++) {
 	  sumSingularValues += sigma[i];
   }
   int i = 0;
+  double eps_g_1 = epsilon*10;
+  double eps_g_2 = epsilon*100;
+
   for (i = 0; i < maxK; i++) {
+	  if(sigma[i] <= eps_g_2 * sumSingularValues) {
+		  Keps_g_2 = i;
+		  eps_g_2  = -1;
+	  }
+	  if(sigma[i] <= eps_g_1 * sumSingularValues) {
+		  Keps_g_1 = i;
+		  eps_g_1  = -1;
+	  }
 	  if (sigma[i] <= epsilon * sumSingularValues) {
 		  break;
 	  }
   }
   Keps = i;
-  newK = std::min(newK, Keps);
-
+  if(std::min(rows, cols) > 2000) {
+	  newK = std::max(rank_global, Keps_g_2);
+	  newK = std::min(newK,        Keps);
+  }else if(std::min(rows, cols) > 300) {
+	  newK = std::max(rank_global, Keps_g_1);
+	  newK = std::min(newK,        Keps);
+  }else {
+	  newK = Keps;
+  }
+  if(taux_global > 1.0) {
+	  newK = Keps;
+  }
+ /* if(newK == Keps) {
+	  std::cout << "GOOD : Keps =" << Keps << " minK =" << minK << " maxK = " << maxK << std::endl;
+  }else {
+	  std::cout << "BAD : Keps =" << Keps << " minK =" << minK << " maxK = " << maxK << std::endl;
+  }*/
   return newK;
 }
 
@@ -67,7 +94,6 @@ template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _r
     b(_b),
     method(_method)
 {
-  save_rank(); 
   // We make a special case for empty matrices.
   if ((!a) && (!b)) {
     return;
