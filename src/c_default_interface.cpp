@@ -151,6 +151,8 @@ int hmat_set_parameters(hmat_settings_t* settings)
     HMAT_ASSERT(settings != NULL);
     int rc = 0;
     HMatSettings& settingsCxx = HMatSettings::getInstance();
+    settingsCxx.taux_global     = settings->taux_global;
+    settingsCxx.factamp     = settings->factamp;
     settingsCxx.assemblyEpsilon = settings->assemblyEpsilon;
     settingsCxx.recompressionEpsilon = settings->recompressionEpsilon;
     switch (settings->compressionMethod) {
