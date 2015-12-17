@@ -2316,19 +2316,25 @@ template<typename T> std::string HMatrix<T>::toString() const {
     listAllLeaves(leaves);
     int nbAssembled = 0;
     int nbNullFull = 0;
+    int nbNullRk = 0;
     for(int i = 0; i < leaves.size(); i++) {
         HMatrix<T> * l = static_cast<HMatrix<T>*>(leaves[i]);
         if(l->isAssembled()) {
             nbAssembled++;
-            if(!l->isRkMatrix() && l->isNull())
-                nbNullFull++;
+            if(l->isNull()) {
+                if(l->isRkMatrix())
+                    nbNullRk++;
+                else
+                    nbNullFull++;
+            }
         }
     }
     std::stringstream sstm;
     sstm << "HMatrix(rows=[" << rows()->offset() << ", " << rows()->size() <<
             "], cols=[" << cols()->offset() << ", " << cols()->size() <<
             "], pointer=" << (void*)this << ", leaves=" << leaves.size() <<
-            ", assembled=" << nbAssembled << ", nullFull=" << nbNullFull << ")";
+            ", assembled=" << nbAssembled <<
+            ", nullFull=" << nbNullFull << ", nullRk=" << nbNullRk << ")";
     return sstm.str();
 }
 
