@@ -265,7 +265,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
   } else {
     full_ = NULL;
     rk_ = NULL;
-    rank_ = -2;
+    assembled();
     for (int i = 0; i < 4; i++) {
       HMatrix<T> *child = static_cast<HMatrix*>(getChild(i));
       child->assemble(f, ao);
@@ -347,7 +347,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
       }
     }
   } else {
-    rank_= -2;
+    assembled();
     if (onlyLower) {
       for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 2; j++) {
@@ -375,7 +375,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
             child->assembleSymmetric(f, upperChild, false, ao);
           }
         }
-        upper->rank_ = -2;
+        upper->assembled();
         if (coarsening) {
             // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
             // This is done if the memory of the resulting leaf is less than the sum of the initial
@@ -2333,7 +2333,7 @@ template<typename T> std::string HMatrix<T>::toString() const {
     sstm << "HMatrix(rows=[" << rows()->offset() << ", " << rows()->size() <<
             "], cols=[" << cols()->offset() << ", " << cols()->size() <<
             "], pointer=" << (void*)this << ", leaves=" << leaves.size() <<
-            ", assembled=" << nbAssembled <<
+            ", assembled=" << isAssembled() << ", assembledLeaves=" << nbAssembled <<
             ", nullFull=" << nbNullFull << ", nullRk=" << nbNullRk << ")";
     return sstm.str();
 }

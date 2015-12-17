@@ -562,6 +562,16 @@ public:
       return rank_ > -3;
   }
 
+  /**
+   * Tag a not leaf block as assembled.
+   * Must only be called when all leaves of this block have been
+   * assembled (no coherency check).
+   */
+  void assembled() {
+      assert(!isLeaf());
+      rank_ = -2;
+  }
+
   const ClusterTree * rowsTree() const {
       return rows_;
   }
