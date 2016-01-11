@@ -536,8 +536,6 @@ typedef struct
   int maxLeafSize;
   /*! \brief max(|L0|) */
   int maxParallelLeaves;
-  /*! \brief Maximum size of an admissible block. Should be size_t ! */
-  int elementsPerBlock;
   /*! \brief Coarsen the matrix structure after assembly. */
   int coarsening;
   /*! \brief Recompress the matrix after assembly. */

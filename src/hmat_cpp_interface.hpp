@@ -61,7 +61,6 @@ public:
    */
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   int maxParallelLeaves; ///< max(|L0|)
-  size_t elementsPerBlock; ///< Maximum size of an admissible block
   bool coarsening; ///< Coarsen the matrix structure after assembly.
   bool recompress; ////< Recompress the matrix after assembly.
   bool validateCompression; ///< Validate the rk-matrices after compression
@@ -75,7 +74,6 @@ private:
                    compressionMethod(AcaPlus),  compressionMinLeafSize(100),
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
-                   elementsPerBlock(5000000),
                    coarsening(false),
                    recompress(true), validateCompression(false),
                    validationReRun(false), validationDump(false), validationErrorThreshold(0.) {}
