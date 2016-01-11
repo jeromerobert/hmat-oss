@@ -33,8 +33,9 @@
 namespace hmat {
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(
-    double eta, size_t maxElementsPerBlock):
-    eta_(eta), maxElementsPerBlock(maxElementsPerBlock)
+    double eta, size_t maxElementsPerBlock, size_t maxElementsPerBlockRows):
+    eta_(eta), maxElementsPerBlock(maxElementsPerBlock),
+    maxElementsPerBlockAca_(maxElementsPerBlockRows)
 {
 }
 
@@ -43,11 +44,11 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
 {
     CompressionMethod m = HMatSettings::getInstance().compressionMethod;
     bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
-    if (isFullAlgo) {
-        size_t elements = ((size_t) rows.data.size()) * cols.data.size();
-        if(elements > maxElementsPerBlock)
-            return false;
-    }
+    size_t elements = ((size_t) rows.data.size()) * cols.data.size();
+    if(isFullAlgo && elements > maxElementsPerBlock)
+        return false;
+    if(!isFullAlgo && elements > maxElementsPerBlockAca_)
+        return false;
 
     // TODO check if this test is still usefull / meaningfull
     if(rows.data.size() < 2 || cols.data.size() < 2)

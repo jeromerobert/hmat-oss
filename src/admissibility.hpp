@@ -65,7 +65,8 @@ public:
 class StandardAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 5000000);
+  StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 5000000,
+                                 size_t maxElementsPerBlockAca = 17179869184);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   void clean(const ClusterTree& current) const;
   std::string str() const;
@@ -74,6 +75,7 @@ public:
 private:
   double eta_;
   size_t maxElementsPerBlock;
+  size_t maxElementsPerBlockAca_;
 };
 
 } //  end namespace hmat

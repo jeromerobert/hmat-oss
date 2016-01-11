@@ -87,6 +87,18 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
     return 0;
 }
 
+void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
+    p->eta = 2;
+    p->max_svd_elements = 5000000;
+    p->max_aca_elements = 17179869184;
+}
+
+hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {
+    hmat::StandardAdmissibilityCondition * r = new hmat::StandardAdmissibilityCondition(
+         p->eta, p->max_svd_elements, p->max_aca_elements);
+    return reinterpret_cast<hmat_admissibility_t*>(r);
+}
+
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
 {
     return static_cast<hmat_admissibility_t*>((void*) new hmat::StandardAdmissibilityCondition(eta));

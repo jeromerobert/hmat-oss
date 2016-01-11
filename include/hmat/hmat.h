@@ -201,6 +201,27 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);
 /* Opaque pointer */
 typedef struct hmat_admissibility_condition hmat_admissibility_t;
 
+typedef struct {
+    /** eta for Hackbusch condition */
+    double eta;
+    /**
+     * Maximum number of element (m*n) of an admissible block when
+     * assembling the full block is needed
+     */
+    size_t max_svd_elements;
+    /**
+     * Maximum number of element (m*n) of an admissible block when
+     * only assembling rows or cols is needed
+     */
+    size_t max_aca_elements;
+} hmat_admissibility_param_t;
+
+/** Init an hmat_admissibility_param structure with default values */
+void hmat_init_admissibility_param(hmat_admissibility_param_t *);
+
+/** Create an admissibility condition from parameters */
+hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t *);
+
 /* Create a standard (Hackbusch) admissibility condition, with a given eta */
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
 
