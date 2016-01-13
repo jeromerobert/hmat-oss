@@ -557,6 +557,8 @@ typedef struct
   int maxLeafSize;
   /*! \brief max(|L0|) */
   int maxParallelLeaves;
+  /*! \brief Padding for ABI backward compatiblity */
+  int _dummyABI;
   /*! \brief Coarsen the matrix structure after assembly. */
   int coarsening;
   /*! \brief Recompress the matrix after assembly. */
