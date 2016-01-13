@@ -126,7 +126,7 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
     if(enabled_) {
         std::vector<mem_t> buffer(labels_.size());
         assert(output_ != NULL);
-        assert(type < buffer.size() - 1);
+        assert((unsigned char) type < buffer.size() - 1);
         std::fill(buffer.begin(), buffer.end(), 0);
         buffer[0] = nanoTime();
 #ifdef __GNUC__
@@ -155,9 +155,9 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
         //buffer[k++] = global_mallinfo.fordblks;
         buffer[k++] = global_mallinfo.keepcost;
 #endif
-        for(int i = 0; i < hooks_.size(); i++) {
+        for(unsigned int i = 0; i < hooks_.size(); i++) {
             if(hooks_[i]) {
-                assert(type != i);
+                assert((unsigned char)type != i);
                 buffer[i] = hooks_[i](hookParams_[i]);
             }
         }
@@ -191,7 +191,7 @@ void MemoryInstrumenter::finish() {
                 break;
             assert(r == 1);
             assert(buffer_[0] > 0);
-            for(int i = 0; i < buffer_.size(); i++) {
+            for(unsigned int i = 0; i < buffer_.size(); i++) {
                 if(cumulatives_[i])
                     cumulator[i] += buffer_[i];
                 else

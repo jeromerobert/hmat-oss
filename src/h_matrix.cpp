@@ -2323,7 +2323,7 @@ template<typename T> std::string HMatrix<T>::toString() const {
     int nbAssembled = 0;
     int nbNullFull = 0;
     int nbNullRk = 0;
-    for(int i = 0; i < leaves.size(); i++) {
+    for(unsigned int i = 0; i < leaves.size(); i++) {
         HMatrix<T> * l = static_cast<HMatrix<T>*>(leaves[i]);
         if(l->isAssembled()) {
             nbAssembled++;
