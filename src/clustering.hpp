@@ -83,7 +83,7 @@ public:
   virtual void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const = 0;
 
   /*! \brief Called by ClusterTreeBuilder::clean_recursive to free data which may be allocated by partition  */
-  virtual void clean(ClusterTree& current) const {}
+  virtual void clean(ClusterTree&) const {}
 
   int getMaxLeafSize() const;
   void setMaxLeafSize(int maxLeafSize);

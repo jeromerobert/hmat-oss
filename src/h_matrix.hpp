@@ -96,7 +96,7 @@ public:
 template<typename T>
 class HMatrixVoidNodeDumper : public HMatrixNodeDumper<T> {
 public:
-  virtual std::string dumpExtraInfo(const HMatrix<T>& node, const std::string& prefix) const { return ""; }
+  virtual std::string dumpExtraInfo(const HMatrix<T>&, const std::string&) const { return ""; }
 };
 
 /*! \brief The HMatrix class, representing a HMatrix.

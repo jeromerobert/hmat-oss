@@ -155,8 +155,8 @@ const HMatrix<T> * PostscriptDumper<T>::cast(const Tree<4> * tree) const {
 }
 
 template<typename T>
-void PostscriptDumper<T>::drawMatrix(const Tree<4> * tree, const HMatrix<T> * m,
-    ofstream& f, int depth, double scale, bool cross) const {
+void PostscriptDumper<T>::drawMatrix(const Tree<4> *, const HMatrix<T> * m,
+    ofstream& f, int depth, double, bool cross) const {
     int n = m->rows()->coordinates()->size();
     int startX = m->cols()->offset();
     int lengthX = m->cols()->size();

@@ -31,6 +31,9 @@
 #include <stdio.h>
 #include <stddef.h>
 #include "common/chrono.h"
+#ifndef HMAT_MEM_INSTR
+#include "common/context.hpp"
+#endif
 
 /*! \brief Memory Tracking.
 
@@ -64,12 +67,18 @@ public:
     void alloc(size_t size, char type) {
 #ifdef HMAT_MEM_INSTR
         allocImpl(size, type);
+#else
+        ignore_unused_arg(size);
+        ignore_unused_arg(type);
 #endif
     }
 
     void free(size_t size, char type) {
 #ifdef HMAT_MEM_INSTR
         freeImpl(size, type);
+#else
+        ignore_unused_arg(size);
+        ignore_unused_arg(type);
 #endif
     }
 

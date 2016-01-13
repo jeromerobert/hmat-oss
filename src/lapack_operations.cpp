@@ -42,7 +42,7 @@ template<typename T> int svdCall(int order, char jobu, char jobv, int m, int n, 
                                  int lda, double* sigma, T* u, int ldu, T* vt,
                                  int ldvt);
 
-template<> int svdCall<hmat::S_t>(int order, char jobu, char jobv, int m, int n, hmat::S_t* a,
+template<> int svdCall<hmat::S_t>(int, char jobu, char jobv, int m, int n, hmat::S_t* a,
                             int lda, double* sigma, hmat::S_t* u, int ldu, hmat::S_t* vt,
                             int ldvt) {
   int result;
@@ -68,7 +68,7 @@ template<> int svdCall<hmat::S_t>(int order, char jobu, char jobv, int m, int n,
   delete[] sigmaFloat;
   return result;
 }
-template<> int svdCall<hmat::D_t>(int order, char jobu, char jobv, int m, int n, hmat::D_t* a,
+template<> int svdCall<hmat::D_t>(int, char jobu, char jobv, int m, int n, hmat::D_t* a,
                             int lda, double* sigma, hmat::D_t* u, int ldu, hmat::D_t* vt,
                             int ldvt) {
   int workSize;
@@ -88,7 +88,7 @@ template<> int svdCall<hmat::D_t>(int order, char jobu, char jobv, int m, int n,
   delete[] work;
   return result;
 }
-template<> int svdCall<hmat::C_t>(int order, char jobu, char jobv, int m, int n, hmat::C_t* a,
+template<> int svdCall<hmat::C_t>(int, char jobu, char jobv, int m, int n, hmat::C_t* a,
                             int lda, double* sigma, hmat::C_t* u, int ldu, hmat::C_t* vt,
                             int ldvt) {
   int result;
@@ -115,7 +115,7 @@ template<> int svdCall<hmat::C_t>(int order, char jobu, char jobv, int m, int n,
   delete[] sigmaFloat;
   return result;
 }
-template<> int svdCall<hmat::Z_t>(int order, char jobu, char jobv, int m, int n, hmat::Z_t* a,
+template<> int svdCall<hmat::Z_t>(int, char jobu, char jobv, int m, int n, hmat::Z_t* a,
                             int lda, double* sigma, hmat::Z_t* u, int ldu, hmat::Z_t* vt,
                             int ldvt) {
   int result;

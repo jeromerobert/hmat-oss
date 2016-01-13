@@ -113,8 +113,7 @@ ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgori
 
 
 template<typename T>
-void DefaultEngine<T>::assembly(Assembly<T>& f, SymmetryFlag sym,
-                                bool synchronize) {
+void DefaultEngine<T>::assembly(Assembly<T>& f, SymmetryFlag sym, bool) {
   if (sym == kLowerSymmetric || hmat->isLower || hmat->isUpper) {
     hmat->assembleSymmetric(f, NULL, hmat->isLower || hmat->isUpper);
   } else {

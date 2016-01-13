@@ -2077,6 +2077,8 @@ template<typename T> void assertLdlt(const HMatrix<T> * me) {
         assertLdlt(me->get(0,0));
         assertLdlt(me->get(1,1));
     }
+#else
+    ignore_unused_arg(me);
 #endif
 }
 
@@ -2090,6 +2092,8 @@ template<typename T> void assertLower(const HMatrix<T> * me) {
         assertLower(me->get(0,0));
         assertLower(me->get(1,1));
     }
+#else
+    ignore_unused_arg(me);
 #endif
 }
 
@@ -2103,6 +2107,8 @@ template<typename T> void assertUpper(const HMatrix<T> * me) {
         assertUpper(me->get(0,0));
         assertUpper(me->get(1,1));
     }
+#else
+    ignore_unused_arg(me);
 #endif
 }
 

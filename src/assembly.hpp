@@ -127,7 +127,7 @@ public:
 
     \param handle the handle passed to \a AssemblyFunction::releaseBlock().
   */
-  virtual void releaseBlock(hmat_block_info_t *, const AllocationObserver & allocator) const {}
+  virtual void releaseBlock(hmat_block_info_t *, const AllocationObserver &) const {}
 
   /*! \brief Return a row of a matrix block.
 

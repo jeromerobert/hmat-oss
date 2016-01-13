@@ -40,6 +40,14 @@
   #define UM_NS std::tr1
 #endif
 
+namespace hmat {
+
+// See http://herbsutter.com/2009/10/18/mailbag-shutting-up-compiler-warnings/
+template<class T>
+void ignore_unused_arg( const T& ) {}
+
+}
+
 namespace trace {
 
   class NodeData {
@@ -145,10 +153,10 @@ public:
 
 #else
 #define tracing_set_worker_index_func(f) do {} while (0)
-#define enter_context(x) do {} while(0)
+#define enter_context(x) do { hmat::ignore_unused_arg(x); } while(0)
 #define leave_context()  do {} while(0)
-#define increment_flops(x) do { (void)(x); } while(0)
-#define tracing_dump(x) do {} while(0)
+#define increment_flops(x) do { hmat::ignore_unused_arg(x); } while(0)
+#define tracing_dump(x) do { hmat::ignore_unused_arg(x); } while(0)
 #define DISABLE_CONTEXT_IN_BLOCK do {} while (0)
 #endif
 

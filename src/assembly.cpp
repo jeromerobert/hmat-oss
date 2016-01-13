@@ -33,7 +33,7 @@
 namespace hmat {
 
 template<typename T>
-void AssemblyFunction<T>::assemble(const LocalSettings & settings,
+void AssemblyFunction<T>::assemble(const LocalSettings &,
                                      const ClusterTree &rows,
                                      const ClusterTree &cols,
                                      bool admissible,
@@ -81,7 +81,7 @@ SimpleFunction<T>::assemble(const ClusterData* rows,
 
 template<typename T>
 void SimpleFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
-                                       int rowIndex, void* handle,
+                                       int rowIndex, void*,
                                        Vector<typename Types<T>::dp>* result) const {
   const int row = *(rows->indices() + rows->offset() + rowIndex);
   const int* cols_indices = cols->indices() + cols->offset();
@@ -92,7 +92,7 @@ void SimpleFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
 
 template<typename T>
 void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
-                                       int colIndex, void* handle,
+                                       int colIndex, void*,
                                        Vector<typename Types<T>::dp>* result) const {
   const int col = *(cols->indices() + cols->offset() + colIndex);
   const int* rows_indices = rows->indices() + rows->offset();
@@ -182,7 +182,7 @@ void BlockFunction<T>::releaseBlock(hmat_block_info_t * block_info, const Alloca
 }
 
 template<typename T>
-void BlockFunction<T>::getRow(const ClusterData* rows,
+void BlockFunction<T>::getRow(const ClusterData*,
                                        const ClusterData* cols,
                                        int rowIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
@@ -193,7 +193,7 @@ void BlockFunction<T>::getRow(const ClusterData* rows,
 
 template<typename T>
 void BlockFunction<T>::getCol(const ClusterData* rows,
-                                       const ClusterData* cols,
+                                       const ClusterData*,
                                        int colIndex, void* handle,
                                        Vector<typename Types<T>::dp>* result) const {
   DECLARE_CONTEXT;
@@ -207,7 +207,7 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
   // }
 }
 template<typename T>
-void Function<T>::prepareBlock(const ClusterData* rows, const ClusterData* cols,
+void Function<T>::prepareBlock(const ClusterData*, const ClusterData*,
              hmat_block_info_t * block_info, const AllocationObserver &) const {
    initBlockInfo(block_info);
 }

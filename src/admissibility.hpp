@@ -50,7 +50,7 @@ public:
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
   /*! \brief Clean up data which may be allocated by isAdmissible  */
-  virtual void clean(const ClusterTree& current) const {}
+  virtual void clean(const ClusterTree&) const {}
 
   virtual std::string str() const = 0;
 };

@@ -105,6 +105,8 @@ void MemoryInstrumenter::setFile(const std::string & filename) {
     fclose(labelsf);
 
     enabled_ = true;
+#else
+    ignore_unused_arg(filename);
 #endif
 }
 
