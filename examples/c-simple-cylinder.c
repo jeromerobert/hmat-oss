@@ -129,7 +129,6 @@ int main(int argc, char **argv) {
   int rc;
   problem_data_t problem_data;
   hmat_admissibility_t * admissibilityCondition = hmat_create_admissibility_standard(3.0);
-  int is_parallel_run = 0;
 
   if (argc != 3) {
     fprintf(stderr, "Usage: %s n_points (S|D|C|Z)\n", argv[0]);

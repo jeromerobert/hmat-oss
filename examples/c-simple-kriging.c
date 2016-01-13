@@ -305,8 +305,6 @@ int main(int argc, char **argv) {
   double *drhs, *drhsCopy, derr;
   float  *frhs, *frhsCopy, ferr;
 
-  int is_parallel_run = 0;
-
   if (argc != 3) {
       fprintf(stderr, "Usage: %s pointsfilename (S|D)\n", argv[0]);
       return 1;
