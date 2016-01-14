@@ -52,6 +52,10 @@ static size_t get_res_mem(void *)
 }
 
 MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
+    char * ws = getenv("HMAT_MEMINSTR_WS");
+    write_sampling = ws ? atoi(ws) : 1;
+    char * mi = getenv("HMAT_MEMINSTR_MI");
+    mallinfo_sampling = mi ? atoi(mi) : 100;
     addType("Time", false);
 #if __GNUC__
     addType("FullMatrix", false);
@@ -82,10 +86,6 @@ MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
     // addType("Total free space (fordblks)", false);
     addType("Top-most, releasable (keepcost)", false);
 #endif
-    char * ws = getenv("HMAT_MEMINSTR_WS");
-    write_sampling = ws ? atoi(ws) : 1;
-    char * mi = getenv("HMAT_MEMINSTR_MI");
-    mallinfo_sampling = mi ? atoi(mi) : 100;
 }
 
 void MemoryInstrumenter::setFile(const std::string & filename) {
