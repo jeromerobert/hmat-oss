@@ -38,11 +38,11 @@ using namespace std;
 namespace {
 
 // Implementation
-template<typename T> int svdCall(int order, char jobu, char jobv, int m, int n, T* a,
+template<typename T> int svdCall(char jobu, char jobv, int m, int n, T* a,
                                  int lda, double* sigma, T* u, int ldu, T* vt,
                                  int ldvt);
 
-template<> int svdCall<hmat::S_t>(int, char jobu, char jobv, int m, int n, hmat::S_t* a,
+template<> int svdCall<hmat::S_t>(char jobu, char jobv, int m, int n, hmat::S_t* a,
                             int lda, double* sigma, hmat::S_t* u, int ldu, hmat::S_t* vt,
                             int ldvt) {
   int result;
@@ -68,7 +68,7 @@ template<> int svdCall<hmat::S_t>(int, char jobu, char jobv, int m, int n, hmat:
   delete[] sigmaFloat;
   return result;
 }
-template<> int svdCall<hmat::D_t>(int, char jobu, char jobv, int m, int n, hmat::D_t* a,
+template<> int svdCall<hmat::D_t>(char jobu, char jobv, int m, int n, hmat::D_t* a,
                             int lda, double* sigma, hmat::D_t* u, int ldu, hmat::D_t* vt,
                             int ldvt) {
   int workSize;
@@ -88,7 +88,7 @@ template<> int svdCall<hmat::D_t>(int, char jobu, char jobv, int m, int n, hmat:
   delete[] work;
   return result;
 }
-template<> int svdCall<hmat::C_t>(int, char jobu, char jobv, int m, int n, hmat::C_t* a,
+template<> int svdCall<hmat::C_t>(char jobu, char jobv, int m, int n, hmat::C_t* a,
                             int lda, double* sigma, hmat::C_t* u, int ldu, hmat::C_t* vt,
                             int ldvt) {
   int result;
@@ -115,7 +115,7 @@ template<> int svdCall<hmat::C_t>(int, char jobu, char jobv, int m, int n, hmat:
   delete[] sigmaFloat;
   return result;
 }
-template<> int svdCall<hmat::Z_t>(int, char jobu, char jobv, int m, int n, hmat::Z_t* a,
+template<> int svdCall<hmat::Z_t>(char jobu, char jobv, int m, int n, hmat::Z_t* a,
                             int lda, double* sigma, hmat::Z_t* u, int ldu, hmat::Z_t* vt,
                             int ldvt) {
   int result;
@@ -173,7 +173,7 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = svdCall<T>(0, jobz, jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
+  info = svdCall<T>(jobz, jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
                     (*u)->lda, (*vt)->m, (*vt)->lda);
   if (info) {
     cerr << "Erreur dans xGESVD: " << info << endl;
