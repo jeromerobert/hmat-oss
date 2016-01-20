@@ -142,7 +142,9 @@ namespace hmat {
 
 template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vector<double>** sigma, FullMatrix<T>** vt) {
   DECLARE_CONTEXT;
-
+  static char * useGESSD = getenv("HMAT_GESSD");
+  if(useGESSD)
+      return truncatedSdd(m, u, sigma, vt);
 
   // Allocate free space for U, S, V
   int rows = m->rows;
