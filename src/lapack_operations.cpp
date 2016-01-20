@@ -190,10 +190,10 @@ template int truncatedSvd(FullMatrix<Z_t>* m, FullMatrix<Z_t>** u, Vector<double
 
 
 // Implementation
-template<typename T> int sddCall(int order, char jobz, int m, int n, T* a, int lda,
+template<typename T> int sddCall(char jobz, int m, int n, T* a, int lda,
                                  double* sigma, T* u, int ldu, T* vt, int ldvt);
 
-template<> int sddCall<S_t>(int order, char jobz, int m, int n, S_t* a, int lda,
+template<> int sddCall<S_t>(char jobz, int m, int n, S_t* a, int lda,
                             double* sigma, S_t* u, int ldu, S_t* vt, int ldvt) {
   int result;
   int p = min(m, n);
@@ -218,7 +218,7 @@ template<> int sddCall<S_t>(int order, char jobz, int m, int n, S_t* a, int lda,
   delete[] sigmaFloat;
   return result;
 }
-template<> int sddCall<D_t>(int order, char jobz, int m, int n, D_t* a, int lda,
+template<> int sddCall<D_t>(char jobz, int m, int n, D_t* a, int lda,
                             double* sigma, D_t* u, int ldu, D_t* vt, int ldvt) {
   int workSize;
   D_t workSize_D;
@@ -237,7 +237,7 @@ template<> int sddCall<D_t>(int order, char jobz, int m, int n, D_t* a, int lda,
   delete[] iwork;
   return result;
 }
-template<> int sddCall<C_t>(int order, char jobz, int m, int n, C_t* a, int lda,
+template<> int sddCall<C_t>(char jobz, int m, int n, C_t* a, int lda,
                             double* sigma, C_t* u, int ldu, C_t* vt, int ldvt) {
   int result;
   int workSize;
@@ -263,7 +263,7 @@ template<> int sddCall<C_t>(int order, char jobz, int m, int n, C_t* a, int lda,
   delete[] sigmaFloat;
   return result;
 }
-template<> int sddCall<Z_t>(int order, char jobz, int m, int n, Z_t* a, int lda,
+template<> int sddCall<Z_t>(char jobz, int m, int n, Z_t* a, int lda,
                             double* sigma, Z_t* u, int ldu, Z_t* vt, int ldvt) {
   int result;
   int workSize;
@@ -316,7 +316,7 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = sddCall<T>(0, jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
+  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
                     (*u)->lda, (*vt)->m, (*vt)->lda);
   HMAT_ASSERT_MSG(!info, "Error in ?gesdd, info=%d", info);
   return info;
