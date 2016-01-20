@@ -28,6 +28,16 @@
 
 #define F77_FUNC(a, b) a ##_
 
+namespace {
+inline int gesddRworkSize(char jobz, int m, int n) {
+    if (jobz == 'N')
+        return 7 * std::min(m, n);
+    else
+        return std::min(m, n) * std::max(5 * std::min(m, n) +
+            7, 2 * std::max(m, n) + 2 * std::min(m, n) + 1);
+}
+}
+
 namespace proxy_lapack {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -258,7 +268,7 @@ template<>
 inline int
 gesdd<hmat::C_t, hmat::S_t>(char jobz, int m, int n, hmat::C_t* a, int lda,  hmat::S_t* s, hmat::C_t* u, int ldu, hmat::C_t* vt, int ldvt, hmat::C_t* work, int lwork, int* iwork) {
   int info = 0;
-  hmat::S_t* rwork = (lwork == -1 ? NULL : new hmat::S_t[5 * std::min(m, n)]);
+  hmat::S_t* rwork = (lwork == -1 ? NULL : new hmat::S_t[gesddRworkSize(jobz, m, n)]);
   _CGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, iwork, &info);
   if (rwork) delete [] rwork;
   return info;
@@ -267,7 +277,7 @@ template<>
 inline int
 gesdd<hmat::Z_t, hmat::D_t>(char jobz, int m, int n, hmat::Z_t* a, int lda,  hmat::D_t* s, hmat::Z_t* u, int ldu, hmat::Z_t* vt, int ldvt, hmat::Z_t* work, int lwork, int* iwork) {
   int info = 0;
-  hmat::D_t* rwork = (lwork == -1 ? NULL : new hmat::D_t[5 * std::min(m, n)]);
+  hmat::D_t* rwork = (lwork == -1 ? NULL : new hmat::D_t[gesddRworkSize(jobz, m, n)]);
   _ZGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, iwork, &info);
   if (rwork) delete [] rwork;
   return info;
