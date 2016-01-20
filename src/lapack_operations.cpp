@@ -203,12 +203,12 @@ template<> int sddCall<S_t>(int order, char jobz, int m, int n, S_t* a, int lda,
   int* iwork = new int[8*p];
 
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_S, -1, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   workSize = (int) workSize_S + 1;
   S_t* work = new S_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   delete[] work;
   delete[] iwork;
 
@@ -227,12 +227,12 @@ template<> int sddCall<D_t>(int order, char jobz, int m, int n, D_t* a, int lda,
 
   // We request the right size for WORK
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_D, -1, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   workSize = (int) workSize_D + 1;
   D_t* work = new D_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   delete[] work;
   delete[] iwork;
   return result;
@@ -248,12 +248,12 @@ template<> int sddCall<C_t>(int order, char jobz, int m, int n, C_t* a, int lda,
 
   // We request the right size for WORK
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_C, -1, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   workSize = (int) workSize_C.real() + 1;
   C_t* work = new C_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   delete[] work;
   delete[] iwork;
 
@@ -272,12 +272,12 @@ template<> int sddCall<Z_t>(int order, char jobz, int m, int n, Z_t* a, int lda,
 
   // We request the right size for WORK
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_Z, -1, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   workSize = (int) workSize_Z.real() + 1;
   Z_t* work = new Z_t[workSize];
-  strongAssert(work) ;
+  HMAT_ASSERT(work) ;
   result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize, iwork);
-  strongAssert(!result);
+  HMAT_ASSERT(!result);
   delete[] work;
   delete[] iwork;
   return result;
@@ -296,7 +296,7 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
   *sigma = Vector<double>::Zero(p);
   *vt = FullMatrix<T>::Zero(p, cols);
 
-  myAssert(m->lda >= m->rows);
+  assert(m->lda >= m->rows);
 
   char jobz = 'S';
   int mm = rows;
@@ -318,10 +318,7 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
   }
   info = sddCall<T>(0, jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
                     (*u)->lda, (*vt)->m, (*vt)->lda);
-  if (info) {
-    cerr << "Erreur dans xGESVD: " << info << endl;
-  }
-  strongAssert(!info);
+  HMAT_ASSERT_MSG(!info, "Error in ?gesdd, info=%d", info);
   return info;
 }
 
