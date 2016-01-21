@@ -28,6 +28,16 @@
 
 #define F77_FUNC(a, b) a ##_
 
+namespace {
+inline int gesddRworkSize(char jobz, int m, int n) {
+    if (jobz == 'N')
+        return 7 * std::min(m, n);
+    else
+        return std::min(m, n) * std::max(5 * std::min(m, n) +
+            7, 2 * std::max(m, n) + 2 * std::min(m, n) + 1);
+}
+}
+
 namespace proxy_lapack {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -222,6 +232,60 @@ geqrf<hmat::Z_t>(int m, int n, hmat::Z_t* a, int lda, hmat::Z_t* tau, hmat::Z_t*
 #undef _DGEQRF_
 #undef _CGEQRF_
 #undef _ZGEQRF_
+
+/*      SUBROUTINE SGESDD( JOBZ, M, N, A, LDA, S, U, LDU, VT, LDVT,*/
+/*                         WORK, LWORK, IWORK, INFO )                     */
+/*      ZGESDD computes the singular value decomposition (SVD) of a complex */
+/*      M-by-N matrix A, optionally computing the left and/or right singular */
+/*      vectors   */
+#define _SGESDD_ F77_FUNC(sgesdd,SGESDD)
+#define _DGESDD_ F77_FUNC(dgesdd,DGESDD)
+#define _CGESDD_ F77_FUNC(cgesdd,CGESDD)
+#define _ZGESDD_ F77_FUNC(zgesdd,ZGESDD)
+extern "C" void _SGESDD_(char*, int*, int*, hmat::S_t*, int*,  float*, hmat::S_t*, int*, hmat::S_t*, int*, hmat::S_t*, int*, int*, int*);
+extern "C" void _DGESDD_(char*, int*, int*, hmat::D_t*, int*, double*, hmat::D_t*, int*, hmat::D_t*, int*, hmat::D_t*, int*, int*, int*);
+extern "C" void _CGESDD_(char*, int*, int*, hmat::C_t*, int*,  float*, hmat::C_t*, int*, hmat::C_t*, int*, hmat::C_t*, int*, float*, int*, int*);
+extern "C" void _ZGESDD_(char*, int*, int*, hmat::Z_t*, int*, double*, hmat::Z_t*, int*, hmat::Z_t*, int*, hmat::Z_t*, int*, double*, int*, int*);
+
+template<typename T, typename Treal>
+int gesdd(char jobz, int m, int n, T* a, int lda,  Treal* s, T* u, int ldu, T* vt, int ldvt, T* work, int lwork, int* iwork);
+
+template<>
+inline int
+gesdd<hmat::S_t, hmat::S_t>(char jobz, int m, int n, hmat::S_t* a, int lda,  hmat::S_t* s, hmat::S_t* u, int ldu, hmat::S_t* vt, int ldvt, hmat::S_t* work, int lwork, int* iwork) {
+  int info = 0;
+  _SGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, &info);
+  return info;
+}
+template<>
+inline int
+gesdd<hmat::D_t, hmat::D_t>(char jobz, int m, int n, hmat::D_t* a, int lda,  hmat::D_t* s, hmat::D_t* u, int ldu, hmat::D_t* vt, int ldvt, hmat::D_t* work, int lwork, int* iwork) {
+  int info = 0;
+  _DGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, &info);
+  return info;
+}
+template<>
+inline int
+gesdd<hmat::C_t, hmat::S_t>(char jobz, int m, int n, hmat::C_t* a, int lda,  hmat::S_t* s, hmat::C_t* u, int ldu, hmat::C_t* vt, int ldvt, hmat::C_t* work, int lwork, int* iwork) {
+  int info = 0;
+  hmat::S_t* rwork = (lwork == -1 ? NULL : new hmat::S_t[gesddRworkSize(jobz, m, n)]);
+  _CGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, iwork, &info);
+  if (rwork) delete [] rwork;
+  return info;
+}
+template<>
+inline int
+gesdd<hmat::Z_t, hmat::D_t>(char jobz, int m, int n, hmat::Z_t* a, int lda,  hmat::D_t* s, hmat::Z_t* u, int ldu, hmat::Z_t* vt, int ldvt, hmat::Z_t* work, int lwork, int* iwork) {
+  int info = 0;
+  hmat::D_t* rwork = (lwork == -1 ? NULL : new hmat::D_t[gesddRworkSize(jobz, m, n)]);
+  _ZGESDD_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, iwork, &info);
+  if (rwork) delete [] rwork;
+  return info;
+}
+#undef _SGESDD_
+#undef _DGESDD_
+#undef _CGESDD_
+#undef _ZGESDD_
 
 /*      SUBROUTINE SGESVD( JOBU, JOBVT, M, N, A, LDA, S, U, LDU, VT, LDVT,*/
 /*                         WORK, LWORK, INFO )                     */

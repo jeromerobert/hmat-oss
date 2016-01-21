@@ -142,7 +142,9 @@ namespace hmat {
 
 template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vector<double>** sigma, FullMatrix<T>** vt) {
   DECLARE_CONTEXT;
-
+  static char * useGESSD = getenv("HMAT_GESSD");
+  if(useGESSD)
+      return truncatedSdd(m, u, sigma, vt);
 
   // Allocate free space for U, S, V
   int rows = m->rows;
@@ -187,6 +189,146 @@ template int truncatedSvd(FullMatrix<S_t>* m, FullMatrix<S_t>** u, Vector<double
 template int truncatedSvd(FullMatrix<D_t>* m, FullMatrix<D_t>** u, Vector<double>** sigma, FullMatrix<D_t>** vt);
 template int truncatedSvd(FullMatrix<C_t>* m, FullMatrix<C_t>** u, Vector<double>** sigma, FullMatrix<C_t>** vt);
 template int truncatedSvd(FullMatrix<Z_t>* m, FullMatrix<Z_t>** u, Vector<double>** sigma, FullMatrix<Z_t>** vt);
+
+
+// Implementation
+template<typename T> int sddCall(char jobz, int m, int n, T* a, int lda,
+                                 double* sigma, T* u, int ldu, T* vt, int ldvt);
+
+template<> int sddCall<S_t>(char jobz, int m, int n, S_t* a, int lda,
+                            double* sigma, S_t* u, int ldu, S_t* vt, int ldvt) {
+  int result;
+  int p = min(m, n);
+  float* sigmaFloat = new float[p];
+  int workSize;
+  S_t workSize_S;
+  int* iwork = new int[8*p];
+
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_S, -1, iwork);
+  HMAT_ASSERT(!result);
+  workSize = (int) workSize_S + 1;
+  S_t* work = new S_t[workSize];
+  HMAT_ASSERT(work) ;
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize, iwork);
+  HMAT_ASSERT(!result);
+  delete[] work;
+  delete[] iwork;
+
+  for (int i = 0; i < p; i++) {
+    sigma[i] = sigmaFloat[i];
+  }
+  delete[] sigmaFloat;
+  return result;
+}
+template<> int sddCall<D_t>(char jobz, int m, int n, D_t* a, int lda,
+                            double* sigma, D_t* u, int ldu, D_t* vt, int ldvt) {
+  int workSize;
+  D_t workSize_D;
+  int result;
+  int* iwork = new int[8*min(m, n)];
+
+  // We request the right size for WORK
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_D, -1, iwork);
+  HMAT_ASSERT(!result);
+  workSize = (int) workSize_D + 1;
+  D_t* work = new D_t[workSize];
+  HMAT_ASSERT(work) ;
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize, iwork);
+  HMAT_ASSERT(!result);
+  delete[] work;
+  delete[] iwork;
+  return result;
+}
+template<> int sddCall<C_t>(char jobz, int m, int n, C_t* a, int lda,
+                            double* sigma, C_t* u, int ldu, C_t* vt, int ldvt) {
+  int result;
+  int workSize;
+  C_t workSize_C;
+  int p = min(m, n);
+  float* sigmaFloat = new float[p];
+  int* iwork = new int[8*p];
+
+  // We request the right size for WORK
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_C, -1, iwork);
+  HMAT_ASSERT(!result);
+  workSize = (int) workSize_C.real() + 1;
+  C_t* work = new C_t[workSize];
+  HMAT_ASSERT(work) ;
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize, iwork);
+  HMAT_ASSERT(!result);
+  delete[] work;
+  delete[] iwork;
+
+  for (int i = 0; i < p; i++) {
+    sigma[i] = sigmaFloat[i];
+  }
+  delete[] sigmaFloat;
+  return result;
+}
+template<> int sddCall<Z_t>(char jobz, int m, int n, Z_t* a, int lda,
+                            double* sigma, Z_t* u, int ldu, Z_t* vt, int ldvt) {
+  int result;
+  int workSize;
+  Z_t workSize_Z;
+  int* iwork = new int[8*min(m,n)];
+
+  // We request the right size for WORK
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_Z, -1, iwork);
+  HMAT_ASSERT(!result);
+  workSize = (int) workSize_Z.real() + 1;
+  Z_t* work = new Z_t[workSize];
+  HMAT_ASSERT(work) ;
+  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize, iwork);
+  HMAT_ASSERT(!result);
+  delete[] work;
+  delete[] iwork;
+  return result;
+}
+
+template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vector<double>** sigma, FullMatrix<T>** vt) {
+  DECLARE_CONTEXT;
+
+
+  // Allocate free space for U, S, V
+  int rows = m->rows;
+  int cols = m->cols;
+  int p = min(rows, cols);
+
+  *u = FullMatrix<T>::Zero(rows, p);
+  *sigma = Vector<double>::Zero(p);
+  *vt = FullMatrix<T>::Zero(p, cols);
+
+  assert(m->lda >= m->rows);
+
+  char jobz = 'S';
+  int mm = rows;
+  int n = cols;
+  T* a = m->m;
+  int lda = rows;
+  int info;
+
+  {
+    const size_t _m = mm, _n = n;
+    // Warning: These quantities are a rough approximation.
+    // What's wrong with these estimates:
+    //  - Golub only gives 14 * M*N*N + 8 N*N*N
+    //  - This is for real numbers
+    //  - We assume the same number of * and +
+    size_t adds = 7 * _m * _n * _n + 4 * _n * _n * _n;
+    size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  }
+  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
+                    (*u)->lda, (*vt)->m, (*vt)->lda);
+  HMAT_ASSERT_MSG(!info, "Error in ?gesdd, info=%d", info);
+  return info;
+}
+
+// Explicit instantiations
+template int truncatedSdd(FullMatrix<S_t>* m, FullMatrix<S_t>** u, Vector<double>** sigma, FullMatrix<S_t>** vt);
+template int truncatedSdd(FullMatrix<D_t>* m, FullMatrix<D_t>** u, Vector<double>** sigma, FullMatrix<D_t>** vt);
+template int truncatedSdd(FullMatrix<C_t>* m, FullMatrix<C_t>** u, Vector<double>** sigma, FullMatrix<C_t>** vt);
+template int truncatedSdd(FullMatrix<Z_t>* m, FullMatrix<Z_t>** u, Vector<double>** sigma, FullMatrix<Z_t>** vt);
 
 
 template<typename T> T* qrDecomposition(FullMatrix<T>* m) {
