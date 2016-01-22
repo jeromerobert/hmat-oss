@@ -222,6 +222,8 @@ public:
     \param filename output filename
    */
   void toFile(const char *filename) const;
+
+  void fromFile(const char * filename);
   /** Simpler accessors for the data.
 
       There are 2 types to allow matrix modification or not.

@@ -600,6 +600,27 @@ template<typename T> double FullMatrix<T>::norm() const {
   return sqrt(normSqr());
 }
 
+template<typename T> void FullMatrix<T>::fromFile(const char * filename) {
+  FILE * f = fopen(filename, "rb");
+  int code;
+  int r = fread(&code, sizeof(int), 1, f);
+  HMAT_ASSERT(r == 1);
+  HMAT_ASSERT(code == Constants<T>::code);
+  r = fread(&rows, sizeof(int), 1, f);
+  lda = rows;
+  HMAT_ASSERT(r == 1);
+  r = fread(&cols, sizeof(int), 1, f);
+  HMAT_ASSERT(r == 1);
+  r = fseek(f, 2 * sizeof(int), SEEK_CUR);
+  HMAT_ASSERT(r == 0);
+  if(m)
+      free(m);
+  size_t size = ((size_t) rows) * cols * sizeof(T);
+  m = (T*) calloc(size, 1);
+  r = fread(m, size, 1, f);
+  HMAT_ASSERT(r == 1);
+}
+
 template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
   int ierr;
   int fd;
