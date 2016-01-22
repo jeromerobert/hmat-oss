@@ -1090,16 +1090,11 @@ template<typename T> HMatrix<T> * HMatrix<T>::fullRkSubset(const IndexSet* subse
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
   if ((transA == 'T') && (transB == 'T')) {
-    HMAT_ASSERT(false); // This assertion is only a warning, this code has *not* been tested.
-    const ClusterData& tmp_rows = *this->rows();
-    const ClusterData& tmp_cols = *this->cols();
+    // This code has *not* been tested because it's currently not used.
+    HMAT_ASSERT(false);
     this->transpose();
-    assert(tmp_rows == *cols());
-    assert(tmp_cols == *rows());
     this->gemm('N', 'N', alpha, b, a, beta);
     this->transpose();
-    assert(tmp_rows == *rows());
-    assert(tmp_cols == *cols());
     return;
   }
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
