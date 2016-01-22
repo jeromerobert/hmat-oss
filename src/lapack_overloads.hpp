@@ -25,6 +25,7 @@
 #define _LAPACK_OVERLOADS_HPP
 
 #include "data_types.hpp"
+#include <algorithm>
 
 #define F77_FUNC(a, b) a ##_
 
