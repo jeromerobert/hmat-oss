@@ -294,6 +294,9 @@ typedef struct {
 /** Init a hmat_factorization_context_t with default values */
 void hmat_factorization_context_init(hmat_factorization_context_t * context);
 
+/* Opaque pointer */
+typedef void * hmat_truncate_t;
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
@@ -420,6 +423,12 @@ hmat
        \return 0 for success.
      */
     int (*transpose)(hmat_matrix_t *hmatrix);
+    /*! \brief Truncate an HMatrix in place with user method, experimental.
+    */
+    void (*truncateGeneric)(hmat_matrix_t *hmatrix, hmat_truncate_t *trunc);
+    /*! \brief Truncate an HMatrix in place with new epsilon, experimental.
+    */
+    void (*truncateEpsilon)(hmat_matrix_t *hmatrix, double epsilon);
     /*! \brief A <- alpha * A
 
       \param alpha

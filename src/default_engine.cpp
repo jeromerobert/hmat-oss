@@ -210,6 +210,10 @@ template<typename T> void DefaultEngine<T>::transpose() {
     hmat->transpose();
 }
 
+template<typename T> void DefaultEngine<T>::truncate(HMatrixTruncate<T> *nodeTruncate) {
+	hmat->truncate(nodeTruncate);
+}
+
 }  // end namespace hmat
 
 #include "hmat_cpp_interface.cpp"

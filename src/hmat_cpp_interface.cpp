@@ -205,6 +205,10 @@ int HMatInterface<T, E>::nodesCount() const {
   DISABLE_THREADING_IN_BLOCK;
   return engine_.hmat->nodesCount();
 }
-
+template<typename T, template <typename> class E>
+void HMatInterface<T, E>::truncate(HMatrixTruncate<T> *nodeTruncate){
+  DISABLE_THREADING_IN_BLOCK;
+  return engine_.hmat->truncate(nodeTruncate);
+}
 } // end namespace hmat
 

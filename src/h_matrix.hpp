@@ -99,6 +99,26 @@ public:
   virtual std::string dumpExtraInfo(const HMatrix<T>& node, const std::string& prefix) const { return ""; }
 };
 
+/** Class to write user defined method to  truncate the Rk matrix.
+
+    This class is used by truncate.
+ */
+template<typename T> class HMatrixTruncate {
+public:
+  HMatrixTruncate() {}
+  virtual void truncate(HMatrix<T>* node) = 0;
+};
+
+template<typename T>
+class HMatrixEpsilonTruncate : public HMatrixTruncate<T> {
+private:
+	double epsilon;
+public:
+	HMatrixEpsilonTruncate(double epsilon_):epsilon(epsilon_){}
+	virtual void truncate(HMatrix<T>* node);
+};
+
+
 /*! \brief The HMatrix class, representing a HMatrix.
 
   It is a tree of arity arity(ClusterTree)^2, 4 in this case.
@@ -438,6 +458,10 @@ public:
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
   void solve(HMatrix<T>* b, hmat_factorization_t) const;
+
+  /* User defined truncate method
+   */
+  void truncate( HMatrixTruncate<T>* nodeTruncate = new HMatrixEpsilonTruncate<T>(RkMatrix<T>::approx.recompressionEpsilon));
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.

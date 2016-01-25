@@ -175,7 +175,7 @@ template<typename T> size_t RkMatrix<T>::uncompressedSize() {
     return ((size_t)rows->size()) * cols->size();
 }
 
-template<typename T> void RkMatrix<T>::truncate() {
+template<typename T> void RkMatrix<T>::truncate(double eps) {
   DECLARE_CONTEXT;
 
   if (rank() == 0) {
@@ -256,7 +256,8 @@ template<typename T> void RkMatrix<T>::truncate() {
   }
 
   // Control of approximation rank_assemble <= rank
-  int newK = approx.findK(sigma->v, rank_a(), rank(), rows->size(), cols->size(), approx.recompressionEpsilon);
+  double eps_recompression = std::max(approx.recompressionEpsilon, eps);
+  int newK = approx.findK(sigma->v, rank_a(), rank(), rows->size(), cols->size(), eps_recompression);
 
   // We put the root of singular values in sigma
   for (int i = 0; i < rank(); i++) {

@@ -52,6 +52,15 @@ template<typename T> bool HMatrix<T>::validationReRun = false;
 template<typename T> bool HMatrix<T>::validationDump = false;
 template<typename T> double HMatrix<T>::validationErrorThreshold = 0;
 
+
+template<typename T>void HMatrixEpsilonTruncate<T>::truncate(HMatrix<T>* node) {
+	RkMatrix<T> * rk_ = node->rk();
+	rk_->truncate(epsilon);
+	node->rk(rk_); // pour la mise à jour de rank_!!!
+	return;
+}
+
+
 template<typename T> HMatrix<T>::~HMatrix() {
   if (isRkMatrix() && rk_) {
     delete rk_;
@@ -2157,6 +2166,25 @@ void HMatrix<T>::ldltDecomposition() {
   isTriLower = true;
 }
 
+template<typename T>  void HMatrix<T>::truncate(HMatrixTruncate<T>* nodeTruncate) {
+	int K, newK;
+	if(isLeaf()) {
+		if(isRkMatrix()) {
+			if(!isNull()) {
+				nodeTruncate->truncate(this);
+			}
+		}
+	} else {
+		for (int i = 0; i < 4; i++) {
+			HMatrix<T> *child = getChild(i);
+			if (child) {
+				child->truncate(nodeTruncate);
+			}
+		}
+	}
+}
+
+
 template<typename T>
 void HMatrix<T>::solve(FullMatrix<T>* b) const {
   DECLARE_CONTEXT;
@@ -2348,6 +2376,16 @@ template class HMatrixNodeDumper<S_t>;
 template class HMatrixNodeDumper<D_t>;
 template class HMatrixNodeDumper<C_t>;
 template class HMatrixNodeDumper<Z_t>;
+
+template class HMatrixTruncate<S_t>;
+template class HMatrixTruncate<D_t>;
+template class HMatrixTruncate<C_t>;
+template class HMatrixTruncate<Z_t>;
+
+template class HMatrixEpsilonTruncate<S_t>;
+template class HMatrixEpsilonTruncate<D_t>;
+template class HMatrixEpsilonTruncate<C_t>;
+template class HMatrixEpsilonTruncate<Z_t>;
 
 template void reorderVector(FullMatrix<S_t>* v, int* indices);
 template void reorderVector(FullMatrix<D_t>* v, int* indices);

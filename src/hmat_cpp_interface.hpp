@@ -315,6 +315,10 @@ public:
   /** Return the number of block cluster tree nodes.
    */
   int nodesCount() const;
+  /**
+   * Truncate all Rk hmatrix
+   */
+  void truncate(HMatrixTruncate<T> *nodeTruncate);
 
   typename E<T>::Settings & engineSettings() { return engine_.settings; }
 
