@@ -370,6 +370,7 @@ void FullMatrix<T>::ldltDecomposition() {
         get(k,j) -= get(k,i) * v[i];
 
     for (int k = j+1; k < n; k++) {
+      HMAT_ASSERT_MSG(v[j] != Constants<T>::zero, "Division by 0 in LDLt");
       get(k,j) /= v[j];
     }
   }
