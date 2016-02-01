@@ -2318,6 +2318,7 @@ template<typename T> std::string HMatrix<T>::toString() const {
     int nbAssembled = 0;
     int nbNullFull = 0;
     int nbNullRk = 0;
+    double diagNorm = 0;
     for(unsigned int i = 0; i < leaves.size(); i++) {
         HMatrix<T> * l = static_cast<HMatrix<T>*>(leaves[i]);
         if(l->isAssembled()) {
@@ -2328,14 +2329,19 @@ template<typename T> std::string HMatrix<T>::toString() const {
                 else
                     nbNullFull++;
             }
+            else if(l->isFullMatrix() && l->full()->diagonal) {
+                diagNorm += l->full()->diagonal->normSqr();
+            }
         }
     }
+    diagNorm = sqrt(diagNorm);
     std::stringstream sstm;
     sstm << "HMatrix(rows=[" << rows()->offset() << ", " << rows()->size() <<
             "], cols=[" << cols()->offset() << ", " << cols()->size() <<
             "], pointer=" << (void*)this << ", leaves=" << leaves.size() <<
             ", assembled=" << isAssembled() << ", assembledLeaves=" << nbAssembled <<
-            ", nullFull=" << nbNullFull << ", nullRk=" << nbNullRk << ")";
+            ", nullFull=" << nbNullFull << ", nullRk=" << nbNullRk <<
+            ", diagNorm=" << diagNorm << ")";
     return sstm.str();
 }
 

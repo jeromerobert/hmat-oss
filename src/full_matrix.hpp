@@ -330,6 +330,7 @@ public:
   /** L2 norm of the vector.
    */
   double norm() const;
+  double normSqr() const;
   /** Set the vector to 0.
    */
   void clear();

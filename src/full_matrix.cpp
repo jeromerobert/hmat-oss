@@ -842,8 +842,12 @@ template<typename T> void Vector<T>::subToMe(const Vector<T>* x) {
 }
 
 template<typename T> double Vector<T>::norm() const {
+  return sqrt(normSqr());
+}
+
+template<typename T> double Vector<T>::normSqr() const {
   T result = dot(this, this);
-  return sqrt(hmat::real(result));
+  return hmat::real(result);
 }
 
 template<typename T> void Vector<T>::clear() {
