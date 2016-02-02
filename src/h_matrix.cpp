@@ -1107,10 +1107,10 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   }
 
   if(isRkMatrix() && !isNull() && a->isRkMatrix() && !a->isNull() && rk()->a == a->rk()->a) {
-    HMatrix<T> * cSubset = this->fullRkSubset(b->cols(), true);
-    HMatrix<T> * aSubset = a->fullRkSubset(b->rows(), true);
+    HMatrix<T> * cSubset = this->fullRkSubset(transB == 'N' ? b->cols() : b->rows(), true);
+    HMatrix<T> * aSubset = a->fullRkSubset(transB == 'N' ? b->rows() : b->cols(), true);
     // transpose because cSubset and aSubset are transposed
-    cSubset->gemm(transA == 'N' ? 'T' : 'N', transB, alpha, b, aSubset, beta);
+    cSubset->gemm(transB == 'N' ? 'T' : 'N', transA, alpha, b, aSubset, beta);
     delete cSubset;
     delete aSubset;
     return;
