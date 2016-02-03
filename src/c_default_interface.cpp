@@ -72,6 +72,32 @@ hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int
     return (hmat_cluster_tree_t*) createClusterTree(dofs, *((ClusteringAlgorithm*) algo));
 }
 
+hmat_cluster_tree_builder_t* hmat_create_cluster_tree_builder(const hmat_clustering_algorithm_t* algo)
+{
+    ClusterTreeBuilder* result = new ClusterTreeBuilder(*static_cast<const ClusteringAlgorithm*>((void*) algo));
+    return static_cast<hmat_cluster_tree_builder_t*>((void*) result);
+}
+
+/* Specify an algorithm for nodes at given depth and below */
+void hmat_cluster_tree_builder_add_algorithm(hmat_cluster_tree_builder_t* ctb, int level, const hmat_clustering_algorithm_t* algo)
+{
+    ClusterTreeBuilder* ct_builder = static_cast<ClusterTreeBuilder*>((void*) ctb);
+    ct_builder->addAlgorithm(level, *static_cast<const ClusteringAlgorithm*>((void*) algo));
+}
+
+void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb)
+{
+    delete static_cast<ClusterTreeBuilder*>((void*)ctb);
+}
+
+/* Create a ClusterTree from the DoFs coordinates. */
+hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int dimension, int size, const hmat_cluster_tree_builder_t* ctb)
+{
+    const ClusterTreeBuilder* ct_builder = static_cast<const ClusterTreeBuilder*>((void*) ctb);
+    DofCoordinates dofs(coord, dimension, size, true);
+    return static_cast<hmat_cluster_tree_t*>((void*)  ct_builder->build(dofs));
+}
+
 void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree) {
     delete ((ClusterTree*)tree);
 }

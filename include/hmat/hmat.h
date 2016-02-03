@@ -176,6 +176,26 @@ void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
 */
 hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo);
 
+/* Opaque pointer */
+typedef struct hmat_cluster_tree_builder hmat_cluster_tree_builder_t;
+
+hmat_cluster_tree_builder_t* hmat_create_cluster_tree_builder(const hmat_clustering_algorithm_t* algo);
+
+/* Specify an algorithm for nodes at given depth and below */
+void hmat_cluster_tree_builder_add_algorithm(hmat_cluster_tree_builder_t* ctb, int level, const hmat_clustering_algorithm_t* algo);
+
+void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb);
+
+/*! \brief Create a ClusterTree from the DoFs coordinates.
+
+  \param coord DoFs coordinates
+  \param dimension spatial dimension
+  \param size number of DoFs
+  \param ctb pointer to an opaque ClusterTreeBuilder
+  \return an opaque pointer to a ClusterTree, or NULL in case of error.
+*/
+hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int dimension, int size, const hmat_cluster_tree_builder_t* ctb);
+
 void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
 
 hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
@@ -200,9 +220,6 @@ typedef struct
 
 int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);
 
-/* Opaque pointer */
-typedef struct hmat_admissibility_condition hmat_admissibility_t;
-
 typedef struct {
     /** eta for Hackbusch condition */
     double eta;
@@ -220,6 +237,9 @@ typedef struct {
 
 /** Init an hmat_admissibility_param structure with default values */
 void hmat_init_admissibility_param(hmat_admissibility_param_t *);
+
+/* Opaque pointer */
+typedef struct hmat_admissibility_condition hmat_admissibility_t;
 
 /** Create an admissibility condition from parameters */
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t *);
