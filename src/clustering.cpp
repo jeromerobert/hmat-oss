@@ -296,7 +296,7 @@ ClusterTreeBuilder::~ClusterTreeBuilder()
 }
 
 ClusterTree*
-ClusterTreeBuilder::build(const DofCoordinates& coordinates, int* group_index)
+ClusterTreeBuilder::build(const DofCoordinates& coordinates, int* group_index) const
 {
   DofData* dofData = new DofData(coordinates, group_index);
   ClusterTree* rootNode = new ClusterTree(dofData);

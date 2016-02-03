@@ -52,7 +52,7 @@ public:
       \param group_index optional array containing group numbers of points.  Points of the same group cannot be scattered into different tree leaves.
       \return a ClusterTree instance
    */
-  ClusterTree* build(const DofCoordinates& coordinates, int* group_index = NULL);
+  ClusterTree* build(const DofCoordinates& coordinates, int* group_index = NULL) const;
 
 private:
   void divide_recursive(ClusterTree& current) const;
