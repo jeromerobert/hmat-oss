@@ -195,8 +195,8 @@ AxisAlignedBoundingBox::AxisAlignedBoundingBox(int dim, const double *bboxMin, c
   , bbMin(new double[dimension_])
   , bbMax(new double[dimension_])
 {
-  memcpy(&bbMin[0], &bboxMin, sizeof(double) * dimension_);
-  memcpy(&bbMax[0], &bboxMax, sizeof(double) * dimension_);
+  memcpy(&bbMin[0], bboxMin, sizeof(double) * dimension_);
+  memcpy(&bbMax[0], bboxMax, sizeof(double) * dimension_);
 }
 
 AxisAlignedBoundingBox::~AxisAlignedBoundingBox()
