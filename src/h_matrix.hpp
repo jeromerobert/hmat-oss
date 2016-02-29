@@ -42,6 +42,8 @@ namespace hmat {
 
 template<typename T> class Vector;
 template<typename T> class RkMatrix;
+template<typename T> class Truncate;
+template<typename T> class EpsilonTruncate; 
 
 /** Flag used to describe the symmetry of a matrix.
  */
@@ -123,6 +125,9 @@ template<typename T> class HMatrix : public Tree<4> {
   };
   /// -3 for an unitialized matrix, -2 for non leaf, -1 for full a matrix
   int rank_;
+
+  Truncate<T> * truncate_;
+
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
@@ -140,7 +145,8 @@ public:
    */
   HMatrix(ClusterTree* _rows, ClusterTree* _cols, const MatrixSettings * settings,
        SymmetryFlag symmetryFlag = kNotSymmetric,
-       AdmissibilityCondition * admissibilityCondition = &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
+       AdmissibilityCondition * admissibilityCondition = &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY,
+	   Truncate<T> * _truncate = NULL);
 
   /*! \brief Create a copy of this matrix for internal use only.
    * Only copy this node, not the whole tree. The created matrix
@@ -442,6 +448,10 @@ public:
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
   void solve(HMatrix<T>* b, hmat_factorization_t) const;
+
+  /* User defined truncate method
+     */
+  void htruncate(const char *);
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.

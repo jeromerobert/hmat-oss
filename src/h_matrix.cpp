@@ -36,6 +36,7 @@
 #include "rk_matrix.hpp"
 #include "data_types.hpp"
 #include "compression.hpp"
+#include "truncate.hpp"
 #include "postscript.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
@@ -51,6 +52,8 @@ template<typename T> bool HMatrix<T>::validateCompression = false;
 template<typename T> bool HMatrix<T>::validationReRun = false;
 template<typename T> bool HMatrix<T>::validationDump = false;
 template<typename T> double HMatrix<T>::validationErrorThreshold = 0;
+
+
 
 template<typename T> HMatrix<T>::~HMatrix() {
   if (isRkMatrix() && rk_) {
@@ -96,11 +99,12 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
 
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
-                    SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
+                    SymmetryFlag symFlag,AdmissibilityCondition * admissibilityCondition,
+					Truncate<T> * _truncate )
   : Tree<4>(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(-3),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
-    localSettings(settings)
+    localSettings(settings), truncate_(_truncate)
 {
   admissible = admissibilityCondition->isAdmissible(*(rows_), *(cols_));
   if (_rows->isLeaf() || _cols->isLeaf() || admissible) {
@@ -117,7 +121,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
       for (int j = 0; j < 2; ++j) {
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           ClusterTree* colChild = static_cast<ClusterTree*>(_cols->getChild(j));
-          this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
+          this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric), admissibilityCondition, _truncate));
          }
        }
      }
@@ -129,7 +133,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<4>(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(-3), isUpper(false),
-    isLower(false), admissible(false), temporary(false), localSettings(settings)
+    isLower(false), admissible(false), temporary(false), localSettings(settings), truncate_(NULL)
     {}
 
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withChildren) const {
@@ -165,6 +169,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->isTriLower = isTriLower;
   h->admissible = admissible;
   h->rank_ = rank_ >= 0 ? 0 : rank_;
+  h->truncate_ = truncate_;
   if(!isLeaf()){
     for (int i = 0; i < 4; ++i) {
       if (getChild(i)) {
@@ -186,6 +191,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->isTriLower = o->isTriLower;
   h->admissible = o->admissible;
   h->rank_ = o->rank_;
+  h->truncate_ = o->truncate_;
   if(!o->isLeaf()){
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < 2; ++j) {
@@ -1754,6 +1760,8 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
         this->solveUpperTriangularRight(b->full(), unitriangular, lowerStored);
         b->full()->transpose();
       } else if(!b->isNull() && b->isRkMatrix()){
+    	b->htruncate("HMatrix<T>::solveUpperTriangularRight");
+    	if(b->isNull()) return;
         // Xa Xb^t U = Ba Bb^t
         //   - Xa = Ba
         //   - Xb^t U = Bb^t
@@ -2190,6 +2198,18 @@ void HMatrix<T>::ldltDecomposition() {
     h22->ldltDecomposition();
   }
   isTriLower = true;
+}
+template<typename T>  void HMatrix<T>::htruncate(const char * func ){
+	int K, newK;
+	if(isLeaf()) {
+		if(truncate_ != NULL) {
+			if(isRkMatrix()) {
+				if(!isNull()) {
+					truncate_->truncate(this, func);
+				}
+			}
+		}
+	}
 }
 
 template<typename T>

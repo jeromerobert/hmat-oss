@@ -30,6 +30,7 @@
 #include "common/my_assert.h"
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
+#include "truncate.hpp"
 #include "uncompressed_block.hpp"
 #include "uncompressed_values.hpp"
 
@@ -39,6 +40,7 @@ template<typename T, template <typename> class E>
 hmat_matrix_t * create_empty_hmatrix(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, int lower_sym)
 {
     hmat::SymmetryFlag sym = (lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
+    hmat::Truncate<T> *_truncate = (hmat::Truncate<T>*) truncate;
     return (hmat_matrix_t*) new hmat::HMatInterface<T, E>(
             (hmat::ClusterTree*)rows_tree,
             (hmat::ClusterTree*)cols_tree, sym);
@@ -48,13 +50,16 @@ template<typename T, template <typename> class E>
 hmat_matrix_t * create_empty_hmatrix_admissibility(
   hmat_cluster_tree_t* rows_tree,
   hmat_cluster_tree_t* cols_tree, int lower_sym,
-  hmat_admissibility_t* condition)
+  hmat_admissibility_t* condition,
+  hmat_truncate_t * truncate)
 {
     hmat::SymmetryFlag sym = lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric;
+    hmat::Truncate<T> *_truncate = (hmat::Truncate<T>*) truncate;
     return (hmat_matrix_t*) new hmat::HMatInterface<T, E>(
             static_cast<hmat::ClusterTree*>(static_cast<void*>(rows_tree)),
-            static_cast<hmat::ClusterTree*>(static_cast<void*>(cols_tree)),
-            sym, (hmat::AdmissibilityCondition*)condition);
+            static_cast<hmat::ClusterTree*>(static_cast<void*>(cols_tree)), sym,
+            (hmat::AdmissibilityCondition*)condition,
+	        _truncate);
 }
 
 

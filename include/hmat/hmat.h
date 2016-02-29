@@ -153,6 +153,9 @@ typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
 /* Opaque pointer */
 typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
 
+/* Opaque pointer */
+typedef struct hmat_truncate_struct hmat_truncate_t;
+
 /* Median clustering */
 hmat_clustering_algorithm_t* hmat_create_clustering_median();
 /* Geometric clustering */
@@ -404,7 +407,7 @@ typedef struct
       \return an opaque pointer to an HMatrix, or NULL in case of error.
     */
     hmat_matrix_t* (*create_empty_hmatrix_admissibility)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree,
-                                                         int lower_symmetric, hmat_admissibility_t* cond);
+    		int lower_symmetric, hmat_admissibility_t* cond, hmat_truncate_t * trunc);
 
     /*! Assemble a HMatrix.
 

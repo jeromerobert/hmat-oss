@@ -30,6 +30,7 @@
 
 #include "clustering.hpp"
 #include "compression.hpp"
+#include "truncate.hpp"
 #include "h_matrix.hpp"
 #include "default_engine.hpp"
 
@@ -174,7 +175,8 @@ public:
 
   HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
                 AdmissibilityCondition * admissibilityCondition =
-                &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
+                &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY,
+				Truncate<T> * truncate = NULL);
   /** Destroy an HMatInterface instance.
 
       @note This destructor is *not* virtual, as this class is not meant to be subclassed.

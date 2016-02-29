@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
   hmat_delete_clustering(clustering_algo);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix_admissibility(
-            cluster_tree, cluster_tree, 0, admissibilityCondition);
+            cluster_tree, cluster_tree, 0, admissibilityCondition, NULL);
   hmat_delete_admissibility(admissibilityCondition);
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);

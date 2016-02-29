@@ -52,10 +52,11 @@ void HMatInterface<T, E>::finalize() {
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
-                                   AdmissibilityCondition * admissibilityCondition)
+		AdmissibilityCondition * admissibilityCondition, Truncate<T> * truncate)
 {
   DECLARE_CONTEXT;
-  engine_.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym, admissibilityCondition);
+  engine_.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym,
+		  admissibilityCondition, truncate);
 }
 
 template<typename T, template <typename> class E>
@@ -211,6 +212,5 @@ int HMatInterface<T, E>::nodesCount() const {
   DISABLE_THREADING_IN_BLOCK;
   return engine_.hmat->nodesCount();
 }
-
 } // end namespace hmat
 
