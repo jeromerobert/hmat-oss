@@ -175,6 +175,7 @@ AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
   , bbMin(new double[dimension_])
   , bbMax(new double[dimension_])
 {
+  if (data.size() == 0) return;
   int* myIndices = data.indices() + data.offset();
   const double* coord = &data.coordinates()->get(0, 0);
   memcpy(&bbMin[0], &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
