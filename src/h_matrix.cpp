@@ -780,16 +780,15 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
       if (!child) {
         continue;
       }
-      if (child->rows()->intersects(*rows) && child->cols()->intersects(*cols)) {
-        const ClusterData *childRows = child->rows()->intersection(*rows);
-        const ClusterData *childCols = child->cols()->intersection(*cols);
-        int rowOffset = childRows->offset() - rows->offset();
-        int colOffset = childCols->offset() - cols->offset();
+      IndexSet childRows, childCols;
+      childRows.intersection(*child->rows(), *rows);
+      childCols.intersection(*child->cols(), *cols);
+      if (childRows.size() > 0 && childCols.size() > 0) {
+        int rowOffset = childRows.offset() - rows->offset();
+        int colOffset = childCols.offset() - cols->offset();
         FullMatrix<T> subB(b->m + rowOffset + colOffset * b->lda,
-                           childRows->size(), childCols->size(), b->lda);
-        child->axpy(alpha, &subB, childRows, childCols);
-        delete childRows;
-        delete childCols;
+                           childRows.size(), childCols.size(), b->lda);
+        child->axpy(alpha, &subB, &childRows, &childCols);
       }
     }
   } else {

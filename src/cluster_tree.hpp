@@ -39,6 +39,7 @@ namespace hmat {
 
 class IndexSet {
 public:
+  IndexSet() : offset_(-1), size_(0) {}
   IndexSet(int offset, int size) : offset_(offset), size_(size) {}
 
   /*! \brief Compare two indices set for equality.
@@ -74,9 +75,9 @@ public:
   /** Return true if two index sets intersect.
    */
   bool intersects(const IndexSet& o) const;
-  /** Return the intersection of two index sets, NULL if the intersection is empty.
-   */
-  const IndexSet* intersection(const IndexSet& o) const;
+
+  /** Set this as the intersection of two index set */
+  void intersection(const IndexSet& s1, const IndexSet& s2);
 
 protected:
   /// offset of the start of this node's data in indices
@@ -112,8 +113,6 @@ public:
   ClusterData(const DofData* dofData) : IndexSet(0, dofData->size()), dofData_(dofData) {}
   ClusterData(const ClusterData& data) : IndexSet(data), dofData_(data.dofData_) {}
   ClusterData(const ClusterData& data, int offset, int size) : IndexSet(offset, size), dofData_(data.dofData_) {}
-
-  const ClusterData* intersection(const IndexSet& o) const;
 
   inline int* indices() const { return dofData_->perm_i2e_; }
   inline int* indices_rev() const { return dofData_->perm_e2i_; }

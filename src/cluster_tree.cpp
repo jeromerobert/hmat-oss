@@ -57,17 +57,16 @@ bool IndexSet::intersects(const IndexSet& o) const {
   return (end > start);
 }
 
-const IndexSet* IndexSet::intersection(const IndexSet& o) const {
-  if (!intersects(o)) {
-    return NULL;
-  }
-  int start = std::max(offset_, o.offset_);
-  int end = std::min(offset_ + size_, o.offset_ + o.size_);
+void IndexSet::intersection(const IndexSet& s1, const IndexSet& s2) {
+  int start = std::max(s1.offset(), s2.offset());
+  int end = std::min(s1.offset() + s1.size(), s2.offset() + s2.size());
   int interN = end - start;
-  IndexSet* result = new IndexSet(*this);
-  result->offset_ = start;
-  result->size_ = interN;
-  return result;
+  if(interN < 0) {
+      interN = 0;
+      start = -1;
+  }
+  this->offset_ = start;
+  this->size_ = interN;
 }
 
 DofData::DofData(const DofCoordinates& coordinates, int* group_index)
@@ -107,16 +106,6 @@ DofData::copy() const
   DofData* result = new DofData(*coordinates_, group_index_);
   memcpy(result->perm_i2e_, perm_i2e_, sizeof(int) * coordinates_->size());
   memcpy(result->perm_e2i_, perm_e2i_, sizeof(int) * coordinates_->size());
-  return result;
-}
-
-const ClusterData*
-ClusterData::intersection(const IndexSet& o) const
-{
-  const IndexSet* idx = IndexSet::intersection(o);
-  ClusterData* result = new ClusterData(dofData_, idx->offset(), idx->size());
-  delete idx;
-
   return result;
 }
 
