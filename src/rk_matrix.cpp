@@ -166,6 +166,7 @@ template<typename T> void RkMatrix<T>::truncate() {
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
     RkMatrix<T>* rk = compressMatrix(tmp, rows, cols);
+    delete tmp;
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
     delete rk;
