@@ -71,11 +71,17 @@ public:
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
+  /**
+   * Force to ignore the eta parameter and concider all small
+   * enough blocks as admissible
+   */
+  void setAlways(bool);
   static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;
 private:
   double eta_;
   size_t maxElementsPerBlock;
   size_t maxElementsPerBlockAca_;
+  bool always_;
 };
 
 } //  end namespace hmat

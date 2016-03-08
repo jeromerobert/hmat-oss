@@ -35,7 +35,7 @@ namespace hmat {
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(
     double eta, size_t maxElementsPerBlock, size_t maxElementsPerBlockRows):
     eta_(eta), maxElementsPerBlock(maxElementsPerBlock),
-    maxElementsPerBlockAca_(maxElementsPerBlockRows)
+    maxElementsPerBlockAca_(maxElementsPerBlockRows), always_(false)
 {
 }
 
@@ -50,7 +50,8 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
     if(!isFullAlgo && elements > maxElementsPerBlockAca_)
         return false;
 
-    // TODO check if this test is still usefull / meaningfull
+    // a one element cluster would have a 0 diameter so we stop
+    // before it happen.
     if(rows.data.size() < 2 || cols.data.size() < 2)
         return false;
 
@@ -66,7 +67,12 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
       cols_bbox = new AxisAlignedBoundingBox(cols.data);
       cols.admissibilityAlgoData_ = cols_bbox;
     }
-    return std::min(rows_bbox->diameter(), cols_bbox->diameter()) <= eta_ * rows_bbox->distanceTo(*cols_bbox);
+    if(always_)
+      return true;
+    else {
+      return std::min(rows_bbox->diameter(), cols_bbox->diameter()) <=
+        eta_ * rows_bbox->distanceTo(*cols_bbox);
+    }
 }
 
 void
@@ -86,6 +92,10 @@ StandardAdmissibilityCondition::str() const
 
 void StandardAdmissibilityCondition::setEta(double eta) {
     eta_ = eta;
+}
+
+void StandardAdmissibilityCondition::setAlways(bool b) {
+    always_ = b;
 }
 
 StandardAdmissibilityCondition StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY = StandardAdmissibilityCondition(2.0);

@@ -233,6 +233,12 @@ typedef struct {
      * only assembling rows or cols is needed
      */
     size_t max_aca_elements;
+
+    /**
+     * Let the admissibility condition ignore eta
+     * and always return true for small enough blocks
+     */
+    int always;
 } hmat_admissibility_param_t;
 
 /** Init an hmat_admissibility_param structure with default values */

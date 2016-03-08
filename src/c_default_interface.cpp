@@ -124,11 +124,14 @@ void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->max_svd_elements = 5000000;
     p->max_aca_elements = 17179869184;
+    p->always = 0;
 }
 
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {
     hmat::StandardAdmissibilityCondition * r = new hmat::StandardAdmissibilityCondition(
          p->eta, p->max_svd_elements, p->max_aca_elements);
+    if(p->always)
+      r->setAlways(true);
     return reinterpret_cast<hmat_admissibility_t*>(r);
 }
 
