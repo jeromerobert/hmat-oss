@@ -177,6 +177,19 @@ public:
    */
   ClusterTree* copy(const ClusterTree* copyFather=NULL) const;
 
+  ClusterTree *getChild(int index) const {
+    return static_cast<ClusterTree*>(Tree<2>::getChild(index));
+  }
+
+  ClusterTree *getChild(int index) {
+    return static_cast<ClusterTree*>(Tree<2>::getChild(index));
+  }
+
+  /**
+   * Transform this cluster tree so it has the same or greater depth
+   * as the other one.
+   */
+  void sameDepth(const ClusterTree * other);
 };
 
 class AxisAlignedBoundingBox

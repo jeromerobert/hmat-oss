@@ -120,6 +120,12 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
     return 0;
 }
 
+void hmat_cluster_tree_same_depth(const hmat_cluster_tree_t *reference, hmat_cluster_tree_t *to_modify) {
+    ClusterTree* toModify = reinterpret_cast<ClusterTree*>(to_modify);
+    const ClusterTree* ref = reinterpret_cast<const ClusterTree*>(reference);
+    toModify->sameDepth(ref);
+}
+
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->max_svd_elements = 5000000;

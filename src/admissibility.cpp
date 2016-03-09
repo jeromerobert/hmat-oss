@@ -45,6 +45,9 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
     CompressionMethod m = HMatSettings::getInstance().compressionMethod;
     bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
     size_t elements = ((size_t) rows.data.size()) * cols.data.size();
+
+    if(always_ && (rows.isLeaf() || cols.isLeaf()))
+        return true;
     if(isFullAlgo && elements > maxElementsPerBlock)
         return false;
     if(!isFullAlgo && elements > maxElementsPerBlockAca_)
@@ -54,6 +57,9 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
     // before it happen.
     if(rows.data.size() < 2 || cols.data.size() < 2)
         return false;
+
+    if(always_)
+        return true;
 
     AxisAlignedBoundingBox* rows_bbox = static_cast<AxisAlignedBoundingBox*>(rows.admissibilityAlgoData_);
     if (rows_bbox == NULL)
@@ -67,12 +73,9 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
       cols_bbox = new AxisAlignedBoundingBox(cols.data);
       cols.admissibilityAlgoData_ = cols_bbox;
     }
-    if(always_)
-      return true;
-    else {
-      return std::min(rows_bbox->diameter(), cols_bbox->diameter()) <=
+
+    return std::min(rows_bbox->diameter(), cols_bbox->diameter()) <=
         eta_ * rows_bbox->distanceTo(*cols_bbox);
-    }
 }
 
 void

@@ -205,6 +205,15 @@ hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
  */
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
 
+/**
+ * @brief Add void nodes (i.e. without DOF) in a cluster tree so it
+ * has the same or greater depth as a reference a cluster tree.
+ * This should be used when cluster tree are too different and would
+ * create very stretch blocks.
+ */
+void hmat_cluster_tree_same_depth(const hmat_cluster_tree_t * reference,
+                                  hmat_cluster_tree_t * to_modify);
+
 /** Information on a cluster tree */
 typedef struct
 {
