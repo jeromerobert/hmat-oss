@@ -115,7 +115,7 @@ ClusteringAlgorithm::setMaxLeafSize(int maxLeafSize)
 int
 ClusteringAlgorithm::getMaxLeafSize() const
 {
-  if (maxLeafSize_ > 0)
+  if (maxLeafSize_ >= 0)
     return maxLeafSize_;
   const HMatSettings& settings = HMatSettings::getInstance();
   return settings.maxLeafSize;

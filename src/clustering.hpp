@@ -68,7 +68,7 @@ class ClusteringAlgorithm
 {
 public:
   /*! \brief Default constructor */
-  ClusteringAlgorithm() : maxLeafSize_(0) {}
+  ClusteringAlgorithm() : maxLeafSize_(-1) {}
 
   /*! \brief Virtual constructor */
   virtual ClusteringAlgorithm* clone() const = 0;
