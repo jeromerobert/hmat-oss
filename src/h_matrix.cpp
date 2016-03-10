@@ -559,6 +559,7 @@ void HMatrix<T>::scale(T alpha) {
 
 template<typename T>
 void HMatrix<T>::gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>* y) const {
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   FullMatrix<T> mx(x->v, x->rows, 1);
   FullMatrix<T> my(y->v, y->rows, 1);
   gemv(trans, alpha, &mx, beta, &my);
@@ -566,6 +567,7 @@ void HMatrix<T>::gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>
 
 template<typename T>
 void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   if (beta != Constants<T>::pone) {
     y->scale(beta);
   }
