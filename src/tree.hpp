@@ -113,6 +113,10 @@ public:
     return children[index];
   }
 
+  int nbChild() const {
+      return N;
+  }
+
   /*! \brief Return true if the node is a leaf.
    */
   inline bool isLeaf() const {

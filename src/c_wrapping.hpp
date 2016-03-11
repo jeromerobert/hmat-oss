@@ -30,6 +30,8 @@
 #include "common/my_assert.h"
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
+#include "uncompressed_block.hpp"
+#include "uncompressed_values.hpp"
 
 namespace
 {
@@ -316,6 +318,29 @@ int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nr
   return 0;
 }
 
+template <typename T, template <typename> class E>
+int get_block(struct hmat_get_values_context_t *ctx) {
+    hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *)ctx->matrix;
+    hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
+    hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
+    hmat::UncompressedBlock<T> view(*hmat->matrix(), rows, cols, (T*)ctx->values);
+    if (ctx->renumber_rows)
+        view.renumberRows();
+    ctx->col_indices = view.colsNumbering();
+    ctx->row_indices= view.rowsNumbering();
+    return 0;
+}
+
+template <typename T, template <typename> class E>
+int get_values(struct hmat_get_values_context_t *ctx) {
+    hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *)ctx->matrix;
+    hmat::UncompressedValues<T> view(*hmat->matrix(),
+                                     ctx->row_indices, ctx->row_size,
+                                     ctx->col_indices, ctx->col_size,
+                                     (T*)ctx->values);
+    return 0;
+}
+
 }  // end anonymous namespace
 
 namespace hmat {
@@ -349,6 +374,8 @@ static void createCInterface(hmat_interface_t * i)
     i->solve_lower_triangular = solve_lower_triangular<T, E>;
     i->assemble_generic = assemble_generic<T, E>;
     i->factorize_generic = factorize_generic<T, E>;
+    i->get_values = get_values<T, E>;
+    i->get_block = get_block<T, E>;
 }
 
 }  // end namespace hmat

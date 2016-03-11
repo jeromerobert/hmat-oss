@@ -352,6 +352,29 @@ typedef struct {
 /** Init a hmat_factorization_context_t with default values */
 void hmat_factorization_context_init(hmat_factorization_context_t * context);
 
+/** Context for the get_values and get_block function */
+struct hmat_get_values_context_t {
+    /** The matrix from witch to get values */
+    hmat_matrix_t* matrix;
+    /** Where output values are stored. Must be allocated by the caller */
+    void * values;
+    /**
+     * @brief min row and col indices to get
+     */
+    int row_offset, col_offset;
+    /** number of rows and cols to get */
+    int row_size, col_size;
+    /**
+     * @brief Indirection array for numbering.
+     */
+    int * row_indices, * col_indices;
+    /**
+     * @brief If true renumber rows and set row_numbering to NULL
+     * Setting this and original_numbering to true is not valid.
+     */
+    int renumber_rows:1;
+};
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
@@ -571,6 +594,22 @@ hmat
      * \param nrhs number of right-hand sides
      */
     int (*solve_lower_triangular)(hmat_matrix_t* hmatrix, int transpose, void* b, int nrhs);
+
+    /**
+     * @brief Extract and uncompress a block of the matrix.
+     * After calling this function row_indices and col_indices will contains the
+     * indices of the extract block.
+     * @see struct hmat_get_values_context_t
+     */
+    int (*get_block)(struct hmat_get_values_context_t * ctx);
+
+    /**
+     * @brief Extract a set of values from the matrix
+     * row_indices and col_indices must contains the rows ans columns to get.
+     * row_offset, col_offset and renumber_rows are ignored
+     * @see struct hmat_get_values_context_t
+     */
+    int (*get_values)(struct hmat_get_values_context_t * ctx);
 
     hmat_value_t value_type;
 
