@@ -424,8 +424,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
 }
 
 template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
+    result.nr_block_clusters++;
     if(isLeaf()) {
-        result.nr_block_clusters++;
         size_t s = ((size_t)rows()->size()) * cols()->size();
         result.uncompressed_size += s;
         if(isRkMatrix()) {
