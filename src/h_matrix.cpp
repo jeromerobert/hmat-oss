@@ -541,7 +541,9 @@ template<typename T> double HMatrix<T>::normSqr() const {
 template<typename T>
 void HMatrix<T>::scale(T alpha) {
   if (isLeaf()) {
-    if (isRkMatrix()) {
+    if (isNull()) {
+      // nothing to do
+    } else if (isRkMatrix()) {
       rk()->scale(alpha);
     } else {
       assert(isFullMatrix());
