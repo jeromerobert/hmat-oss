@@ -2223,7 +2223,7 @@ template<typename T> void HMatrix<T>::solve(
         this->solveUpperTriangularLeft(b, false, false);
         break;
     case hmat_factorization_ldlt:
-        this->multiplyWithDiag(b, true, true);
+        b->multiplyWithDiag(this, true, true);
         this->solveUpperTriangularLeft(b, true, true);
         break;
     case hmat_factorization_llt:
