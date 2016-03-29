@@ -123,9 +123,9 @@ template<typename T> class HMatrix : public Tree<4> {
   };
   /// -3 for an unitialized matrix, -2 for non leaf, -1 for full a matrix
   int rank_;
-  void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
-  void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
-  void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
+  void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
+  void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
   /*! \brief Auxiliary function used by HMatrix::dumpTreeToFile().
    */

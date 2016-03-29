@@ -218,6 +218,7 @@ public:
        \param alpha the scalar
    */
   void scale(T alpha);
+  void clear();
   /** Copy  RkMatrix into this.
    */
   void copy(RkMatrix<T>* o);

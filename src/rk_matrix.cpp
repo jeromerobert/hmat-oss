@@ -104,6 +104,13 @@ template<typename T> void RkMatrix<T>::scale(T alpha) {
   }
 }
 
+template<typename T> void RkMatrix<T>::clear() {
+  delete a;
+  delete b;
+  a = NULL;
+  b = NULL;
+}
+
 template<typename T>
 void RkMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
   if (rank() == 0) {

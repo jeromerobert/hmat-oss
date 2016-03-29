@@ -540,7 +540,11 @@ template<typename T> double HMatrix<T>::normSqr() const {
 
 template<typename T>
 void HMatrix<T>::scale(T alpha) {
-  if (isLeaf()) {
+  if(alpha == Constants<T>::zero) {
+    this->clear();
+  } else if(alpha == Constants<T>::pone) {
+    return;
+  } else if (isLeaf()) {
     if (isNull()) {
       // nothing to do
     } else if (isRkMatrix()) {
@@ -879,7 +883,7 @@ makeCompatible(bool row_a, bool row_b,
  *  f(a)=transpose(a) if transA='T', f(a)=a if transA='N' (idem for b)
  */
 template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
-                                                  const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
+                                                  const HMatrix<T>* a, const HMatrix<T>* b) {
     if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
     HMatrix<T> * va = NULL;
     HMatrix<T> * vb = NULL;
@@ -914,7 +918,7 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     assert(!isRkMatrix() || vvc == this);
 
     // Do the product on the matrices that are now compatible
-    vvc->leafGemm(transA, transB, alpha, vva, vvb, beta);
+    vvc->leafGemm(transA, transB, alpha, vva, vvb);
 
     // Delete the temporary matrices
     if(vva != a)
@@ -926,7 +930,7 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
 }
 
 template<typename T> void
-HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta) {
+HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b) {
     // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
     if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
 
@@ -966,18 +970,18 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                         tB = (tB == 'N' ? 'T' : 'N');
                         childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
                     }
-                    child->gemm(tA, tB, alpha, childA, childB, beta);
+                    child->gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
                 }
             }
         }
         return;
     }
     else
-        uncompatibleGemm(transA, transB, alpha, a, b, beta);
+        uncompatibleGemm(transA, transB, alpha, a, b);
 }
 
 template<typename T> void
-HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta) {
+HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b) {
     assert((transA == 'N' ? *a->cols() : *a->rows()) == ( transB == 'N' ? *b->rows() : *b->cols())); // pour le produit A*B
     assert((transA == 'N' ? *a->rows() : *a->cols()) == *this->rows()); // compatibility of A*B + this : Rows
     assert((transB == 'N' ? *b->cols() : *b->rows()) == *this->cols()); // compatibility of A*B + this : columns
@@ -1036,7 +1040,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         assert((transA == 'N' ? *a->cols() : *a->rows()) == (transB == 'N' ? *b->rows() : *b->cols()));
         assert(*rows() == (transA == 'N' ? *a->rows() : *a->cols()));
         assert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
-        rk()->gemmRk(transA, transB, alpha, a, b, beta);
+        rk()->gemmRk(transA, transB, alpha, a, b, Constants<T>::pone);
         rank_ = rk()->rank();
         return;
     }
@@ -1104,10 +1108,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     this->transpose();
     return;
   }
+
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
-    HMatrix<T> * cSubset = this->fullRkSubset(a->rows(), false);
-    HMatrix<T> * bSubset = b->fullRkSubset(a->cols(), false);
-    cSubset->gemm(transA, transB, alpha, a, bSubset, beta);
+    HMatrix<T> * cSubset = this->fullRkSubset(transA == 'N' ? a->rows() : a->cols(), false);
+    HMatrix<T> * bSubset = b->fullRkSubset(transA == 'N' ? a->cols() : a->rows(), false);
+    cSubset->scale(beta);
+    cSubset->leafGemm(transA, transB, alpha, a, bSubset);
     delete cSubset;
     delete bSubset;
     return;
@@ -1117,20 +1123,15 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     HMatrix<T> * cSubset = this->fullRkSubset(transB == 'N' ? b->cols() : b->rows(), true);
     HMatrix<T> * aSubset = a->fullRkSubset(transB == 'N' ? b->rows() : b->cols(), true);
     // transpose because cSubset and aSubset are transposed
-    cSubset->gemm(transB == 'N' ? 'T' : 'N', transA, alpha, b, aSubset, beta);
+    cSubset->scale(beta);
+    cSubset->leafGemm(transB == 'N' ? 'T' : 'N', transA, alpha, b, aSubset);
     delete cSubset;
     delete aSubset;
     return;
   }
 
- // Scaling this
-  if (beta != Constants<T>::pone) {
-    if (beta == Constants<T>::zero) {
-      this->clear();
-    } else {
-      this->scale(beta);
-    }
-  }
+  this->scale(beta);
+
   if((a->isLeaf() && a->isNull()) || (b->isLeaf() && b->isNull())) {
       if(!isAssembled() && isLeaf())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
@@ -1139,7 +1140,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
 
   // Once the scaling is done, beta is reset to 1
   // to avoid an other scaling.
-  recursiveGemm(transA, transB, alpha, a, b, Constants<T>::pone);
+  recursiveGemm(transA, transB, alpha, a, b);
 }
 
 template<typename T>
@@ -1545,10 +1546,10 @@ void HMatrix<T>::clear() {
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (isLeaf()) {
     if (isFullMatrix()) {
-      full()->clear();
+      delete full_;
+      full_ = NULL;
     } else if(isRkMatrix()){
-      delete rk();
-      rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+      rk()->clear();
     }
   } else {
     for (int i = 0; i < 4; i++) {
