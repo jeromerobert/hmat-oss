@@ -1825,12 +1825,15 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
   } else {
     // if B is a leaf, the resolve is done by column
     if (b->isLeaf()) {
-      if (b->isFullMatrix()) {
-        this->solveUpperTriangularLeft(b->full(), unitriangular, lowerStored);
-      } else if(!b->isNull()){
+      HMatrix * bSubset = b->subset(lowerStored ? this->rows() : this->cols(), b->cols());
+      if (bSubset->isFullMatrix()) {
+        this->solveUpperTriangularLeft(bSubset->full(), unitriangular, lowerStored);
+      } else if(!bSubset->isNull()){
         assert(b->isRkMatrix());
-        this->solveUpperTriangularLeft(b->rk()->a, unitriangular, lowerStored);
+        this->solveUpperTriangularLeft(bSubset->rk()->a, unitriangular, lowerStored);
       }
+      if(b != bSubset)
+          delete bSubset;
     } else {
       // B isn't a leaf, then so is L
       assert(this->isLeaf());
@@ -1878,6 +1881,8 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
+  assert(rows()->size() == b->rows || !lowerStored);
+  assert(cols()->size() == b->rows || lowerStored);
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, unitriangular, lowerStored);

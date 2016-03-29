@@ -338,6 +338,7 @@ inline
 void trsm(const char side, const char uplo, const char trans, const char diag,
           const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
           hmat::S_t* b, const int ldb) {
+  assert(lda >= m || side != 'L');
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
   const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
