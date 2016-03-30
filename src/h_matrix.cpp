@@ -573,6 +573,9 @@ void HMatrix<T>::gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>
 
 template<typename T>
 void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
+  assert(x->cols == y->cols);
+  assert((matTrans == 'T' ? cols()->size() : rows()->size()) == y->rows);
+  assert((matTrans == 'T' ? rows()->size() : cols()->size()) == x->rows);
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (beta != Constants<T>::pone) {
     y->scale(beta);
@@ -1073,28 +1076,6 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     }
 }
 
-/**
- * Get a subset of the "a" or "b" part of this RkMatrix and return
- * it as a full HMatrix.
- * The columns (or row if col is true) subset of the return matrix has no meaning
- * @param subset the row subset to extract or the columns subset if col is true
- * @param col true to get the "b" part of the matrix
- */
-template<typename T> HMatrix<T> * HMatrix<T>::fullRkSubset(const IndexSet* subset, bool col) const {
-    assert(isRkMatrix() && !isNull());
-    HMatrix<T> * r = this->subset(col ? this->rows() : subset, col ? subset : this->cols());
-    FullMatrix<T> * a = col ? r->rk()->b : r->rk()->a;
-    FullMatrix<T> * newFull = new FullMatrix<T>(a->m, a->rows, a->cols, a->lda);
-    if(col) {
-        // the "b" part of a rk matrice is stored transposed
-        std::swap(r->rows_, r->cols_);
-    }
-    r->cols_ = r->cols_->slice(r->cols_->data.offset(), a->cols);
-    delete r->rk();
-    r->full(newFull);
-    return r;
-}
-
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
@@ -1110,23 +1091,32 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   }
 
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
-    HMatrix<T> * cSubset = this->fullRkSubset(transA == 'N' ? a->rows() : a->cols(), false);
-    HMatrix<T> * bSubset = b->fullRkSubset(transA == 'N' ? a->cols() : a->rows(), false);
-    cSubset->scale(beta);
-    cSubset->leafGemm(transA, transB, alpha, a, bSubset);
-    delete cSubset;
-    delete bSubset;
+    // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
+    // As Cb = Bb we get
+    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba full matrice
+    // We support C and B not compatible (larger) with A so we first slice them
+    assert(transB == 'N');
+    const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
+    const IndexSet * c = transA == 'N' ? a->cols() : a->rows();
+    assert(r->offset() - rows()->offset() >= 0);
+    assert(c->offset() - b->rows()->offset() >= 0);
+    FullMatrix<T> cSubset(rk()->a->m - rows()->offset() + r->offset(),
+                          r->size(), rank(), rk()->a->lda);
+    FullMatrix<T> bSubset(b->rk()->a->m - b->rows()->offset() + c->offset(),
+                          c->size(), b->rank(), b->rk()->a->lda);
+    a->gemv(transA, alpha, &bSubset, beta, &cSubset);
     return;
   }
 
   if(isRkMatrix() && !isNull() && a->isRkMatrix() && !a->isNull() && rk()->a == a->rk()->a) {
-    HMatrix<T> * cSubset = this->fullRkSubset(transB == 'N' ? b->cols() : b->rows(), true);
-    HMatrix<T> * aSubset = a->fullRkSubset(transB == 'N' ? b->rows() : b->cols(), true);
-    // transpose because cSubset and aSubset are transposed
-    cSubset->scale(beta);
-    cSubset->leafGemm(transB == 'N' ? 'T' : 'N', transA, alpha, b, aSubset);
-    delete cSubset;
-    delete aSubset;
+    assert(transA == 'N');
+    const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
+    const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
+    FullMatrix<T> cSubset(rk()->b->m - cols()->offset() + c->offset(),
+                          c->size(), rank(), rk()->b->lda);
+    FullMatrix<T> aSubset(a->rk()->b->m - a->cols()->offset() + r->offset(),
+                          r->size(), a->rank(), a->rk()->b->lda);
+    b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
     return;
   }
 
