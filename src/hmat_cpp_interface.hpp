@@ -272,6 +272,10 @@ public:
    */
   void scale(T alpha);
 
+  /** this <- this + alpha * Id
+   */
+  void addIdentity(T alpha);
+
   /**
    * Fill a hmat_info_t structure with information of this matrix.
    * @note This is only meaningful once the HMatrix has been assembled.

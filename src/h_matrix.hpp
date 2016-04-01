@@ -337,6 +337,11 @@ public:
       \param cols
    */
   void axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows, const IndexSet* cols);
+  /** This <- This + alpha * Id
+
+      \param alpha
+   */
+  void addIdentity(T alpha);
   /*! Return true if this is a full block.
    */
   inline bool isFullMatrix() const {

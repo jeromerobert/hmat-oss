@@ -815,6 +815,23 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
   }
 }
 
+template<typename T>
+void HMatrix<T>::addIdentity(T alpha)
+{
+  if (isLeaf()) {
+    if (isFullMatrix()) {
+      FullMatrix<T> * b = full();
+      assert(b->rows == b->cols);
+      for (int i = 0; i < b->rows; i++) {
+          b->get(i, i) += alpha;
+      }
+    }
+  } else {
+    get(0,0)->addIdentity(alpha);
+    get(1,1)->addIdentity(alpha);
+  }
+}
+
 template<typename T> HMatrix<T> * HMatrix<T>::subset(
     const IndexSet * rows, const IndexSet * cols) const
 {

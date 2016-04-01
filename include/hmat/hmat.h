@@ -551,6 +551,13 @@ hmat
      */
     int (*full_gemm)(char trans_a, char trans_b, int mc, int nc, void* c,
                                void* alpha, void* a, hmat_matrix_t* hmat_b, void* beta);
+    /*! \brief A <- A + alpha Id
+
+      \param hmatrix
+      \param alpha
+      \return 0 for success
+    */
+    int (*add_identity)(hmat_matrix_t* hmatrix, void *alpha);
     /*! \brief Initialize library
      */
     int (*init)();

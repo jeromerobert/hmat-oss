@@ -179,6 +179,12 @@ void HMatInterface<T, E>::scale(T alpha) {
 }
 
 template<typename T, template <typename> class E>
+void HMatInterface<T, E>::addIdentity(T alpha) {
+  DISABLE_THREADING_IN_BLOCK;
+  engine_.hmat->addIdentity(alpha);
+}
+
+template<typename T, template <typename> class E>
 void HMatInterface<T, E>::info(hmat_info_t & result) const {
     memset(&result, 0, sizeof(hmat_info_t));
     engine_.hmat->info(result);

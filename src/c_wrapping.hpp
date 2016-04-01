@@ -229,6 +229,14 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
 }
 
 template<typename T, template <typename> class E>
+int add_identity(hmat_matrix_t* holder, void *alpha) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
+  hmat->addIdentity(*((T*)alpha));
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int init() {
     return hmat::HMatInterface<T, E>::init();
 }
@@ -360,6 +368,7 @@ static void createCInterface(hmat_interface_t * i)
     i->full_gemm = full_gemm<T, E>;
     i->gemm = gemm<T, E>;
     i->gemv = gemv<T, E>;
+    i->add_identity = add_identity<T, E>;
     i->init = init<T, E>;
     i->norm = norm<T, E>;
     i->scale = scale<T, E>;
