@@ -23,7 +23,6 @@
 #include "h_matrix.hpp"
 #include "cluster_tree.hpp"
 #include "rk_matrix.hpp"
-#include "blas_overloads.hpp"
 
 namespace hmat {
 /**
@@ -65,19 +64,7 @@ template <typename T> class UncompressedValues {
         }
     }
 
-    void getRkValues() {
-        int rank = matrix_.rank();
-        T * a = matrix_.rk()->a->m - matrix_.rows()->offset();
-        int lda = matrix_.rk()->a->lda;
-        T * b = matrix_.rk()->b->m - matrix_.cols()->offset();
-        int ldb = matrix_.rk()->b->lda;
-        for(IndiceIt r = rowStart_; r != rowEnd_; ++r) {
-            for(IndiceIt c = colStart_; c != colEnd_; ++c) {
-                getValue(r, c, proxy_cblas_convenience::dot_c(
-                         rank, a + r->first, lda, b + c->first, ldb));
-            }
-        }
-    }
+    void getRkValues();
 
     void getValues() {
         if (rowStart_ == rowEnd_ || colStart_ == colEnd_)
