@@ -181,7 +181,7 @@ void HMatInterface<T, E>::scale(T alpha) {
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::addIdentity(T alpha) {
   DISABLE_THREADING_IN_BLOCK;
-  engine_.hmat->addIdentity(alpha);
+  engine_.addIdentity(alpha);
 }
 
 template<typename T, template <typename> class E>

@@ -153,6 +153,11 @@ void DefaultEngine<T>::gemm(char transA, char transB, T alpha,
 }
 
 template<typename T>
+void DefaultEngine<T>::addIdentity(T alpha) {
+  hmat->addIdentity(alpha);
+}
+
+template<typename T>
 void DefaultEngine<T>::solve(FullMatrix<T>& b, hmat_factorization_t t) const {
   switch(t) {
   case hmat_factorization_lu:
