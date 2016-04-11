@@ -36,6 +36,7 @@
 #include "rk_matrix.hpp"
 #include "data_types.hpp"
 #include "compression.hpp"
+#include "truncate.hpp"
 #include "postscript.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
@@ -51,6 +52,8 @@ template<typename T> bool HMatrix<T>::validateCompression = false;
 template<typename T> bool HMatrix<T>::validationReRun = false;
 template<typename T> bool HMatrix<T>::validationDump = false;
 template<typename T> double HMatrix<T>::validationErrorThreshold = 0;
+
+
 
 template<typename T> HMatrix<T>::~HMatrix() {
   if (isRkMatrix() && rk_) {
@@ -2191,6 +2194,25 @@ void HMatrix<T>::ldltDecomposition() {
   }
   isTriLower = true;
 }
+
+template<typename T>  void HMatrix<T>::truncate(Truncate<T>* nodeTruncate) {
+	int K, newK;
+	if(isLeaf()) {
+		if(isRkMatrix()) {
+			if(!isNull()) {
+				nodeTruncate->truncate(this);
+			}
+		}
+	} else {
+		for (int i = 0; i < 4; i++) {
+			HMatrix<T> *child = getChild(i);
+			if (child) {
+				child->truncate(nodeTruncate);
+			}
+		}
+	}
+}
+
 
 template<typename T>
 void HMatrix<T>::solve(FullMatrix<T>* b) const {

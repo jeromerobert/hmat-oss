@@ -156,7 +156,7 @@ template<typename T> size_t RkMatrix<T>::uncompressedSize() {
     return ((size_t)rows->size()) * cols->size();
 }
 
-template<typename T> void RkMatrix<T>::truncate() {
+template<typename T> void RkMatrix<T>::truncate(double eps) {
   DECLARE_CONTEXT;
 
   if (rank() == 0) {
@@ -237,8 +237,9 @@ template<typename T> void RkMatrix<T>::truncate() {
     HMAT_ASSERT(!ierr);
   }
 
-  // Control of approximation
-  int newK = approx.findK(sigma->v, rank(), approx.recompressionEpsilon);
+  // Control of approximation rank_assemble <= rank
+  double eps_recompression = std::max(approx.recompressionEpsilon, eps);
+  int newK = approx.findK(sigma->v, rank(), eps_recompression);
   if (newK == 0)
   {
     delete a;

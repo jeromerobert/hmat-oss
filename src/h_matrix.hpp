@@ -42,6 +42,8 @@ namespace hmat {
 
 template<typename T> class Vector;
 template<typename T> class RkMatrix;
+template<typename T> class Truncate;
+template<typename T> class EpsilonTruncate; 
 
 /** Flag used to describe the symmetry of a matrix.
  */
@@ -442,6 +444,10 @@ public:
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
   void solve(HMatrix<T>* b, hmat_factorization_t) const;
+
+  /* User defined truncate method
+   */
+  void truncate( Truncate<T>* nodeTruncate = new EpsilonTruncate<T>(RkMatrix<T>::approx.recompressionEpsilon));
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.

@@ -153,6 +153,9 @@ typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
 /* Opaque pointer */
 typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
 
+/* Opaque pointer */
+typedef struct hmat_truncate_struct hmat_truncate_t;
+
 /* Median clustering */
 hmat_clustering_algorithm_t* hmat_create_clustering_median();
 /* Geometric clustering */
@@ -375,6 +378,7 @@ struct hmat_get_values_context_t {
     int renumber_rows:1;
 };
 
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
@@ -501,6 +505,9 @@ hmat
        \return 0 for success.
      */
     int (*transpose)(hmat_matrix_t *hmatrix);
+    /*! \brief Truncate an HMatrix in place with user method, experimental.
+    */
+    void (*truncate)(hmat_matrix_t *hmatrix, hmat_truncate_t *trunc);
     /*! \brief A <- alpha * A
 
       \param alpha

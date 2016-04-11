@@ -30,6 +30,7 @@
 
 #include "clustering.hpp"
 #include "compression.hpp"
+#include "truncate.hpp"
 #include "h_matrix.hpp"
 #include "default_engine.hpp"
 
@@ -315,6 +316,10 @@ public:
   /** Return the number of block cluster tree nodes.
    */
   int nodesCount() const;
+  /**
+   * Truncate recursively all Rk hmatrix
+   */
+  void truncate(Truncate<T> *_truncate);
 
   typename E<T>::Settings & engineSettings() { return engine_.settings; }
 

@@ -30,6 +30,7 @@
 #include "common/my_assert.h"
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
+#include "truncate.hpp"
 #include "uncompressed_block.hpp"
 #include "uncompressed_values.hpp"
 
@@ -277,6 +278,15 @@ int transpose(hmat_matrix_t* hmat) {
 }
 
 template<typename T, template <typename> class E>
+void truncate(hmat_matrix_t* hmat, hmat_truncate_t* trunc) {
+  DECLARE_CONTEXT;
+  hmat::Truncate<T> * trunc_ = (hmat::Truncate<T>*)trunc;
+  assert(trunc_ != NULL);
+  ((hmat::HMatInterface<T, E>*)hmat)->truncate(trunc_);
+  return;
+}
+
+template<typename T, template <typename> class E>
 int hmat_get_info(hmat_matrix_t* holder, hmat_info_t* info) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
@@ -375,6 +385,7 @@ static void createCInterface(hmat_interface_t * i)
     i->solve_mat = solve_mat<T, E>;
     i->solve_systems = solve_systems<T, E>;
     i->transpose = transpose<T, E>;
+    i->truncate  = truncate<T, E>;
     i->internal = NULL;
     i->get_info  = hmat_get_info<T, E>;
     i->dump_info = hmat_dump_info<T, E>;
