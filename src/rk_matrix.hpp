@@ -140,7 +140,7 @@ public:
 
       @warning The previous rk->a and rk->b are no longer valid after this function.
    */
-  void truncate();
+  void truncate(double epsilon);
   /** this <- this + alpha * mat
 
       \param alpha

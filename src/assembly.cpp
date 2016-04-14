@@ -51,7 +51,7 @@ void AssemblyFunction<T>::assemble(const LocalSettings &,
       RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data),
                                                           allocationObserver);
       if (HMatrix<T>::recompress) {
-        rkDp->truncate();
+        rkDp->truncate(rkDp->approx.recompressionEpsilon);
       }
       rkMatrix = fromDoubleRk<T>(rkDp);
     } else if (rows.data.size() && cols.data.size()) {
