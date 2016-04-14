@@ -99,6 +99,17 @@ public:
   virtual std::string dumpExtraInfo(const HMatrix<T>&, const std::string&) const { return ""; }
 };
 
+/** Class to truncate Rk matrices.
+ */
+class EpsilonTruncate : public TreeProcedure<4> {
+private:
+  hmat_value_t type_;
+  double epsilon_;
+public:
+  EpsilonTruncate(hmat_value_t type, double epsilon) : type_(type), epsilon_(epsilon) {}
+  void visit(Tree<4>* node, Visit order) const;
+};
+
 /*! \brief The HMatrix class, representing a HMatrix.
 
   It is a tree of arity arity(ClusterTree)^2, 4 in this case.

@@ -382,6 +382,16 @@ int main(int argc, char **argv) {
   }
   fprintf(stdout, "done.\n");
 
+  hmat.get_info(hmatrix, &mat_info);
+  printf("Rk size = %ld\n", mat_info.compressed_size);
+  hmat_procedure_t* trunc = hmat_create_procedure_epsilon_truncate(type, 1.e-2);
+  fprintf(stdout,"Post-process Rk-matrices...");
+  hmat.walk(hmatrix, trunc);
+  hmat_delete_procedure(trunc);
+  fprintf(stdout, "done.\n");
+  hmat.get_info(hmatrix, &mat_info);
+  printf("Rk size = %ld\n", mat_info.compressed_size);
+
   fprintf(stdout,"Factorisation...");
   rc = hmat.factorize(hmatrix, hmat_factorization_lu);
   if (rc) {

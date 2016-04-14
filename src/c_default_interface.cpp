@@ -271,3 +271,7 @@ void hmat_factorization_context_init(hmat_factorization_context_t *context) {
 void hmat_delete_procedure(hmat_procedure_t* proc) {
     delete (hmat::TreeProcedure<4>*) proc;
 }
+
+hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, double epsilon) {
+    return (hmat_procedure_t*) new hmat::EpsilonTruncate(type, epsilon);
+}

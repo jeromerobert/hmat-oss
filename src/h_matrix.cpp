@@ -2381,6 +2381,26 @@ template<typename T> std::string HMatrix<T>::toString() const {
     return sstm.str();
 }
 
+template<typename T>
+void visitDispatch(HMatrix<T>* node, Visit order, double epsilon) {
+  if (order != tree_leaf || !node->isRkMatrix()) return;
+  RkMatrix<T> * rk = node->rk();
+  rk->truncate(epsilon);
+  // Update rank
+  node->rk(rk);
+}
+
+void EpsilonTruncate::visit(Tree<4>* node, Visit order) const {
+  switch (type_) {
+  case HMAT_SIMPLE_PRECISION: visitDispatch<S_t>(static_cast<HMatrix<S_t>*>(node), order, epsilon_); break;
+  case HMAT_DOUBLE_PRECISION: visitDispatch<D_t>(static_cast<HMatrix<D_t>*>(node), order, epsilon_); break;
+  case HMAT_SIMPLE_COMPLEX: visitDispatch<C_t>(static_cast<HMatrix<C_t>*>(node), order, epsilon_); break;
+  case HMAT_DOUBLE_COMPLEX: visitDispatch<Z_t>(static_cast<HMatrix<Z_t>*>(node), order, epsilon_); break;
+  default: HMAT_ASSERT(false);
+  }
+
+}
+
 // Templates declaration
 template class HMatrix<S_t>;
 template class HMatrix<D_t>;
@@ -2391,6 +2411,11 @@ template class HMatrixNodeDumper<S_t>;
 template class HMatrixNodeDumper<D_t>;
 template class HMatrixNodeDumper<C_t>;
 template class HMatrixNodeDumper<Z_t>;
+
+template void visitDispatch<S_t>(HMatrix<S_t>* node, Visit order, double epsilon);
+template void visitDispatch<D_t>(HMatrix<D_t>* node, Visit order, double epsilon);
+template void visitDispatch<C_t>(HMatrix<C_t>* node, Visit order, double epsilon);
+template void visitDispatch<Z_t>(HMatrix<Z_t>* node, Visit order, double epsilon);
 
 template void reorderVector(FullMatrix<S_t>* v, int* indices);
 template void reorderVector(FullMatrix<D_t>* v, int* indices);

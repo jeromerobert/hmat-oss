@@ -381,6 +381,9 @@ typedef struct hmat_procedure hmat_procedure_t;
 /* Delete a procedure */
 void hmat_delete_procedure(hmat_procedure_t* proc);
 
+/* Create a procedure to truncate Rk matrices */
+hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, double epsilon);
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
