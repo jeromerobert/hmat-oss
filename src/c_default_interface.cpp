@@ -267,3 +267,7 @@ void hmat_factorization_context_init(hmat_factorization_context_t *context) {
     context->factorization = hmat_factorization_lu;
     context->progress = DefaultProgress::getInstance();
 }
+
+void hmat_delete_procedure(hmat_procedure_t* proc) {
+    delete (hmat::TreeProcedure<4>*) proc;
+}

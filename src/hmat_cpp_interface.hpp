@@ -315,6 +315,9 @@ public:
   /** Return the number of block cluster tree nodes.
    */
   int nodesCount() const;
+  /** Recursively apply a procedure to all nodes of an HMatrix.
+   */
+  void walk(TreeProcedure<4> *proc);
 
   typename E<T>::Settings & engineSettings() { return engine_.settings; }
 

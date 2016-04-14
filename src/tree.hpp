@@ -32,6 +32,13 @@
 
 namespace hmat {
 
+// Forward declaration
+template<int N> class TreeProcedure;
+
+/* Visitor pattern
+ */
+enum Visit { tree_preorder, tree_postorder, tree_inorder, tree_leaf };
+
 /*! \brief Templated tree class.
 
   This class represents a tree of arity N, holding an instance of NodeData in
@@ -155,6 +162,37 @@ public:
       leaves.push_back(const_cast<Tree<N>*>(this));
     }
   }
+
+  void walk(const TreeProcedure<N> *proc) {
+    if (isLeaf()) {
+      proc->visit(this, tree_leaf);
+    } else {
+      proc->visit(this, tree_preorder);
+      bool first = true;
+      for (int i = 0; i < N; i++) {
+        Tree<N>* child = getChild(i);
+        if (child) {
+          if (!first) {
+            proc->visit(this, tree_inorder);
+          }
+          first = false;
+          child->walk(proc);
+        }
+      }
+      proc->visit(this, tree_postorder);
+    }
+  }
+
+};
+
+/** Class to recursively apply a given function to all nodes of a tree
+ */
+template<int N> class TreeProcedure {
+
+public:
+  TreeProcedure() {}
+  virtual void visit(Tree<N>* node, const Visit order) const = 0;
+  virtual ~TreeProcedure() {}
 };
 
 }  // end namespace hmat

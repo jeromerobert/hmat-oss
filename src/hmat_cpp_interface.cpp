@@ -211,6 +211,10 @@ int HMatInterface<T, E>::nodesCount() const {
   DISABLE_THREADING_IN_BLOCK;
   return engine_.hmat->nodesCount();
 }
-
+template<typename T, template <typename> class E>
+void HMatInterface<T, E>::walk(TreeProcedure<4> *proc){
+  DISABLE_THREADING_IN_BLOCK;
+  return engine_.hmat->walk(proc);
+}
 } // end namespace hmat
 

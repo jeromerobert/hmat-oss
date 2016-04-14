@@ -375,6 +375,12 @@ struct hmat_get_values_context_t {
     int renumber_rows:1;
 };
 
+/* Opaque pointer */
+typedef struct hmat_procedure hmat_procedure_t;
+
+/* Delete a procedure */
+void hmat_delete_procedure(hmat_procedure_t* proc);
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
@@ -617,6 +623,13 @@ hmat
      * @see struct hmat_get_values_context_t
      */
     int (*get_values)(struct hmat_get_values_context_t * ctx);
+
+    /**
+     * @brief Apply a procedure to all nodes of a matrix
+     * \param hmatrix A hmatrix
+     * \param proc
+     */
+    int (*walk)(hmat_matrix_t* hmatrix, hmat_procedure_t* proc);
 
     hmat_value_t value_type;
 

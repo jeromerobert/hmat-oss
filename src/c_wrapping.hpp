@@ -349,6 +349,14 @@ int get_values(struct hmat_get_values_context_t *ctx) {
     return 0;
 }
 
+template <typename T, template <typename> class E>
+int walk(hmat_matrix_t* holder, hmat_procedure_t* proc) {
+    hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *) holder;
+    hmat::TreeProcedure<4> *functor = (hmat::TreeProcedure<4> *) proc;
+    hmat->walk(functor);
+    return 0;
+}
+
 }  // end anonymous namespace
 
 namespace hmat {
@@ -385,6 +393,7 @@ static void createCInterface(hmat_interface_t * i)
     i->factorize_generic = factorize_generic<T, E>;
     i->get_values = get_values<T, E>;
     i->get_block = get_block<T, E>;
+    i->walk = walk<T, E>;
 }
 
 }  // end namespace hmat
