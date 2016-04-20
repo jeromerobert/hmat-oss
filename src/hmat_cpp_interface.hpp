@@ -76,7 +76,9 @@ private:
                    maxParallelLeaves(5000),
                    coarsening(false),
                    recompress(true), validateCompression(false),
-                   validationReRun(false), validationDump(false), validationErrorThreshold(0.) {}
+                   validationReRun(false), validationDump(false), validationErrorThreshold(0.) {
+    setParameters();
+  }
   // Disable the copy.
   HMatSettings(const HMatSettings&);
   void operator=(const HMatSettings&);
