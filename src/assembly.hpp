@@ -214,7 +214,7 @@ public:
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,
                                               const hmat_block_info_t * block_info,
-                                              const AllocationObserver &) const;
+                                              const AllocationObserver & = AllocationObserver()) const;
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
                             hmat_block_info_t * block_info, const AllocationObserver &) const;
   virtual void releaseBlock(hmat_block_info_t * block_info, const AllocationObserver &) const;

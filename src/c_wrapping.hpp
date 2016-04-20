@@ -89,18 +89,22 @@ void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
         HMAT_ASSERT(ctx->block_compute == NULL && ctx->simple_compute == NULL);
         hmat::Assembly<T> * cppAssembly = (hmat::Assembly<T> *)ctx->assembly;
         hmat->assemble(*cppAssembly, sf, assembleOnly, ctx->progress);
+        if(!assembleOnly)
+            hmat->factorize(ctx->factorization, ctx->progress);
     } else if(ctx->block_compute != NULL) {
         HMAT_ASSERT(ctx->simple_compute == NULL && ctx->assembly == NULL);
         hmat::BlockAssemblyFunction<T> f(hmat->rows(), hmat->cols(), ctx->user_context,
                                          ctx->prepare,  ctx->block_compute);
         hmat->assemble(f, sf, assembleOnly, ctx->progress);
+        if(!assembleOnly)
+            hmat->factorize(ctx->factorization, ctx->progress);
     } else {
         HMAT_ASSERT(ctx->block_compute == NULL && ctx->assembly == NULL);
         SimpleCAssemblyFunction<T> f(ctx->user_context, ctx->simple_compute);
         hmat->assemble(f, sf, assembleOnly, ctx->progress);
+        if(!assembleOnly)
+            hmat->factorize(ctx->factorization, ctx->progress);
     }
-    if(!assembleOnly)
-        hmat->factorize(ctx->factorization, ctx->progress);
 }
 
 template<typename T, template <typename> class E>
