@@ -23,6 +23,7 @@
 #ifndef _DEFAULT_ENGINE_HPP
 #define _DEFAULT_ENGINE_HPP
 #include "h_matrix.hpp"
+#include "uncompressed_block.hpp"
 
 namespace hmat {
 
@@ -30,6 +31,7 @@ class NullSettings {};
 template<typename T> class DefaultEngine
 {
 public:
+  typedef hmat::UncompressedBlock<T> UncompressedBlock;
   typedef NullSettings Settings;
   Settings settings;
   explicit DefaultEngine(HMatrix<T>* m = NULL): hmat(m){}
@@ -52,6 +54,7 @@ public:
   void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;
   double norm() const;
   void progress(const hmat_progress_t *){}
+  HMatrix<T> * data() const { return hmat; }
 };
 
 }  // end namespace hmat

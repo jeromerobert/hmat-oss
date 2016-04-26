@@ -331,10 +331,6 @@ public:
       return engine_.hmat->cols();
   }
 
-  HMatrix<T> * matrix() const {
-      return engine_.hmat;
-  }
-
   const E<T> & engine() const {
       return engine_;
   }

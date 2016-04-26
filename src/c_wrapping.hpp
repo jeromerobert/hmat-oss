@@ -30,7 +30,6 @@
 #include "common/my_assert.h"
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
-#include "uncompressed_block.hpp"
 #include "uncompressed_values.hpp"
 
 namespace
@@ -305,7 +304,7 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
 template<typename T, template <typename> class E>
 int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols) {
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat->matrix()->setClusterTrees((hmat::ClusterTree*)rows, (hmat::ClusterTree*)cols);
+  hmat->engine().hmat->setClusterTrees((hmat::ClusterTree*)rows, (hmat::ClusterTree*)cols);
   return 0;
 }
 
@@ -336,7 +335,8 @@ int get_block(struct hmat_get_values_context_t *ctx) {
     hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *)ctx->matrix;
     hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
     hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
-    hmat::UncompressedBlock<T> view(*hmat->matrix(), rows, cols, (T*)ctx->values);
+    typename E<T>::UncompressedBlock view;
+    view.uncompress(hmat->engine().data(), rows, cols, (T*)ctx->values);
     if (ctx->renumber_rows)
         view.renumberRows();
     ctx->col_indices = view.colsNumbering();
@@ -347,7 +347,7 @@ int get_block(struct hmat_get_values_context_t *ctx) {
 template <typename T, template <typename> class E>
 int get_values(struct hmat_get_values_context_t *ctx) {
     hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *)ctx->matrix;
-    hmat::UncompressedValues<T> view(*hmat->matrix(),
+    hmat::UncompressedValues<T> view(*hmat->engine().hmat,
                                      ctx->row_indices, ctx->row_size,
                                      ctx->col_indices, ctx->col_size,
                                      (T*)ctx->values);
