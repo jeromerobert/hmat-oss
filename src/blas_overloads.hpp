@@ -224,6 +224,37 @@ void gemv(const char trans, const int m, const int n, const hmat::Z_t& alpha, co
   #undef _C_T
 }
 
+template<typename T>
+void ger(const int m, const int n, const T& alpha, const T* x, const int incx,
+         const T* y, const int incy, T* a, const int lda);
+
+inline
+void ger(const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* x, const int incx,
+         const hmat::S_t* y, const int incy, hmat::S_t* a, const int lda) {
+  cblas_sger(CblasColMajor, m, n, alpha, x, incx, y, incy, a, lda);
+}
+inline
+void ger(const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* x, const int incx,
+         const hmat::D_t* y, const int incy, hmat::D_t* a, const int lda) {
+  cblas_dger(CblasColMajor, m, n, alpha, x, incx, y, incy, a, lda);
+}
+inline
+void ger(const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* x, const int incx,
+         const hmat::C_t* y, const int incy, hmat::C_t* a, const int lda) {
+  // WARNING: &alpha instead of alpha for complex values
+  #define _C_T hmat::C_t
+  cblas_cgeru(CblasColMajor, m, n, _C(&alpha), _C(x), incx, _C(y), incy, _C(a), lda);
+  #undef _C_T
+}
+inline
+void ger(const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* x, const int incx,
+         const hmat::Z_t* y, const int incy, hmat::Z_t* a, const int lda) {
+  // WARNING: &alpha instead of alpha for complex values
+  #define _C_T hmat::Z_t
+  cblas_zgeru(CblasColMajor, m, n, _C(&alpha), _C(x), incx, _C(y), incy, _C(a), lda);
+  #undef _C_T
+}
+
   // Level 3
 template<typename T>
 void gemm(const char transA, const char transB, const int m, const int n, const int k,
