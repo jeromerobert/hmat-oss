@@ -629,7 +629,7 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
 
   // extracting the diagonal
   T* diag = new T[d->cols()->size()];
-  d->extractDiagonal(diag, d->cols()->size());
+  d->extractDiagonal(diag);
   if (inverse) {
     for (int i = 0; i < d->cols()->size(); i++) {
       diag[i] = Constants<T>::pone / diag[i];

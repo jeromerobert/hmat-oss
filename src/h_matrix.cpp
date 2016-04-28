@@ -1292,7 +1292,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
       full()->multiplyWithDiagOrDiagInv(d->full()->diagonal, inverse, left);
     } else {
       Vector<T> diag(d->rows()->size());
-      d->extractDiagonal(diag.v, d->rows()->size());
+      d->extractDiagonal(diag.v);
       full()->multiplyWithDiagOrDiagInv(&diag, inverse, left);
     }
   } else {
@@ -2087,7 +2087,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
       } else {
         Vector<T> diag(d->cols()->size());
-        d->extractDiagonal(diag.v, d->cols()->size());
+        d->extractDiagonal(diag.v);
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, m->full(), Constants<T>::pone);
@@ -2203,7 +2203,7 @@ void HMatrix<T>::solve(FullMatrix<T>* b) const {
 }
 
 template<typename T>
-void HMatrix<T>::extractDiagonal(T* diag, int size) const {
+void HMatrix<T>::extractDiagonal(T* diag) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if(isLeaf()) {
@@ -2217,9 +2217,8 @@ void HMatrix<T>::extractDiagonal(T* diag, int size) const {
         diag[i] = full()->m[i*full()->rows + i];
     }
   } else {
-    assert(size == get(0,0)->rows()->size() + get(1,1)->rows()->size());
-    get(0,0)->extractDiagonal(diag, get(0,0)->rows()->size());
-    get(1,1)->extractDiagonal(diag + get(0,0)->rows()->size(), get(1,1)->rows()->size());
+    get(0,0)->extractDiagonal(diag);
+    get(1,1)->extractDiagonal(diag + get(0,0)->rows()->size());
   }
 }
 
@@ -2259,7 +2258,7 @@ template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
     } else {
         // LLt
         diag = new T[cols()->size()];
-        extractDiagonal(diag, cols()->size());
+        extractDiagonal(diag);
         extracted = true;
     }
     for (int j = 0; j < b->cols; j++) {

@@ -313,8 +313,9 @@ template<typename T, template <typename> class E>
 int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
 {
   DECLARE_CONTEXT;
+  (void)size; //for API compatibility
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat->matrix()->extractDiagonal(static_cast<T*>(diag), size);
+  hmat->engine().hmat->extractDiagonal(static_cast<T*>(diag));
   hmat::FullMatrix<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), 1);
   hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices());
   return 0;
