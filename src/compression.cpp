@@ -37,6 +37,7 @@
 #include "rk_matrix.hpp"
 #include "lapack_operations.hpp"
 #include "lapack_overloads.hpp"
+#include "blas_overloads.hpp"
 #include "full_matrix.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
@@ -364,9 +365,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
       tmpB.get(j, nu) = m->get(i_nu, j) / delta;
     }
 
-    FullMatrix<dp_t> a_nu(tmpA.m + nu * tmpA.rows, tmpA.rows, 1);
-    FullMatrix<dp_t> b_nu(tmpB.m + nu * tmpB.rows, tmpB.rows, 1);
-    m->gemm('N', 'T', Constants<dp_t>::mone, &a_nu, &b_nu, Constants<dp_t>::pone);
+    proxy_cblas::ger(m->rows, m->cols, Constants<dp_t>::mone, tmpA.m + nu * tmpA.rows, 1, tmpB.m + nu * tmpB.rows, 1, m->m, m->rows);
 
     // Update the estimate norm
     // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
