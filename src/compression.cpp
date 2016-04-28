@@ -148,7 +148,7 @@ template<typename T> static void findMax(FullMatrix<T>* m, int& i, int& j) {
   const int rows = m->rows;
   for (int col = 0; col < cols; col++) {
     for (int row = 0; row < rows; row++) {
-      double norm = squaredNorm<T>(m->get(row, col));
+      const double norm = squaredNorm<T>(m->get(row, col));
       if (norm > maxNorm) {
         i = row;
         j = col;
@@ -338,6 +338,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = block.assemble();
 
+  const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows, m->cols);
   if (RkMatrix<dp_t>::approx.k > 0) {
@@ -353,7 +354,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   for (nu = 0; nu < maxK; nu++) {
     int i_nu, j_nu;
     findMax(m, i_nu, j_nu);
-    dp_t delta = m->get(i_nu, j_nu);
+    const dp_t delta = m->get(i_nu, j_nu);
     if (squaredNorm(delta) == 0.) {
       break;
     }
@@ -384,15 +385,14 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
         newEstimate += hmat::real(Vector<dp_t>::dot(&va_nu, &a_l) * Vector<dp_t>::dot(&vb_nu, &b_l));
       }
       estimateSquaredNorm += 2.0 * newEstimate;
-      double a_nu_norm = va_nu.norm();
-      double b_nu_norm = vb_nu.norm();
-      double ab_norm_2 = (a_nu_norm * a_nu_norm) * (b_nu_norm * b_nu_norm);
+      const double a_nu_norm_2 = va_nu.normSqr();
+      const double b_nu_norm_2 = vb_nu.normSqr();
+      const double ab_norm_2 = a_nu_norm_2 * b_nu_norm_2;
       estimateSquaredNorm += ab_norm_2;
 
       // Evaluate the stopping criterion
       // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
       // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-      double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
       if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
         break;
       }
@@ -419,6 +419,8 @@ template<typename T>
 static RkMatrix<typename Types<T>::dp>*
 compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
+
+  const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
 
   const int rowCount = block.rows->size();
@@ -447,7 +449,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
     // Find max and argmax of the residue
     double maxNorm2 = 0.;
     for (int j = 0; j < colCount; j++) {
-      double norm2 = squaredNorm<dp_t>(bCol->v[j]);
+      const double norm2 = squaredNorm<dp_t>(bCol->v[j]);
       if (colFree[j] && norm2 > maxNorm2) {
         maxNorm2 = norm2;
         J = j;
@@ -477,7 +479,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       // Find max and argmax of the residue
       maxNorm2 = 0.;
       for (int i = 0; i < rowCount; i++) {
-        double norm2 = squaredNorm<dp_t>(aCol->v[i]);
+        const double norm2 = squaredNorm<dp_t>(aCol->v[i]);
         if (rowFree[i] && norm2 > maxNorm2) {
           maxNorm2 = norm2;
           I = i;
@@ -493,16 +495,15 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
         newEstimate += hmat::real(Vector<dp_t>::dot(aCol, aCols[l]) * Vector<dp_t>::dot(bCol, bCols[l]));
       }
       estimateSquaredNorm += 2.0 * newEstimate;
-      double aColNorm = aCol->norm();
-      double bColNorm = bCol->norm();
-      double ab_norm_2 = (aColNorm * aColNorm) * (bColNorm * bColNorm);
+      const double aColNorm_2 = aCol->normSqr();
+      const double bColNorm_2 = bCol->normSqr();
+      const double ab_norm_2 = aColNorm_2 * bColNorm_2;
       estimateSquaredNorm += ab_norm_2;
       k++;
 
       // Evaluate the stopping criterion
       // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
       // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-      double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
       if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
         break;
       }
@@ -536,6 +537,7 @@ template<typename T>
 static RkMatrix<typename Types<T>::dp>*
 compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
+  const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
   int i_ref, j_ref;
   int rowCount = block.rows->size(), colCount = block.cols->size();
@@ -606,16 +608,15 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
       newEstimate += hmat::real(Vector<dp_t>::dot(aVec, aCols[l]) * Vector<dp_t>::dot(bVec, bCols[l]));
     }
     estimateSquaredNorm += 2.0 * newEstimate;
-    double aVecNorm = aVec->norm();
-    double bVecNorm = bVec->norm();
-    double ab_norm_2 = (aVecNorm * aVecNorm) * (bVecNorm * bVecNorm);
+    const double aVecNorm_2 = aVec->normSqr();
+    const double bVecNorm_2 = bVec->normSqr();
+    const double ab_norm_2 = aVecNorm_2 * bVecNorm_2;
     estimateSquaredNorm += ab_norm_2;
     k++;
 
     // Evaluate the stopping criterion
     // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
     // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-    double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
     if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
       break;
     }
@@ -623,8 +624,8 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
     // Update of a_ref and b_ref
     aRef.axpy(Constants<dp_t>::mone * bCols[k - 1]->v[j_ref], aCols[k - 1]);
     bRef.axpy(Constants<dp_t>::mone * aCols[k - 1]->v[i_ref], bCols[k - 1]);
-    bool needNewA = isZero(aRef) || (j_star == j_ref);
-    bool needNewB = isZero(bRef) || (i_star == i_ref);
+    const bool needNewA = isZero(aRef) || (j_star == j_ref);
+    const bool needNewB = isZero(bRef) || (i_star == i_ref);
 
     // If the row or the column of reference have been already chosen as pivot,
     // we can not keep it and then we take one or two others.
@@ -689,7 +690,6 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
                                                            const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
-
   switch (method) {
   case Svd:
     rk = compressSvd(block);
@@ -731,8 +731,8 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     if (rk->a) rk->a->checkNan();
     if (rk->b) rk->b->checkNan();
     FullMatrix<dp_t>* rkFull = rk->eval();
-    double approxNorm = rkFull->norm();
-    double fullNorm = full->norm();
+    const double approxNorm = rkFull->norm();
+    const double fullNorm = full->norm();
 
     // If I meet a NaN, I save & leave
     // TODO : improve this behaviour
