@@ -102,10 +102,23 @@ private:
 
 template<typename T> static double squaredNorm(const T x);
 template<> double squaredNorm(const C_t x) {
-  return norm(x);
+// std::norm seems deadfully slow on Intel 15
+#ifdef __INTEL_COMPILER
+  const float x_r = x.real();
+  const float x_i = x.imag();
+  return x_r*x_r + x_i*x_i;
+#else
+  return std::norm(x);
+#endif
 }
 template<> double squaredNorm(const Z_t x) {
-  return norm(x);
+#ifdef __INTEL_COMPILER
+  const double x_r = x.real();
+  const double x_i = x.imag();
+  return x_r*x_r + x_i*x_i;
+#else
+  return std::norm(x);
+#endif
 }
 template<typename T> double squaredNorm(const T x) {
   return x * x;
