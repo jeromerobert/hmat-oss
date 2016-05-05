@@ -299,8 +299,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
           for (int i = 0; i < 4; i++) {
             removeChild(i);
           }
-          delete[] children;
-          children = NULL;
+          children.clear();
           rk(candidate);
           assert(isLeaf());
           assert(isRkMatrix());
@@ -404,10 +403,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
                 removeChild(i);
                 upper->removeChild(i);
               }
-              delete[] children;
-              children = NULL;
-              delete[] upper->children;
-              upper->children = NULL;
+              children.clear();
+              upper->children.clear();
               rk(candidate);
               upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
                                         candidate->a->copy(), upper->cols(), candidate->method));

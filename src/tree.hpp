@@ -29,6 +29,7 @@
 #include <vector>
 #include <list>
 #include <cstddef>
+#include <assert.h>
 
 namespace hmat {
 
@@ -50,42 +51,32 @@ public:
   int depth;
 
 protected:
-  /// NULL for a leaf, pointeur on an array of N sons otherwise.
-  Tree** children;
+  /// empty for a leaf, pointeur on a vector of sons otherwise.
+  std::vector<Tree<N>*> children;
 public:
   /// Pointer to the father, NULL if this node is the root
   Tree* father;
 
 public:
   Tree(Tree* _father, int _depth = 0)
-    : depth(_depth), children(NULL), father(_father) {}
+    : depth(_depth), children(), father(_father) {}
   virtual ~Tree() {
-    if (!children) {
-      return;
-    }
-    for (int i = 0; i < N; i++) {
-      if (children[i]) {
+    for (int i=0 ; i<children.size() ; i++)
+      if (children[i])
         delete children[i];
-        children[i] = NULL;
-      }
-    }
-    delete[] children;
+    children.clear();
   }
 
-  /*! \brief Insert a child in the children array.
+  /*! \brief Insert a child in the children vector.
 
     If a child is already present, it is removed but not deleted.
 
-    \param index index in the children array
+    \param index index in the children vector
     \param child pointeur to the child
    */
-  void insertChild(int index, Tree *child) {
-    if (!children) {
-      children = new Tree*[N];
-      for (int i = 0; i < N; i++) {
-        children[i] = NULL;
-      }
-    }
+  void insertChild(int index, Tree<N> *child) {
+    if (children.size()<=index)
+      children.resize(index+1, (Tree<N>*)NULL);
     child->father = this;
     children[index] = child;
     child->depth = depth + 1;
@@ -94,57 +85,50 @@ public:
   /*! \brief Remove a child, and delete it if necessary.
    */
   void removeChild(int index) {
+    if (children[index])
     delete children[index];
-    children[index] = NULL;
+    children[index] = (Tree<N>*)NULL;
   }
 
   /*! \brief Return the number of nodes in the tree.
    */
   int nodesCount() const {
     int result = 1;
-    if (!isLeaf()) {
-      for (int i = 0; i < N; i++) {
-        if (getChild(i)) {
-          result += getChild(i)->nodesCount();
-        }
-      }
-    }
+    for (int i=0 ; i<children.size() ; i++)
+      if (children[i])
+        result += children[i]->nodesCount();
     return result;
   }
 
   /*! \brief Return the child of index, or NULL.
-
-    \warning Will segfault if used on a leaf.
    */
   inline Tree *getChild(int index) const {
+    assert(index<children.size());
     return children[index];
   }
 
-  int nbChild() const {
-      return N;
+  inline int nbChild() const {
+    return children.size();
   }
 
-  /*! \brief Return true if the node is a leaf.
+  /*! \brief Return true if the node is a leaf (= it has no children).
    */
   inline bool isLeaf() const {
-    return !children;
+    return children.empty();
   }
 
   /*! \brief Return a list of nodes.
+
+    Not used anywhere.
    */
   virtual std::list<const Tree<N>*> listNodes() const {
     std::list<const Tree<N>*> result;
     result.push_back(this);
-    if (!isLeaf()) {
-      for (int i = 0; i < N; i++) {
-        Tree<N>* child = getChild(i);
-        if (child) {
-          std::list<const Tree<N>*> childNodes = child->listNodes();
-          result.splice(result.end(), childNodes, childNodes.begin(),
-                        childNodes.end());
-        }
+    for (int i=0 ; i<children.size() ; i++)
+      if (children[i]) {
+        std::list<const Tree<N>*> childNodes = children[i]->listNodes();
+        result.splice(result.end(), childNodes, childNodes.begin(), childNodes.end());
       }
-    }
     return result;
   }
 
@@ -152,12 +136,9 @@ public:
    */
   void listAllLeaves(std::vector<Tree<N>*>& leaves) const {
     if (!isLeaf()) {
-      for (int i = 0; i < N; i++) {
-        Tree<N>* child = getChild(i);
-        if (child) {
-          child->listAllLeaves(leaves);
-        }
-      }
+      for (int i=0 ; i<children.size() ; i++)
+        if (children[i])
+          children[i]->listAllLeaves(leaves);
     } else {
       leaves.push_back(const_cast<Tree<N>*>(this));
     }
@@ -169,16 +150,13 @@ public:
     } else {
       proc->visit(this, tree_preorder);
       bool first = true;
-      for (int i = 0; i < N; i++) {
-        Tree<N>* child = getChild(i);
-        if (child) {
-          if (!first) {
+      for (int i=0 ; i<children.size() ; i++)
+        if (children[i]) {
+          if (!first)
             proc->visit(this, tree_inorder);
-          }
           first = false;
-          child->walk(proc);
+          children[i]->walk(proc);
         }
-      }
       proc->visit(this, tree_postorder);
     }
   }
