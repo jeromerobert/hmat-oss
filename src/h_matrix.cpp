@@ -1273,8 +1273,12 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!isLeaf()) {
+    // First the diagonal, then the rest...
     for (int i=0 ; i<nbChildRow() ; i++)
-      for (int j=0 ; j<nbChildCol() ; j++) {
+      get(i,i)->multiplyWithDiag(d->get(i,i), left, inverse);
+    for (int i=0 ; i<nbChildRow() ; i++)
+      for (int j=0 ; j<nbChildCol() ; j++)
+        if (i!=j && get(i,j)) {
         int k = left ? i : j;
         get(i,j)->multiplyWithDiag(d->get(k,k), left, inverse);
     }
