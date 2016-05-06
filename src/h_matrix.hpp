@@ -483,6 +483,18 @@ public:
     return static_cast<HMatrix<T>*>(Tree<4>::getChild(i));
   }
 
+  /*! \brief Return the number of children in the row dimension.
+    */
+  inline int nbChildRow() const {
+    return rows_->nbChild();
+  }
+
+  /*! \brief Return the number of children in the column dimension.
+    */
+  inline int nbChildCol() const {
+    return cols_->nbChild();
+  }
+
   /*! Return the child (i, j) of this.
 
     \warning do not use on a leaf !
@@ -492,7 +504,9 @@ public:
     \return the (i,j) child of this.
    */
   HMatrix<T>* get(int i, int j) const {
-    return static_cast<HMatrix<T>*>(Tree<4>::getChild(i + j * 2));
+    assert(i>=0 && i<nbChildRow());
+    assert(j>=0 && j<nbChildCol());
+    return static_cast<HMatrix<T>*>(Tree<4>::getChild(i + j * nbChildRow()));
   }
 
   /*! Set the i-th child of this.
@@ -515,7 +529,7 @@ public:
     \param child the child (i, j) of this.
    */
   void insertChild(int i, int j, HMatrix<T>* child) {
-    Tree<4>::insertChild(i+j*2, static_cast<Tree<4>*>(child)) ;
+    Tree<4>::insertChild(i+j*nbChildRow(), static_cast<Tree<4>*>(child)) ;
   }
 
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);

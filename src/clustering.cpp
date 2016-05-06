@@ -320,7 +320,7 @@ ClusterTreeBuilder::clean_recursive(ClusterTree& current) const
   algo->clean(current);
   if (!current.isLeaf())
   {
-    for (size_t i = 0; i < 2; ++i)
+    for (size_t i = 0; i < current.nbChild(); ++i)
     {
       if (current.getChild(i))
         clean_recursive(*((ClusterTree*)current.getChild(i)));

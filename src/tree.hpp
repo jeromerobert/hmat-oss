@@ -85,6 +85,7 @@ public:
   /*! \brief Remove a child, and delete it if necessary.
    */
   void removeChild(int index) {
+    assert(index>=0 && index<children.size());
     if (children[index])
     delete children[index];
     children[index] = (Tree<N>*)NULL;
@@ -103,7 +104,11 @@ public:
   /*! \brief Return the child of index, or NULL.
    */
   inline Tree *getChild(int index) const {
-    assert(index<children.size());
+    assert(index>=0 && index<children.size());
+    return children[index];
+  }
+  inline Tree *&getChild(int index)  {
+    assert(index>=0 && index<children.size());
     return children[index];
   }
 

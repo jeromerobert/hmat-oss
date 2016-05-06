@@ -153,8 +153,8 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
     result = copyFather->slice(data.offset(), data.size());
   }
   if (!isLeaf()) {
-    result->insertChild(0, ((ClusterTree*) getChild(0))->copy(copyFather));
-    result->insertChild(1, ((ClusterTree*) getChild(1))->copy(copyFather));
+    for (int i=0 ; i<nbChild(); i++)
+      result->insertChild(i, ((ClusterTree*) getChild(i))->copy(copyFather));
   }
   return result;
 }
