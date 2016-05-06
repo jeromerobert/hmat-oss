@@ -112,7 +112,7 @@ static double writeHeader(ofstream & file, int maxDim)
 namespace hmat {
 
 template<typename T>
-void PostscriptDumper<T>::write(const Tree<4> * tree, const std::string& filename) const {
+void PostscriptDumper<T>::write(const Tree * tree, const std::string& filename) const {
     ofstream file;
     file.open(filename.c_str());
     const HMatrix<T> * m = cast(tree);
@@ -122,10 +122,10 @@ void PostscriptDumper<T>::write(const Tree<4> * tree, const std::string& filenam
 }
 
 template<typename T>
-void PostscriptDumper<T>::recursiveDrawing(const Tree<4> * tree, ofstream& f, int depth, double scale) const {
+void PostscriptDumper<T>::recursiveDrawing(const Tree * tree, ofstream& f, int depth, double scale) const {
     if (!tree->isLeaf()) {
         for (int i = 0; i < tree->nbChild(); i++) {
-            const Tree<4>* child = tree->getChild(i);
+            const Tree* child = tree->getChild(i);
             if (child) {
                 recursiveDrawing(child, f, depth + 1, scale);
             }
@@ -150,12 +150,12 @@ void PostscriptDumper<T>::recursiveDrawing(const Tree<4> * tree, ofstream& f, in
 }
 
 template<typename T>
-const HMatrix<T> * PostscriptDumper<T>::cast(const Tree<4> * tree) const {
+const HMatrix<T> * PostscriptDumper<T>::cast(const Tree * tree) const {
     return static_cast<const HMatrix<T> *>(tree);
 }
 
 template<typename T>
-void PostscriptDumper<T>::drawMatrix(const Tree<4> *, const HMatrix<T> * m,
+void PostscriptDumper<T>::drawMatrix(const Tree *, const HMatrix<T> * m,
     ofstream& f, int depth, double, bool cross) const {
     int n = m->rows()->coordinates()->size();
     int startX = m->cols()->offset();

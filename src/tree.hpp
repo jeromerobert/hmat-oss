@@ -34,25 +34,35 @@
 namespace hmat {
 
 // Forward declaration
-template<int N> class TreeProcedure;
+class Tree;
 
 /* Visitor pattern
  */
 enum Visit { tree_preorder, tree_postorder, tree_inorder, tree_leaf };
+
+/** Class to recursively apply a given function to all nodes of a tree
+ */
+class TreeProcedure {
+
+public:
+  TreeProcedure() {}
+  virtual void visit(Tree* node, const Visit order) const = 0;
+  virtual ~TreeProcedure() {}
+};
 
 /*! \brief Templated tree class.
 
   This class represents a tree of arity N, holding an instance of NodeData in
   its nodes.
  */
-template<int N> class Tree {
+class Tree {
 public:
   /// depth of the current node in the tree
   int depth;
 
 protected:
   /// empty for a leaf, pointeur on a vector of sons otherwise.
-  std::vector<Tree<N>*> children;
+  std::vector<Tree*> children;
 public:
   /// Pointer to the father, NULL if this node is the root
   Tree* father;
@@ -74,9 +84,9 @@ public:
     \param index index in the children vector
     \param child pointeur to the child
    */
-  void insertChild(int index, Tree<N> *child) {
+  void insertChild(int index, Tree *child) {
     if (children.size()<=index)
-      children.resize(index+1, (Tree<N>*)NULL);
+      children.resize(index+1, (Tree*)NULL);
     child->father = this;
     children[index] = child;
     child->depth = depth + 1;
@@ -88,7 +98,7 @@ public:
     assert(index>=0 && index<children.size());
     if (children[index])
     delete children[index];
-    children[index] = (Tree<N>*)NULL;
+    children[index] = (Tree*)NULL;
   }
 
   /*! \brief Return the number of nodes in the tree.
@@ -126,12 +136,12 @@ public:
 
     Not used anywhere.
    */
-  virtual std::list<const Tree<N>*> listNodes() const {
-    std::list<const Tree<N>*> result;
+  virtual std::list<const Tree*> listNodes() const {
+    std::list<const Tree*> result;
     result.push_back(this);
     for (int i=0 ; i<children.size() ; i++)
       if (children[i]) {
-        std::list<const Tree<N>*> childNodes = children[i]->listNodes();
+        std::list<const Tree*> childNodes = children[i]->listNodes();
         result.splice(result.end(), childNodes, childNodes.begin(), childNodes.end());
       }
     return result;
@@ -139,17 +149,17 @@ public:
 
  /*! \brief Return a list of leaves.
    */
-  void listAllLeaves(std::vector<Tree<N>*>& leaves) const {
+  void listAllLeaves(std::vector<Tree*>& leaves) const {
     if (!isLeaf()) {
       for (int i=0 ; i<children.size() ; i++)
         if (children[i])
           children[i]->listAllLeaves(leaves);
     } else {
-      leaves.push_back(const_cast<Tree<N>*>(this));
+      leaves.push_back(const_cast<Tree*>(this));
     }
   }
 
-  void walk(const TreeProcedure<N> *proc) {
+  void walk(const TreeProcedure *proc) {
     if (isLeaf()) {
       proc->visit(this, tree_leaf);
     } else {
@@ -166,16 +176,6 @@ public:
     }
   }
 
-};
-
-/** Class to recursively apply a given function to all nodes of a tree
- */
-template<int N> class TreeProcedure {
-
-public:
-  TreeProcedure() {}
-  virtual void visit(Tree<N>* node, const Visit order) const = 0;
-  virtual ~TreeProcedure() {}
 };
 
 }  // end namespace hmat

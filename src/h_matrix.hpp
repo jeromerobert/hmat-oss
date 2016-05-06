@@ -101,13 +101,13 @@ public:
 
 /** Class to truncate Rk matrices.
  */
-class EpsilonTruncate : public TreeProcedure<4> {
+class EpsilonTruncate : public TreeProcedure {
 private:
   hmat_value_t type_;
   double epsilon_;
 public:
   EpsilonTruncate(hmat_value_t type, double epsilon) : type_(type), epsilon_(epsilon) {}
-  void visit(Tree<4>* node, Visit order) const;
+  void visit(Tree* node, Visit order) const;
 };
 
 /*! \brief The HMatrix class, representing a HMatrix.
@@ -119,7 +119,7 @@ public:
     - an internal node : in this case, it has 4 children that form a partition
       of the HMatrix Dofs, and the node doesn't carry data itself.
  */
-template<typename T> class HMatrix : public Tree<4> {
+template<typename T> class HMatrix : public Tree {
   friend class RkMatrix<T>;
 
   /// Rows of this HMatrix block
@@ -480,7 +480,7 @@ public:
     \return the i-th child of this.
    */
   HMatrix<T>* getChild(int i) const {
-    return static_cast<HMatrix<T>*>(Tree<4>::getChild(i));
+    return static_cast<HMatrix<T>*>(Tree::getChild(i));
   }
 
   /*! \brief Return the number of children in the row dimension.
@@ -506,7 +506,7 @@ public:
   HMatrix<T>* get(int i, int j) const {
     assert(i>=0 && i<nbChildRow());
     assert(j>=0 && j<nbChildCol());
-    return static_cast<HMatrix<T>*>(Tree<4>::getChild(i + j * nbChildRow()));
+    return static_cast<HMatrix<T>*>(Tree::getChild(i + j * nbChildRow()));
   }
 
   /*! Set the i-th child of this.
@@ -517,7 +517,7 @@ public:
     \param child the i-th child of this.
    */
   void insertChild(int i, HMatrix<T>* child) {
-    Tree<4>::insertChild(i, child) ;
+    Tree::insertChild(i, child) ;
   }
 
   /*! Set the child (i, j) of this.
@@ -529,7 +529,7 @@ public:
     \param child the child (i, j) of this.
    */
   void insertChild(int i, int j, HMatrix<T>* child) {
-    Tree<4>::insertChild(i+j*nbChildRow(), static_cast<Tree<4>*>(child)) ;
+    Tree::insertChild(i+j*nbChildRow(), static_cast<Tree*>(child)) ;
   }
 
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);

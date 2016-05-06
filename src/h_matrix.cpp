@@ -97,7 +97,7 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree<4>(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(-3),
+  : Tree(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(-3),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
     localSettings(settings)
@@ -128,7 +128,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
-    Tree<4>(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(-3), isUpper(false),
+    Tree(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(-3), isUpper(false),
     isLower(false), admissible(false), temporary(false), localSettings(settings)
     {}
 
@@ -2402,7 +2402,7 @@ template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMat
 }
 
 template<typename T> std::string HMatrix<T>::toString() const {
-    std::vector<Tree<4>*> leaves;
+    std::vector<Tree*> leaves;
     listAllLeaves(leaves);
     int nbAssembled = 0;
     int nbNullFull = 0;
@@ -2443,7 +2443,7 @@ void visitDispatch(HMatrix<T>* node, Visit order, double epsilon) {
   node->rk(rk);
 }
 
-void EpsilonTruncate::visit(Tree<4>* node, Visit order) const {
+void EpsilonTruncate::visit(Tree* node, Visit order) const {
   switch (type_) {
   case HMAT_SIMPLE_PRECISION: visitDispatch<S_t>(static_cast<HMatrix<S_t>*>(node), order, epsilon_); break;
   case HMAT_DOUBLE_PRECISION: visitDispatch<D_t>(static_cast<HMatrix<D_t>*>(node), order, epsilon_); break;
