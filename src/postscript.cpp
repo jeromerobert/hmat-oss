@@ -124,7 +124,7 @@ void PostscriptDumper<T>::write(const Tree * tree, const std::string& filename) 
 template<typename T>
 void PostscriptDumper<T>::recursiveDrawing(const Tree * tree, ofstream& f, int depth, double scale) const {
     if (!tree->isLeaf()) {
-        for (int i = 0; i < tree->nbChild(); i++) {
+        for (int i = 0; i < tree->nrChild(); i++) {
             const Tree* child = tree->getChild(i);
             if (child) {
                 recursiveDrawing(child, f, depth + 1, scale);
@@ -196,9 +196,9 @@ void PostscriptDumper<T>::drawMatrix(const Tree *, const HMatrix<T> * m,
         /* On dessine la croix qui separe les sous-blocs dans la h-matrice.
            Dans le cas 2x2, on fait 1 croix. 1x1, 0 croix. 3x3, 2 croix.
            Dans les cas non carre, 2x3, on fait 2 croix, meme si un trait sera en double. */
-        for (int k=1 ; k < std::max(m->nbChildRow(), m->nbChildCol()) ; k++) {
-          int i = k>=m->nbChildRow() ? m->nbChildRow()-1 : k ;
-          int j = k>=m->nbChildCol() ? m->nbChildCol()-1 : k ;
+        for (int k=1 ; k < std::max(m->nrChildRow(), m->nrChildCol()) ; k++) {
+          int i = k>=m->nrChildRow() ? m->nrChildRow()-1 : k ;
+          int j = k>=m->nrChildCol() ? m->nrChildCol()-1 : k ;
           int colOffset = m->get(i, j)->cols()->offset();
           int rowOffset = m->get(i, j)->rows()->offset();
         f << 0 << " " << -rowsCount << " "

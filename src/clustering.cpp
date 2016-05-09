@@ -196,9 +196,9 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   }
   sortByDimension(current, dim);
   int previousIndex = 0;
-  // Loop on 'divider' = the number of children created
-  for (int i=1 ; i<divider ; i++) {
-    int middleIndex = current.data.size() * i / divider;
+  // Loop on 'divider_' = the number of children created
+  for (int i=1 ; i<divider_ ; i++) {
+    int middleIndex = current.data.size() * i / divider_;
   if (NULL != current.data.group_index())
   {
     // Ensure that we do not split inside a group
@@ -326,7 +326,7 @@ ClusterTreeBuilder::clean_recursive(ClusterTree& current) const
   algo->clean(current);
   if (!current.isLeaf())
   {
-    for (int i = 0; i < current.nbChild(); ++i)
+    for (int i = 0; i < current.nrChild(); ++i)
     {
       if (current.getChild(i))
         clean_recursive(*((ClusterTree*)current.getChild(i)));

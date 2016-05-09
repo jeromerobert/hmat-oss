@@ -68,7 +68,7 @@ class ClusteringAlgorithm
 {
 public:
   /*! \brief Default constructor */
-  ClusteringAlgorithm() : maxLeafSize_(-1), divider(2) {}
+  ClusteringAlgorithm() : maxLeafSize_(-1), divider_(2) {}
 
   /*! \brief Virtual constructor */
   virtual ClusteringAlgorithm* clone() const = 0;
@@ -92,7 +92,7 @@ private:
   int maxLeafSize_;
 protected:
   /* the number of children created by division at each level (2 by default) */
-  int divider ;
+  int divider_ ;
 };
 
 

@@ -153,7 +153,7 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
     result = copyFather->slice(data.offset(), data.size());
   }
   if (!isLeaf()) {
-    for (int i=0 ; i<nbChild(); i++)
+    for (int i=0 ; i<nrChild(); i++)
       result->insertChild(i, ((ClusterTree*) getChild(i))->copy(copyFather));
   }
   return result;
@@ -168,8 +168,8 @@ void ClusterTree::sameDepth(const ClusterTree * other) {
         insertChild(1, slice(data.offset() + data.size(), 0));
     }
 
-    for(int i = 0; i < other->nbChild(); i++) {
-        for(int j = 0; j < nbChild(); j++) {
+    for(int i = 0; i < other->nrChild(); i++) {
+        for(int j = 0; j < nrChild(); j++) {
             getChild(j)->sameDepth(other->getChild(i));
         }
     }

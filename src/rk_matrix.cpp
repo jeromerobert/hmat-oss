@@ -687,9 +687,9 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   if (ha->rows()->size() == 0 || ha->cols()->size() == 0 || hb->rows()->size() == 0 || hb->cols()->size() == 0) return;
 
   if (!(ha->isLeaf() || hb->isLeaf())) {
-    int nbRows = transHA == 'N' ? ha->nbChildRow() : ha->nbChildCol() ; /* Row blocks of the product */
-    int nbCols = transHB == 'N' ? hb->nbChildCol() : hb->nbChildRow() ; /* Col blocks of the product */
-    int nbCom  = transHA == 'N' ? ha->nbChildCol() : ha->nbChildRow() ; /* Common dimension between A and B */
+    int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
+    int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
+    int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
     RkMatrix<T>* subRks[nbRows * nbCols];
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
