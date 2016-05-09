@@ -110,6 +110,26 @@ hmat::D_t dot(const int n, const hmat::D_t* x, const int incx, const hmat::D_t* 
   return cblas_ddot(n, x, incx, y, incy);
 }
 
+inline hmat::C_t dot(const int n, const hmat::C_t *x, const int incx,
+                     const hmat::C_t *y, const int incy) {
+    hmat::C_t result = hmat::Constants<hmat::C_t>::zero;
+#define _C_T hmat::C_t
+    cblas_cdotu_sub(n, _C(x), incx, _C(y), incy,
+                    _CC(openblas_complex_float, &result));
+#undef _C_T
+    return result;
+}
+
+inline hmat::Z_t dot(const int n, const hmat::Z_t *x, const int incx,
+                     const hmat::Z_t *y, const int incy) {
+    hmat::Z_t result = hmat::Constants<hmat::Z_t>::zero;
+#define _C_T hmat::Z_t
+    cblas_zdotu_sub(n, _C(x), incx, _C(y), incy,
+                    _CC(openblas_complex_double, &result));
+#undef _C_T
+    return result;
+}
+
 template<typename T>
 T dotc(const int n, const T* x, const int incx, const T* y, const int incy);
 
