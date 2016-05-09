@@ -705,10 +705,8 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       }
     }
     // Reconstruction of C by adding the parts
-    T alpha[nbRows * nbCols];
-    for (int i = 0; i < nbRows * nbCols; i++)
-      alpha[i] = Constants<T>::pone;
-    RkMatrix<T>* rk = formattedAddParts(alpha, (const RkMatrix<T>**) subRks, nbRows * nbCols);
+    std::vector<T> alpha(nbRows * nbCols, Constants<T>::pone);
+    RkMatrix<T>* rk = formattedAddParts(&alpha[0], (const RkMatrix<T>**) subRks, nbRows * nbCols);
     swap(*rk);
     for (int i = 0; i < nbRows * nbCols; i++) {
       delete subRks[i];

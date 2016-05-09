@@ -291,8 +291,8 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
       }
       if (allRkLeaves) {
         RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-        T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
-        RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
+        std::vector<T> alpha(nbChild(), Constants<T>::pone);
+        RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, nbChild());
         size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
         if (elements < childrenElements) {
           cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
@@ -393,9 +393,9 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
             }
           }
           if (allRkLeaves) {
-            T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
+            std::vector<T> alpha(nbChild(), Constants<T>::pone);
             RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-            RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
+            RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, nbChild());
             size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
             if (elements < childrenElements) {
               cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
