@@ -23,6 +23,7 @@
 #include "h_matrix.hpp"
 #include "cluster_tree.hpp"
 #include "rk_matrix.hpp"
+#include <limits>
 
 namespace hmat {
 /**
@@ -88,15 +89,27 @@ template <typename T> class UncompressedValues {
         int lb = clusterData.offset();
         int ub = lb + clusterData.size() - 1;
         std::pair<int, int> lbP(lb, 0);
-        std::pair<int, int> ubP(ub, 0);
+        // use max int to ensure that upper_bound->first will be greater than ubP
+        std::pair<int, int> ubP(ub, std::numeric_limits<int>::max());
         IndiceIt newBegin = std::lower_bound(begin, end, lbP);
+        if(newBegin == end) {
+            // empty intersection
+            begin = newBegin;
+            return;
+        }
+        assert(newBegin->first >= lb);
         IndiceIt newEnd = std::upper_bound(begin, end, ubP);
+        assert((newEnd-1)->first <= ub);
         begin = newBegin;
         end = newEnd;
-        assert(begin->first >= lb);
-        assert(end->first > ub);
     }
 
+    /**
+     * @brief createQuery Convert the C API query to a vector<pair<>> where each pair is
+     * <hmat id, original query id>
+     * @param query, querySize the C API query
+     * @param indices the result
+     */
     void createQuery(const ClusterData & clusterData, int * query, int querySize, std::vector<std::pair<int, int> > & indices) {
         indices.resize(querySize);
         for(int i = 0; i < querySize; i++) {
@@ -107,7 +120,10 @@ template <typename T> class UncompressedValues {
     }
 
     UncompressedValues(const UncompressedValues & o, const HMatrix<T> &matrix)
-        : matrix_(matrix), values_(o.values_), valuesLd_(o.valuesLd_) {
+        : matrix_(matrix), values_(o.values_), valuesLd_(o.valuesLd_),
+          rowStart_(o.rowStart_), rowEnd_(o.rowEnd_),
+          colStart_(o.colStart_), colEnd_(o.colEnd_)
+    {
         compatibleQuery(*matrix_.rows(), rowStart_, rowEnd_);
         compatibleQuery(*matrix_.cols(), colStart_, colEnd_);
         getValues();

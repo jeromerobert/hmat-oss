@@ -33,8 +33,8 @@ template <typename T> void UncompressedValues<T>::getRkValues() {
     int ldb = matrix_.rk()->b->lda;
     for(IndiceIt r = rowStart_; r != rowEnd_; ++r) {
         for(IndiceIt c = colStart_; c != colEnd_; ++c) {
-            getValue(r, c, proxy_cblas_convenience::dot_c(
-                         rank, a + r->first, lda, b + c->first, ldb));
+            getValue(r, c, proxy_cblas::dot(rank, a + r->first, lda,
+                                            b + c->first, ldb));
         }
     }
 }
