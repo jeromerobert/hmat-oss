@@ -195,7 +195,10 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
     dim = ((axisIndex_ + current.depth) % spatialDimension_);
   }
   sortByDimension(current, dim);
-  int middleIndex = current.data.size() / 2;
+  int previousIndex = 0;
+  // Loop on 'divider' = the number of children created
+  for (int i=1 ; i<divider ; i++) {
+    int middleIndex = current.data.size() * i / divider;
   if (NULL != current.data.group_index())
   {
     // Ensure that we do not split inside a group
@@ -223,8 +226,11 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
         middleIndex = lower + 1;
     }
   }
-  children.push_back(current.slice(current.data.offset(), middleIndex));
-  children.push_back(current.slice(current.data.offset()+ middleIndex, current.data.size() - middleIndex));
+    children.push_back(current.slice(current.data.offset()+previousIndex, middleIndex-previousIndex));
+    previousIndex = middleIndex;
+  }
+  // Add the last child :
+  children.push_back(current.slice(current.data.offset()+ previousIndex, current.data.size() - previousIndex));
 }
 
 void
