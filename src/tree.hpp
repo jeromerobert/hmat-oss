@@ -71,7 +71,7 @@ public:
   Tree(Tree* _father, int _depth = 0)
     : depth(_depth), children(), father(_father) {}
   virtual ~Tree() {
-    for (int i=0 ; i<children.size() ; i++)
+    for (int i=0 ; i<nbChild() ; i++)
       if (children[i])
         delete children[i];
     children.clear();
@@ -85,7 +85,7 @@ public:
     \param child pointeur to the child
    */
   void insertChild(int index, Tree *child) {
-    if (children.size()<=index)
+    if (nbChild()<=index)
       children.resize(index+1, (Tree*)NULL);
     child->father = this;
     children[index] = child;
@@ -95,7 +95,7 @@ public:
   /*! \brief Remove a child, and delete it if necessary.
    */
   void removeChild(int index) {
-    assert(index>=0 && index<children.size());
+    assert(index>=0 && index<nbChild());
     if (children[index])
     delete children[index];
     children[index] = (Tree*)NULL;
@@ -105,7 +105,7 @@ public:
    */
   int nodesCount() const {
     int result = 1;
-    for (int i=0 ; i<children.size() ; i++)
+    for (int i=0 ; i<nbChild() ; i++)
       if (children[i])
         result += children[i]->nodesCount();
     return result;
@@ -114,16 +114,16 @@ public:
   /*! \brief Return the child of index, or NULL.
    */
   inline Tree *getChild(int index) const {
-    assert(index>=0 && index<children.size());
+    assert(index>=0 && index<nbChild());
     return children[index];
   }
   inline Tree *&getChild(int index)  {
-    assert(index>=0 && index<children.size());
+    assert(index>=0 && index<nbChild());
     return children[index];
   }
 
   inline int nbChild() const {
-    return children.size();
+    return (int)children.size();
   }
 
   /*! \brief Return true if the node is a leaf (= it has no children).
@@ -139,7 +139,7 @@ public:
   virtual std::list<const Tree*> listNodes() const {
     std::list<const Tree*> result;
     result.push_back(this);
-    for (int i=0 ; i<children.size() ; i++)
+    for (int i=0 ; i<nbChild() ; i++)
       if (children[i]) {
         std::list<const Tree*> childNodes = children[i]->listNodes();
         result.splice(result.end(), childNodes, childNodes.begin(), childNodes.end());
@@ -151,7 +151,7 @@ public:
    */
   void listAllLeaves(std::vector<Tree*>& leaves) const {
     if (!isLeaf()) {
-      for (int i=0 ; i<children.size() ; i++)
+      for (int i=0 ; i<nbChild() ; i++)
         if (children[i])
           children[i]->listAllLeaves(leaves);
     } else {
@@ -165,7 +165,7 @@ public:
     } else {
       proc->visit(this, tree_preorder);
       bool first = true;
-      for (int i=0 ; i<children.size() ; i++)
+      for (int i=0 ; i<nbChild() ; i++)
         if (children[i]) {
           if (!first)
             proc->visit(this, tree_inorder);
