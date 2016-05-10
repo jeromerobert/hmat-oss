@@ -214,6 +214,21 @@ void Function<T>::prepareBlock(const ClusterData*, const ClusterData*,
 
 
 // Template declaration
+template class Function<S_t>;
+template class Function<D_t>;
+template class Function<C_t>;
+template class Function<Z_t>;
+
+template class SimpleFunction<S_t>;
+template class SimpleFunction<D_t>;
+template class SimpleFunction<C_t>;
+template class SimpleFunction<Z_t>;
+
+template class AssemblyFunction<S_t>;
+template class AssemblyFunction<D_t>;
+template class AssemblyFunction<C_t>;
+template class AssemblyFunction<Z_t>;
+
 template class BlockFunction<S_t>;
 template class BlockFunction<D_t>;
 template class BlockFunction<C_t>;
