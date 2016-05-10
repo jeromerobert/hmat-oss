@@ -123,17 +123,13 @@ Types<D_t>::dp TestAssemblyFunction<D_t>::interaction(int i, int j) const {
 template<>
 Types<C_t>::dp TestAssemblyFunction<C_t>::interaction(int i, int j) const {
   double distance = this->distanceTo(i, j) + 1e-10;
-  Z_t result = Constants<Z_t>::zero;
-  result.real(cos(k * distance) / (4 * M_PI * distance));
-  result.imag(sin(k * distance) / (4 * M_PI * distance));
+  Z_t result(cos(k * distance) / (4 * M_PI * distance), sin(k * distance) / (4 * M_PI * distance));
   return result;
 }
 template<>
 Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
   double distance = this->distanceTo(i, j) + 1e-10;
-  Z_t result = Constants<Z_t>::zero;
-  result.real(cos(k * distance) / (4 * M_PI * distance));
-  result.imag(sin(k * distance) / (4 * M_PI * distance));
+  Z_t result(cos(k * distance) / (4 * M_PI * distance), sin(k * distance) / (4 * M_PI * distance));
   return result;
 }
 
