@@ -357,7 +357,7 @@ int get_values(struct hmat_get_values_context_t *ctx) {
 template <typename T, template <typename> class E>
 int walk(hmat_matrix_t* holder, hmat_procedure_t* proc) {
     hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *) holder;
-    hmat::TreeProcedure<4> *functor = (hmat::TreeProcedure<4> *) proc;
+    hmat::TreeProcedure *functor = (hmat::TreeProcedure *) proc;
     hmat->walk(functor);
     return 0;
 }

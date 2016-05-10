@@ -110,7 +110,7 @@ DofData::copy() const
 }
 
 ClusterTree::ClusterTree(const DofData* dofData)
-  : Tree<2>(NULL)
+  : Tree(NULL)
   , data(dofData)
   , clusteringAlgoData_(NULL)
   , admissibilityAlgoData_(NULL)
@@ -118,7 +118,7 @@ ClusterTree::ClusterTree(const DofData* dofData)
 }
 
 ClusterTree::ClusterTree(const ClusterTree& other)
-  : Tree<2>(NULL)
+  : Tree(NULL)
   , data(other.data)
   , clusteringAlgoData_(NULL)
   , admissibilityAlgoData_(NULL)
@@ -153,8 +153,8 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
     result = copyFather->slice(data.offset(), data.size());
   }
   if (!isLeaf()) {
-    result->insertChild(0, ((ClusterTree*) getChild(0))->copy(copyFather));
-    result->insertChild(1, ((ClusterTree*) getChild(1))->copy(copyFather));
+    for (int i=0 ; i<nrChild(); i++)
+      result->insertChild(i, ((ClusterTree*) getChild(i))->copy(copyFather));
   }
   return result;
 }
@@ -168,8 +168,8 @@ void ClusterTree::sameDepth(const ClusterTree * other) {
         insertChild(1, slice(data.offset() + data.size(), 0));
     }
 
-    for(int i = 0; i < other->nbChild(); i++) {
-        for(int j = 0; j < nbChild(); j++) {
+    for(int i = 0; i < other->nrChild(); i++) {
+        for(int j = 0; j < nrChild(); j++) {
             getChild(j)->sameDepth(other->getChild(i));
         }
     }

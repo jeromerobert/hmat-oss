@@ -41,7 +41,7 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
         if (me()->isLeaf()) {
             me()->getValues();
         } else {
-            for (int i = 0; i < matrix_->nbChild(); i++) {
+            for (int i = 0; i < matrix_->nrChild(); i++) {
                 I view;
                 view.init(me());
                 view.uncompress(matrix_->getChild(i), *me());

@@ -71,7 +71,7 @@ template <typename T> class UncompressedValues {
         if (rowStart_ == rowEnd_ || colStart_ == colEnd_)
             return;
         if (!matrix_.isLeaf()) {
-            for (int i = 0; i < matrix_.nbChild(); i++) {
+            for (int i = 0; i < matrix_.nrChild(); i++) {
                 UncompressedValues view(*this, *matrix_.getChild(i));
             }
         } else if (matrix_.isNull()) {

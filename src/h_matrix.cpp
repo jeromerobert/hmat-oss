@@ -97,7 +97,7 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree<4>(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(-3),
+  : Tree(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(-3),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
     localSettings(settings)
@@ -112,9 +112,9 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     isLower = (symFlag == kLowerSymmetric ? true : false);
     isTriUpper = false;
     isTriLower = false;
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < nrChildRow(); ++i) {
       ClusterTree* rowChild = static_cast<ClusterTree*>(_rows->getChild(i));
-      for (int j = 0; j < 2; ++j) {
+      for (int j = 0; j < nrChildCol(); ++j) {
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           ClusterTree* colChild = static_cast<ClusterTree*>(_cols->getChild(j));
           this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
@@ -128,7 +128,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
-    Tree<4>(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(-3), isUpper(false),
+    Tree(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(-3), isUpper(false),
     isLower(false), admissible(false), temporary(false), localSettings(settings)
     {}
 
@@ -138,8 +138,8 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     r->cols_ = cols_;
     r->temporary = temporary;
     if(withChildren) {
-        for(int i = 0; i < 2; i++) {
-            for(int j = 0; j < 2; j++) {
+        for(int i = 0; i < nrChildRow(); i++) {
+            for(int j = 0; j < nrChildCol(); j++) {
                 HMatrix<T>* child = new HMatrix<T>(localSettings.global);
                 child->temporary = temporary;
                 assert(rows_->getChild(i) != NULL);
@@ -166,7 +166,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->admissible = admissible;
   h->rank_ = rank_ >= 0 ? 0 : rank_;
   if(!isLeaf()){
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < nrChild(); ++i) {
       if (getChild(i)) {
         const HMatrix<T>* child = static_cast<const HMatrix<T>*>(getChild(i));
         h->insertChild(i, child->copyStructure());
@@ -187,8 +187,8 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->admissible = o->admissible;
   h->rank_ = o->rank_;
   if(!o->isLeaf()){
-    for (int i = 0; i < 2; ++i) {
-      for (int j = 0; j < 2; ++j) {
+    for (int i = 0; i < o->nrChildRow(); ++i) {
+      for (int j = 0; j < o->nrChildCol(); ++j) {
         if (o->get(i, j)) {
           h->insertChild(i, j, HMatrix<T>::Zero(o->get(i, j)));
         }
@@ -214,9 +214,9 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols,
       h->rank_ = -1;
     }
   } else {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < h->nrChildRow(); ++i) {
       const ClusterTree* rowChild = static_cast<const ClusterTree*>(h->rows_->getChild(i));
-      for (int j = 0; j < 2; ++j) {
+      for (int j = 0; j < h->nrChildCol(); ++j) {
         const ClusterTree* colChild = static_cast<const ClusterTree*>(h->cols_->getChild(j));
         h->insertChild(i, j, HMatrix<T>::Zero(rowChild, colChild, settings, admissibilityCondition));
       }
@@ -233,9 +233,9 @@ void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* col
         rk()->rows = &(rows->data);
         rk()->cols = &(cols->data);
     } else if(!isLeaf()) {
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < rows->nrChild(); ++i) {
             const ClusterTree* rowChild = static_cast<const ClusterTree*>(rows->getChild(i));
-            for (int j = 0; j < 2; ++j) {
+            for (int j = 0; j < cols->nrChild(); ++j) {
                 const ClusterTree* colChild = static_cast<const ClusterTree*>(cols->getChild(j));
                 if(get(i, j))
                     get(i, j)->setClusterTrees(rowChild, colChild);
@@ -266,7 +266,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     full_ = NULL;
     rk_ = NULL;
     assembled();
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       HMatrix<T> *child = static_cast<HMatrix*>(getChild(i));
       child->assemble(f, ao);
     }
@@ -276,9 +276,9 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
       // leaves. Note that this operation could be used hierarchically.
 
       bool allRkLeaves = true;
-      const RkMatrix<T>* childrenArray[4];
+      const RkMatrix<T>* childrenArray[nrChild()];
       size_t childrenElements = 0;
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < nrChild(); i++) {
         HMatrix<T> *child = static_cast<HMatrix*>(getChild(i));
         if (!child->isRkMatrix()) {
           allRkLeaves = false;
@@ -291,16 +291,15 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
       }
       if (allRkLeaves) {
         RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-        T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
-        RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
+        std::vector<T> alpha(nrChild(), Constants<T>::pone);
+        RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, nrChild());
         size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
         if (elements < childrenElements) {
           cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < nrChild(); i++) {
             removeChild(i);
           }
-          delete[] children;
-          children = NULL;
+          children.clear();
           rk(candidate);
           assert(isLeaf());
           assert(isRkMatrix());
@@ -349,8 +348,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
   } else {
     assembled();
     if (onlyLower) {
-      for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 2; j++) {
+      for (int i = 0; i < nrChildRow(); i++) {
+        for (int j = 0; j < nrChildCol(); j++) {
           if ((*rows() == *cols()) && (j > i)) {
             continue;
           }
@@ -359,7 +358,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
       }
     } else {
       if (this == upper) {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < nrChildRow(); i++) {
           for (int j = 0; j <= i; j++) {
             HMatrix<T> *child = get(i, j);
             HMatrix<T> *upperChild = get(j, i);
@@ -368,8 +367,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           }
         }
       } else {
-        for (int i = 0; i < 2; i++) {
-          for (int j = 0; j < 2; j++) {
+        for (int i = 0; i < nrChildRow(); i++) {
+          for (int j = 0; j < nrChildCol(); j++) {
             HMatrix<T> *child = get(i, j);
             HMatrix<T> *upperChild = upper->get(j, i);
             child->assembleSymmetric(f, upperChild, false, ao);
@@ -380,9 +379,9 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
             // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
             // This is done if the memory of the resulting leaf is less than the sum of the initial
           bool allRkLeaves = true;
-          const RkMatrix<T>* childrenArray[4];
+          const RkMatrix<T>* childrenArray[nrChild()];
           size_t childrenElements = 0;
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < nrChild(); i++) {
             HMatrix<T> *child = static_cast<HMatrix*>(getChild(i));
             if (!child->isRkMatrix()) {
               allRkLeaves = false;
@@ -394,20 +393,18 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
             }
           }
           if (allRkLeaves) {
-            T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
+            std::vector<T> alpha(nrChild(), Constants<T>::pone);
             RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-            RkMatrix<T>* candidate = dummy.formattedAddParts(alpha, childrenArray, 4);
+            RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, nrChild());
             size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
             if (elements < childrenElements) {
               cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
-              for (int i = 0; i < 4; i++) {
+              for (int i = 0; i < nrChild(); i++) {
                 removeChild(i);
                 upper->removeChild(i);
               }
-              delete[] children;
-              children = NULL;
-              delete[] upper->children;
-              upper->children = NULL;
+              children.clear();
+              upper->children.clear();
               rk(candidate);
               upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
                                         candidate->a->copy(), upper->cols(), candidate->method));
@@ -453,7 +450,7 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
             result.full_size += s;
         }
     } else {
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < nrChild(); i++) {
             HMatrix<T> *child = getChild(i);
             if (child)
                 child->info(result);
@@ -481,7 +478,7 @@ void HMatrix<T>::eval(FullMatrix<T>* result, bool renumber) const {
       delete mat;
     }
   } else {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       if (getChild(i)) {
         static_cast<HMatrix<T>*>(getChild(i))->eval(result, renumber);
       }
@@ -507,7 +504,7 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
       delete mat;
     }
   } else {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       if (getChild(i)) {
         static_cast<HMatrix<T>*>(getChild(i))->evalPart(result, _rows, _cols);
       }
@@ -529,7 +526,7 @@ template<typename T> double HMatrix<T>::normSqr() const {
       result = full()->normSqr();
     }
   } else if(!isLeaf()){
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       if (getChild(i)) {
         result += getChild(i)->normSqr();
       }
@@ -554,7 +551,7 @@ void HMatrix<T>::scale(T alpha) {
       full()->scale(alpha);
     }
   } else {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       if (getChild(i)) {
         HMatrix* child = static_cast<HMatrix<T>*>(getChild(i));
         child->scale(alpha);
@@ -585,24 +582,25 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
   if (!isLeaf()) {
     const ClusterData* myRows = rows();
     const ClusterData* myCols = cols();
-    for (int i = 0; i < 4; i++) {
-      HMatrix<T>* child = static_cast<HMatrix<T>*>(getChild(i));
+    for (int i = 0; i < nrChildRow(); i++)
+      for (int j = 0; j < nrChildCol(); j++) {
+        HMatrix<T>* child = static_cast<HMatrix<T>*>(get(i,j));
       char trans = matTrans;
-      if(!child)
+        if(!child) /* For NULL children, in the symmetric cases, we take the transposed block */
       {
         if (isTriLower || isTriUpper)
           continue;
         else if (isLower)
         {
-          assert(i == 2);
-          child = static_cast<HMatrix<T>*>(get(1, 0));
+            assert(i<j);
+            child = static_cast<HMatrix<T>*>(get(j, i));
           trans = (trans == 'N' ? 'T' : 'N');
         }
         else
         {
           assert(isUpper);
-          assert(i == 1);
-          child = static_cast<HMatrix<T>*>(get(0, 1));
+            assert(i>j);
+            child = static_cast<HMatrix<T>*>(get(j, i));
           trans = (trans == 'N' ? 'T' : 'N');
         }
       }
@@ -649,7 +647,7 @@ template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<
     else if(m->isLeaf())
         return false;
     else {
-        for(int i = 0; i < 4; i++) {
+        for(int i = 0; i < m->nrChild(); i++) {
             if(!listAllRk(m->getChild(i), result))
                 return false;
         }
@@ -702,8 +700,8 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                 }
             }
         } else {
-            for (int i = 0; i < 2; i++) {
-                for (int j = 0; j < 2; j++) {
+            for (int i = 0; i < nrChildRow(); i++) {
+                for (int j = 0; j < nrChildCol(); j++) {
                     HMatrix<T>* child = get(i, j);
                     const HMatrix<T>* bChild = x->isLeaf() ? x : x->get(i, j);
                     child->axpy(alpha, bChild);
@@ -740,7 +738,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   }
 
   if (!isLeaf()) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       if (getChild(i)) {
         static_cast<HMatrix<T>*>(getChild(i))->axpy(alpha, b);
       }
@@ -784,7 +782,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
   // this += alpha * b
   assert(rows->isSuperSet(*this->rows()) && cols->isSuperSet(*this->cols()));
   if (!isLeaf()) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       HMatrix<T>* child = static_cast<HMatrix<T>*>(getChild(i));
       if (!child) {
         continue;
@@ -827,8 +825,8 @@ void HMatrix<T>::addIdentity(T alpha)
       }
     }
   } else {
-    get(0,0)->addIdentity(alpha);
-    get(1,1)->addIdentity(alpha);
+    for (int i = 0; i < nrChildRow(); i++)
+      get(i,i)->addIdentity(alpha);
   }
 }
 
@@ -956,16 +954,16 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
 
     // None of the matrices is a leaf
     if (!isLeaf() && !a->isLeaf() && !b->isLeaf()) {
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < 2; j++) {
+        for (int i = 0; i < nrChildRow(); i++) {
+            for (int j = 0; j < nrChildCol(); j++) {
                 HMatrix<T>* child = get(i, j);
                 if (!child) { // symmetric or triangular case
                     continue;
                 }
                 // Void child
                 if (child->rows()->size() == 0 || child->cols()->size() == 0) continue;
-                for (int k = 0; k < 2; k++) {
                     char tA = transA, tB = transB;
+                for (int k = 0; k < (tA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
                     // childA states :
                     // if A is symmetric and childA_ik is NULL
                     // then childA_ki^T is used and transA is changed accordingly.
@@ -1275,13 +1273,14 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!isLeaf()) {
-    get(0,0)->multiplyWithDiag(d->get(0,0), left, inverse);
-    get(1,1)->multiplyWithDiag(d->get(1,1), left, inverse);
-    if (get(0, 1)) {
-      get(0, 1)->multiplyWithDiag(left ? d->get(0, 0) : d->get(1, 1), left, inverse);
-    }
-    if (get(1, 0)) {
-      get(1, 0)->multiplyWithDiag(left ? d->get(1, 1) : d->get(0, 0), left, inverse);
+    // First the diagonal, then the rest...
+    for (int i=0 ; i<nrChildRow() ; i++)
+      get(i,i)->multiplyWithDiag(d->get(i,i), left, inverse);
+    for (int i=0 ; i<nrChildRow() ; i++)
+      for (int j=0 ; j<nrChildCol() ; j++)
+        if (i!=j && get(i,j)) {
+        int k = left ? i : j;
+        get(i,j)->multiplyWithDiag(d->get(k,k), left, inverse);
     }
   } else if (isRkMatrix() && !isNull()) {
     assert(!rk()->a->isTriUpper() && !rk()->b->isTriUpper());
@@ -1311,7 +1310,9 @@ template<typename T> void HMatrix<T>::transposeNoRecurse() {
         isTriLower = !isTriLower;
         isTriUpper = !isTriUpper;
     }
-    swap(children[1 + 0 * 2], children[0 + 1 * 2]);
+    for (int i=0 ; i<nrChildRow() ; i++)
+      for (int j=0 ; j<i ; j++)
+        swap(children[i + j * nrChildRow()], children[j + i * nrChildRow()]);
     swap(rows_, cols_);
 }
 
@@ -1319,10 +1320,9 @@ template<typename T>
 void HMatrix<T>::transpose() {
   if (!isLeaf()) {
     this->transposeNoRecurse();
-    get(1, 1)->transpose();
-    get(0, 0)->transpose();
-    if (get(1, 0)) get(1, 0)->transpose();
-    if (get(0, 1)) get(0, 1)->transpose();
+    for (int i=0 ; i<nrChild() ; i++)
+      if (getChild(i))
+        getChild(i)->transpose();
   } else {
     swap(rows_, cols_);
     if (isRkMatrix() && rk()) {
@@ -1372,14 +1372,10 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       }
     }
   } else {
-    get(0, 0)->copyAndTranspose(o->get(0, 0));
-    get(1, 1)->copyAndTranspose(o->get(1, 1));
-    if (get(0, 1)) {
-      get(0, 1)->copyAndTranspose(o->get(1, 0));
-    }
-    if (get(1, 0)) {
-      get(1, 0)->copyAndTranspose(o->get(0, 1));
-    }
+    for (int i=0 ; i<nrChildRow() ; i++)
+      for (int j=0 ; j<nrChildCol() ; j++)
+        if (get(i,j))
+          get(i, j)->copyAndTranspose(o->get(j, i));
   }
 }
 
@@ -1478,7 +1474,7 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>&
   if (!isLeaf()) {
     f << prefix << " \"children\": [" << endl;
     string delimiter("");
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       const HMatrix<T>* child = static_cast<const HMatrix<T>*>(getChild(i));
       if (!child) continue;
       f << delimiter;
@@ -1535,8 +1531,8 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
     }
   } else {
     rank_ = o->rank_;
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < o->nrChildRow(); i++) {
+      for (int j = 0; j < o->nrChildCol(); j++) {
         if (o->get(i, j)) {
           assert(get(i, j));
           get(i, j)->copy(o->get(i, j));
@@ -1559,7 +1555,7 @@ void HMatrix<T>::clear() {
       rk()->clear();
     }
   } else {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nrChild(); i++) {
       HMatrix<T>* child = static_cast<HMatrix<T>*>(getChild(i));
       if (child)
         child->clear();
@@ -1585,19 +1581,22 @@ void HMatrix<T>::inverse(HMatrix<T>* tmp, int depth) {
     full()->inverse();
   } else {
     assert(!tmp->isLeaf());
-    HMatrix<T>* m11 = static_cast<HMatrix<T>*>(get(0, 0));
-    HMatrix<T>* m21 = static_cast<HMatrix<T>*>(get(1, 0));
-    HMatrix<T>* m12 = static_cast<HMatrix<T>*>(get(0, 1));
-    HMatrix<T>* m22 = static_cast<HMatrix<T>*>(get(1, 1));
-    HMatrix<T>* x11 = static_cast<HMatrix<T>*>(tmp->get(0, 0));
-    HMatrix<T>* x21 = static_cast<HMatrix<T>*>(tmp->get(1, 0));
-    HMatrix<T>* x12 = static_cast<HMatrix<T>*>(tmp->get(0, 1));
-    HMatrix<T>* x22 = static_cast<HMatrix<T>*>(tmp->get(1, 1));
+    assert(nrChild()<=4);
 
+    HMatrix<T>* m11 = static_cast<HMatrix<T>*>(get(0, 0));
+    HMatrix<T>* x11 = static_cast<HMatrix<T>*>(tmp->get(0, 0));
     // cout << prefix << "X11 <- X11^-1" << endl;
     // Destroy x11
     // X11 <- X11^-1
     m11->inverse(x11, depth + 1);
+
+    if (nrChild()==4) {
+    HMatrix<T>* m21 = static_cast<HMatrix<T>*>(get(1, 0));
+    HMatrix<T>* m12 = static_cast<HMatrix<T>*>(get(0, 1));
+    HMatrix<T>* m22 = static_cast<HMatrix<T>*>(get(1, 1));
+    HMatrix<T>* x21 = static_cast<HMatrix<T>*>(tmp->get(1, 0));
+    HMatrix<T>* x12 = static_cast<HMatrix<T>*>(tmp->get(0, 1));
+    HMatrix<T>* x22 = static_cast<HMatrix<T>*>(tmp->get(1, 1));
 
     // cout << prefix << "X12 <- -M11^-1 M12" << endl;
     // X12 <- - M11^-1 M12
@@ -1628,6 +1627,7 @@ void HMatrix<T>::inverse(HMatrix<T>* tmp, int depth) {
     // M21 <- -S^-1 M21 M11^-1
     m21->gemm('N', 'N', Constants<T>::mone, m22, x21, Constants<T>::zero);
   }
+  }
 
   if (hasToFreeTmp) {
     delete tmp;
@@ -1650,20 +1650,25 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
     //  L21 * X11 + L22 * X21 = b21 (forward substitution of L22*X21=b21-L21*X11)
     //  L21 * X12 + L22 * X22 = b22 (forward substitution of L22*X22=b22-L21*X12)
     //
+    assert(nrChild()<=4);
+
     const HMatrix<T>* l11 = get(0, 0);
+    HMatrix<T>* b11 = b->get(0, 0);
+    l11->solveLowerTriangularLeft(b11, unitriangular);
+
+    if (nrChild()==4) {
     const HMatrix<T>* l21 = get(1, 0);
     const HMatrix<T>* l22 = get(1, 1);
-    HMatrix<T>* b11 = b->get(0, 0);
     HMatrix<T>* b21 = b->get(1, 0);
     HMatrix<T>* b12 = b->get(0, 1);
     HMatrix<T>* b22 = b->get(1, 1);
 
-    l11->solveLowerTriangularLeft(b11, unitriangular);
     l11->solveLowerTriangularLeft(b12, unitriangular);
     b21->gemm('N', 'N', Constants<T>::mone, l21, b11, Constants<T>::pone);
     l22->solveLowerTriangularLeft(b21, unitriangular);
     b22->gemm('N', 'N', Constants<T>::mone, l21, b12, Constants<T>::pone);
     l22->solveLowerTriangularLeft(b22, unitriangular);
+    }
   } else {
     // if B is a leaf, the resolve is done by column
     if (b->isLeaf()) {
@@ -1710,15 +1715,20 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
     // LAPACK resolution
     full()->solveLowerTriangularLeft(b, unitriangular);
   } else {
+    assert(nrChild()<=4);
+
     const HMatrix<T>* l11 = get(0, 0);
+    FullMatrix<T> b1(b->m, l11->cols()->size(), b->cols, b->lda);
+    l11->solveLowerTriangularLeft(&b1, unitriangular);
+
+    if (nrChild()==4) {
     const HMatrix<T>* l21 = get(1, 0);
     const HMatrix<T>* l22 = get(1, 1);
-    FullMatrix<T> b1(b->m, l11->cols()->size(), b->cols, b->lda);
     FullMatrix<T> b2(b->m + l11->cols()->size(), l22->cols()->size(), b->cols, b->lda);
-    l11->solveLowerTriangularLeft(&b1, unitriangular);
     l21->gemv('N', Constants<T>::mone, &b1, Constants<T>::pone, &b2);
     l22->solveLowerTriangularLeft(&b2, unitriangular);
   }
+}
 }
 
 template<typename T>
@@ -1727,15 +1737,19 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // The recursion one (simple case)
   if (!isLeaf() && !b->isLeaf()) {
+    assert(nrChild()<=4);
+
     const HMatrix<T>* u11 = get(0, 0);
+    HMatrix<T>* b11 = b->get(0, 0);
+    u11->solveUpperTriangularRight(b11, unitriangular, lowerStored);
+
+    if (nrChild()==4) {
     const HMatrix<T>* u12 = lowerStored ? get(1, 0) : get(0, 1);
     const HMatrix<T>* u22 = get(1, 1);
-    HMatrix<T>* b11 = b->get(0, 0);
     HMatrix<T>* b21 = b->get(1, 0);
     HMatrix<T>* b12 = b->get(0, 1);
     HMatrix<T>* b22 = b->get(1, 1);
 
-    u11->solveUpperTriangularRight(b11, unitriangular, lowerStored);
     u11->solveUpperTriangularRight(b21, unitriangular, lowerStored);
     // B12 <- -B11*U12 + B12
     b12->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b11, u12, Constants<T>::pone);
@@ -1745,7 +1759,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
     b22->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b21, u12, Constants<T>::pone);
     // B22 <- the solution of X*U22 = B22
     u22->solveUpperTriangularRight(b22, unitriangular, lowerStored);
-
+    }
   } else {
     // if B is a leaf, the resolve is done by row
     if (b->isLeaf()) {
@@ -1815,10 +1829,14 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
     //  U22 * X22 = b22 (by recursive backward substitution)
     //  U11 * X12 + U12 * X22 = b12 (backward substitution of U11*X12=b12-U12*X22)
     //  U11 * X11 + U12 * X21 = b11 (backward substitution of U11*X11=b11-U12*X21)
+    assert(nrChild()<=4);
+
     const HMatrix<T>* u11 = get(0, 0);
+    HMatrix<T>* b11 = b->get(0, 0);
+
+    if (nrChild()==4) {
     const HMatrix<T>* u12 = lowerStored ? get(1, 0) : get(0, 1);
     const HMatrix<T>* u22 = get(1, 1);
-    HMatrix<T>* b11 = b->get(0, 0);
     HMatrix<T>* b21 = b->get(1, 0);
     HMatrix<T>* b12 = b->get(0, 1);
     HMatrix<T>* b22 = b->get(1, 1);
@@ -1828,6 +1846,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
     b12->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u12, b22, Constants<T>::pone);
     u11->solveUpperTriangularLeft(b12, unitriangular, lowerStored);
     b11->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u12, b21, Constants<T>::pone);
+    }
     u11->solveUpperTriangularLeft(b11, unitriangular, lowerStored);
   } else {
     // if B is a leaf, the resolve is done by column
@@ -1871,17 +1890,22 @@ void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular,
     b->copyMatrixAtOffset(bCopy, 0, 0);
     delete bCopy;
   } else {
+    assert(nrChild()<=4);
+
     const HMatrix<T>* u11 = get(0, 0);
+    FullMatrix<T> b1(b->m, u11->rows()->size(), b->cols, b->lda);
+    u11->solveUpperTriangularRight(&b1, unitriangular, lowerStored);
+
+    if (nrChild()==4) {
     const HMatrix<T>* u12 = lowerStored ? get(1, 0) : get(0, 1);
     const HMatrix<T>* u22 = get(1, 1);
 
-    FullMatrix<T> b1(b->m, u11->rows()->size(), b->cols, b->lda);
     FullMatrix<T> b2(b->m + u11->rows()->size(), u22->rows()->size(), b->cols, b->lda);
-    u11->solveUpperTriangularRight(&b1, unitriangular, lowerStored);
     // b2 <- -x1 U12 + b2 = -U12^t x1^t + b2
     u12->gemv(lowerStored ? 'N' : 'T', Constants<T>::mone, &b1, Constants<T>::pone, &b2);
     u22->solveUpperTriangularRight(&b2, unitriangular, lowerStored);
   }
+}
 }
 
 template<typename T>
@@ -1894,16 +1918,20 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, 
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, unitriangular, lowerStored);
   } else {
+    assert(nrChild()<=4);
     const HMatrix<T>* u11 = get(0, 0);
+    FullMatrix<T> b1(b->m, u11->cols()->size(), b->cols, b->lda);
+
+    if (nrChild()==4) {
     const HMatrix<T>* u12 = (lowerStored ? get(1, 0) : get(0, 1));
     const HMatrix<T>* u22 = get(1, 1);
 
-    FullMatrix<T> b1(b->m, u11->cols()->size(), b->cols, b->lda);
     FullMatrix<T> b2(b->m + u11->cols()->size(), u22->cols()->size(), b->cols, b->lda);
 
     u22->solveUpperTriangularLeft(&b2, unitriangular, lowerStored);
     // b1 <- -U12 b2 + b1
     u12->gemv(lowerStored ? 'T' : 'N', Constants<T>::mone, &b2, Constants<T>::pone, &b1);
+    }
     u11->solveUpperTriangularLeft(&b1, unitriangular, lowerStored);
   }
 }
@@ -1927,13 +1955,16 @@ template<typename T> void HMatrix<T>::lltDecomposition() {
     } else {
         HMAT_ASSERT(isLower);
         HMAT_ASSERT(!get(0,1));
+        assert(nrChild()<=4);
         HMatrix<T>* h11 = get(0,0);
+        h11->lltDecomposition();
+        if (nrChild()==4) {
         HMatrix<T>* h21 = get(1,0);
         HMatrix<T>* h22 = get(1,1);
-        h11->lltDecomposition();
         h11->solveUpperTriangularRight(h21, false, true);
         h22->gemm('N', 'T', Constants<T>::mone, h21, h21, Constants<T>::pone);
         h22->lltDecomposition();
+    }
     }
     isTriLower = true;
 }
@@ -1959,13 +1990,16 @@ void HMatrix<T>::luDecomposition() {
     full()->luDecomposition();
     full()->checkNan();
   } else {
+    assert(nrChild()<=4);
     HMatrix<T>* h11 = get(0, 0);
+    // H11 <- L11 * U11
+    h11->luDecomposition();
+
+    if (nrChild()==4) {
     HMatrix<T>* h21 = get(1, 0);
     HMatrix<T>* h12 = get(0, 1);
     HMatrix<T>* h22 = get(1, 1);
 
-    // H11 <- L11 * U11
-    h11->luDecomposition();
     const HMatrix<T>* l11 = h11;
     const HMatrix<T>* u11 = h11;
     // Solve L11 U12 = H12 (get U12)
@@ -1976,6 +2010,7 @@ void HMatrix<T>::luDecomposition() {
     h22->gemm('N', 'N', Constants<T>::mone, h21, h12, Constants<T>::pone);
     h22->luDecomposition();
   }
+}
 }
 
 template<typename T>
@@ -1995,19 +2030,23 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 
   if (m->rows()->size() == 0 || m->cols()->size() == 0) return;
   if(!isLeaf()) {
+    if (!m->isLeaf()) {
+      assert(nrChild()<=4);
+
     HMatrix<T>* h11 = get(0,0);
+      HMatrix<T>* m11 = m->get(0,0);
+      HMatrix<T>* d11 = d->get(0,0);
+      h11->mdmtProduct(m11, d11);
+
+      if (nrChild()==4) {
     HMatrix<T>* h21 = get(1,0);
     HMatrix<T>* h22 = get(1,1);
-    if (!m->isLeaf()) {
-      HMatrix<T>* m11 = m->get(0,0);
       HMatrix<T>* m21 = m->get(1,0);
       HMatrix<T>* m12 = m->get(0,1);
       HMatrix<T>* m22 = m->get(1,1);
 
-      HMatrix<T>* d11 = d->get(0,0);
       HMatrix<T>* d22 = d->get(1,1);
 
-      h11->mdmtProduct(m11, d11);
       h11->mdmtProduct(m12, d22);
 
       HMatrix<T>* x = Zero(m21);
@@ -2025,6 +2064,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
 
       h22->mdmtProduct(m21, d11);
       h22->mdmtProduct(m22, d22);
+      }
     } else if (m->isRkMatrix() && !m->isNull()) {
       HMatrix<T>* m_copy = Zero(m);
       m_copy->copy(m);
@@ -2104,8 +2144,8 @@ template<typename T> void assertLdlt(const HMatrix<T> * me) {
         assert(me->isFullMatrix());
         assert(me->full()->diagonal);
     } else {
-        assertLdlt(me->get(0,0));
-        assertLdlt(me->get(1,1));
+      for (int i=0 ; i<me->nrChildRow() ; i++)
+        assertLdlt(me->get(i,i));
     }
 #else
     ignore_unused_arg(me);
@@ -2118,9 +2158,13 @@ template<typename T> void assertLower(const HMatrix<T> * me) {
         return;
     } else {
         assert(me->isLower);
-        assert(!me->get(0,1));
-        assertLower(me->get(0,0));
-        assertLower(me->get(1,1));
+        for (int i=0 ; i<me->nrChildRow() ; i++)
+          for (int j=0 ; j<me->nrChildCol() ; j++) {
+            if (i<j) /* NULL above diag */
+              assert(!me->get(i,j));
+            if (i==j) /* Lower on diag */
+              assertLower(me->get(i,i));
+          }
     }
 #else
     ignore_unused_arg(me);
@@ -2133,9 +2177,13 @@ template<typename T> void assertUpper(const HMatrix<T> * me) {
         return;
     } else {
         assert(me->isUpper);
-        assert(!me->get(1,0));
-        assertUpper(me->get(0,0));
-        assertUpper(me->get(1,1));
+        for (int i=0 ; i<me->nrChildRow() ; i++)
+          for (int j=0 ; j<me->nrChildCol() ; j++) {
+            if (i>j) /* NULL below diag */
+              assert(!me->get(i,j));
+            if (i==j) /* Upper on diag */
+              assertUpper(me->get(i,i));
+          }
     }
 #else
     ignore_unused_arg(me);
@@ -2156,13 +2204,16 @@ void HMatrix<T>::ldltDecomposition() {
     full()->ldltDecomposition();
     assert(full()->diagonal);
   } else {
-    HMatrix<T>* h11 = get(0,0);
-    HMatrix<T>* h21 = get(1,0);
-    HMatrix<T>* h22 = get(1,1);
+    assert(nrChild()<=4);
 
+    HMatrix<T>* h11 = get(0,0);
     // H11 <- L11 and D11 is stored additionally to each diagonal leaf
     h11->ldltDecomposition();
     assertLdlt(h11);
+
+    if (nrChild()==4) {
+      HMatrix<T>* h21 = get(1,0);
+      HMatrix<T>* h22 = get(1,1);
 
     HMatrix<T>* y = Zero(h11); // H11 is lower triangular, therefore either upper or lower part is NULL
     y->copy(h11); // X <- copy(L11)
@@ -2188,6 +2239,7 @@ void HMatrix<T>::ldltDecomposition() {
     h22->mdmtProduct(h21, h11);
     assertLower(h22);
     h22->ldltDecomposition();
+  }
   }
   isTriLower = true;
 }
@@ -2217,8 +2269,10 @@ void HMatrix<T>::extractDiagonal(T* diag) const {
         diag[i] = full()->m[i*full()->rows + i];
     }
   } else {
-    get(0,0)->extractDiagonal(diag);
-    get(1,1)->extractDiagonal(diag + get(0,0)->rows()->size());
+    for (int i=0 ; i<nrChildRow() ; i++) {
+      get(i,i)->extractDiagonal(diag);
+      diag += get(i,i)->rows()->size();
+    }
   }
 }
 
@@ -2307,8 +2361,8 @@ void HMatrix<T>::checkNan() const {
       rk()->checkNan();
     }
   } else {
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for (int j = 0; j < nrChildCol(); j++) {
         if (get(i, j)) {
           get(i, j)->checkNan();
         }
@@ -2322,8 +2376,8 @@ template<typename T> void HMatrix<T>::setTriLower(bool value)
     isTriLower = value;
     if(!isLeaf())
     {
-        get(0, 0)->setTriLower(value);
-        get(1, 1)->setTriLower(value);
+      for (int i = 0; i < nrChildRow(); i++)
+        get(i, i)->setTriLower(value);
     }
 }
 
@@ -2348,7 +2402,7 @@ template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMat
 }
 
 template<typename T> std::string HMatrix<T>::toString() const {
-    std::vector<Tree<4>*> leaves;
+    std::vector<Tree*> leaves;
     listAllLeaves(leaves);
     int nbAssembled = 0;
     int nbNullFull = 0;
@@ -2389,7 +2443,7 @@ void visitDispatch(HMatrix<T>* node, Visit order, double epsilon) {
   node->rk(rk);
 }
 
-void EpsilonTruncate::visit(Tree<4>* node, Visit order) const {
+void EpsilonTruncate::visit(Tree* node, Visit order) const {
   switch (type_) {
   case HMAT_SIMPLE_PRECISION: visitDispatch<S_t>(static_cast<HMatrix<S_t>*>(node), order, epsilon_); break;
   case HMAT_DOUBLE_PRECISION: visitDispatch<D_t>(static_cast<HMatrix<D_t>*>(node), order, epsilon_); break;

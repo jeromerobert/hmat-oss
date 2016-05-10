@@ -112,7 +112,7 @@ static double writeHeader(ofstream & file, int maxDim)
 namespace hmat {
 
 template<typename T>
-void PostscriptDumper<T>::write(const Tree<4> * tree, const std::string& filename) const {
+void PostscriptDumper<T>::write(const Tree * tree, const std::string& filename) const {
     ofstream file;
     file.open(filename.c_str());
     const HMatrix<T> * m = cast(tree);
@@ -122,10 +122,10 @@ void PostscriptDumper<T>::write(const Tree<4> * tree, const std::string& filenam
 }
 
 template<typename T>
-void PostscriptDumper<T>::recursiveDrawing(const Tree<4> * tree, ofstream& f, int depth, double scale) const {
+void PostscriptDumper<T>::recursiveDrawing(const Tree * tree, ofstream& f, int depth, double scale) const {
     if (!tree->isLeaf()) {
-        for (int i = 0; i < 4; i++) {
-            const Tree<4>* child = tree->getChild(i);
+        for (int i = 0; i < tree->nrChild(); i++) {
+            const Tree* child = tree->getChild(i);
             if (child) {
                 recursiveDrawing(child, f, depth + 1, scale);
             }
@@ -150,12 +150,12 @@ void PostscriptDumper<T>::recursiveDrawing(const Tree<4> * tree, ofstream& f, in
 }
 
 template<typename T>
-const HMatrix<T> * PostscriptDumper<T>::cast(const Tree<4> * tree) const {
+const HMatrix<T> * PostscriptDumper<T>::cast(const Tree * tree) const {
     return static_cast<const HMatrix<T> *>(tree);
 }
 
 template<typename T>
-void PostscriptDumper<T>::drawMatrix(const Tree<4> *, const HMatrix<T> * m,
+void PostscriptDumper<T>::drawMatrix(const Tree *, const HMatrix<T> * m,
     ofstream& f, int depth, double, bool cross) const {
     int n = m->rows()->coordinates()->size();
     int startX = m->cols()->offset();
@@ -187,19 +187,41 @@ void PostscriptDumper<T>::drawMatrix(const Tree<4> *, const HMatrix<T> * m,
               << startX << " " << startY;
             f << " redrectangle" << endl;
         }
-    } else if(cross){
+    } else if(cross){ /* true pour une hmat, !(handle->position == kAboveL0) pour une HMatrixHandle */
         int n = m->rows()->coordinates()->size();
         int startX = m->cols()->offset();
         int startY = m->rows()->offset();
-        int colOffset = m->get(1, 1)->cols()->offset();
         int rowsCount = m->rows()->size();
-        int rowOffset = m->get(1, 1)->rows()->offset();
         int colsCount = m->cols()->size();
+        /* On dessine la croix qui separe les sous-blocs dans la h-matrice.
+           Dans le cas 2x2, on fait 1 croix. 1x1, 0 croix. 3x3, 2 croix.
+           Dans les cas non carre, 2x3, on fait 2 croix, meme si un trait sera en double. */
+        for (int k=1 ; k < std::max(m->nrChildRow(), m->nrChildCol()) ; k++) {
+          int i = k>=m->nrChildRow() ? m->nrChildRow()-1 : k ;
+          int j = k>=m->nrChildCol() ? m->nrChildCol()-1 : k ;
+          int colOffset = m->get(i, j)->cols()->offset();
+          int rowOffset = m->get(i, j)->rows()->offset();
         f << 0 << " " << -rowsCount << " "
           << colOffset << " " << n - startY << " "
           << colsCount << " " << 0 << " "
           << startX << " " << n - rowOffset << " "
           << 30 - depth << " cross" << endl;
+    }
+        /* La macro 'cross' est definie dans writeHeader() ci-dessus.
+           Elle contient une serie de commande postscript (moveto, rlineto, etc.) qui vont depiler
+           les valeurs ecrites ci-dessus. Les coordonnees Y sont toujours renversees ('n-..') pour avoir
+           un postcript a l'endroit.
+       /cross {
+         newpath
+         setlinewidth             (30-depth) trait plus epais en haut de l'arbre
+         0 0 0 setrgbcolor        (noir)
+         moveto                   (startX, n-rowoffset)
+         rlineto                  (colsCount,0) trait horizontal
+         moveto                   (colOffset, n-startY)
+         rlineto                  (0, -rowsCount) trait vertical
+         stroke
+        } def
+        */
     }
 }
 

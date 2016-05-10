@@ -654,6 +654,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
 
   // This is ugly!  When ha node is void, we replace ha by its non-void child
   // so that further computations are similar to the non-void case.
+  // Indeed, this is ugly...
   while (!ha->isLeaf())
   {
     if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
@@ -661,7 +662,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       ha = ha->get(1, 1);
       continue;
     }
-    if (ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
+    if (ha->get(1, 1) && ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
     {
       ha = ha->get(0, 0);
       continue;
@@ -675,7 +676,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       hb = hb->get(1, 1);
       continue;
     }
-    if (hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
+    if (hb->get(1, 1) && hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
     {
       hb = hb->get(0, 0);
       continue;
@@ -686,25 +687,28 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   if (ha->rows()->size() == 0 || ha->cols()->size() == 0 || hb->rows()->size() == 0 || hb->cols()->size() == 0) return;
 
   if (!(ha->isLeaf() || hb->isLeaf())) {
-    RkMatrix<T>* subRks[2 * 2];
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
+    int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
+    int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
+    int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
+    RkMatrix<T>* subRks[nbRows * nbCols];
+    for (int i = 0; i < nbRows; i++) {
+      for (int j = 0; j < nbCols; j++) {
         const IndexSet* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
         const IndexSet* subCols = (transHB == 'N' ? hb->get(i, j)->cols() : hb->get(j, i)->rows());
-        subRks[i + j * 2] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
-        for (int k = 0; k < 2; k++) {
+        subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
+        for (int k = 0; k < nbCom; k++) {
           // C_ij = A_ik * B_kj
           const HMatrix<T>* a_ik = (transHA == 'N' ? ha->get(i, k) : ha->get(k, i));
           const HMatrix<T>* b_kj = (transHB == 'N' ? hb->get(k, j) : hb->get(j, k));
-          subRks[i + j * 2]->gemmRk(transHA, transHB, alpha, a_ik, b_kj, beta);
+          subRks[i + j * nbRows]->gemmRk(transHA, transHB, alpha, a_ik, b_kj, beta);
         }
       }
     }
     // Reconstruction of C by adding the parts
-    T alpha[4] = {Constants<T>::pone, Constants<T>::pone, Constants<T>::pone, Constants<T>::pone};
-    RkMatrix<T>* rk = formattedAddParts(alpha, (const RkMatrix<T>**) subRks, 2 * 2);
+    std::vector<T> alpha(nbRows * nbCols, Constants<T>::pone);
+    RkMatrix<T>* rk = formattedAddParts(&alpha[0], (const RkMatrix<T>**) subRks, nbRows * nbCols);
     swap(*rk);
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < nbRows * nbCols; i++) {
       delete subRks[i];
     }
     delete rk;

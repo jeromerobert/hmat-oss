@@ -40,13 +40,13 @@ template<typename T> class HMatrix;
 template<typename T> class PostscriptDumper
 {
 public:
-    void write(const Tree<4> * tree, const std::string& filename) const;
+    void write(const Tree * tree, const std::string& filename) const;
 protected:
-    virtual const HMatrix<T> * cast(const Tree<4> * tree) const;
-    virtual void drawMatrix(const Tree<4> * tree, const HMatrix<T> *,
+    virtual const HMatrix<T> * cast(const Tree * tree) const;
+    virtual void drawMatrix(const Tree * tree, const HMatrix<T> *,
         std::ofstream& f, int depth, double scale, bool cross=true) const;
 private:
-    void recursiveDrawing(const Tree<4> * tree, std::ofstream& f, int depth, double scale) const;
+    void recursiveDrawing(const Tree * tree, std::ofstream& f, int depth, double scale) const;
 };
 
 }  // end namespace hmat

@@ -319,7 +319,7 @@ public:
   int nodesCount() const;
   /** Recursively apply a procedure to all nodes of an HMatrix.
    */
-  void walk(TreeProcedure<4> *proc);
+  void walk(TreeProcedure *proc);
 
   typename E<T>::Settings & engineSettings() { return engine_.settings; }
 
