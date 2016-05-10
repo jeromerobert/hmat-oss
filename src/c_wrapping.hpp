@@ -166,6 +166,12 @@ int destroy(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
+int inverse(hmat_matrix_t* holder) {
+  ((hmat::HMatInterface<T, E>*) holder)->inverse();
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 void factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx) {
     DECLARE_CONTEXT;
     hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
@@ -378,6 +384,7 @@ static void createCInterface(hmat_interface_t * i)
     i->create_empty_hmatrix_admissibility = create_empty_hmatrix_admissibility<T, E>;
     i->destroy = destroy<T, E>;
     i->factorize = factor<T, E>;
+    i->inverse = inverse<T, E>;
     i->finalize = finalize<T, E>;
     i->full_gemm = full_gemm<T, E>;
     i->gemm = gemm<T, E>;

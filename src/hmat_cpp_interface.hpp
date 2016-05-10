@@ -206,6 +206,10 @@ public:
    */
   void factorize(hmat_factorization_t, hmat_progress_t * progress = DefaultProgress::getInstance());
 
+  /** Compute the inverse of the HMatrix, in place.
+   */
+  void inverse(hmat_progress_t * progress = DefaultProgress::getInstance());
+
   /** Matrix-Vector product.
 
       This computes \f$ y \gets \alpha . op(A) x + \beta y\f$, with A = this, x

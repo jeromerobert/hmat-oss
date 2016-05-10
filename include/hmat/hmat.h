@@ -472,6 +472,12 @@ typedef struct
       \return the norm
     */
     double (*norm)(hmat_matrix_t* hmatrix);
+    /*! \brief Inverse a HMatrix in place.
+
+      \param hmatrix the matrix to inverse
+      \return 0
+    */
+    int (*inverse)(hmat_matrix_t* hmatrix);
     /*! \brief Factor a HMatrix in place.
 
       \param hmatrix the matrix to factor
