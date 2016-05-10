@@ -47,6 +47,10 @@ template<typename T> class RkMatrix;
  */
 enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 
+/** Default rank value for blocks that dont have an actual computed rank
+   */
+enum DefaultRank {UNINITIALIZED_BLOCK = -3, NONLEAF_BLOCK = -2, FULL_BLOCK = -1};
+
 /** Settings global to a whole matrix */
 struct MatrixSettings {
 };
@@ -132,7 +136,7 @@ template<typename T> class HMatrix : public Tree {
    /// Full block, or NULL if the block is not a leaf or is compressed.
    FullMatrix<T> * full_;
   };
-  /// -3 for an unitialized matrix, -2 for non leaf, -1 for full a matrix
+  /// rank_ of the block for Rk matrices, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix, NONLEAF_BLOCK=-2 for non leaf, FULL_BLOCK=-1 for full a matrix
   int rank_;
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
@@ -356,7 +360,7 @@ public:
   /*! Return true if this is a full block.
    */
   inline bool isFullMatrix() const {
-    return rank_ == -1 && full_ != NULL;
+    return rank_ == FULL_BLOCK && full_ != NULL;
   }
   /* Return the full matrix corresponding to the current leaf
    */
@@ -574,22 +578,22 @@ public:
   }
 
   FullMatrix<T> * full() const {
-      assert(rank_ == -1);
+      assert(rank_ == FULL_BLOCK);
       return full_;
   }
 
   void full(FullMatrix<T> * m) {
       full_ = m;
-      rank_ = -1;
+      rank_ = FULL_BLOCK;
   }
 
   bool isNull() const {
-      assert(rank_ >= -1);
-      return rank_ == 0 || (rank_ == -1 && full_ == NULL);
+      assert(rank_ >= FULL_BLOCK);
+      return rank_ == 0 || (rank_ == FULL_BLOCK && full_ == NULL);
   }
 
   bool isAssembled() const {
-      return rank_ > -3;
+      return rank_ > UNINITIALIZED_BLOCK;
   }
 
   /**
@@ -599,7 +603,7 @@ public:
    */
   void assembled() {
       assert(!isLeaf());
-      rank_ = -2;
+      rank_ = NONLEAF_BLOCK;
   }
 
   const ClusterTree * rowsTree() const {

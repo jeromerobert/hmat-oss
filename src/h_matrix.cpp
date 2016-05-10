@@ -97,7 +97,7 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(-3),
+  : Tree(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
     localSettings(settings)
@@ -128,7 +128,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
-    Tree(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(-3), isUpper(false),
+    Tree(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false),
     isLower(false), admissible(false), temporary(false), localSettings(settings)
     {}
 
@@ -211,7 +211,7 @@ HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols,
     if (h->admissible) {
       h->rank_ = 0;
     } else {
-      h->rank_ = -1;
+      h->rank_ = FULL_BLOCK;
     }
   } else {
     for (int i = 0; i < h->nrChildRow(); ++i) {
@@ -1032,7 +1032,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 
     // This matrix is not yet initialized but we know it will be a RkMatrix if
     // a or b is a RkMatrix
-    if((rank_ == -3 && (a->isRkMatrix() || b->isRkMatrix() ||
+    if((rank_ == UNINITIALIZED_BLOCK && (a->isRkMatrix() || b->isRkMatrix() ||
         // this choice might be bad if a or b contains lot's of full matrices
         // but this case should almost never happen
         (!a->isLeaf() && !b->isLeaf())))
