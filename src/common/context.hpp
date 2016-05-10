@@ -32,7 +32,7 @@
 #include <vector>
 #include <fstream>
 
-#if (__cplusplus > 199711L) || defined(HAVE_CPP11) || defined(_MSC_VER)
+#if (__cplusplus >= 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__) || defined(HAVE_CPP11) || defined(_MSC_VER)
   #include <unordered_map>
   #define UM_NS std
 #else
