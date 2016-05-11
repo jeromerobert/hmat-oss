@@ -274,9 +274,25 @@ void hmat_factorization_context_init(hmat_factorization_context_t *context) {
 }
 
 void hmat_delete_procedure(hmat_procedure_t* proc) {
-    delete (hmat::TreeProcedure*) proc;
+    switch (proc->value_type) {
+    case HMAT_SIMPLE_PRECISION: delete static_cast<hmat::TreeProcedure<HMatrix<S_t> >*>(proc->internal); break;
+    case HMAT_DOUBLE_PRECISION: delete static_cast<hmat::TreeProcedure<HMatrix<D_t> >*>(proc->internal); break;
+    case HMAT_SIMPLE_COMPLEX:   delete static_cast<hmat::TreeProcedure<HMatrix<C_t> >*>(proc->internal); break;
+    case HMAT_DOUBLE_COMPLEX:   delete static_cast<hmat::TreeProcedure<HMatrix<Z_t> >*>(proc->internal); break;
+    default: HMAT_ASSERT(false);
+    }
+    delete proc;
 }
 
 hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, double epsilon) {
-    return (hmat_procedure_t*) new hmat::EpsilonTruncate(type, epsilon);
+    hmat_procedure_t * result = new hmat_procedure_t();
+    result->value_type = type;
+    switch (type) {
+    case HMAT_SIMPLE_PRECISION: result->internal = new hmat::EpsilonTruncate<S_t>(epsilon); break;
+    case HMAT_DOUBLE_PRECISION: result->internal = new hmat::EpsilonTruncate<D_t>(epsilon); break;
+    case HMAT_SIMPLE_COMPLEX:   result->internal = new hmat::EpsilonTruncate<C_t>(epsilon); break;
+    case HMAT_DOUBLE_COMPLEX:   result->internal = new hmat::EpsilonTruncate<Z_t>(epsilon); break;
+    default: HMAT_ASSERT(false);
+    }
+    return result;
 }

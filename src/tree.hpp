@@ -34,7 +34,7 @@
 namespace hmat {
 
 // Forward declaration
-class Tree;
+template <typename TreeNode> class Tree;
 
 /* Visitor pattern
  */
@@ -42,11 +42,12 @@ enum Visit { tree_preorder, tree_postorder, tree_inorder, tree_leaf };
 
 /** Class to recursively apply a given function to all nodes of a tree
  */
+template <typename TreeNode>
 class TreeProcedure {
 
 public:
   TreeProcedure() {}
-  virtual void visit(Tree* node, const Visit order) const = 0;
+  virtual void visit(TreeNode* node, const Visit order) const = 0;
   virtual ~TreeProcedure() {}
 };
 
@@ -55,6 +56,7 @@ public:
   This class represents a tree of arity N, holding an instance of NodeData in
   its nodes.
  */
+template <typename TreeNode>
 class Tree {
 public:
   /// depth of the current node in the tree
@@ -62,19 +64,27 @@ public:
 
 protected:
   /// empty for a leaf, pointeur on a vector of sons otherwise.
-  std::vector<Tree*> children;
+  std::vector<TreeNode*> children;
 public:
   /// Pointer to the father, NULL if this node is the root
-  Tree* father;
+  TreeNode* father;
 
 public:
-  Tree(Tree* _father, int _depth = 0)
+  Tree(TreeNode* _father, int _depth = 0)
     : depth(_depth), children(), father(_father) {}
   virtual ~Tree() {
     for (int i=0 ; i<nrChild() ; i++)
       if (children[i])
         delete children[i];
     children.clear();
+  }
+
+  // https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
+  TreeNode* me() {
+      return static_cast<TreeNode*>(this);
+  }
+  const TreeNode* me() const {
+      return static_cast<const TreeNode*>(this);
   }
 
   /*! \brief Insert a child in the children vector.
@@ -84,10 +94,10 @@ public:
     \param index index in the children vector
     \param child pointeur to the child
    */
-  void insertChild(int index, Tree *child) {
+  void insertChild(int index, TreeNode *child) {
     if (nrChild()<=index)
-      children.resize(index+1, (Tree*)NULL);
-    child->father = this;
+      children.resize(index+1, (TreeNode*)NULL);
+    child->father = me();
     children[index] = child;
     child->depth = depth + 1;
   }
@@ -98,7 +108,7 @@ public:
     assert(index>=0 && index<nrChild());
     if (children[index])
     delete children[index];
-    children[index] = (Tree*)NULL;
+    children[index] = (TreeNode*)NULL;
   }
 
   /*! \brief Return the number of nodes in the tree.
@@ -113,13 +123,17 @@ public:
 
   /*! \brief Return the child of index, or NULL.
    */
-  inline Tree *getChild(int index) const {
+  inline TreeNode *getChild(int index) const {
     assert(index>=0 && index<nrChild());
     return children[index];
   }
-  inline Tree *&getChild(int index)  {
+  inline TreeNode *&getChild(int index)  {
     assert(index>=0 && index<nrChild());
     return children[index];
+  }
+
+  inline TreeNode *getFather() const {
+    return father;
   }
 
   inline int nrChild() const {
@@ -136,12 +150,12 @@ public:
 
     Not used anywhere.
    */
-  virtual std::list<const Tree*> listNodes() const {
-    std::list<const Tree*> result;
-    result.push_back(this);
+  virtual std::list<const TreeNode*> listNodes() const {
+    std::list<const TreeNode*> result;
+    result.push_back(me());
     for (int i=0 ; i<nrChild() ; i++)
       if (children[i]) {
-        std::list<const Tree*> childNodes = children[i]->listNodes();
+        std::list<const TreeNode*> childNodes = children[i]->listNodes();
         result.splice(result.end(), childNodes, childNodes.begin(), childNodes.end());
       }
     return result;
@@ -149,30 +163,30 @@ public:
 
  /*! \brief Return a list of leaves.
    */
-  void listAllLeaves(std::vector<Tree*>& leaves) const {
+  void listAllLeaves(std::vector<const TreeNode*>& leaves) const {
     if (!isLeaf()) {
       for (int i=0 ; i<nrChild() ; i++)
         if (children[i])
           children[i]->listAllLeaves(leaves);
     } else {
-      leaves.push_back(const_cast<Tree*>(this));
+      leaves.push_back(me());
     }
   }
 
-  void walk(const TreeProcedure *proc) {
+  void walk(const TreeProcedure<TreeNode> *proc) {
     if (isLeaf()) {
-      proc->visit(this, tree_leaf);
+      proc->visit(me(), tree_leaf);
     } else {
-      proc->visit(this, tree_preorder);
+      proc->visit(me(), tree_preorder);
       bool first = true;
       for (int i=0 ; i<nrChild() ; i++)
         if (children[i]) {
           if (!first)
-            proc->visit(this, tree_inorder);
+            proc->visit(me(), tree_inorder);
           first = false;
           children[i]->walk(proc);
         }
-      proc->visit(this, tree_postorder);
+      proc->visit(me(), tree_postorder);
     }
   }
 

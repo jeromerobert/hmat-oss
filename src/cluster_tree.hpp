@@ -133,7 +133,7 @@ private:
   ClusterTree::divide() on the newly created tree, to really create the tree
   structure.
  */
-class ClusterTree : public Tree {
+class ClusterTree : public Tree<ClusterTree> {
 public:
   /*! Data */
   ClusterData data;
@@ -176,14 +176,6 @@ public:
   /*! \brief Return a copy to this.
    */
   ClusterTree* copy(const ClusterTree* copyFather=NULL) const;
-
-  ClusterTree *getChild(int index) const {
-    return static_cast<ClusterTree*>(Tree::getChild(index));
-  }
-
-  ClusterTree *getChild(int index) {
-    return static_cast<ClusterTree*>(Tree::getChild(index));
-  }
 
   /**
    * Transform this cluster tree so it has the same or greater depth

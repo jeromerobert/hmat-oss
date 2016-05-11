@@ -378,7 +378,12 @@ struct hmat_get_values_context_t {
 };
 
 /* Opaque pointer */
-typedef struct hmat_procedure hmat_procedure_t;
+typedef struct
+{
+    hmat_value_t value_type;
+    /** For internal use only */
+    void * internal;
+} hmat_procedure_t;
 
 /* Delete a procedure */
 void hmat_delete_procedure(hmat_procedure_t* proc);

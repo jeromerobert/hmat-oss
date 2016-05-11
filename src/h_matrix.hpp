@@ -105,13 +105,13 @@ public:
 
 /** Class to truncate Rk matrices.
  */
-class EpsilonTruncate : public TreeProcedure {
+template<typename T>
+class EpsilonTruncate : public TreeProcedure<HMatrix<T> > {
 private:
-  hmat_value_t type_;
   double epsilon_;
 public:
-  EpsilonTruncate(hmat_value_t type, double epsilon) : type_(type), epsilon_(epsilon) {}
-  void visit(Tree* node, Visit order) const;
+  EpsilonTruncate(double epsilon) : epsilon_(epsilon) {}
+  void visit(HMatrix<T> * node, const Visit order) const;
 };
 
 /*! \brief The HMatrix class, representing a HMatrix.
@@ -123,7 +123,7 @@ public:
     - an internal node : in this case, it has 4 children that form a partition
       of the HMatrix Dofs, and the node doesn't carry data itself.
  */
-template<typename T> class HMatrix : public Tree {
+template<typename T> class HMatrix : public Tree<HMatrix<T> > {
   friend class RkMatrix<T>;
 
   /// Rows of this HMatrix block
@@ -476,17 +476,6 @@ public:
   const ClusterData* rows() const;
   const ClusterData* cols() const;
 
-  /*! Return the i-th child of this.
-
-    \warning do not use on a leaf !
-
-    \param i index
-    \return the i-th child of this.
-   */
-  HMatrix<T>* getChild(int i) const {
-    return static_cast<HMatrix<T>*>(Tree::getChild(i));
-  }
-
   /*! \brief Return the number of children in the row dimension.
     */
   inline int nrChildRow() const {
@@ -510,18 +499,7 @@ public:
   HMatrix<T>* get(int i, int j) const {
     assert(i>=0 && i<nrChildRow());
     assert(j>=0 && j<nrChildCol());
-    return static_cast<HMatrix<T>*>(Tree::getChild(i + j * nrChildRow()));
-  }
-
-  /*! Set the i-th child of this.
-
-    \warning do not use on a leaf !
-
-    \param i index
-    \param child the i-th child of this.
-   */
-  void insertChild(int i, HMatrix<T>* child) {
-    Tree::insertChild(i, child) ;
+    return this->getChild(i + j * nrChildRow());
   }
 
   /*! Set the child (i, j) of this.
@@ -532,8 +510,9 @@ public:
     \param j column index
     \param child the child (i, j) of this.
    */
+  using Tree<HMatrix<T> >::insertChild;
   void insertChild(int i, int j, HMatrix<T>* child) {
-    Tree::insertChild(i+j*nrChildRow(), static_cast<Tree*>(child)) ;
+    insertChild(i+j*nrChildRow(), child) ;
   }
 
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
@@ -602,7 +581,7 @@ public:
    * assembled (no coherency check).
    */
   void assembled() {
-      assert(!isLeaf());
+      assert(!this->isLeaf());
       rank_ = NONLEAF_BLOCK;
   }
 
