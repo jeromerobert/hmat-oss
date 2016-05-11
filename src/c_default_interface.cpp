@@ -51,6 +51,11 @@ void hmat_delete_clustering(hmat_clustering_algorithm_t* algo)
     delete (ClusteringAlgorithm*) algo;
 }
 
+void hmat_set_clustering_divider(hmat_clustering_algorithm_t* algo, int divider)
+{
+    ((ClusteringAlgorithm*) algo)->setDivider(divider);
+}
+
 hmat_clustering_algorithm_t*
 hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof)
 {

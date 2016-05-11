@@ -88,6 +88,9 @@ public:
   int getMaxLeafSize() const;
   void setMaxLeafSize(int maxLeafSize);
 
+  int getDivider() const;
+  void setDivider(int divider);
+
 private:
   int maxLeafSize_;
 protected:

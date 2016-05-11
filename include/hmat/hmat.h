@@ -165,6 +165,8 @@ hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clusterin
 hmat_clustering_algorithm_t* hmat_create_void_clustering(const hmat_clustering_algorithm_t* algo);
 /* Delete clustering algorithm */
 void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
+/* Set the clustering divider parameter */
+void hmat_set_clustering_divider(hmat_clustering_algorithm_t* algo, int divider);
 
 /*! \brief Create a ClusterTree from the DoFs coordinates.
 

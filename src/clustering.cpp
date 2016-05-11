@@ -121,6 +121,18 @@ ClusteringAlgorithm::getMaxLeafSize() const
   return settings.maxLeafSize;
 }
 
+int
+ClusteringAlgorithm::getDivider() const
+{
+  return divider_;
+}
+
+void
+ClusteringAlgorithm::setDivider(int divider)
+{
+  divider_ = divider;
+}
+
 void
 GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
 {
