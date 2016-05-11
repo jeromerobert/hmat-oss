@@ -347,10 +347,11 @@ int get_block(struct hmat_get_values_context_t *ctx) {
 template <typename T, template <typename> class E>
 int get_values(struct hmat_get_values_context_t *ctx) {
     hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *)ctx->matrix;
-    hmat::UncompressedValues<T> view(*hmat->engine().hmat,
-                                     ctx->row_indices, ctx->row_size,
-                                     ctx->col_indices, ctx->col_size,
-                                     (T*)ctx->values);
+    typename E<T>::UncompressedValues view;
+    view.uncompress(hmat->engine().data(),
+                    ctx->row_indices, ctx->row_size,
+                    ctx->col_indices, ctx->col_size,
+                    (T*)ctx->values);
     return 0;
 }
 

@@ -22,17 +22,19 @@
 
 #include "uncompressed_values.hpp"
 #include "blas_overloads.hpp"
+#include "rk_matrix.hpp"
 
 namespace hmat {
 
 template <typename T> void UncompressedValues<T>::getRkValues() {
-    int rank = matrix_.rank();
-    T * a = matrix_.rk()->a->m - matrix_.rows()->offset();
-    int lda = matrix_.rk()->a->lda;
-    T * b = matrix_.rk()->b->m - matrix_.cols()->offset();
-    int ldb = matrix_.rk()->b->lda;
-    for(IndiceIt r = rowStart_; r != rowEnd_; ++r) {
-        for(IndiceIt c = colStart_; c != colEnd_; ++c) {
+    const HMatrix<T> & m = *this->matrix_;
+    int rank = m.rank();
+    T * a = m.rk()->a->m - m.rows()->offset();
+    int lda = m.rk()->a->lda;
+    T * b = m.rk()->b->m - m.cols()->offset();
+    int ldb = m.rk()->b->lda;
+    for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
+        for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
             getValue(r, c, proxy_cblas::dot(rank, a + r->first, lda,
                                             b + c->first, ldb));
         }

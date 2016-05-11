@@ -24,6 +24,7 @@
 #define _DEFAULT_ENGINE_HPP
 #include "h_matrix.hpp"
 #include "uncompressed_block.hpp"
+#include "uncompressed_values.hpp"
 
 namespace hmat {
 
@@ -32,6 +33,7 @@ template<typename T> class DefaultEngine
 {
 public:
   typedef hmat::UncompressedBlock<T> UncompressedBlock;
+  typedef hmat::UncompressedValues<T> UncompressedValues;
   typedef NullSettings Settings;
   Settings settings;
   explicit DefaultEngine(HMatrix<T>* m = NULL): hmat(m){}
