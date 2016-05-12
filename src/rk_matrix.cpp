@@ -77,14 +77,7 @@ template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _r
 }
 
 template<typename T> RkMatrix<T>::~RkMatrix() {
-  if (a) {
-    delete a;
-    a = NULL;
-  }
-  if (b) {
-    delete b;
-    b = NULL;
-  }
+  clear();
 }
 
 template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {

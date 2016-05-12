@@ -185,7 +185,9 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->isTriUpper = o->isTriUpper;
   h->isTriLower = o->isTriLower;
   h->admissible = o->admissible;
-  h->rank_ = o->rank_;
+  h->rank_ = o->rank_ >= 0 ? 0 : o->rank_;
+  if (h->rank_==0)
+    h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
   if(!o->isLeaf()){
     for (int i = 0; i < o->nrChildRow(); ++i) {
       for (int j = 0; j < o->nrChildCol(); ++j) {
