@@ -1566,7 +1566,7 @@ void HMatrix<T>::clear() {
 }
 
 template<typename T>
-void HMatrix<T>::inverse(HMatrix<T>* tmp, int depth) {
+void HMatrix<T>::inverse() {
   DECLARE_CONTEXT;
 
   if (this->isLeaf()) {
