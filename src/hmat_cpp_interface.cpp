@@ -86,6 +86,13 @@ void HMatInterface<T, E>::factorize(hmat_factorization_t t, hmat_progress_t * pr
 }
 
 template<typename T, template <typename> class E>
+void HMatInterface<T, E>::inverse(hmat_progress_t * progress) {
+  DISABLE_THREADING_IN_BLOCK;
+  engine_.progress(progress);
+  engine_.inverse();
+}
+
+template<typename T, template <typename> class E>
 void HMatInterface<T, E>::gemv(char trans, T alpha, FullMatrix<T>& x, T beta,
                             FullMatrix<T>& y) const {
   DISABLE_THREADING_IN_BLOCK;

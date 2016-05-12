@@ -304,7 +304,7 @@ public:
       computation (and will be freed at the end).
       \param depth The depth, used for pretty printing purposes
    */
-  void inverse(HMatrix<T>* tmp=NULL, int depth=0);
+  void inverse();
   /*! \brief Transpose the H-matrix in place
    */
   void transpose();

@@ -140,6 +140,11 @@ void DefaultEngine<T>::factorization(hmat_factorization_t t) {
 }
 
 template<typename T>
+void DefaultEngine<T>::inverse() {
+  hmat->inverse();
+}
+
+template<typename T>
 void DefaultEngine<T>::gemv(char trans, T alpha, FullMatrix<T>& x,
                                       T beta, FullMatrix<T>& y) const {
   hmat->gemv(trans, alpha, &x, beta, &y);

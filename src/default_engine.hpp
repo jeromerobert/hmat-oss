@@ -44,6 +44,7 @@ public:
   static void finalize(){}
   void assembly(Assembly<T>& f, SymmetryFlag sym, bool synchronize);
   void factorization(hmat_factorization_t);
+  void inverse();
   void gemv(char trans, T alpha, FullMatrix<T>& x, T beta, FullMatrix<T>& y) const;
   void gemm(char transA, char transB, T alpha, const DefaultEngine<T> & a, const DefaultEngine<T>& b, T beta);
   void addIdentity(T alpha);
