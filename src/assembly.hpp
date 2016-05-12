@@ -30,7 +30,7 @@ namespace hmat {
 
 class ClusterData;
 class ClusterTree;
-class LocalSettings;
+struct LocalSettings;
 template<typename T> class FullMatrix;
 template<typename T> class Vector;
 template<typename T> class RkMatrix;

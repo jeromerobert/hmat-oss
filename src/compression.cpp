@@ -100,7 +100,10 @@ private:
   ClusterAssemblyFunction(ClusterAssemblyFunction&o) {}; // No copy
 };
 
-template<typename T> static double squaredNorm(const T x);
+template<typename T> double squaredNorm(const T x) {
+  return x * x;
+}
+// Specializations for complex values
 template<> double squaredNorm(const C_t x) {
 // std::norm seems deadfully slow on Intel 15
 #ifdef __INTEL_COMPILER
@@ -119,9 +122,6 @@ template<> double squaredNorm(const Z_t x) {
 #else
   return std::norm(x);
 #endif
-}
-template<typename T> double squaredNorm(const T x) {
-  return x * x;
 }
 
 template<typename T> static bool isZero(const Vector<T>& v) {

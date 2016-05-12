@@ -41,7 +41,11 @@ int  goto_get_num_procs(void);
 
 namespace hmat {
 
-DisableThreadingInBlock::DisableThreadingInBlock() {
+DisableThreadingInBlock::DisableThreadingInBlock()
+  : mklNumThreads(1)
+  , ompNumThreads(1)
+  , openblasNumThreads(1)
+{
 #if defined(HAVE_MKL_H)
     mklNumThreads = mkl_get_max_threads();
     mkl_set_num_threads(1);
@@ -54,6 +58,10 @@ DisableThreadingInBlock::DisableThreadingInBlock() {
     openblasNumThreads = goto_get_num_procs();
     openblas_set_num_threads(1);
 #endif
+    // Silence compiler warnings about unused private members
+    (void) mklNumThreads;
+    (void) ompNumThreads;
+    (void) openblasNumThreads;
 }
 
 DisableThreadingInBlock::~DisableThreadingInBlock() {
