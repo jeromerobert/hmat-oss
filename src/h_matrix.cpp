@@ -1560,6 +1560,8 @@ template<typename T>
 void HMatrix<T>::inverse() {
   DECLARE_CONTEXT;
 
+  HMAT_ASSERT_MSG(!isLower, "HMatrix::inverse not available for symmetric matrices");
+
   if (this->isLeaf()) {
     assert(isFullMatrix());
     full()->inverse();
@@ -1587,7 +1589,7 @@ void HMatrix<T>::inverse() {
       // Update line 'k' = left-multiplied by M_kk-1
       for (int j=0 ; j<nrChildCol() ; j++)
         if (j!=k) {
-          // Mkj <- Mkk^-1 Mkj we use a temp matrix X because thie type of product is not allowed with gemm (beta=0 erases Mkj before using it !)
+            // Mkj <- Mkk^-1 Mkj we use a temp matrix X because this type of product is not allowed with gemm (beta=0 erases Mkj before using it !)
           HMatrix<T>* x = Zero(get(k,j));
           x->copy(get(k,j));
           get(k,j)->gemm('N', 'N', Constants<T>::pone, get(k,k), x, Constants<T>::zero);
@@ -1595,7 +1597,7 @@ void HMatrix<T>::inverse() {
         }
       // Update the rest of matrix M
       for (int i=0 ; i<nrChildRow() ; i++)
-        // line 'i' -= Mik x line 'k'
+          // line 'i' -= Mik x line 'k' (which has just been multiplied by Mkk-1)
         for (int j=0 ; j<nrChildCol() ; j++)
           if (i!=k && j!=k)
             // Mij <- Mij - Mik Mkk^-1 Mkj (with Mkk-1.Mkj allready stored in Mkj)
