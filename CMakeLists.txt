@@ -217,7 +217,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Sources
 file(GLOB_RECURSE HMAT_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} src/*.[ch]pp include/*.h)
-list(REMOVE_ITEM HMAT_SOURCES src/hmat_cpp_interface.cpp) # because it is included in default_engine.cpp
+list(REMOVE_ITEM HMAT_SOURCES src/hmat_cpp_interface.cpp src/recursion.cpp) # because it is included in default_engine.cpp
 
 link_directories(${PROJECT_BINARY_DIR} ${BLAS_LIBRARY_DIRS})
 

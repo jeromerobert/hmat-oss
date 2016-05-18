@@ -37,6 +37,7 @@
 #include "data_types.hpp"
 #include "compression.hpp"
 #include "postscript.hpp"
+#include "recursion.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
 
@@ -97,7 +98,7 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree<HMatrix<T> >(NULL), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
+  : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
     localSettings(settings)
@@ -126,7 +127,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
-    Tree<HMatrix<T> >(NULL), rows_(NULL), cols_(NULL), rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false),
+    Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL), rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false),
     isLower(false), admissible(false), temporary(false), localSettings(settings)
     {}
 
@@ -1587,34 +1588,54 @@ void HMatrix<T>::inverse() {
     // The matrix 'this' stores the first 'k' block of the identity part of the extended matrix, and the last n-k blocks of the M part
     // At the end, 'this' contains M-1
 
+    if (isLower) {
+
+      vector<HMatrix<T>*> TM(nrChildCol(), NULL);
     for (int k=0 ; k<nrChildRow() ; k++){
       // Inverse M_kk
       get(k,k)->inverse();
       // Update line 'k' = left-multiplied by M_kk-1
-      for (int j=0 ; j<nrChildCol() ; j++)
-        if (j!=k) {
+        for (int j=0 ; j<nrChildCol() ; j++) {
+
             // Mkj <- Mkk^-1 Mkj we use a temp matrix X because this type of product is not allowed with gemm (beta=0 erases Mkj before using it !)
-            HMatrix<T>* x = get(k,j)->copy();
-          get(k,j)->gemm('N', 'N', Constants<T>::pone, get(k,k), x, Constants<T>::zero);
-          delete x;
+          if (j<k) { // under the diag we store TMj=Mkj
+            TM[j] = get(k,j)->copy();
+            get(k,j)->gemm('N', 'N', Constants<T>::pone, get(k,k), TM[j], Constants<T>::zero);
+          } else if (j>k) { // above the diag : Mkj = t Mjk, we store TMj=-Mjk.tMkk-1 = -Mjk.Mkk-1 (Mkk est sym)
+            TM[j] = Zero(get(j,k));
+            TM[j]->gemm('N', 'T', Constants<T>::mone, get(j,k), get(k,k), Constants<T>::zero);
+          }
         }
       // Update the rest of matrix M
       for (int i=0 ; i<nrChildRow() ; i++)
           // line 'i' -= Mik x line 'k' (which has just been multiplied by Mkk-1)
         for (int j=0 ; j<nrChildCol() ; j++)
-          if (i!=k && j!=k)
-            // Mij <- Mij - Mik Mkk^-1 Mkj (with Mkk-1.Mkj allready stored in Mkj)
+            if (i!=k && j!=k && j<=i) {
+              // Mij <- Mij - Mik (Mkk^-1 Mkj) (with Mkk-1.Mkj allready stored in Mkj and TMj=Mjk.tMkk-1)
+              // cas k < j <     i        Mkj n'existe pas, on prend t{TMj} = -Mkk-1Mkj
+              if (k<j)
+                get(i,j)->gemm('N', 'T', Constants<T>::pone, get(i,k), TM[j], Constants<T>::pone);
+              // cas     j < k < i        Toutes les matrices existent sous la diag
+              else if (k<i)
             get(i,j)->gemm('N', 'N', Constants<T>::mone, get(i,k), get(k,j), Constants<T>::pone);
+              // cas     j <     i < k    Mik n'existe pas, on prend TM[i] = Mki
+              else
+                get(i,j)->gemm('T', 'N', Constants<T>::mone, TM[i], get(k,j), Constants<T>::pone);
+            }
       // Update column 'k' = right-multiplied by -M_kk-1
       for (int i=0 ; i<nrChildRow() ; i++)
-        if (i!=k) {
+          if (i>k) {
           // Mik <- - Mik Mkk^-1
-            HMatrix<T>* x = get(i,k)->copy();
-          get(i,k)->gemm('N', 'N', Constants<T>::mone, x, get(k,k), Constants<T>::zero);
-          delete x;
+            get(i,k)->copy(TM[i]);
   }
+        for (int j=0 ; j<nrChildCol() ; j++) {
+          delete TM[j];
+          TM[j]=NULL;
+        }
+      }
+    } else {
+      this->recursiveInverseNosym();
   }
-
   }
 }
 
@@ -1624,26 +1645,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
-    //  Forward substitution:
-    //  [ L11 |  0  ]    [ X11 | X12 ]   [ b11 | b12 ]
-    //  [ ----+---- ] *  [-----+-----] = [ ----+---- ]
-    //  [ L21 | L22 ]    [ X21 | X22 ]   [ b21 | b22 ]
-    //
-    //  L11 * X11 = b11 (by recursive forward substitution)
-    //  L11 * X12 = b12 (by recursive forward substitution)
-    //  L21 * X11 + L22 * X21 = b21 (forward substitution of L22*X21=b21-L21*X11)
-    //  L21 * X12 + L22 * X22 = b22 (forward substitution of L22*X22=b22-L21*X12)
-    //
-
-    for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
-      for (int i=0 ; i<nrChildRow() ; i++) {
-        // Update b[i,k] with the contribution of the solutions already computed b[j,k] j<i
-        for (int j=0 ; j<i ; j++)
-          b->get(i, k)->gemm('N', 'N', Constants<T>::mone, get(i, j), b->get(j,k), Constants<T>::pone);
-        // Solve the i-th diagonal system
-        get(i, i)->solveLowerTriangularLeft(b->get(i,k), unitriangular);
-    }
-
+    this->recursiveSolveLowerTriangularLeft(b, unitriangular);
   } else {
     // if B is a leaf, the resolve is done by column
     if (b->isLeaf()) {
@@ -1690,6 +1692,14 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
     // LAPACK resolution
     full()->solveLowerTriangularLeft(b, unitriangular);
   } else {
+    //  Forward substitution:
+    //  [ L11 |  0  ]    [ X1 ]   [ b1 ]
+    //  [ ----+---- ] *  [----] = [ -- ]
+    //  [ L21 | L22 ]    [ X2 ]   [ b2 ]
+    //
+    //  L11 * X1 = b1 (by recursive forward substitution)
+    //  L21 * X1 + L22 * X2 = b2 (forward substitution of L22*X21=b21-L21*X11)
+    //
 
     int offset(0);
     FullMatrix<T> *sub[nrChildRow()];
@@ -1714,16 +1724,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // The recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
-
-    for (int k=0 ; k<b->nrChildRow() ; k++) // loop on the lines of b
-      for (int i=0 ; i<this->nrChildRow() ; i++) {
-        // Update b[k,i] with the contribution of the solutions already computed b[k,j] j<i
-        for (int j=0 ; j<i ; j++)
-          b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), lowerStored ? get(i,j) : get(j,i), Constants<T>::pone);
-        // Solve the i-th diagonal system
-        get(i, i)->solveUpperTriangularRight(b->get(k,i), unitriangular, lowerStored);
-    }
-
+    this->recursiveSolveUpperTriangularRight(b, unitriangular, lowerStored);
   } else {
     // if B is a leaf, the resolve is done by row
     if (b->isLeaf()) {
@@ -1784,28 +1785,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
-    //  Backward substitution:
-    //  [ U11 | U12 ]    [ X11 | X12 ]   [ b11 | b12 ]
-    //  [ ----+---- ] *  [-----+-----] = [ ----+---- ]
-    //  [  0  | U22 ]    [ X21 | X22 ]   [ b21 | b22 ]
-    //
-    //  U22 * X21 = b21 (by recursive backward substitution)
-    //  U22 * X22 = b22 (by recursive backward substitution)
-    //  U11 * X12 + U12 * X22 = b12 (backward substitution of U11*X12=b12-U12*X22)
-    //  U11 * X11 + U12 * X21 = b11 (backward substitution of U11*X11=b11-U12*X21)
-
-    for (int k=0 ; k<b->nrChildCol() ; k++) { // Loop on the column of the RHS
-      for (int i=nrChildRow()-1 ; i>=0 ; i--) {
-        // Solve the i-th diagonal system
-        get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored);
-        // Update b[j,k] j<i with the contribution of the solutions just computed b[i,k]
-        for (int j=0 ; j<i ; j++) {
-          const HMatrix<T>* u_ji = (lowerStored ? get(i, j) : get(j, i));
-          b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji, b->get(i,k), Constants<T>::pone);
-        }
-    }
-    }
-
+    this->recursiveSolveUpperTriangularLeft(b, unitriangular, lowerStored);
   } else {
     // if B is a leaf, the resolve is done by column
     if (b->isLeaf()) {
@@ -1905,66 +1885,19 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, 
 }
 template<typename T> void HMatrix<T>::lltDecomposition() {
 
-// |     |     |    |     |     |   |     |     |
-// | h11 | h21 |    | L1  |     |   | L1t | Lt  |
-// |-----|-----| =  |-----|-----| * |-----|-----|
-// | h21 | h22 |    | L   | L2  |   |     | L2t |
-// |     |     |    |     |     |   |     |     |
-//
-// h11 = L1 * L1t => L1 = h11.lltDecomposition
-// h21 = L*L1t => L = L1t.solve(h21) => trsm R with L1 lower stored
-// h22 = L*Lt + L2 * L2t => L2 = (h22 - L*Lt).lltDecomposition()
-//
-//
     assertLower(this);
     if (rows()->size() == 0 || cols()->size() == 0) return;
     if(this->isLeaf()) {
         full()->lltDecomposition();
     } else {
         HMAT_ASSERT(isLower);
-
-        // for all i, j<=i : hij = sum_k Lik t{Ljk} k<=i,j
-        // The algorithm loops over 3 steps: for all k=1, 2, ..., n
-        //   - We factorize the element (k,k)
-        //   - We use "solve" to compute the rest of the column 'k'
-        //   - We update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
-
-        for (int k=0 ; k<nrChildRow() ; k++) {
-          // Hkk <- Lkk * tLkk
-          get(k,k)->lltDecomposition();
-          // Solve the rest of column k: solve Lik tLkk = Hik and get Lik
-          for (int i=k+1 ; i<nrChildRow() ; i++)
-            get(k,k)->solveUpperTriangularRight(get(i,k), false, true);
-          // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
-          for (int i=k+1 ; i<nrChildRow() ; i++)
-            for (int j=k+1 ; j<=i ; j++)
-              // Hij <- Hij - Lik tLjk
-              get(i,j)->gemm('N', 'T', Constants<T>::mone, get(i,k), get(j,k), Constants<T>::pone);
-    }
-
+      this->recursiveLltDecomposition();
     }
     isTriLower = true;
 }
 
 template<typename T>
 void HMatrix<T>::luDecomposition() {
-  // |     |     |    |     |     |   |     |     |
-  // | h11 | h12 |    | L11 |     |   | U11 | U12 |
-  // |-----|-----| =  |-----|-----| * |-----|-----|
-  // | h21 | h22 |    | L21 | L22 |   |     | U22 |
-  // |     |     |    |     |     |   |     |     |
-  //
-  // h11 = L11 * U11 => (L11,U11) = h11.luDecomposition
-  // h12 = L11 * U12 => trsm L
-  // h21 = L21 * U11 => trsm R
-  // h22 = L21 * U12 + L22 * U22 => (L22,U22) = (h22 - L21*U12).lltDecomposition()
-  //
-  // hij = sum_k Lik Ukj k<=i,j
-  // The algorithm loops over 3 steps: for all k=1, 2, ..., n
-  //   - We factorize the element (k,k)
-  //   - We use "solve" to compute the rest of the columns and rows 'k'
-  //   - We update the rest of the matrix [k+1, .., n]x[k+1, .., n]
-
   DECLARE_CONTEXT;
 
   if (rows()->size() == 0 || cols()->size() == 0) return;
@@ -1973,23 +1906,7 @@ void HMatrix<T>::luDecomposition() {
     full()->luDecomposition();
     full()->checkNan();
   } else {
-
-    for (int k=0 ; k<nrChildRow() ; k++) {
-      // Hkk <- Lkk * Ukk
-      get(k,k)->luDecomposition();
-      // Solve the rest of line k: solve Lkk Uki = Hki and get Uki
-      for (int i=k+1 ; i<nrChildRow() ; i++)
-        get(k,k)->solveLowerTriangularLeft(get(k,i), true);
-      // Solve the rest of column k: solve Lik Ukk = Hik and get Lik
-      for (int i=k+1 ; i<nrChildRow() ; i++)
-        get(k,k)->solveUpperTriangularRight(get(i,k), false, false);
-      // update the rest of the matrix starting at (k+1, k+1)
-      for (int i=k+1 ; i<nrChildRow() ; i++)
-        for (int j=k+1 ; j<nrChildRow() ; j++)
-          // Hij <- Hij - Lik Ukj
-          get(i,j)->gemm('N', 'N', Constants<T>::mone, get(i,k), get(k,j), Constants<T>::pone);
-    }
-
+    this->recursiveLuDecomposition();
   }
 }
 
@@ -2021,29 +1938,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   if (m->rows()->size() == 0 || m->cols()->size() == 0) return;
   if(!this->isLeaf()) {
     if (!m->isLeaf()) {
-
-      //
-      //  [ h11 |th21 ]    [ M11 | M12 ]   [ D1 | 0  ]   [ tM11 | tM21 ]
-      //  [ ----+---- ] -= [ ----+---- ] * [----+----] * [------+------]
-      //  [ h21 | h22 ]    [ M21 | M22 ]   [ 0  | D2 ]   [ tM12 | tM22 ]
-      //
-      //  h11 -= M11.D1.tM11 + M12.D2.tM12
-      //  h21 -= M21.D1.tM11 + M22.D2.tM12
-      //  h22 -= M21.D1.tM21 + M22.D2.tM22
-      //
-      //  hij -= sum_k Mik.Dk.tMjk
-
-      for(int i=0 ; i<nrChildRow() ; i++)
-        for (int j=0 ; j<=i ; j++)
-          for(int k=0 ; k<nrChildRow() ; k++) {
-            //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
-            if (i==j)
-              get(i,i)->mdmtProduct(m->get(i,k), d->get(k,k)); //  hii -= Mik.Dk.tMik
-            else {
-              get(i,j)->mdntProduct(m->get(i,k), d->get(k,k), m->get(j,k)); // hij -= Mik.Dk.tMjk
-      }
-          }
-
+      this->recursiveMdmtProduct(m, d);
     } else if (m->isRkMatrix() && !m->isNull()) {
       HMatrix<T>* m_copy = m->copy();
 
@@ -2180,42 +2075,7 @@ void HMatrix<T>::ldltDecomposition() {
     full()->ldltDecomposition();
     assert(full()->diagonal);
   } else {
-    //  Recursive LDLT factorization:
-    //
-    //  [ h11 |th21 ]    [ L11 |  0  ]   [ D1 | 0  ]   [ tL11 | tL21 ]
-    //  [ ----+---- ]  = [ ----+---- ] * [----+----] * [------+------]
-    //  [ h21 | h22 ]    [ L21 | L22 ]   [ 0  | D2 ]   [   0  | tL22 ]
-    //
-    //  h11 = L11 * D1 * tL11 (gives L11 and D1 by LDLT decomposition)
-    //  h21 = L21 * D1 * tL11 (gives L21 when L11 and D1 are known)
-    //  h22 = L21 * D1 * tL21 + L22 * D2 * tL22 (gives L22 and D2 by LDLT decomposition of h22-L21*D1*tL21)
-
-    // for all i, j<=i : hij = sum_k Lik Dk t{Ljk} k<=i,j
-    // The algorithm loops over 3 steps: for all k=1, 2, ..., n
-    //   - We factorize the element (k,k)
-    //   - We use "solve" to compute the rest of the column 'k'
-    //   - We update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
-
-    for (int k=0 ; k<nrChildRow() ; k++) {
-      // Hkk <- Lkk * Dk * tLkk
-      get(k,k)->ldltDecomposition();
-      // Solve the rest of column k: solve Lik Dk tLkk = Hik and get Lik
-      for (int i=k+1 ; i<nrChildRow() ; i++) {
-        get(k,k)->solveUpperTriangularRight(get(i,k), false, true);
-        get(i,k)->multiplyWithDiag(get(k,k), false, true);
-      }
-      // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
-      for (int i=k+1 ; i<nrChildRow() ; i++)
-        for (int j=k+1 ; j<=i ; j++)
-          // Hij <- Hij - Lik Dk tLjk
-          // if i=j, we can use mdmtProduct, otherwise we use mdntProduct
-          if (i==j)
-            get(i,i)->mdmtProduct(get(i,k), get(k,k)); //  hii -= Lik.Dk.tLik
-          else {
-            get(i,j)->mdntProduct(get(i,k), get(k,k), get(j,k)); // hij -= Lik.Dk.tLjk
-          }
-  }
-
+    this->recursiveLdltDecomposition();
   }
   isTriLower = true;
 }
@@ -2446,3 +2306,16 @@ template class EpsilonTruncate<C_t>;
 template class EpsilonTruncate<Z_t>;
 
 }  // end namespace hmat
+
+#include "recursion.cpp"
+
+namespace hmat {
+
+  // Explicit template instantiation
+  template class RecursionMatrix<S_t, HMatrix<S_t> >;
+  template class RecursionMatrix<C_t, HMatrix<C_t> >;
+  template class RecursionMatrix<D_t, HMatrix<D_t> >;
+  template class RecursionMatrix<Z_t, HMatrix<Z_t> >;
+
+}  // end namespace hmat
+

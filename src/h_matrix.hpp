@@ -33,6 +33,7 @@
 #include "full_matrix.hpp"
 #include "cluster_tree.hpp"
 #include "admissibility.hpp"
+#include "recursion.hpp"
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -123,7 +124,7 @@ public:
     - an internal node : in this case, it has 4 children that form a partition
       of the HMatrix Dofs, and the node doesn't carry data itself.
  */
-template<typename T> class HMatrix : public Tree<HMatrix<T> > {
+template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionMatrix<T, HMatrix<T> > {
   friend class RkMatrix<T>;
 
   /// Rows of this HMatrix block
@@ -500,6 +501,11 @@ public:
     */
   inline int nrChildCol() const {
     return cols_->nrChild();
+  }
+  /*! \brief Destroy the HMatrix.
+    */
+  void destroy() {
+    delete this;
   }
 
   /*! Return the child (i, j) of this.
