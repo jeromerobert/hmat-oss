@@ -291,9 +291,12 @@ public:
     \param filename path to the output file.
    */
   void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& nodeDumper) const;
+  /** Returns a copy of this (with all the structure and data)
+       */
+  HMatrix<T>* copy() const ;
   /** this <- o (copy)
 
-      \param o The HMatrix t copy
+      \param o The HMatrix to copy. 'this' must be allready created and have the right structure.
    */
   void copy(const HMatrix<T>* o);
   /** Copy the structure of an HMatrix without copying its content.

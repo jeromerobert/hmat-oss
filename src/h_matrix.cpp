@@ -1491,6 +1491,12 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>&
   f << "}";
 }
 
+template<typename T> HMatrix<T>* HMatrix<T>::copy() const {
+  HMatrix<T>* M=Zero(this);
+  M->copy(this);
+  return M;
+}
+
 template<typename T>
 void HMatrix<T>::copy(const HMatrix<T>* o) {
   DECLARE_CONTEXT;
@@ -1590,8 +1596,7 @@ void HMatrix<T>::inverse() {
       for (int j=0 ; j<nrChildCol() ; j++)
         if (j!=k) {
             // Mkj <- Mkk^-1 Mkj we use a temp matrix X because this type of product is not allowed with gemm (beta=0 erases Mkj before using it !)
-          HMatrix<T>* x = Zero(get(k,j));
-          x->copy(get(k,j));
+            HMatrix<T>* x = get(k,j)->copy();
           get(k,j)->gemm('N', 'N', Constants<T>::pone, get(k,k), x, Constants<T>::zero);
           delete x;
         }
@@ -1606,8 +1611,7 @@ void HMatrix<T>::inverse() {
       for (int i=0 ; i<nrChildRow() ; i++)
         if (i!=k) {
           // Mik <- - Mik Mkk^-1
-          HMatrix<T>* x = Zero(get(i,k));
-          x->copy(get(i,k));
+            HMatrix<T>* x = get(i,k)->copy();
           get(i,k)->gemm('N', 'N', Constants<T>::mone, x, get(k,k), Constants<T>::zero);
           delete x;
   }
@@ -1995,8 +1999,7 @@ template<typename T>
 void HMatrix<T>::mdntProduct(const HMatrix<T>* m, const HMatrix<T>* d, const HMatrix<T>* n) {
   DECLARE_CONTEXT;
 
-  HMatrix<T>* x = Zero(m);
-  x->copy(m);
+  HMatrix<T>* x = m->copy();
   x->multiplyWithDiag(d); // x=M.D
   this->gemm('N', 'T', Constants<T>::mone, x, n, Constants<T>::pone); // this -= M.D.tN
   delete x;
@@ -2044,8 +2047,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
           }
 
     } else if (m->isRkMatrix() && !m->isNull()) {
-      HMatrix<T>* m_copy = Zero(m);
-      m_copy->copy(m);
+      HMatrix<T>* m_copy = m->copy();
 
       assert(*m->cols() == *d->rows());
       assert(*m_copy->rk()->cols == *d->rows());
@@ -2056,9 +2058,8 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       this->axpy(Constants<T>::mone, rkMat);
       delete rkMat;
     } else if(m->isFullMatrix()){
-      HMatrix<T>* copy_m = Zero(m);
+      HMatrix<T>* copy_m = m->copy();
       HMAT_ASSERT(copy_m);
-      copy_m->copy(m);
       copy_m->multiplyWithDiag(d); // right multiplication by D
 
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix('N', 'T', copy_m, m);
@@ -2083,8 +2084,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       // 3) rkMat <- multiplyRkRk ( m_copy , m^T)
       // 4) fullMat <- evaluation as a FullMatrix of the product rkMat = (A*(D*B)^T) * (A*B^T)^T
       // 5) this <- this - fullMat
-      HMatrix<T>* m_copy = Zero(m);
-      m_copy->copy(m);
+      HMatrix<T>* m_copy = m->copy();
       m_copy->multiplyWithDiag(d);
 
       RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
