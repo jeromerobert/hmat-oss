@@ -1992,6 +1992,17 @@ void HMatrix<T>::luDecomposition() {
 }
 
 template<typename T>
+void HMatrix<T>::mdntProduct(const HMatrix<T>* m, const HMatrix<T>* d, const HMatrix<T>* n) {
+  DECLARE_CONTEXT;
+
+  HMatrix<T>* x = Zero(m);
+  x->copy(m);
+  x->multiplyWithDiag(d); // x=M.D
+  this->gemm('N', 'T', Constants<T>::mone, x, n, Constants<T>::pone); // this -= M.D.tN
+  delete x;
+}
+
+template<typename T>
 void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
@@ -2024,15 +2035,11 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       for(int i=0 ; i<nrChildRow() ; i++)
         for (int j=0 ; j<=i ; j++)
           for(int k=0 ; k<nrChildRow() ; k++) {
-            //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, we write it manually
+            //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
             if (i==j)
               get(i,i)->mdmtProduct(m->get(i,k), d->get(k,k)); //  hii -= Mik.Dk.tMik
             else {
-              HMatrix<T>* x = Zero(m->get(i,k));
-              x->copy(m->get(i,k));
-              x->multiplyWithDiag(d->get(k,k)); // x=mik.dk
-              get(i,j)->gemm('N', 'T', Constants<T>::mone, x, m->get(j,k), Constants<T>::pone); // hij -= Mik.Dk.tMjk
-      delete x;
+              get(i,j)->mdntProduct(m->get(i,k), d->get(k,k), m->get(j,k)); // hij -= Mik.Dk.tMjk
       }
           }
 
@@ -2203,15 +2210,11 @@ void HMatrix<T>::ldltDecomposition() {
       for (int i=k+1 ; i<nrChildRow() ; i++)
         for (int j=k+1 ; j<=i ; j++)
           // Hij <- Hij - Lik Dk tLjk
-          // if i=j, we can use mdmtProduct, otherwise we must write it explicitly
+          // if i=j, we can use mdmtProduct, otherwise we use mdntProduct
           if (i==j)
             get(i,i)->mdmtProduct(get(i,k), get(k,k)); //  hii -= Lik.Dk.tLik
           else {
-            HMatrix<T>* x = Zero(get(i,k));
-            x->copy(get(i,k));
-            x->multiplyWithDiag(get(k,k)); // x=Lik.Dk
-            get(i,j)->gemm('N', 'T', Constants<T>::mone, x, get(j,k), Constants<T>::pone); // hij -= Lik.Dk.tLjk
-            delete x;
+            get(i,j)->mdntProduct(get(i,k), get(k,k), get(j,k)); // hij -= Lik.Dk.tLjk
           }
   }
 

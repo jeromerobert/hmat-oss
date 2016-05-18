@@ -235,6 +235,17 @@ public:
       \param d D : only the diagonal of this matrix is considered
    */
   void mdmtProduct(const HMatrix<T> * m, const HMatrix<T> * d);
+
+  /*! \brief this <- this - M * D * N^T with D diagonal
+
+      \warning D has to be reduced in ldlt form with d->ldltDecomposition() before
+
+      \param m M
+      \param d D : only the diagonal of this matrix is considered
+      \param n N
+   */
+  void mdntProduct(const HMatrix<T>* m, const HMatrix<T>* d, const HMatrix<T>* n);
+
   /** Create a matrix filled with 0s, with the same structure as H.
 
       \param h the model matrix,
