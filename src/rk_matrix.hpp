@@ -141,6 +141,11 @@ public:
       @warning The previous rk->a and rk->b are no longer valid after this function.
    */
   void truncate(double epsilon);
+  /*! \brief Return square of the Frobenius norm of the matrix.
+
+    \return the matrix norm.
+   */
+  double normSqr() const;
   /** this <- this + alpha * mat
 
       \param alpha

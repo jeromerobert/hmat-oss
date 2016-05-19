@@ -27,6 +27,8 @@
 #include <cfloat> // DBL_MAX
 #include "data_types.hpp"
 #include "lapack_operations.hpp"
+#include "blas_overloads.hpp"
+#include "lapack_overloads.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
 
@@ -87,6 +89,24 @@ template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {
   }
   FullMatrix<T>* result = new FullMatrix<T>(a->rows, b->rows);
   result->gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+  return result;
+}
+
+// Compute squared Frobenius norm
+template<typename T> double RkMatrix<T>::normSqr() const {
+  double result = 0;
+  const int k = rank();
+  for (int i = 1; i < k; ++i) {
+    for (int j = 0; j < i; ++j) {
+      result += hmat::real(proxy_cblas_convenience::dot_c(a->rows, a->m + i*a->lda, 1, a->m + j*a->lda, 1) *
+                           proxy_cblas_convenience::dot_c(b->rows, b->m + i*b->lda, 1, b->m + j*b->lda, 1));
+    }
+  }
+  result *= 2.0;
+  for (int i = 0; i < k; ++i) {
+    result += hmat::real(proxy_cblas_convenience::dot_c(a->rows, a->m + i*a->lda, 1, a->m + i*a->lda, 1) *
+                         proxy_cblas_convenience::dot_c(b->rows, b->m + i*b->lda, 1, b->m + i*b->lda, 1));
+  }
   return result;
 }
 

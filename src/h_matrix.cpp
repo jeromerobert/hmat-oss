@@ -513,9 +513,7 @@ template<typename T> double HMatrix<T>::normSqr() const {
   }
   if (this->isLeaf() && !isNull()) {
     if (isRkMatrix()) {
-      // Approximate ||a * bt|| by ||a||*||b|| so we return a
-      // upper bound of the actual norm
-      result = rk()->a->normSqr() * rk()->b->normSqr();
+      result = rk()->normSqr();
     } else {
       result = full()->normSqr();
     }
