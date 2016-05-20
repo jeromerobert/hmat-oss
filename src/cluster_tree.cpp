@@ -110,7 +110,7 @@ DofData::copy() const
 }
 
 ClusterTree::ClusterTree(const DofData* dofData)
-  : Tree(NULL)
+  : Tree<ClusterTree>(NULL)
   , data(dofData)
   , clusteringAlgoData_(NULL)
   , admissibilityAlgoData_(NULL)
@@ -118,7 +118,7 @@ ClusterTree::ClusterTree(const DofData* dofData)
 }
 
 ClusterTree::ClusterTree(const ClusterTree& other)
-  : Tree(NULL)
+  : Tree<ClusterTree>(NULL)
   , data(other.data)
   , clusteringAlgoData_(NULL)
   , admissibilityAlgoData_(NULL)
