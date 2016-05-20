@@ -226,6 +226,7 @@ add_definitions(-D_GNU_SOURCE)
 if (MSVC)
     add_definitions(-D__func__=__FUNCTION__)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-DNOMINMAX)
 endif ()
 
 # lib HMAT
