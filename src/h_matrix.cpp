@@ -1590,7 +1590,7 @@ void HMatrix<T>::inverse() {
 
     if (isLower) {
 
-      vector<HMatrix<T>*> TM(nrChildCol(), NULL);
+      vector<HMatrix<T>*> TM(nrChildCol());
     for (int k=0 ; k<nrChildRow() ; k++){
       // Inverse M_kk
       get(k,k)->inverse();
