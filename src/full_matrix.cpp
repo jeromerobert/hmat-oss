@@ -640,6 +640,7 @@ template<typename T> void FullMatrix<T>::fromFile(const char * filename) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
   m = (T*) calloc(size, 1);
   r = fread(m, size, 1, f);
+  fclose(f);
   HMAT_ASSERT(r == 1);
 }
 
