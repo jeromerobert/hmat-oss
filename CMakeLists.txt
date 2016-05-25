@@ -101,6 +101,10 @@ endfunction()
 opt_flag("-ffast-math")
 opt_flag("-funsafe-math-optimizations")
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+   set(HMAT_32BITS TRUE)
+endif()
+
 # ========================
 # SYSTEM & EXTERNAL LIBS
 # ========================

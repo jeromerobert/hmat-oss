@@ -19,7 +19,7 @@
 
   http://github.com/jeromerobert/hmat-oss
 */
-
+#include "config.h"
 #include "admissibility.hpp"
 #include "cluster_tree.hpp"
 
@@ -37,6 +37,13 @@ StandardAdmissibilityCondition::StandardAdmissibilityCondition(
     eta_(eta), maxElementsPerBlock(maxElementsPerBlock),
     maxElementsPerBlockAca_(maxElementsPerBlockRows), always_(false)
 {
+    if(maxElementsPerBlockAca_ == 0) {
+#ifdef HMAT_32BITS
+        maxElementsPerBlockAca_ = std::numeric_limits<int>::max();
+#else
+        maxElementsPerBlockAca_ = 17179869184L;
+#endif
+    }
 }
 
 bool

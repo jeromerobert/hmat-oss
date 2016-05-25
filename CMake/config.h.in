@@ -56,3 +56,5 @@
 #if defined(HAVE_GOTO_GET_NUM_PROCS) && defined(HAVE_OPENBLAS_SET_NUM_THREADS)
 #define OPENBLAS_DISABLE_THREADS
 #endif
+
+#cmakedefine HMAT_32BITS
