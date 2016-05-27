@@ -121,7 +121,7 @@ FullMatrix<T>::FullMatrix(int _rows, int _cols)
     rows(_rows), cols(_cols), lda(_rows), pivots(NULL), diagonal(NULL) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
   m = (T*) calloc(size, 1);
-  HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed", size);
+  HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
 #ifdef POISON_ALLOCATION
   // This memory is not initialized, fill it with NaNs to force a
