@@ -43,8 +43,10 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
         } else {
             for (int i = 0; i < matrix_->nrChild(); i++) {
                 I view;
+                M<T> * child = matrix_->getChild(i);
+                if (!child) continue;
                 view.init(me());
-                view.uncompress(matrix_->getChild(i), *me());
+                view.uncompress(child, *me());
             }
         }
     }

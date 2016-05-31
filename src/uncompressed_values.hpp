@@ -99,6 +99,7 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
             for (int i = 0; i < matrix_->nrChild(); i++) {
                 I view;
                 M<T> * child = matrix_->getChild(i);
+                if (!child) continue;
                 view.matrix_ = child;
                 view.values_ = values_;
                 view.valuesLd_ = valuesLd_;
