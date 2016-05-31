@@ -132,6 +132,10 @@ HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     {}
 
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withChildren) const {
+  static char * traceCopy = getenv("HMAT_TRACE_COPY");
+  if (traceCopy)
+    cout << "internalCopy before: " << this->toString() << endl;
+
     HMatrix<T> * r = new HMatrix<T>(localSettings.global);
     r->rows_ = rows_;
     r->cols_ = cols_;
@@ -152,11 +156,16 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
             }
         }
     }
+    if (traceCopy)
+      cout << "internalCopy after:  " << r->toString() << endl;
     return r;
 }
 
 template<typename T>
 HMatrix<T>* HMatrix<T>::copyStructure() const {
+  static char * traceCopy = getenv("HMAT_TRACE_COPY");
+  if (traceCopy)
+    cout << "copyStructure before: " << this->toString() << endl;
   HMatrix<T>* h = internalCopy();
   h->isUpper = isUpper;
   h->isLower = isLower;
@@ -171,6 +180,8 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
       }
     }
   }
+  if (traceCopy)
+    cout << "copyStructure after:  " << h->toString() << endl;
   return h;
 }
 
@@ -1480,8 +1491,12 @@ template<typename T>
 void HMatrix<T>::copy(const HMatrix<T>* o) {
   DECLARE_CONTEXT;
 
+  static char * traceCopy = getenv("HMAT_TRACE_COPY");
   assert(*rows() == *o->rows());
   assert(*cols() == *o->cols());
+
+  if (traceCopy)
+    cout << "copyHMatrix before: " << o->toString() << endl;
 
   isLower = o->isLower;
   isUpper = o->isUpper;
@@ -1520,6 +1535,8 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
       }
     }
   }
+  if (traceCopy)
+    cout << "            after:  " << this->toString() << endl;
 }
 
 template<typename T>
@@ -2243,7 +2260,7 @@ template<typename T> std::string HMatrix<T>::toString() const {
     std::stringstream sstm;
     sstm << "HMatrix(rows=[" << rows()->offset() << ", " << rows()->size() <<
             "], cols=[" << cols()->offset() << ", " << cols()->size() <<
-            "], pointer=" << (void*)this << ", leaves=" << leaves.size() <<
+            "], pointer=" << (void*)this << ", leaves=" << leaves.size() << ", rank=" << this->rank_ <<
             ", assembled=" << isAssembled() << ", assembledLeaves=" << nbAssembled <<
             ", nullFull=" << nbNullFull << ", nullRk=" << nbNullRk <<
             ", diagNorm=" << diagNorm << ")";
