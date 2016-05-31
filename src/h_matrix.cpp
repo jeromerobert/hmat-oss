@@ -134,7 +134,7 @@ HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withChildren) const {
   static char * traceCopy = getenv("HMAT_TRACE_COPY");
   if (traceCopy)
-    cout << "internalCopy before: " << this->toString() << endl;
+    printf("internalCopy before: %s\n", this->toString().c_str());
 
     HMatrix<T> * r = new HMatrix<T>(localSettings.global);
     r->rows_ = rows_;
@@ -157,7 +157,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
         }
     }
     if (traceCopy)
-      cout << "internalCopy after:  " << r->toString() << endl;
+      printf("internalCopy after: %s\n", r->toString().c_str());
     return r;
 }
 
@@ -165,7 +165,8 @@ template<typename T>
 HMatrix<T>* HMatrix<T>::copyStructure() const {
   static char * traceCopy = getenv("HMAT_TRACE_COPY");
   if (traceCopy)
-    cout << "copyStructure before: " << this->toString() << endl;
+    printf("copyStructure before: %s\n", this->toString().c_str());
+
   HMatrix<T>* h = internalCopy();
   h->isUpper = isUpper;
   h->isLower = isLower;
@@ -181,7 +182,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
     }
   }
   if (traceCopy)
-    cout << "copyStructure after:  " << h->toString() << endl;
+    printf("copyStructure after: %s\n", h->toString().c_str());
   return h;
 }
 
@@ -1496,7 +1497,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
   assert(*cols() == *o->cols());
 
   if (traceCopy)
-    cout << "copyHMatrix before: " << o->toString() << endl;
+    printf("copyHMatrix before: %s\n", o->toString().c_str());
 
   isLower = o->isLower;
   isUpper = o->isUpper;
@@ -1536,7 +1537,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
     }
   }
   if (traceCopy)
-    cout << "            after:  " << this->toString() << endl;
+    printf("             after: %s\n", this->toString().c_str());
 }
 
 template<typename T>
