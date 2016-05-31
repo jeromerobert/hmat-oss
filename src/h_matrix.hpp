@@ -605,6 +605,20 @@ public:
       rank_ = NONLEAF_BLOCK;
   }
 
+  /**
+   * Tag an entire subtree (except the leaves) as assembled.
+   * (with recursion and coherency check: the leaves *must* already be tagged as assembled).
+   */
+  void assembledRecurse() {
+    if (!this->isLeaf()) {
+      for (int i=0 ; i<this->nrChild() ; i++)
+        if (this->getChild(i))
+          this->getChild(i)->assembledRecurse();
+      rank_ = NONLEAF_BLOCK;
+    }
+    assert(isAssembled());
+  }
+
   const ClusterTree * rowsTree() const {
       return rows_;
   }

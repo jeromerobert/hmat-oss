@@ -261,10 +261,10 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
   } else {
     full_ = NULL;
     rk_ = NULL;
-    assembled();
     for (int i = 0; i < this->nrChild(); i++) {
       this->getChild(i)->assemble(f, ao);
     }
+    assembledRecurse();
     if (coarsening) {
       // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
       // This is done if the memory of the resulting leaf is less than the sum of the initial
@@ -341,7 +341,6 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
       }
     }
   } else {
-    assembled();
     if (onlyLower) {
       for (int i = 0; i < nrChildRow(); i++) {
         for (int j = 0; j < nrChildCol(); j++) {
@@ -369,10 +368,12 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
             child->assembleSymmetric(f, upperChild, false, ao);
           }
         }
-        upper->assembled();
+        upper->assembledRecurse();
         if (coarsening) {
             // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
             // This is done if the memory of the resulting leaf is less than the sum of the initial
+          // leaves. Note that this operation could be used hierarchically.
+
           bool allRkLeaves = true;
           const RkMatrix<T>* childrenArray[this->nrChild()];
           size_t childrenElements = 0;
@@ -412,6 +413,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
         }
       }
     }
+    assembledRecurse();
   }
 }
 
