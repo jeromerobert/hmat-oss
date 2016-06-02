@@ -117,7 +117,7 @@ public:
 
 /*! \brief The HMatrix class, representing a HMatrix.
 
-  It is a tree of arity arity(ClusterTree)^2, 4 in this case.
+  It is a tree of arity arity(ClusterTree)^2, 4 in most cases.
   An HMatrix is a tree-like structure that is:
     - a Leaf : in this case the node is either really a RkMatrix
       (compressed block), or a small dense block.
@@ -165,6 +165,14 @@ public:
   HMatrix<T> * internalCopy(bool temporary = false, bool withChildren = false) const;
   ~HMatrix();
 
+  /*! \brief HMatrix coarsening.
+
+     If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
+     This is done if the memory of the resulting leaf is less than the sum of the initial
+     leaves. Note that this operation could be used hierarchically.
+     \param upper the symmetric of 'this', when building a non-sym matrix with a sym content
+   */
+  void coarsen(HMatrix<T>* upper = NULL) ;
   /*! \brief HMatrix assembly.
    */
   void assemble(Assembly<T>& f, const AllocationObserver & = AllocationObserver());

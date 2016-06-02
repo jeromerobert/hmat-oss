@@ -265,44 +265,8 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
       this->getChild(i)->assemble(f, ao);
     }
     assembledRecurse();
-    if (coarsening) {
-      // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
-      // This is done if the memory of the resulting leaf is less than the sum of the initial
-      // leaves. Note that this operation could be used hierarchically.
-
-      bool allRkLeaves = true;
-      const RkMatrix<T>* childrenArray[this->nrChild()];
-      size_t childrenElements = 0;
-      for (int i = 0; i < this->nrChild(); i++) {
-        HMatrix<T> *child = this->getChild(i);
-        if (!child->isRkMatrix()) {
-          allRkLeaves = false;
-          break;
-        } else {
-          childrenArray[i] = child->rk();
-          childrenElements += ((size_t)childrenArray[i]->rows->size()
-                               + childrenArray[i]->cols->size()) * childrenArray[i]->rank();
-        }
-      }
-      if (allRkLeaves) {
-        RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-        std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
-        RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild());
-        size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
-        if (elements < childrenElements) {
-          cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
-          for (int i = 0; i < this->nrChild(); i++) {
-            this->removeChild(i);
-          }
-          this->children.clear();
-          rk(candidate);
-          assert(this->isLeaf());
-          assert(isRkMatrix());
-        } else {
-          delete candidate;
-        }
-      }
-    }
+    if (coarsening)
+      coarsen();
   }
 }
 
@@ -369,48 +333,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           }
         }
         upper->assembledRecurse();
-        if (coarsening) {
-            // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
-            // This is done if the memory of the resulting leaf is less than the sum of the initial
-          // leaves. Note that this operation could be used hierarchically.
-
-          bool allRkLeaves = true;
-          const RkMatrix<T>* childrenArray[this->nrChild()];
-          size_t childrenElements = 0;
-          for (int i = 0; i < this->nrChild(); i++) {
-            HMatrix<T> *child = this->getChild(i);
-            if (!child->isRkMatrix()) {
-              allRkLeaves = false;
-              break;
-            } else {
-              childrenArray[i] = child->rk();
-              childrenElements += (childrenArray[i]->rows->size()
-                                   + childrenArray[i]->cols->size()) * childrenArray[i]->rank();
-            }
-          }
-          if (allRkLeaves) {
-            std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
-            RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-            RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild());
-            size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
-            if (elements < childrenElements) {
-              cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
-              for (int i = 0; i < this->nrChild(); i++) {
-                this->removeChild(i);
-                upper->removeChild(i);
-              }
-              this->children.clear();
-              upper->children.clear();
-              rk(candidate);
-              upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
-                                        candidate->a->copy(), upper->cols(), candidate->method));
-              assert(this->isLeaf() && upper->isLeaf());
-              assert(isRkMatrix() && upper->isRkMatrix());
-            } else {
-              delete candidate;
-            }
-          }
-        }
+        if (coarsening)
+          coarsen(upper);
       }
     }
     assembledRecurse();
@@ -550,6 +474,56 @@ void HMatrix<T>::scale(T alpha) {
       if (this->getChild(i)) {
         this->getChild(i)->scale(alpha);
       }
+    }
+  }
+}
+
+template<typename T>
+void HMatrix<T>::coarsen(HMatrix<T>* upper) {
+  // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
+  // This is done if the memory of the resulting leaf is less than the sum of the initial
+  // leaves. Note that this operation could be used hierarchically.
+
+  bool allRkLeaves = true;
+  const RkMatrix<T>* childrenArray[this->nrChild()];
+  size_t childrenElements = 0;
+  for (int i = 0; i < this->nrChild(); i++) {
+    HMatrix<T> *child = this->getChild(i);
+    if (!child->isRkMatrix()) {
+      allRkLeaves = false;
+      break;
+    } else {
+      childrenArray[i] = child->rk();
+      childrenElements += (childrenArray[i]->rows->size()
+                           + childrenArray[i]->cols->size()) * childrenArray[i]->rank();
+    }
+  }
+  if (allRkLeaves) {
+    std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
+    RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
+    RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild());
+    size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
+    if (elements < childrenElements) {
+      cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
+      // Replace 'this' by the new Rk matrix
+      for (int i = 0; i < this->nrChild(); i++)
+        this->removeChild(i);
+      this->children.clear();
+      rk(candidate);
+      assert(this->isLeaf());
+      assert(isRkMatrix());
+      // If necessary, replace 'upper' by the new Rk matrix transposed (exchange a and b)
+      if (upper) {
+        for (int i = 0; i < this->nrChild(); i++)
+          upper->removeChild(i);
+        upper->children.clear();
+        upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
+                                  candidate->a->copy(), upper->cols(), candidate->method));
+        assert(upper->isLeaf());
+        assert(upper->isRkMatrix());
+      }
+    } else {
+      delete candidate;
     }
   }
 }
