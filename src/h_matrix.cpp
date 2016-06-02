@@ -758,6 +758,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
         full()->axpy(alpha, rkMat);
         delete rkMat;
       } else {
+        // cas isNull
         full(rkMat);
         full()->scale(alpha);
       }
@@ -797,6 +798,9 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
     int colOffset = this->cols()->offset() - cols->offset();
     FullMatrix<T> subMat(b->m + rowOffset + ((size_t) colOffset) * b->lda,
                          this->rows()->size(), this->cols()->size(), b->lda);
+    if (this->isNull()) {
+      full(FullMatrix<T>::Zero( this->rows()->size(), this->cols()->size()) );
+    }
     if (isFullMatrix()) {
       full()->axpy(alpha, &subMat);
     } else {
