@@ -42,11 +42,11 @@ template<typename T> class PostscriptDumper
 public:
     void write(const void * tree, const std::string& filename) const;
 protected:
-    virtual const HMatrix<T> * cast(const void * tree) const;
-    virtual void drawMatrix(const void * tree, const HMatrix<T> *,
-        std::ofstream& f, int depth, double scale, bool cross=true) const;
+    virtual const HMatrix<T> * castToHMatrix(const void * tree) const;
+    virtual void drawMatrix(const void * tree, std::ofstream& f, int depth, bool cross=true) const;
+    void drawRectangle(const HMatrix<T> * m, std::ofstream& f, const std::string& name, int linewidth) const ;
 private:
-    void recursiveDrawing(const HMatrix<T> * tree, std::ofstream& f, int depth, double scale) const;
+    virtual void recursiveDrawing(const void * tree, std::ofstream& f, int depth) const;
 };
 
 }  // end namespace hmat

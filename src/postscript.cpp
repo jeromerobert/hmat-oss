@@ -111,52 +111,57 @@ static double writeHeader(ofstream & file, int maxDim)
 
 namespace hmat {
 
-template<typename T>
+  template<typename T>
+  void PostscriptDumper<T>::drawRectangle(const HMatrix<T> * m, ofstream& f, const std::string& name, int linewidth) const {
+    int n = m->rows()->coordinates()->size();
+    int startX = m->cols()->offset();
+    int lengthX = m->cols()->size();
+    int startY = n - m->rows()->offset();
+    int lengthY = -m->rows()->size();
+    f << 0 << " "<< -lengthY << " "
+      << -lengthX << " " << 0 << " "
+      << 0 << " " << lengthY << " "
+      << lengthX << " " << 0 << " "
+      << startX << " " << startY;
+    f << " " << linewidth << " " << name << endl;
+}
+
+    template<typename T>
 void PostscriptDumper<T>::write(const void * tree, const std::string& filename) const {
     ofstream file;
     file.open(filename.c_str());
-    const HMatrix<T> * m = cast(tree);
+    const HMatrix<T> * m = castToHMatrix(tree);
     double scale = writeHeader(file, max(m->rows()->size(), m->cols()->size()));
-    recursiveDrawing(m, file, 0, scale);
+    recursiveDrawing(tree, file, 0);
     file << "showpage" << endl;
 }
 
 template<typename T>
-void PostscriptDumper<T>::recursiveDrawing(const HMatrix<T> * tree, ofstream& f, int depth, double scale) const {
-    if (!tree->isLeaf()) {
-        for (int i = 0; i < tree->nrChild(); i++) {
-            const HMatrix<T> * child = tree->getChild(i);
+void PostscriptDumper<T>::recursiveDrawing(const void * tree, ofstream& f, int depth) const {
+  const HMatrix<T> * m = castToHMatrix(tree);
+    if (!m->isLeaf()) {
+        for (int i = 0; i < m->nrChild(); i++) {
+            const HMatrix<T> * child = m->getChild(i);
             if (child) {
-                recursiveDrawing(child, f, depth + 1, scale);
+                recursiveDrawing(child, f, depth + 1);
             }
         }
     }
 
-    const HMatrix<T> * m = cast(tree);
-    if (depth == 0) {
-        int n = m->rows()->coordinates()->size();
-        int startX = m->cols()->offset();
-        int lengthX = m->cols()->size();
-        int startY = n - m->rows()->offset();
-        int lengthY = -m->rows()->size();
-        f << 0 << " "<< -lengthY << " "
-          << -lengthX << " " << 0 << " "
-          << 0 << " " << lengthY << " "
-          << lengthX << " " << 0 << " "
-          << startX << " " << startY;
-        f << " " << 30 - depth << " emptyrectangle" << endl;
-    }
-    drawMatrix(tree, m, f, depth, scale);
+    if (depth == 0)
+      drawRectangle(m, f, "emptyrectangle", 30-depth);
+    drawMatrix(tree, f, depth);
 }
 
 template<typename T>
-const HMatrix<T> * PostscriptDumper<T>::cast(const void * tree) const {
+const HMatrix<T> * PostscriptDumper<T>::castToHMatrix(const void * tree) const {
     return static_cast<const HMatrix<T> *>(tree);
 }
 
 template<typename T>
-void PostscriptDumper<T>::drawMatrix(const void *, const HMatrix<T> * m,
-    ofstream& f, int depth, double, bool cross) const {
+void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, bool cross) const {
+    const HMatrix<T> * m = castToHMatrix(tree);
+
     int n = m->rows()->coordinates()->size();
     int startX = m->cols()->offset();
     int lengthX = m->cols()->size();
