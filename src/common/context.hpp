@@ -62,6 +62,7 @@ namespace trace {
     Time lastCommInitiationTime;
   };
 
+  // Maximum number of parallel workers + 1 (for the main non-parallel context)
 #ifndef MAX_ROOTS
   #define MAX_ROOTS 128
 #endif
@@ -104,7 +105,7 @@ namespace trace {
     static void leaveContext();
     /** Get a unique reference to the current context. */
     static void* currentReference();
-    /** Set the current as being relative to a given enclosong one.
+    /** Set the current context as being relative to a given enclosing one.
 
         The enclosing context is identified through the pointer returned by \a
         currentReference().

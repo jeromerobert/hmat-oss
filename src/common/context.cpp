@@ -38,11 +38,13 @@ namespace trace {
 
   /** \brief Set the function used to get the root index.
 
-      \return a nuber between 0 (not in a parallel region) and the number of
+      \return a number between 0 (not in a parallel region) and the number of
       workers (included).
    */
   static int currentNodeIndex() {
-    return (nodeIndexFunction ? nodeIndexFunction() : -1) + 1;
+    int res = (nodeIndexFunction ? nodeIndexFunction() : -1) + 1;
+    assert(res>=0 && res<MAX_ROOTS);
+    return res;
   }
 
   void setNodeIndexFunction(int (*nodeIndexFunc)()) {
@@ -172,19 +174,19 @@ namespace trace {
   /** Find the current node, allocating one if necessary.
    */
   Node* Node::currentNode() {
-    int id = currentNodeIndex();
-    void* enclosing = enclosingContext[id];
-    UM_NS::unordered_map<void*, Node*>::iterator it = currentNodes[id].find(enclosing);
+    int index = currentNodeIndex();
+    void* enclosing = enclosingContext[index];
+    UM_NS::unordered_map<void*, Node*>::iterator it = currentNodes[index].find(enclosing);
     Node* current;
-    if (it == currentNodes[id].end()) {
+    if (it == currentNodes[index].end()) {
       char *name = const_cast<char*>("root");
-      if (id != 0) {
+      if (index != 0) {
         name = strdup("Worker #XXX - 0xXXXXXXXXXXXXXXXX"); // Worker ID - enclosing
         assert(name);
-        sprintf(name, "Worker #%03d - %p", id, enclosing);
+        sprintf(name, "Worker #%03d - %p", index, enclosing);
       }
       current = new Node(name, NULL);
-      currentNodes[id][enclosing] = current;
+      currentNodes[index][enclosing] = current;
     } else {
       current = it->second;
     }

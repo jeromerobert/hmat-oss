@@ -175,18 +175,18 @@ public:
 
   void walk(const TreeProcedure<TreeNode> *proc) {
     if (isLeaf()) {
-      proc->visit(me(), tree_leaf);
+      proc->visit(me(), tree_leaf); // treatment on the leaves
     } else {
-      proc->visit(me(), tree_preorder);
+      proc->visit(me(), tree_preorder); // treatment on a non-leaf before recursion
       bool first = true;
       for (int i=0 ; i<nrChild() ; i++)
         if (children[i]) {
           if (!first)
-            proc->visit(me(), tree_inorder);
+            proc->visit(me(), tree_inorder); // treatment on a non-leaf after 1st child (mainly usefull with 2 children)
           first = false;
           children[i]->walk(proc);
         }
-      proc->visit(me(), tree_postorder);
+      proc->visit(me(), tree_postorder); // treatment on a non-leaf after recursion
     }
   }
 
