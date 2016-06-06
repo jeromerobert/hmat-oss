@@ -714,6 +714,14 @@ const char * hmat_get_version();
  */
 const char * hmat_get_build_date();
 
+/*!
+ \brief hmat_tracing_dump Dumps the trace info in the given filename
+
+ The file is in json format. Hmat library must be compiled with -DHAVE_CONTEXT for this to work.
+\param filename the name of the output json file
+*/
+void hmat_tracing_dump(char *filename) ;
+
 #ifdef __cplusplus
 }
 #endif

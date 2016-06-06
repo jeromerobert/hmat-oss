@@ -296,3 +296,8 @@ hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, doub
     }
     return result;
 }
+
+void hmat_tracing_dump(char *filename) {
+  tracing_dump(filename);
+}
+
