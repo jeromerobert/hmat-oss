@@ -37,6 +37,7 @@ namespace
 template<typename T, template <typename> class E>
 hmat_matrix_t * create_empty_hmatrix(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, int lower_sym)
 {
+  DECLARE_CONTEXT;
     hmat::SymmetryFlag sym = (lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
     return (hmat_matrix_t*) new hmat::HMatInterface<T, E>(
             (hmat::ClusterTree*)rows_tree,
@@ -49,6 +50,7 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
   hmat_cluster_tree_t* cols_tree, int lower_sym,
   hmat_admissibility_t* condition)
 {
+  DECLARE_CONTEXT;
     hmat::SymmetryFlag sym = lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric;
     return (hmat_matrix_t*) new hmat::HMatInterface<T, E>(
             static_cast<hmat::ClusterTree*>(static_cast<void*>(rows_tree)),
@@ -112,6 +114,7 @@ int assemble(hmat_matrix_t * holder,
                               hmat_prepare_func_t prepare,
                               hmat_compute_func_t compute,
                               int lower_symmetric) {
+  DECLARE_CONTEXT;
     hmat_assemble_context_t ctx;
     hmat_assemble_context_init(&ctx);
     ctx.user_context = user_context;
@@ -128,6 +131,7 @@ int assemble_factor(hmat_matrix_t * holder,
                               hmat_prepare_func_t prepare,
                               hmat_compute_func_t compute,
                               int lower_symmetric, hmat_factorization_t f_type) {
+  DECLARE_CONTEXT;
     hmat_assemble_context_t ctx;
     hmat_assemble_context_init(&ctx);
     ctx.user_context = user_context;
@@ -144,6 +148,7 @@ int assemble_simple_interaction(hmat_matrix_t * holder,
                           void* user_context,
                           hmat_interaction_func_t compute,
                           int lower_symmetric) {
+  DECLARE_CONTEXT;
     hmat_assemble_context_t ctx;
     hmat_assemble_context_init(&ctx);
     ctx.user_context = user_context;
@@ -161,12 +166,14 @@ hmat_matrix_t* copy(hmat_matrix_t* holder) {
 
 template<typename T, template <typename> class E>
 int destroy(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT;
   delete (hmat::HMatInterface<T, E>*)(holder);
   return 0;
 }
 
 template<typename T, template <typename> class E>
 int inverse(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT;
   ((hmat::HMatInterface<T, E>*) holder)->inverse();
   return 0;
 }
@@ -180,6 +187,7 @@ void factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx
 
 template<typename T, template <typename> class E>
 int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
+  DECLARE_CONTEXT;
     hmat_factorization_context_t ctx;
     hmat_factorization_context_init(&ctx);
     ctx.factorization = t;
@@ -189,6 +197,7 @@ int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
 
 template<typename T, template <typename> class E>
 int finalize() {
+  DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>::finalize();
   return 0;
 }
@@ -247,6 +256,7 @@ int add_identity(hmat_matrix_t* holder, void *alpha) {
 
 template<typename T, template <typename> class E>
 int init() {
+  DECLARE_CONTEXT;
     return hmat::HMatInterface<T, E>::init();
 }
 
@@ -265,6 +275,7 @@ int scale(void *alpha, hmat_matrix_t* holder) {
 
 template<typename T, template <typename> class E>
 int solve_mat(hmat_matrix_t* hmat, hmat_matrix_t* hmatB) {
+  DECLARE_CONTEXT;
   ((hmat::HMatInterface<T, E>*)hmat)->solve(*(hmat::HMatInterface<T, E>*)hmatB);
     return 0;
 }
@@ -309,6 +320,7 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
 
 template<typename T, template <typename> class E>
 int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols) {
+  DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
   hmat->engine().hmat->setClusterTrees((hmat::ClusterTree*)rows, (hmat::ClusterTree*)cols);
   return 0;
@@ -338,6 +350,7 @@ int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nr
 
 template <typename T, template <typename> class E>
 int get_block(struct hmat_get_values_context_t *ctx) {
+  DECLARE_CONTEXT;
     hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *)ctx->matrix;
     hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
     hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
@@ -352,6 +365,7 @@ int get_block(struct hmat_get_values_context_t *ctx) {
 
 template <typename T, template <typename> class E>
 int get_values(struct hmat_get_values_context_t *ctx) {
+  DECLARE_CONTEXT;
     hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *)ctx->matrix;
     typename E<T>::UncompressedValues view;
     view.uncompress(hmat->engine().data(),
@@ -363,6 +377,7 @@ int get_values(struct hmat_get_values_context_t *ctx) {
 
 template <typename T, template <typename> class E>
 int walk(hmat_matrix_t* holder, hmat_procedure_t* proc) {
+  DECLARE_CONTEXT;
     hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *) holder;
     hmat::TreeProcedure<hmat::HMatrix<T> > *functor = (hmat::TreeProcedure<hmat::HMatrix<T> > *) proc;
     hmat->walk(functor);
@@ -376,6 +391,7 @@ namespace hmat {
 template<typename T, template <typename> class E>
 static void createCInterface(hmat_interface_t * i)
 {
+  DECLARE_CONTEXT;
     i->assemble = assemble<T, E>;
     i->assemble_factorize = assemble_factor<T, E>;
     i->assemble_simple_interaction = assemble_simple_interaction<T, E>;
