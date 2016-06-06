@@ -355,7 +355,20 @@ int get_block(struct hmat_get_values_context_t *ctx) {
     hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
     hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
     typename E<T>::UncompressedBlock view;
-    view.uncompress(hmat->engine().data(), rows, cols, (T*)ctx->values);
+    hmat::HMatrix<T>* compressed = hmat->engine().data();
+    view.uncompress(compressed, rows, cols, (T*)ctx->values);
+    // Symmetrize values when requesting a full symmetric matrix
+    if (compressed->isLower &&
+        ctx->row_offset == 0 && ctx->col_offset == 0 &&
+        ctx->row_size == compressed->rows()->size() && ctx->col_size == compressed->cols()->size())
+    {
+      T* ptr = static_cast<T*>(ctx->values);
+      for (int i = 0; i < ctx->row_size; i++) {
+        for (int j = i + 1; j < ctx->col_size; j++) {
+          ptr[j*ctx->row_size + i] = ptr[i*ctx->row_size + j];
+        }
+      }
+    }
     if (ctx->renumber_rows)
         view.renumberRows();
     ctx->col_indices = view.colsNumbering();
