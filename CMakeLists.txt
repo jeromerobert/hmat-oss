@@ -238,7 +238,7 @@ endif ()
 # lib HMAT
 if(HMAT_OSS_STATIC AND BUILD_SHARED_LIBS)
     add_library(${PROJECT_NAME} STATIC ${HMAT_SOURCES})
-    if(BUILD_SHARED_LIBS)
+    if(BUILD_SHARED_LIBS AND NOT WIN32)
         set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS -fPIC)
     endif()
 else()
