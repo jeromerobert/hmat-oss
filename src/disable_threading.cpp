@@ -27,7 +27,7 @@
 #include <mkl.h>
 #endif
 
-#ifdef HAVE_OMP_H
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -50,7 +50,7 @@ DisableThreadingInBlock::DisableThreadingInBlock()
     mklNumThreads = mkl_get_max_threads();
     mkl_set_num_threads(1);
 #endif
-#ifdef HAVE_OMP_H
+#ifdef _OPENMP
     ompNumThreads = omp_get_max_threads();
     omp_set_num_threads(1);
 #endif
@@ -68,7 +68,7 @@ DisableThreadingInBlock::~DisableThreadingInBlock() {
 #if defined(HAVE_MKL_H)
     mkl_set_num_threads(mklNumThreads);
 #endif
-#ifdef HAVE_OMP_H
+#ifdef _OPENMP
     omp_set_num_threads(ompNumThreads);
 #endif
 #ifdef OPENBLAS_DISABLE_THREADS
