@@ -289,7 +289,7 @@ if(MKL_FOUND)
 endif()
 
 if(JEMALLOC_FOUND)
-    target_link_libraries(${PROJECT_NAME} ${JEMALLOC_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} ${_LINK_PRIVATE} ${JEMALLOC_LIBRARIES})
 endif()
 
 if (HAVE_LIBRT)
