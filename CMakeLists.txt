@@ -140,6 +140,16 @@ if(MKL_FOUND)
   set(CMAKE_CXX_FLAGS "${MKL_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
 endif()
 
+# JeMalloc
+option(HMAT_JEMALLOC "Use jemalloc for matrix blocks allocation." OFF)
+if(HMAT_JEMALLOC)
+    find_package(JeMalloc REQUIRED)
+    if(JEMALLOC_FOUND)
+        set(HAVE_JEMALLOC TRUE)
+        include_directories(${JEMALLOC_INCLUDE_DIR})
+    endif()
+endif()
+
 option(USE_DEBIAN_OPENBLAS "On Debian, link to openblas instead of generic blas." ON)
 # BLAS/LAPACK
 if (NOT MKL_FOUND)
@@ -276,6 +286,10 @@ if(MKL_FOUND)
     # The start-group/end-group flags must be at the end of the
     # link command line, so we must use target_link_libraries not, CMAKE_SHARED_XXX_FLAGS
     target_link_libraries(${PROJECT_NAME} ${_LINK_PRIVATE} ${MKL_LINKER_FLAGS})
+endif()
+
+if(JEMALLOC_FOUND)
+    target_link_libraries(${PROJECT_NAME} ${JEMALLOC_LIBRARIES})
 endif()
 
 if (HAVE_LIBRT)

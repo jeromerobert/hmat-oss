@@ -62,6 +62,11 @@
 
 #include <stdlib.h>
 
+#ifdef HAVE_JEMALLOC
+#define JEMALLOC_NO_DEMANGLE
+#include <jemalloc/jemalloc.h>
+#endif
+
 #ifdef _MSC_VER
 // Intel compiler defines isnan in global namespace
 // MSVC defines _isnan
@@ -120,7 +125,11 @@ FullMatrix<T>::FullMatrix(int _rows, int _cols)
   : ownsMemory(true), triUpper_(false), triLower_(false),
     rows(_rows), cols(_cols), lda(_rows), pivots(NULL), diagonal(NULL) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
+#ifdef HAVE_JEMALLOC
+  m = (T*) je_calloc(size, 1);
+#else
   m = (T*) calloc(size, 1);
+#endif
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
 #ifdef POISON_ALLOCATION
@@ -144,7 +153,11 @@ template<typename T> FullMatrix<T>::~FullMatrix() {
   if (ownsMemory) {
     size_t size = ((size_t) rows) * cols * sizeof(T);
     MemoryInstrumenter::instance().free(size, MemoryInstrumenter::FULL_MATRIX);
+#ifdef HAVE_JEMALLOC
+    je_free(m);
+#else
     free(m);
+#endif
     m = NULL;
   }
   if (pivots) {
