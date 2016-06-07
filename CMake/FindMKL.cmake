@@ -50,17 +50,19 @@ if(MKL_DETECT)
         set(MKL_IL "c")
     endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 
-    find_library(MKL_CORE_LIBRARY NAMES mkl_core.lib mkl_core libmkl_core.so HINTS
+    find_library(MKL_RT_LIBRARY NAMES mkl_rt HINTS
         $ENV{MKLROOT}/lib
         ${MKLROOT}/lib
         PATH_SUFFIXES ${MKL_ARCH})
 
-    get_filename_component(MKL_LIBRARY_DIR ${MKL_CORE_LIBRARY} PATH)
+    get_filename_component(MKL_LIBRARY_DIR ${MKL_RT_LIBRARY} PATH)
 
     include(CheckCXXCompilerFlag)
     check_cxx_compiler_flag("-mkl=parallel" MKL_PARALLEL_COMPILER_FLAG)
 
-    if(WIN32)
+    if(MINGW)
+        set(MKL_LINKER_FLAGS ${MKL_RT_LIBRARY})
+    elseif(WIN32)
         if(MKL_STATIC)
             set(MKL_LINKER_FLAGS "mkl_intel_${MKL_IL}.lib mkl_core.lib mkl_intel_thread.lib")
             set(MKL_COMPILE_FLAGS "")
