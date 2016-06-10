@@ -1874,6 +1874,7 @@ template<typename T> void HMatrix<T>::lltDecomposition() {
       this->recursiveLltDecomposition();
     }
     isTriLower = true;
+    isLower = false;
 }
 
 template<typename T>
@@ -2058,6 +2059,7 @@ void HMatrix<T>::ldltDecomposition() {
     this->recursiveLdltDecomposition();
   }
   isTriLower = true;
+  isLower = false;
 }
 
 template<typename T>
