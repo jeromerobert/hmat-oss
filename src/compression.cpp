@@ -758,8 +758,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     rkFull->axpy(Constants<T>::mone, full);
     double diffNorm = rkFull->norm();
     if (diffNorm > HMatrix<T>::validationErrorThreshold * fullNorm ) {
-      std::cout << "[" << rows->offset() << "," << (rows->offset() +rows->size() - 1)
-           << "]x[" << cols->offset() << "," << (cols->offset() + cols->size() - 1) <<"]"<< std::endl
+      std::cout << rows->description() << "x" << cols->description() << std::endl
            << std::scientific
            << "|M|  = " << fullNorm << std::endl
            << "|Rk| = " << approxNorm << std::endl
@@ -777,8 +776,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
       if (HMatrix<T>::validationDump) {
         std::string filename;
         std::ostringstream convert;   // stream used for the conversion
-        convert << "[" << rows->offset() << "," << (rows->offset() + rows->size() - 1)
-              << "]x[" << cols->offset() << "," << (cols->offset() + cols->size() - 1) <<"]" ;
+        convert << rows->description() << "x" << cols->description()  ;
 
         filename = "Rk_";
         filename += convert.str(); // set 'Result' to the contents of the stream

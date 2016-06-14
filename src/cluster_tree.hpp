@@ -27,6 +27,7 @@
 #ifndef _CLUSTER_TREE_HPP
 #define _CLUSTER_TREE_HPP
 
+#include <sstream>
 #include "tree.hpp"
 #include "clustering.hpp"
 #include "coordinates.hpp"
@@ -78,6 +79,14 @@ public:
 
   /** Set this as the intersection of two index set */
   void intersection(const IndexSet& s1, const IndexSet& s2);
+
+  /*! \brief Return a short string describing the content of this IndexSet for debug (like: "[320, 452]")
+    */
+  std::string description() const {
+    std::ostringstream convert;   // stream used for the conversion
+    convert << "[" << offset() << ", " << offset()+size()-1 << "]" ;
+    return convert.str();
+  }
 
 protected:
   /// offset of the start of this node's data in indices
@@ -182,6 +191,13 @@ public:
    * as the other one.
    */
   void sameDepth(const ClusterTree * other);
+
+  /*! \brief Return a short string describing the content of this ClusterTree for debug (like: "[320, 452]")
+    */
+  std::string description() const {
+    return data.description();
+  }
+
 };
 
 class AxisAlignedBoundingBox

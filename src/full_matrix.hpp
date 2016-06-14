@@ -251,6 +251,14 @@ public:
    */
   void checkNan() const;
   size_t memorySize() const;
+
+  /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320 x 100] norm=22.34758")
+    */
+  std::string description() const {
+    std::ostringstream convert;   // stream used for the conversion
+    convert << "FullMatrix [" << rows << " x " << cols << "] norm=" << norm() ;
+    return convert.str();
+  }
 };
 
 

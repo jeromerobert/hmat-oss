@@ -317,6 +317,11 @@ public:
   /*! \brief Return square of the Frobenius norm of the matrix.
    */
   double normSqr() const;
+  /*! \brief Return the Frobenius norm of the matrix.
+   */
+  double norm() const {
+    return sqrt(normSqr());
+  }
   /** Set a matrix to 0.
    */
   void clear();
@@ -640,6 +645,19 @@ public:
    * This is better than overriding << because it allows to use printf.
    */
   std::string toString() const;
+
+  /*! \brief Return a short string describing the content of this HMatrix for debug (like: "HMatrix [320, 452]x[760, 890] norm=13.23442" or "uninitialized" if needed)
+    */
+  std::string description() const {
+    std::ostringstream convert;
+    convert << "HMatrix " << rows()->description() << "x" << cols()->description() ;
+    if (isAssembled())
+      convert << "norm=" << norm();
+    else
+      convert << "uninitialized";
+    return convert.str();
+  }
+
 };
 
 }  // end namespace hmat
