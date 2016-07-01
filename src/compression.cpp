@@ -97,7 +97,7 @@ public:
       return FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
   }
 private:
-  ClusterAssemblyFunction(ClusterAssemblyFunction&o) {}; // No copy
+  ClusterAssemblyFunction(ClusterAssemblyFunction&o) {} // No copy
 };
 
 template<typename T> double squaredNorm(const T x) {

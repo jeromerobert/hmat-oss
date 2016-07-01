@@ -131,7 +131,7 @@ namespace trace {
     return NULL;
   }
 
-  void Node::dump(std::ofstream& f) const {
+  void Node::jsonDump(std::ofstream& f) const {
     f << "{"
       << "\"name\": \"" << name << "\", "
       << "\"id\": \"" << this << "\", "
@@ -140,19 +140,18 @@ namespace trace {
       << "\"totalFlops\": " << data.totalFlops << ", "
       << "\"totalBytesSent\": " << data.totalBytesSent << ", "
       << "\"totalBytesReceived\": " << data.totalBytesReceived << ", "
-      << "\"totalBytesReceived\": " << data.totalBytesReceived << ", "
       << "\"totalCommTime\": " << data.totalCommTime / 1e9 << "," << std::endl;
     f << "\"children\": [";
     std::string delimiter("");
     for (std::vector<Node*>::const_iterator it = children.begin(); it != children.end(); ++it) {
       f << delimiter;
-      (*it)->dump(f);
+      (*it)->jsonDump(f);
       delimiter = ", ";
     }
     f << "]}";
   }
 
-  void Node::jsonDump(const char* filename) {
+  void Node::jsonDumpMain(const char* filename) {
     std::ofstream f(filename);
 
     f << "[";
@@ -163,7 +162,7 @@ namespace trace {
         for(; p != currentNodes[i].end(); ++p) {
           Node* root = p->second;
           f << delimiter << std::endl;
-          root->dump(f);
+          root->jsonDump(f);
           delimiter = ", ";
         }
       }
@@ -179,6 +178,7 @@ namespace trace {
     UM_NS::unordered_map<void*, Node*>::iterator it = currentNodes[index].find(enclosing);
     Node* current;
     if (it == currentNodes[index].end()) {
+      // TODO : avec runtime, les threads N+1 et N+2 ne sont pas des workers, ce sont les threads MPI et IO
       char *name = const_cast<char*>("root");
       if (index != 0) {
         name = strdup("Worker #XXX - 0xXXXXXXXXXXXXXXXX"); // Worker ID - enclosing

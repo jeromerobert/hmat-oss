@@ -41,7 +41,10 @@ StandardAdmissibilityCondition::StandardAdmissibilityCondition(
 #ifdef HMAT_32BITS
         maxElementsPerBlockAca_ = std::numeric_limits<int>::max();
 #else
-        maxElementsPerBlockAca_ = 17179869184L;
+      // 2^34 = 16 G elements = 256 Gbytes in Z_t = a square block of 131k x 131k
+      // But this is the size of the *full* block. If the square block has rank 'r', it will store
+      // two arrays of 2^17.r elements
+      maxElementsPerBlockAca_ = 17179869184L;
 #endif
     }
 }

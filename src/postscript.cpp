@@ -97,9 +97,7 @@ static double writeHeader(ofstream & file, int maxDim)
          << " xfont scalefont" << endl
          << " setfont" << endl
          << " 0 0 0 setrgbcolor" << endl
-         << " /y1 exch def" << endl
-         << " /x1 exch def" << endl
-         << " x1 y1 moveto" << endl
+         << " moveto" << endl
          << " data show" << endl
          << "} def" << endl
          << " " << endl;

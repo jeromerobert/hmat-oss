@@ -81,7 +81,7 @@ namespace trace {
 
   class Node {
   public:
-    /// True if the tracing is enabled. True by default.
+    /// True if the tracing is enabled. True by default. Not used anywhere, apparently...
     static bool enabled;
   private:
     /// Unique name for the context.
@@ -118,13 +118,13 @@ namespace trace {
     static void endComm();
     /** Dumps the trace trees to a JSON file.
      */
-    static void jsonDump(const char* filename);
+    static void jsonDumpMain(const char* filename);
 
   private:
     Node(const char* _name, Node* _parent);
     ~Node();
     Node* findChild(const char* name) const;
-    void dump(std::ofstream& f) const;
+    void jsonDump(std::ofstream& f) const;
     static Node* currentNode();
   };
 }
@@ -144,13 +144,15 @@ public:
 };
 
 #ifdef HAVE_CONTEXT
+
+// Since 'enable' is not used anywhere, this macro probably does nothing.
 #define DISABLE_CONTEXT_IN_BLOCK DisableContextInBlock dummyDisableContextInBlock
 
 #define tracing_set_worker_index_func(f) trace::setNodeIndexFunction(f)
 #define enter_context(x) trace::Node::enterContext(x)
 #define leave_context() trace::Node::leaveContext()
 #define increment_flops(x) trace::Node::incrementFlops(x)
-#define tracing_dump(x) trace::Node::jsonDump(x)
+#define tracing_dump(x) trace::Node::jsonDumpMain(x)
 
 #else
 #define tracing_set_worker_index_func(f) do {} while (0)
