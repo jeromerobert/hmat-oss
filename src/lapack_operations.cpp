@@ -346,7 +346,7 @@ template<typename T> T* qrDecomposition(FullMatrix<T>* m) {
   info = proxy_lapack::geqrf(rows, cols, m->m, rows, tau, &workSize_S, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_S) + 1;
-  T* work = new T[workSize];
+  T* work = new T[workSize];// TODO Mettre dans la pile ??
   HMAT_ASSERT(work) ;
   info = proxy_lapack::geqrf(rows, cols, m->m, rows, tau, work, workSize);
   delete[] work;
