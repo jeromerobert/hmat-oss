@@ -20,16 +20,24 @@ matrix:
   - os: linux
     compiler: gcc
     env: CMAKE_BUILD_TYPE=Debug BUILD_SHARED_LIBS=OFF
+  - os: linux
+    compiler: i686-w64-mingw32-g++
+    env: >
+     CMAKE_BUILD_TYPE=Release
+     BUILD_SHARED_LIBS=OFF
+     CROSS=1
+     EXTRA_CMAKE_FLAGS="-DCBLAS_LIBRARIES=/usr/lib/libblas.so -DBLAS_LIBRARIES=/usr/lib/libblas.so -DLAPACK_LIBRARIES=/usr/lib/libblas.so -DCMAKE_TOOLCHAIN_FILE=../CMake/toolchain-i686-w64-mingw32.cmake -DBUILD_EXAMPLES=OFF"
 
 before_install:
  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; brew tap homebrew/science; else sudo apt-get update -qq; fi
- - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install openblas; else sudo apt-get install -qq libblas-dev; fi
+ - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install openblas; else sudo apt-get install -qq libblas-dev gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686; fi
 
 before_script:
   - mkdir build
   - cd build
 
 script:
+  - if [ "$CROSS" ]; then ln -s /usr/include/cblas.h; fi
   - cmake -DBUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE $EXTRA_CMAKE_FLAGS ..
   - make VERBOSE=1
-  - make test
+  - if [ -z "$CROSS" ]; then make test; fi
