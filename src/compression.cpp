@@ -48,7 +48,7 @@
 # ifndef __INTEL_COMPILER
 #  define isnan _isnan
 # endif
-#elif defined(__MINGW32__) || defined(__APPLE__)
+#elif defined(__MINGW32__) || defined(__APPLE__) || __cplusplus > 201100L
 using std::isnan;
 #endif
 
