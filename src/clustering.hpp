@@ -37,6 +37,7 @@ namespace hmat {
 class ClusterTree;
 class DofCoordinates;
 class ClusteringAlgorithm;
+class AxisAlignedBoundingBox;
 
 class ClusterTreeBuilder {
 public:
@@ -98,6 +99,14 @@ protected:
   int divider_ ;
 };
 
+class AxisAlignClusteringAlgorithm : public ClusteringAlgorithm {
+protected:
+  void sortByDimension(ClusterTree& node, int dim) const;
+  virtual AxisAlignedBoundingBox* getAxisAlignedBoundingbox(const ClusterTree& node) const;
+  int largestDimension(const ClusterTree& node) const;
+  double volume(const ClusterTree& node) const;
+  void sort(ClusterTree& current, int axisIndex, int spatialDimension) const;
+};
 
 /*! \brief Creating tree by geometric binary division according to
             the largest dimension.
@@ -111,11 +120,11 @@ protected:
     If optional argument axisIndex is set, cyclic splitting is performed
     instead, and this argument is the first axis index.
  */
-class GeometricBisectionAlgorithm : public ClusteringAlgorithm
+class GeometricBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
   explicit GeometricBisectionAlgorithm(int axisIndex = -1)
-    : ClusteringAlgorithm(), axisIndex_(axisIndex), spatialDimension_(-1) {}
+    : AxisAlignClusteringAlgorithm(), axisIndex_(axisIndex), spatialDimension_(-1) {}
 
   ClusteringAlgorithm* clone() const { return new GeometricBisectionAlgorithm(*this); }
   std::string str() const { return "GeometricBisectionAlgorithm"; }
@@ -141,11 +150,11 @@ private:
 
   The bounding boxes of the children are resized to the necessary size.
  */
-class MedianBisectionAlgorithm : public ClusteringAlgorithm
+class MedianBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
   explicit MedianBisectionAlgorithm(int axisIndex = -1)
-    : ClusteringAlgorithm(), axisIndex_(axisIndex), spatialDimension_(-1) {}
+    : AxisAlignClusteringAlgorithm(), axisIndex_(axisIndex), spatialDimension_(-1) {}
 
   ClusteringAlgorithm* clone() const { return new MedianBisectionAlgorithm(*this); }
   std::string str() const { return "MedianBisectionAlgorithm"; }
@@ -165,11 +174,11 @@ private:
   is larger than a given threshold, this splitting is discarded and replaced by
   a GeometricBisectionAlgorithm instead.
  */
-class HybridBisectionAlgorithm : public ClusteringAlgorithm
+class HybridBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
   explicit HybridBisectionAlgorithm(double thresholdRatio = 0.8)
-    : ClusteringAlgorithm()
+    : AxisAlignClusteringAlgorithm()
     , geometricAlgorithm_(0)
     , medianAlgorithm_(0)
     , thresholdRatio_(thresholdRatio)
@@ -187,11 +196,11 @@ private:
   const double thresholdRatio_;
 };
 
-class VoidClusteringAlgorithm : public ClusteringAlgorithm
+class VoidClusteringAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
   explicit VoidClusteringAlgorithm(const ClusteringAlgorithm &algo)
-    : ClusteringAlgorithm(), algo_(algo.clone()) {}
+    : AxisAlignClusteringAlgorithm(), algo_(algo.clone()) {}
 
   ClusteringAlgorithm* clone() const { return new VoidClusteringAlgorithm(*this); }
   std::string str() const { return "VoidClusteringAlgorithm"; }

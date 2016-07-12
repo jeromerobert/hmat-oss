@@ -54,30 +54,38 @@ public:
   }
 };
 
-void sortByDimension(hmat::ClusterTree& node, int dim)
+}
+
+namespace hmat {
+
+void
+AxisAlignClusteringAlgorithm::sortByDimension(ClusterTree& node, int dim)
+const
 {
   int* myIndices = node.data.indices() + node.data.offset();
   std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator(dim, node.data));
 }
 
-hmat::AxisAlignedBoundingBox*
-getAxisAlignedBoundingbox(const hmat::ClusterTree& node)
+AxisAlignedBoundingBox*
+AxisAlignClusteringAlgorithm::getAxisAlignedBoundingbox(const ClusterTree& node)
+const
 {
-  hmat::AxisAlignedBoundingBox* bbox = static_cast<hmat::AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
+  AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
   if (bbox == NULL)
   {
-    bbox = new hmat::AxisAlignedBoundingBox(node.data);
+    bbox = new AxisAlignedBoundingBox(node.data);
     node.clusteringAlgoData_ = bbox;
   }
   return bbox;
 }
 
 int
-largestDimension(const hmat::ClusterTree& node)
+AxisAlignClusteringAlgorithm::largestDimension(const ClusterTree& node)
+const
 {
   int maxDim = -1;
   double maxSize = -1.0;
-  hmat::AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
+  AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
   const int dimension = node.data.coordinates()->dimension();
   for (int i = 0; i < dimension; i++) {
     double size = (bbox->bbMax[i] - bbox->bbMin[i]);
@@ -90,9 +98,10 @@ largestDimension(const hmat::ClusterTree& node)
 }
 
 double
-volume(const hmat::ClusterTree& node)
+AxisAlignClusteringAlgorithm::volume(const ClusterTree& node)
+const
 {
-  hmat::AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
+  AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
   double result = 1.;
   const int dimension = node.data.coordinates()->dimension();
   for (int dim = 0; dim < dimension; dim++) {
@@ -101,10 +110,20 @@ volume(const hmat::ClusterTree& node)
   return result;
 }
 
-}  // End of anonymous namespace
-
-
-namespace hmat {
+void
+AxisAlignClusteringAlgorithm::sort(ClusterTree& current, int axisIndex, int spatialDimension)
+const
+{
+  int dim;
+  if (axisIndex < 0) {
+    dim = largestDimension(current);
+  } else {
+    if (spatialDimension < 0)
+      spatialDimension = current.data.coordinates()->dimension();
+    dim = ((axisIndex + current.depth) % spatialDimension);
+  }
+  sortByDimension(current, dim);
+}
 
 void
 ClusteringAlgorithm::setMaxLeafSize(int maxLeafSize)
@@ -146,7 +165,7 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
     dim = ((axisIndex_ + current.depth) % spatialDimension_);
   }
   sortByDimension(current, dim);
-  AxisAlignedBoundingBox* bbox = new AxisAlignedBoundingBox(current.data);
+  AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(current);
   current.clusteringAlgoData_ = bbox;
 
   double middle = .5 * (bbox->bbMin[dim] + bbox->bbMax[dim]);
@@ -190,23 +209,14 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
 void
 GeometricBisectionAlgorithm::clean(ClusterTree& current) const
 {
-  AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
-  delete bbox;
+  delete static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
   current.clusteringAlgoData_ = NULL;
 }
 
 void
 MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
 {
-  int dim;
-  if (axisIndex_ < 0) {
-    dim = largestDimension(current);
-  } else {
-    if (spatialDimension_ < 0)
-      spatialDimension_ = current.data.coordinates()->dimension();
-    dim = ((axisIndex_ + current.depth) % spatialDimension_);
-  }
-  sortByDimension(current, dim);
+  sort(current, axisIndex_, spatialDimension_);
   int previousIndex = 0;
   // Loop on 'divider_' = the number of children created
   for (int i=1 ; i<divider_ ; i++) {
@@ -248,8 +258,7 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
 void
 MedianBisectionAlgorithm::clean(ClusterTree& current) const
 {
-  AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
-  delete bbox;
+  delete static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
   current.clusteringAlgoData_ = NULL;
 }
 
@@ -393,4 +402,3 @@ ClusterTreeBuilder::divide_recursive(ClusterTree& current) const
 }
 
 }  // end namespace hmat
-
