@@ -614,6 +614,16 @@ template<> inline double real(const hmat::Z_t x) {
 template<typename T> inline double real(const T x) {
   return x;
 }
+template<typename T> double imag(const T x);
+template<> inline double imag(const hmat::C_t x) {
+  return x.imag();
+}
+template<> inline double imag(const hmat::Z_t x) {
+  return x.imag();
+}
+template<typename T> inline double imag(const T x) {
+  return 0;
+}
 
 }  // end namespace hmat
 

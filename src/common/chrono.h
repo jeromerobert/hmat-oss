@@ -84,4 +84,7 @@ inline static Time now() {
 inline static int64_t time_diff_in_nanos(Time tick, Time tock) {
   return (tock.tv_sec - tick.tv_sec) * 1000000000 + (tock.tv_nsec - tick.tv_nsec);
 }
+inline static double time_diff(Time start, Time end) {
+  return end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) * 1e-9 ;
+}
 #endif
