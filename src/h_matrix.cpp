@@ -818,12 +818,13 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         tmpMatrix->temporary=true;
         if(this->isRkMatrix()) {
             tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(rows, cols)));
-            tmpMatrix->rows_ = rows_->slice(rows->offset(), rows->size());
-            tmpMatrix->cols_ = cols_->slice(cols->offset(), cols->size());
         } else {
-            //TODO not yet implemented but will happen
-            HMAT_ASSERT(false);
+          int rowsOffset = rows->offset() - this->rows()->offset();
+          int colsOffset = cols->offset() - this->cols()->offset();
+          tmpMatrix->full(new FullMatrix<T>(this->full()->m + rowsOffset + this->full()->lda * colsOffset, rows->size(), cols->size(), this->full()->lda));
         }
+        tmpMatrix->rows_ = rows_->slice(rows->offset(), rows->size());
+        tmpMatrix->cols_ = cols_->slice(cols->offset(), cols->size());
         return tmpMatrix;
     } else {
         //TODO not yet implemented but should not happen
@@ -1037,7 +1038,41 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         rank_ = rk()->rank();
         return;
     }
+    if ( (this->isLeaf() && !a->isLeaf() && !b->isLeaf()) || nrChildRow() > b->nrChildRow() || nrChildCol() > b->nrChildCol() || nrChildRow() > a->nrChildRow() || nrChildCol() > a->nrChildCol() ) {
+      char tA = transA, tB = transB;
+        for (int i = 0; i < (tA=='N' ? a->nrChildRow() : a->nrChildCol()) ; i++) {
+          for (int j = 0; j < (tB=='N' ? b->nrChildCol() : b->nrChildRow()) ; j++) {
+            for (int k = 0; k < (tA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
+              // childA states :
+              // if A is symmetric and childA_ik is NULL
+              // then childA_ki^T is used and transA is changed accordingly.
+              // However A may be triangular( upper/lower ) so childA_ik is NULL
+              // and must be taken as 0.
+              const HMatrix<T>* childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
+              const HMatrix<T>* childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
+              if (!childA && (a->isTriUpper || a->isTriLower)) {
+                assert(*a->rows() == *a->cols());
+                continue;
+              }
+              if (!childB && (b->isTriUpper || b->isTriLower)) {
+                assert(*b->rows() == *b->cols());
+                continue;
+              }
 
+              if (!childA) {
+                tA = (tA == 'N' ? 'T' : 'N');
+                childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
+              }
+              if (!childB) {
+                tB = (tB == 'N' ? 'T' : 'N');
+                childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
+              }
+              gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
+            }
+          }
+        }
+        return;
+    }
     // The resulting matrix is a full matrix
     FullMatrix<T>* fullMat;
     if (a->isRkMatrix() || b->isRkMatrix()) {
@@ -1052,7 +1087,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     } else if(a->isLeaf() || b->isLeaf()){
         fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
     } else {
-        // TODO not yet implemented
+        // TODO not yet implemented but should not happen
         HMAT_ASSERT(false);
     }
     if(isFullMatrix()) {
