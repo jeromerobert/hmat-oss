@@ -274,6 +274,7 @@ public:
   /** Return an approximation of the Frobenius norm of this.
    */
   double norm() const;
+  void eval(FullMatrix<T>* result, bool renumber = true) const;
   /** this <- alpha * this
    */
   void scale(T alpha);
