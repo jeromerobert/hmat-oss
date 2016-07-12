@@ -179,6 +179,18 @@ template<typename T> void FullMatrix<T>::clear() {
   }
 }
 
+template<typename T> size_t FullMatrix<T>::storedZeros() {
+  size_t result = 0;
+  for (int col = 0; col < cols; col++) {
+    for (int row = 0; row < rows; row++) {
+      if (std::abs(get(row, col)) < 1e-16) {
+        result++;
+      }
+    }
+  }
+  return result;
+}
+
 template<typename T> void FullMatrix<T>::scale(T alpha) {
   increment_flops(Multipliers<T>::mul * ((size_t) rows) * cols);
   if (lda == rows) {
@@ -912,4 +924,3 @@ template class Vector<C_t>;
 template class Vector<Z_t>;
 
 }  // end namespace hmat
-

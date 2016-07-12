@@ -270,6 +270,8 @@ void hmat_delete_admissibility(hmat_admissibility_t * cond);
 /** Information on the HMatrix */
 typedef struct
 {
+  /*! Number of allocated zeros */
+  int full_zeros;
   /* ! Total number of terms stored in the full leaves of the HMatrix */
   size_t full_size;
 

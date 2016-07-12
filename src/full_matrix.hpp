@@ -103,6 +103,9 @@ public:
   /** This <- 0.
    */
   void clear();
+  /** \brief Returns number of allocated zeros
+   */
+  size_t storedZeros();
   /** \brief this *= alpha.
 
       \param alpha The scaling factor.
