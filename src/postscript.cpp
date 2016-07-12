@@ -31,17 +31,19 @@ using namespace hmat;
 
 static double writeHeader(ofstream & file, int maxDim)
 {
+    file << "%!PS-Adobe-" << endl;
+    file << "%%BoundingBox: " << 0 << " " << 0 << " " << 615 << " " << 615 << endl;
     file << "%!" << endl << "% Fichier postscript representant une matrice"
          << endl;
     file << "/redrectangle {" << endl
          << "        newpath" << endl
+         << "        setrgbcolor" << endl
          << "        moveto" << endl
          << "        rlineto" << endl
          << "        rlineto" << endl
          << "        rlineto" << endl
          << "        rlineto" << endl
          << "        closepath" << endl
-         << "        1 0 0 setrgbcolor" << endl
          << "        fill"  << endl
          << "} def"  << endl
          << "/greenrectangle {" << endl
@@ -183,12 +185,21 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
             f << startX << " " << startY + (lengthY * .95) << " " << .7 * std::min(lengthX, - lengthY)
               << " (" << m->rank() << ") showrank" << endl;
         } else if (m->isFullMatrix()) {
+            int zeros = m->full()->storedZeros();
+            double ratio = zeros / ((double) m->full()->rows * m->full()->cols);
+            double color = min(1-(1-ratio)*5,0.35);
             f << 0 << " "<< -lengthY << " "
               << -lengthX << " " << 0 << " "
               << 0 << " " << lengthY << " "
               << lengthX << " " << 0 << " "
               << startX << " " << startY;
+            if (ratio < 0.8)
+              f << " " << max((0.2+ratio),0.6) << " 0 0";
+            else
+              f << " " << "1 " << color << " " << color;
             f << " redrectangle" << endl;
+            f << startX + 10 - depth << " " << startY + (lengthY * .85) << " " << .7 * min(-lengthY,lengthX)
+            << " (" << (int) (100 * (1-ratio)) << ") showrank" << endl;
         }
     } else if(cross){ /* true pour une hmat, !(handle->position == kAboveL0) pour une HMatrixHandle */
         int n = m->rows()->coordinates()->size();
