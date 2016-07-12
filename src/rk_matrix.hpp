@@ -127,6 +127,9 @@ public:
        \return pointer to a new matrix with subRows and subCols.
    */
   const RkMatrix* subset(const IndexSet* subRows, const IndexSet* subCols) const;
+  /** \brief Returns number of allocated zeros
+   */
+  size_t storedZeros();
   /** Returns the compression ratio (stored_elements, total_elements).
    */
   size_t compressedSize();
