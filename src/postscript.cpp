@@ -129,7 +129,7 @@ void PostscriptDumper<T>::write(const void * tree, const std::string& filename) 
     ofstream file;
     file.open(filename.c_str());
     const HMatrix<T> * m = castToHMatrix(tree);
-    double scale = writeHeader(file, max(m->rows()->size(), m->cols()->size()));
+    writeHeader(file, max(m->rows()->size(), m->cols()->size()));
     recursiveDrawing(tree, file, 0);
     file << "showpage" << endl;
 }

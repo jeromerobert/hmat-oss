@@ -105,6 +105,13 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
    set(HMAT_32BITS TRUE)
 endif()
 
+# Warning flags
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-sign-compare -Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
+  SET(CMAKE_C_FLAGS "-Werror -Wall -Wno-sign-compare ${CMAKE_C_FLAGS}")
+endif()
+
 # ========================
 # SYSTEM & EXTERNAL LIBS
 # ========================
