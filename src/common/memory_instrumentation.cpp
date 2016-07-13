@@ -40,6 +40,7 @@ static int write_sampling;
 
 namespace hmat {
 
+#ifdef __GLIBC__
 static size_t get_res_mem(void *)
 {
     size_t resident = 0;
@@ -50,6 +51,7 @@ static size_t get_res_mem(void *)
 #endif
     return resident * 4096;
 }
+#endif
 
 MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
     char * ws = getenv("HMAT_MEMINSTR_WS");
