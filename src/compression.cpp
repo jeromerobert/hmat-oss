@@ -50,7 +50,7 @@
 # endif
 #elif __GLIBC__ == 2 && __GLIBC_MINOR__ < 23
 // https://sourceware.org/bugzilla/show_bug.cgi?id=19439
-#elif __cplusplus > 201103L || __APPLE__
+#elif __cplusplus > 201103L || !defined(__GLIBC__)
 using std::isnan;
 #endif
 
