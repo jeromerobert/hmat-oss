@@ -108,13 +108,8 @@ endif()
 # Warning flags
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-unused-result -Wno-sign-compare ${CMAKE_CXX_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
   SET(CMAKE_C_FLAGS "-Werror -Wall -Wno-sign-compare ${CMAKE_C_FLAGS}")
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag("-Wno-literal-suffix" no_literal_suffix_flag)
-  if(no_literal_suffix_flag)
-    SET(CMAKE_CXX_FLAGS "-Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
-  endif()
 endif()
 
 # ========================
