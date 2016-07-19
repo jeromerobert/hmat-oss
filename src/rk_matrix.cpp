@@ -32,6 +32,8 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 
+using namespace std;
+
 namespace hmat {
 
 /** RkApproximationControl */
@@ -670,29 +672,33 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   // Indeed, this is ugly...
   while (!ha->isLeaf())
   {
-    if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
-    {
-      ha = ha->get(1, 1);
-      continue;
-    }
-    if (ha->get(1, 1) && ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
-    {
-      ha = ha->get(0, 0);
-      continue;
+    if (ha->nrChild() >= 4) {
+      if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
+      {
+        ha = ha->get(1, 1);
+        continue;
+      }
+      if (ha->get(1, 1) && ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
+      {
+        ha = ha->get(0, 0);
+        continue;
+      }
     }
     break;
   }
   while (!hb->isLeaf())
   {
-    if (hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
-    {
-      hb = hb->get(1, 1);
-      continue;
-    }
-    if (hb->get(1, 1) && hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
-    {
-      hb = hb->get(0, 0);
-      continue;
+    if (hb->nrChild() >= 4) {
+      if (hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
+      {
+        hb = hb->get(1, 1);
+        continue;
+      }
+      if (hb->get(1, 1) && hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
+      {
+        hb = hb->get(0, 0);
+        continue;
+      }
     }
     break;
   }
@@ -700,14 +706,18 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   if (ha->rows()->size() == 0 || ha->cols()->size() == 0 || hb->rows()->size() == 0 || hb->cols()->size() == 0) return;
 
   if (!(ha->isLeaf() || hb->isLeaf())) {
+    int nbColsA = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Col blocks of A */
+    int nbRowsB = transHA == 'N' ? hb->nrChildRow() : ha->nrChildCol() ; /* Row blocks of B */
     int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
     int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
     int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
     RkMatrix<T>* subRks[nbRows * nbCols];
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
-        const IndexSet* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
-        const IndexSet* subCols = (transHB == 'N' ? hb->get(i, j)->cols() : hb->get(j, i)->rows());
+        int ib = min(i, nbRowsB - 1);
+        int ja = min(j, nbColsA - 1);
+        const IndexSet* subRows = (transHA == 'N' ? ha->get(i, ja)->rows() : ha->get(ja, i)->cols());
+        const IndexSet* subCols = (transHB == 'N' ? hb->get(ib, j)->cols() : hb->get(j, ib)->rows());
         subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
         for (int k = 0; k < nbCom; k++) {
           // C_ij = A_ik * B_kj
@@ -773,4 +783,3 @@ template class RkMatrix<C_t>;
 template class RkMatrix<Z_t>;
 
 }  // end namespace hmat
-

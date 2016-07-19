@@ -136,6 +136,7 @@ void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->max_svd_elements = 5000000;
     p->max_aca_elements = 0;
     p->always = 0;
+    p->separator_force_compression = -1;
 }
 
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {
