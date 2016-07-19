@@ -37,8 +37,9 @@
 
 namespace hmat {
 
-
 class IndexSet {
+// for compatibility with nested dissection structures (offset_ protected)
+friend class BinaryNestedDissectionAlgorithm;
 public:
   IndexSet() : offset_(-1), size_(0) {}
   IndexSet(int offset, int size) : offset_(offset), size_(size) {}
