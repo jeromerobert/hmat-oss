@@ -1639,11 +1639,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
           return;
         }
         assert(b->isRkMatrix());
-        HMatrix<T> * tmp;
-        if(*cols() == *b->rows())
-            tmp = b;
-        else
-            tmp = b->subset(this->cols(), b->cols());
+        HMatrix<T> * tmp = b->subset(this->cols(), b->cols());
         this->solveLowerTriangularLeft(tmp->rk()->a, unitriangular);
         if(tmp != b)
             delete tmp;
