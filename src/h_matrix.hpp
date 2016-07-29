@@ -569,7 +569,8 @@ public:
   static double validationErrorThreshold;
   char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
-       admissible:1, temporary:1;
+       admissible:1, temporary:1,
+       ownClusterTree_:1;
   LocalSettings localSettings;
 
   int rank() const {

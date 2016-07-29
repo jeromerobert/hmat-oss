@@ -62,6 +62,10 @@ template<typename T> HMatrix<T>::~HMatrix() {
     delete full_;
     full_ = NULL;
   }
+  if(ownClusterTree_) {
+      delete rows_;
+      delete cols_;
+  }
 }
 
 template<typename T>
@@ -100,7 +104,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), admissible(false), temporary(false),
+    isTriUpper(false), isTriLower(false), admissible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
 {
   admissible = admissibilityCondition->isAdmissible(*(rows_), *(cols_));
@@ -127,8 +131,10 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
-    Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL), rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false),
-    isLower(false), admissible(false), temporary(false), localSettings(settings)
+    Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
+    rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false),
+    isLower(false), admissible(false), temporary(false), ownClusterTree_(false),
+    localSettings(settings)
     {}
 
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withChildren) const {
@@ -818,8 +824,16 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         tmpMatrix->temporary=true;
         if(this->isRkMatrix()) {
             tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(rows, cols)));
-            tmpMatrix->rows_ = rows_->slice(rows->offset(), rows->size());
-            tmpMatrix->cols_ = cols_->slice(cols->offset(), cols->size());
+            ClusterTree * r = rows_->slice(rows->offset(), rows->size());
+            ClusterTree * c = cols_->slice(cols->offset(), cols->size());
+
+            // ensure the cluster tree are properly freed
+            r->father = r;
+            c->father = c;
+            tmpMatrix->ownClusterTree_ = true;
+
+            tmpMatrix->rows_ = r;
+            tmpMatrix->cols_ = c;
         } else {
             //TODO not yet implemented but will happen
             HMAT_ASSERT(false);
