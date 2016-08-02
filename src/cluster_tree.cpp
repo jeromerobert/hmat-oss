@@ -109,6 +109,20 @@ DofData::copy() const
   return result;
 }
 
+void ClusterData::moveDoF(int index, ClusterData* right)
+{
+  HMAT_ASSERT(offset_ + size_ == right->offset_ );
+  HMAT_ASSERT(index >= offset_);
+  HMAT_ASSERT(index < offset_ + size_);
+  // Swap degree of freedom and the last element of this bucket
+  std::swap(indices()[index], indices()[offset_ + size_ - 1]);
+  // Make current index set smaller ...
+  size_ -= 1;
+  // ... and expand right sibling
+  right->offset_ -=  1;
+  right->size_ += 1;
+}
+
 ClusterTree::ClusterTree(const DofData* dofData)
   : Tree<ClusterTree>(NULL)
   , data(dofData)

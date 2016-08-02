@@ -127,6 +127,8 @@ public:
   inline int* indices_rev() const { return dofData_->perm_e2i_; }
   inline const DofCoordinates* coordinates() const { return dofData_->coordinates_; }
   inline int* group_index() const { return dofData_->group_index_; }
+  /*! Move a degree of freedom into its right sibling  */
+  void moveDoF(int index, ClusterData* right);
 
 private:
   const DofData* dofData_;
