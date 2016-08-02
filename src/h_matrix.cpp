@@ -823,7 +823,6 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
         tmpMatrix->temporary=true;
         if(this->isRkMatrix()) {
-            tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(rows, cols)));
             ClusterTree * r = rows_->slice(rows->offset(), rows->size());
             ClusterTree * c = cols_->slice(cols->offset(), cols->size());
 
@@ -834,6 +833,8 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
 
             tmpMatrix->rows_ = r;
             tmpMatrix->cols_ = c;
+            tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(
+                tmpMatrix->rows(), tmpMatrix->cols())));
         } else {
             //TODO not yet implemented but will happen
             HMAT_ASSERT(false);
