@@ -152,6 +152,9 @@ prepare_hmat(int row_start,
              void *user_context,
              hmat_block_info_t * block_info)
 {
+  /* Silence C/C++ compiler warnings */
+  (void) row_count; (void) col_count; (void) row_client2hmat; (void) col_client2hmat;
+
   block_info->user_data = calloc(1, sizeof(block_data_t));
   block_info->release_user_data = free_hmat;
   block_data_t* bdata = (block_data_t*) block_info->user_data;
