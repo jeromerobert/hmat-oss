@@ -105,13 +105,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
    set(HMAT_32BITS TRUE)
 endif()
 
-# Warning flags
-
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
-  SET(CMAKE_C_FLAGS "-Werror -Wall -Wno-sign-compare ${CMAKE_C_FLAGS}")
-endif()
-
 # ========================
 # SYSTEM & EXTERNAL LIBS
 # ========================
@@ -223,6 +216,16 @@ if ((NOT MKL_CBLAS_FOUND) AND (NOT is_debian_openblas))
     endif()
     include_directories(${CBLAS_INCLUDE_DIRS})
 endif ()
+
+# ========================
+# Warning flags
+# ========================
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix" HAVE_GCC_WARNING_FLAGS)
+if(HAVE_GCC_WARNING_FLAGS)
+  SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
+  SET(CMAKE_C_FLAGS "-Werror -Wall -Wno-sign-compare ${CMAKE_C_FLAGS}")
+endif()
 
 # ========================
 # Configuration file
