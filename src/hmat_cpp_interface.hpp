@@ -65,6 +65,7 @@ public:
   bool recompress; ////< Recompress the matrix after assembly.
   bool validateCompression; ///< Validate the rk-matrices after compression
   bool validationReRun; ///< For blocks above error threshold, re-run the compression algorithm
+  bool dumpTrace; ///< Dump trace at the end of the algorithms (depends on the runtime)
   bool validationDump; ///< For blocks above error threshold, dump the faulty block to disk
   double validationErrorThreshold; ///< Error threshold for the compression validation
 private:
@@ -76,7 +77,7 @@ private:
                    maxParallelLeaves(5000),
                    coarsening(false),
                    recompress(true), validateCompression(false),
-                   validationReRun(false), validationDump(false), validationErrorThreshold(0.) {
+                   validationReRun(false), dumpTrace(false), validationDump(false), validationErrorThreshold(0.) {
     setParameters();
   }
   // Disable the copy.

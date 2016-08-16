@@ -679,6 +679,8 @@ typedef struct
   int recompress;
   /*! \brief Validate the rk-matrices after compression */
   int validateCompression;
+  /*! \brief Dump trace at the end of the algorithms (depends on the runtime) */
+  int dumpTrace;
   /*! \brief For blocks above error threshold, re-run the compression algorithm */
   int validationReRun;
   /*! \brief For blocks above error threshold, dump the faulty block to disk */
