@@ -110,6 +110,9 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   admissible = admissibilityCondition->isAdmissible(*(rows_), *(cols_));
   if (_rows->isLeaf() || _cols->isLeaf() || admissible) {
     if (admissible) {
+      // 'admissible' is also the criteria to choose Rk or Full.
+      // if (admissible), we create a Rk, otherwise assembly will create a full (see void AssemblyFunction<T>::assemble)
+      // TODO: Implement a separate 'compressibility' criteria
       rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
     }
   } else {
@@ -834,11 +837,13 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
             tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(
                 tmpMatrix->rows(), tmpMatrix->cols())));
         } else {
+            // 'This' is a full matrix
             //TODO not yet implemented but will happen
             HMAT_ASSERT(false);
         }
         return tmpMatrix;
     } else {
+        // 'This' is not a leaf
         //TODO not yet implemented but should not happen
         HMAT_ASSERT(false);
     }
@@ -862,15 +867,16 @@ makeCompatible(bool row_a, bool row_b,
                const HMatrix<T> * in_a, const HMatrix<T> * in_b,
                HMatrix<T> * & out_a, HMatrix<T> * & out_b) {
 
-    // suppose that A is bigger than B
+    // suppose that A is bigger than B: in that case A will change, not B
     const IndexSet * cdb = row_b ? in_b->rows() : in_b->cols();
-    if(row_a)
+    if(row_a) // restrict the rows of in_a to cdb
         out_a = in_a->subset(cdb, in_a->cols());
-    else
+    else // or the cols
         out_a = in_a->subset(in_a->rows(), cdb);
 
-    if(out_a == in_a) { // if a has not changed, b won't change either so we bypass this second step
-        // suppose than B is bigger than A
+    // if A has changed, B won't change so we bypass this second step
+    if(out_a == in_a) {
+        // suppose than B is bigger than A: B will change, not A
         const IndexSet * cda = row_a ? in_a->rows() : in_a->cols();
         if(row_b)
             out_b = in_b->subset(cda, in_b->cols());
@@ -885,7 +891,7 @@ makeCompatible(bool row_a, bool row_b,
  * @brief A GEMM implementation which do not require matrices have compatible
  * cluster tree.
  *
- *  We compute the product alpha.f(a).f(b)+beta.c -> c (with c=this)
+ *  We compute the product alpha.f(a).f(b)+c -> c (with c=this)
  *  f(a)=transpose(a) if transA='T', f(a)=a if transA='N' (idem for b)
  */
 template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
@@ -945,12 +951,14 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
         for (int i = 0; i < nrChildRow(); i++) {
             for (int j = 0; j < nrChildCol(); j++) {
                 HMatrix<T>* child = get(i, j);
-                if (!child) { // symmetric or triangular case
+                if (!child) { // symmetric/triangular case or empty block coming from symbolic factorisation of sparse matrices
                     continue;
                 }
                 // Void child
                 if (child->rows()->size() == 0 || child->cols()->size() == 0) continue;
-                    char tA = transA, tB = transB;
+
+                char tA = transA, tB = transB;
+                // loop on the common dimension of A and B
                 for (int k = 0; k < (tA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
                     // childA states :
                     // if A is symmetric and childA_ik is NULL
@@ -959,6 +967,10 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                     // and must be taken as 0.
                     const HMatrix<T>* childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
                     const HMatrix<T>* childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
+
+
+                    // TODO: update in the sparse case, where we can have NULL child in other circumstances
+
                     if (!childA && (a->isTriUpper || a->isTriLower)) {
                         assert(*a->rows() == *a->cols());
                         continue;
@@ -967,7 +979,8 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                         assert(*b->rows() == *b->cols());
                         continue;
                     }
-
+                    // Handles the case where the matrix is symmetric and we get an element
+                    // on the "wrong" side of the diagonal e.g. isUpper=true and i>k (below the diagonal)
                     if (!childA) {
                         tA = (tA == 'N' ? 'T' : 'N');
                         childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
@@ -981,7 +994,7 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
             }
         }
         return;
-    }
+    } // if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf())
     else
         uncompatibleGemm(transA, transB, alpha, a, b);
 }
@@ -1018,13 +1031,14 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         return;
     }
 
-    // This matrix is not yet initialized but we know it will be a RkMatrix if
-    // a or b is a RkMatrix
-    if((rank_ == UNINITIALIZED_BLOCK && (a->isRkMatrix() || b->isRkMatrix() ||
-        // this choice might be bad if a or b contains lot's of full matrices
-        // but this case should almost never happen
-        (!a->isLeaf() && !b->isLeaf())))
-        ||(isRkMatrix() && rk() == NULL))
+    // We now know that 'this' is a leaf
+    // We treat first the case where it is an Rk matrix
+    // - if it is uninitialized, and a is Rk, or b is Rk, or both are H
+    //   ( this choice might be bad if a or b contains lots of full matrices
+    //     but this case should almost never happen)
+    // - if it is allready Rk
+    if( (rank_ == UNINITIALIZED_BLOCK && ( a->isRkMatrix() || b->isRkMatrix() || (!a->isLeaf() && !b->isLeaf()) ))
+        || (isRkMatrix() && rk() == NULL) )
     {
         rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
     }
@@ -1063,9 +1077,10 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         fullMat = rkMat->eval();
         delete rkMat;
     } else if(a->isLeaf() || b->isLeaf()){
+      // if a or b is a leaf, it is Full (since Rk have been treated before)
         fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
     } else {
-        // TODO not yet implemented
+        // TODO not yet implemented : a, b are H and 'this' is full
         HMAT_ASSERT(false);
     }
     if(isFullMatrix()) {
@@ -1087,16 +1102,17 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if ((transA == 'T') && (transB == 'T')) {
     // This code has *not* been tested because it's currently not used.
     HMAT_ASSERT(false);
-    this->transpose();
-    this->gemm('N', 'N', alpha, b, a, beta);
-    this->transpose();
-    return;
+    //    this->transpose();
+    //    this->gemm('N', 'N', alpha, b, a, beta);
+    //    this->transpose();
+    //    return;
   }
 
+  // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
     // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
     // As Cb = Bb we get
-    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba full matrice
+    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba full matrices
     // We support C and B not compatible (larger) with A so we first slice them
     assert(transB == 'N');
     const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
@@ -1111,7 +1127,14 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     return;
   }
 
+  // This and A are Rk matrices with the same panel 'a' -> the gemm is only applied on the panels 'b'
   if(isRkMatrix() && !isNull() && a->isRkMatrix() && !a->isNull() && rk()->a == a->rk()->a) {
+    // Ca * CbT = beta * Ca * CbT + alpha * Aa * AbT * B
+    // As Ca = Aa we get
+    // CbT = beta * CbT + alpha AbT * B with only Cb and Ab full matrices
+    // we transpose:
+    // Cb = beta * Cb + alpha BT * Ab
+    // We support C and B not compatible (larger) with A so we first slice them
     assert(transA == 'N');
     const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
     const IndexSet * c = transB == 'N' ? b->cols() : b->rows();

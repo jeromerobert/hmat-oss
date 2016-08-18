@@ -295,15 +295,15 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   if (zeroMatrix) {
     return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
   }
-  // In the case of non-square matrix, we don't calculated singular vectors
+  // In the case of non-square matrix, we don't calculate singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
   // necessary here, since k < min (n, p) for M matrix (nxp).
   int rowCount = m->rows;
   int colCount = m->cols;
   FullMatrix<T> *u = NULL, *vt = NULL;
   Vector<double>* sigma = NULL;
-
-  int info = truncatedSvd<T>(m, &u, &sigma, &vt);
+  // TODO compress with something else than SVD
+  int info = truncatedSvd<T>(m, &u, &sigma, &vt); // TODO rename truncatedSvd, since it is NOT truncated.
   HMAT_ASSERT(info == 0);
   // Control of the approximation
 
@@ -327,7 +327,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   delete u;
   delete vt;
   delete sigma;
-  FullMatrix<T>* a = uTilde;
+  FullMatrix<T>* a = uTilde; // TODO : why this copy ?
   return new RkMatrix<T>(a, rows, vTilde, cols, Svd);
 }
 

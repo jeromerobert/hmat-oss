@@ -246,7 +246,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // Ra Rb^t
     myTrmm<T>(&rAFull, b);
     // SVD of Ra Rb^t
-    ierr = truncatedSvd<T>(&rAFull, &u, &sigma, &vt);
+    ierr = truncatedSvd<T>(&rAFull, &u, &sigma, &vt); // TODO use something else than SVD ?
     HMAT_ASSERT(!ierr);
   }
 
@@ -341,6 +341,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>*
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
                                             int n) const {
+  // TODO check if formattedAddParts() actually uses sometimes this 'alpha' parameter (or is it always 1 ?)
   DECLARE_CONTEXT;
   // If only one of the parts is non-zero, then the recompression is not necessary to
   // get exactly the same result.
@@ -389,18 +390,18 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   resultA->clear();
   FullMatrix<T>* resultB = new FullMatrix<T>(cols->size(), kTotal);
   resultB->clear();
-  // Special case if the original matrix is empty.
+  // Special case if the original matrix is not empty.
   if (rank() > 0) {
     resultA->copyMatrixAtOffset(a, 0, 0);
     resultB->copyMatrixAtOffset(b, 0, 0);
   }
   // According to the indices organization, the sub-matrices are
   // contiguous blocks in the "big" matrix whose columns offset is
-  //      this-> k + parts [0] -> k + ... + parts [i - 1] -> k
-  // and rows offset is
-  //   parts [i] -> rows-> offset - rows-> offset
-  // for rows, and size
-  //      parts [i] -> rows-> nx parts [i] -> k (rows x columns)
+  //      kOffset = this->k + parts[0]->k + ... + parts[i-1]->k
+  // rows offset is
+  //   parts[i]->rows->offset - rows->offset
+  // rows size
+  //      parts[i]->rows->size x parts[i]->k (rows x columns)
   // Same for columns.
   int kOffset = rank();
   for (int i = 0; i < n; i++) {
@@ -411,7 +412,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
       continue;
     }
     resultA->copyMatrixAtOffset(parts[i]->a, rowOffset, kOffset);
-    // Scaling the matrix already in place
+    // Scaling the matrix already in place inside resultA
     if (alpha[i] != Constants<T>::pone) {
       FullMatrix<T> tmp(resultA->m + rowOffset + ((size_t) kOffset) * resultA->lda,
                         parts[i]->a->rows, parts[i]->a->cols, resultA->lda);
@@ -435,6 +436,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** part
   FullMatrix<T>* me = eval();
   HMAT_ASSERT(me);
 
+  // TODO: here, we convert Rk->Full, Update the Full with parts[], and Full->Rk. We could also
+  // create a new empty Full, update, convert to Rk and add it to 'this'.
   for (int i = 0; i < n; i++) {
     assert(rowsList[i]->isSubset(*rows));
     assert(colsList[i]->isSubset(*cols));
@@ -448,7 +451,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** part
       }
     }
   }
-  RkMatrix<T>* result = compressMatrix(me, rows, cols);
+  RkMatrix<T>* result = compressMatrix(me, rows, cols); // TODO compress with something else than SVD
   delete me;
   return result;
 }
@@ -532,9 +535,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
   const IndexSet* rkRows = ((transRk == 'N')? rk->rows : rk->cols);
 
   // R M = A (M^t B)^t
-  // Size of the HMatrix is n x m, with
-  //   n = h.data.bt->data.first->data.n
-  //   m =h.data.bt->data.second->data.n
+  // Size of the HMatrix is n x m,
   // So H^t size is m x n and the product is m x cols(B)
   // and the number of columns of B is k.
   int p = rk->rank();
@@ -700,6 +701,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   if (ha->rows()->size() == 0 || ha->cols()->size() == 0 || hb->rows()->size() == 0 || hb->cols()->size() == 0) return;
 
   if (!(ha->isLeaf() || hb->isLeaf())) {
+    // Recursion case
     int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
     int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
     int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
