@@ -150,6 +150,13 @@ if(HMAT_JEMALLOC)
     endif()
 endif()
 
+# Context timers
+option(HMAT_CONTEXT "Use context timers." OFF)
+if(HMAT_CONTEXT)
+    message(STATUS "Use context timers")
+    set(HAVE_CONTEXT TRUE)
+endif()
+
 option(USE_DEBIAN_OPENBLAS "On Debian, link to openblas instead of generic blas." ON)
 # BLAS/LAPACK
 if (NOT MKL_FOUND)

@@ -57,3 +57,5 @@
 #cmakedefine HMAT_32BITS
 
 #cmakedefine HAVE_JEMALLOC
+
+#cmakedefine HAVE_CONTEXT
