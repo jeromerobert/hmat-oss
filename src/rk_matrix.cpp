@@ -254,6 +254,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   int newK = approx.findK(sigma->v, rank(), epsilon);
   if (newK == 0)
   {
+    delete u;
+    delete vt;
+    delete sigma;
+    free(tauA);
+    free(tauB);
     delete a;
     a = NULL;
     delete b;

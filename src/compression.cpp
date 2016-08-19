@@ -311,7 +311,12 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   int k = RkMatrix<T>::approx.findK(sigma->v, maxK, RkMatrix<T>::approx.assemblyEpsilon);
 
   if(k == 0)
+  {
+    delete u;
+    delete vt;
+    delete sigma;
     return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+  }
 
   for (int col = 0; col < k; col++) {
     for (int row = 0; row < rowCount; row++) {
