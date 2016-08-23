@@ -136,7 +136,7 @@ Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
 
 template<typename T, template<typename> class E> struct Configuration
 {
-    void configure(HMatInterface<T,E> & hmat){}
+    void configure(HMatInterface<T,E> &){}
 };
 
 hmat::StandardAdmissibilityCondition admissibilityCondition(3.);
