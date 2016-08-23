@@ -123,9 +123,9 @@ public:
   */
   virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
                             hmat_block_info_t * block_info, const AllocationObserver &) const;
-  /*! \brief Release a block prepared with \a AssemblyFunction::releaseBlock().
+  /*! \brief Release a block prepared with \a AssemblyFunction::prepareBlock().
 
-    \param handle the handle passed to \a AssemblyFunction::releaseBlock().
+    \param handle the handle passed to \a AssemblyFunction::prepareBlock().
   */
   virtual void releaseBlock(hmat_block_info_t *, const AllocationObserver &) const {}
 
