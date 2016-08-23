@@ -70,11 +70,12 @@ HMatInterface<T, E>::HMatInterface(HMatrix<T>* h) :
 {}
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::assemble(Assembly<T>& f, SymmetryFlag sym, bool , hmat_progress_t * progress) {
+void HMatInterface<T, E>::assemble(Assembly<T>& f, SymmetryFlag sym, bool,
+                                   hmat_progress_t * progress, bool ownAssembly) {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   engine_.progress(progress);
-  engine_.assembly(f, sym);
+  engine_.assembly(f, sym, ownAssembly);
 }
 
 template<typename T, template <typename> class E>

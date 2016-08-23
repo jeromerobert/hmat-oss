@@ -194,9 +194,11 @@ public:
       @param sym If kLowerSymmetric, compute only the lower triangular matrix, and transpose
                  block to store upper counterpart.
       @param s: deprecated parameter
+      @param ownAssembly true if &f should be deleted by the assemble function
    */
   void assemble(Assembly<T>& f, SymmetryFlag sym, bool s = true,
-                hmat_progress_t * progress = DefaultProgress::getInstance());
+                hmat_progress_t * progress = DefaultProgress::getInstance(),
+                bool ownAssembly=false);
 
   /** Compute a \f$LU\f$ or \f$LDL^T\f$ decomposition of the HMatrix, in place.
 

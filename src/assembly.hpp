@@ -62,6 +62,7 @@ public:
                           bool admissible,
                           FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
                           const AllocationObserver & = AllocationObserver()) = 0;
+    virtual ~Assembly(){};
 };
 
 /**
