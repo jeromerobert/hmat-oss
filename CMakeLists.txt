@@ -356,9 +356,9 @@ hmat_add_example(c-cholesky c-cholesky.c)
 
 if (BUILD_EXAMPLES)
   enable_testing ()
-  add_test (NAME cholesky COMMAND c-cholesky 1000 S)
-  add_test (NAME cylinder COMMAND c-cylinder 1000 Z)
-  add_test (NAME simple-cylinder COMMAND c-simple-cylinder 1000 Z)
+  add_test (NAME cholesky COMMAND ${HMAT_PREFIX_EXAMPLE}c-cholesky 1000 S)
+  add_test (NAME cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-cylinder 1000 Z)
+  add_test (NAME simple-cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-simple-cylinder 1000 Z)
 endif ()
 
 install(DIRECTORY include/hmat DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT Development)
