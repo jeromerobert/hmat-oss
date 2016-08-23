@@ -193,9 +193,8 @@ public:
       @param f The assembly function used to compute various matrix sub-parts
       @param sym If kLowerSymmetric, compute only the lower triangular matrix, and transpose
                  block to store upper counterpart.
-      @param synchronize
    */
-  void assemble(Assembly<T>& f, SymmetryFlag sym, bool synchronize=true,
+  void assemble(Assembly<T>& f, SymmetryFlag sym,
                 hmat_progress_t * progress = DefaultProgress::getInstance());
 
   /** Compute a \f$LU\f$ or \f$LDL^T\f$ decomposition of the HMatrix, in place.
