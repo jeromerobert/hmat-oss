@@ -152,7 +152,7 @@ void go(const DofCoordinates& coord, double k) {
     HMatInterface<T, E> hmat(ct, ct, kNotSymmetric, &admissibilityCondition);
     std::cout << "HMatrix node count = " << hmat.nodesCount() << std::endl;
     Configuration<T, E>().configure(hmat);
-    hmat.assemble(f, kNotSymmetric, false);
+    hmat.assemble(f, kNotSymmetric);
     hmat.factorize(hmat_factorization_lu);
     hmat_info_t info;
     hmat.info(info);
