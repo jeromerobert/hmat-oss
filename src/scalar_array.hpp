@@ -28,7 +28,6 @@
 #include <cstddef>
 
 #include "data_types.hpp"
-#include "h_matrix.hpp"
 
 namespace hmat {
 
@@ -102,7 +101,7 @@ public:
   ScalarArray<T>* copy(ScalarArray<T>* result = NULL) const;
   /** \brief Return a new matrix that is a transposed version of this.
    */
-  ScalarArray<T>* copyAndTranspose() const;
+  ScalarArray<T>* copyAndTranspose(ScalarArray<T>* result = NULL) const;
   /** this = alpha * op(A) * op(B) + beta * this
 
       Standard "GEMM" call, as in BLAS.

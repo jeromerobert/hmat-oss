@@ -242,20 +242,20 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
 
 
   // Allocate free space for U, S, V
-  int rows = m->rows;
-  int cols = m->cols;
+  int rows = m->rows();
+  int cols = m->cols();
   int p = min(rows, cols);
 
   *u = FullMatrix<T>::Zero(rows, p);
   *sigma = Vector<double>::Zero(p);
   *vt = FullMatrix<T>::Zero(p, cols);
 
-  assert(m->lda >= m->rows);
+  assert(m->data.lda >= m->rows());
 
   char jobz = 'S';
   int mm = rows;
   int n = cols;
-  T* a = m->m;
+  T* a = m->data.m;
   int lda = rows;
   int info;
 
@@ -270,8 +270,8 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->m, (*u)->m,
-                    (*u)->lda, (*vt)->m, (*vt)->lda);
+  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->m, (*u)->data.m,
+                    (*u)->data.lda, (*vt)->data.m, (*vt)->data.lda);
   HMAT_ASSERT_MSG(!info, "Error in ?gesdd, info=%d", info);
   return info;
 }
@@ -283,20 +283,20 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
       return truncatedSdd(m, u, sigma, vt);
 
   // Allocate free space for U, S, V
-  int rows = m->rows;
-  int cols = m->cols;
+  int rows = m->rows();
+  int cols = m->cols();
   int p = min(rows, cols);
 
   *u = FullMatrix<T>::Zero(rows, p);
   *sigma = Vector<double>::Zero(p);
   *vt = FullMatrix<T>::Zero(p, cols);
 
-  assert(m->lda >= m->rows);
+  assert(m->data.lda >= m->rows());
 
   char jobz = 'S';
   int mm = rows;
   int n = cols;
-  T* a = m->m;
+  T* a = m->data.m;
   int lda = rows;
   int info;
 
@@ -311,8 +311,8 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = svdCall<T>(jobz, jobz, mm, n, a, lda, (*sigma)->m, (*u)->m,
-                    (*u)->lda, (*vt)->m, (*vt)->lda);
+  info = svdCall<T>(jobz, jobz, mm, n, a, lda, (*sigma)->m, (*u)->data.m,
+                    (*u)->data.lda, (*vt)->data.m, (*vt)->data.lda);
   if (info) {
     cerr << "Erreur dans xGESVD: " << info << endl;
   }
@@ -329,8 +329,8 @@ template int truncatedSvd(FullMatrix<Z_t>* m, FullMatrix<Z_t>** u, Vector<double
 template<typename T> T* qrDecomposition(FullMatrix<T>* m) {
   DECLARE_CONTEXT;
   //  SUBROUTINE DGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
-  int rows = m->rows;
-  int cols = m->cols;
+  int rows = m->rows();
+  int cols = m->cols();
   T* tau = (T*) calloc(min(rows, cols), sizeof(T));
   {
     size_t mm = max(rows, cols);
@@ -343,12 +343,12 @@ template<typename T> T* qrDecomposition(FullMatrix<T>* m) {
   int workSize;
   T workSize_S;
   // int info = LAPACKE_sgeqrf(LAPACK_COL_MAJOR, rows, cols, m->m, rows, *tau);
-  info = proxy_lapack::geqrf(rows, cols, m->m, rows, tau, &workSize_S, -1);
+  info = proxy_lapack::geqrf(rows, cols, m->data.m, rows, tau, &workSize_S, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_S) + 1;
   T* work = new T[workSize];// TODO Mettre dans la pile ??
   HMAT_ASSERT(work) ;
-  info = proxy_lapack::geqrf(rows, cols, m->m, rows, tau, work, workSize);
+  info = proxy_lapack::geqrf(rows, cols, m->data.m, rows, tau, work, workSize);
   delete[] work;
 
   HMAT_ASSERT(!info);
@@ -366,13 +366,13 @@ template Z_t* qrDecomposition<Z_t>(FullMatrix<Z_t>* m);
 template<typename T>
 void myTrmm(FullMatrix<T>* aFull, FullMatrix<T>* bTri) {
   DECLARE_CONTEXT;
-  int mm = aFull->rows;
-  int n = aFull->rows;
+  int mm = aFull->rows();
+  int n = aFull->rows();
   T alpha = Constants<T>::pone;
-  T *aData = bTri->m;
-  int lda = bTri->rows;
-  T *bData = aFull->m;
-  int ldb = aFull->rows;
+  T *aData = bTri->data.m;
+  int lda = bTri->rows();
+  T *bData = aFull->data.m;
+  int ldb = aFull->rows();
   {
     size_t m_ = mm;
     size_t nn = n;
@@ -391,13 +391,13 @@ template void myTrmm(FullMatrix<Z_t>* aFull, FullMatrix<Z_t>* bTri);
 template<typename T>
 int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c) {
   DECLARE_CONTEXT;
-  int m = c->rows;
-  int n = c->cols;
-  int k = qr->cols;
-  T* a = qr->m;
-  assert((side == 'L') ? qr->rows == m : qr->rows == n);
-  int ldq = qr->lda;
-  int ldc = c->lda;
+  int m = c->rows();
+  int n = c->cols();
+  int k = qr->cols();
+  T* a = qr->data.m;
+  assert((side == 'L') ? qr->rows() == m : qr->rows() == n);
+  int ldq = qr->data.lda;
+  int ldc = c->data.lda;
   int info;
   int workSize;
   T workSize_req;
@@ -407,12 +407,12 @@ int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c)
     size_t adds = 2 * _m * _n * _k - _n * _k * _k + _n * _k;
     increment_flops(Multipliers<T>::mul * muls + Multipliers<T>::add * adds);
   }
-  info = proxy_lapack_convenience::or_un_mqr(side, trans, m, n, k, a, ldq, tau, c->m, ldc, &workSize_req, -1);
+  info = proxy_lapack_convenience::or_un_mqr(side, trans, m, n, k, a, ldq, tau, c->data.m, ldc, &workSize_req, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_req) + 1;
   T* work = new T[workSize];
   HMAT_ASSERT(work);
-  info = proxy_lapack_convenience::or_un_mqr(side, trans, m, n, k, a, ldq, tau, c->m, ldc, work, workSize);
+  info = proxy_lapack_convenience::or_un_mqr(side, trans, m, n, k, a, ldq, tau, c->data.m, ldc, work, workSize);
   HMAT_ASSERT(!info);
   delete[] work;
   return 0;

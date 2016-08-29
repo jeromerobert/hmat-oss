@@ -41,8 +41,9 @@ namespace hmat {
   @data_types.hpp.
  */
 template<typename T> class FullMatrix {
-  /*! True if the matrix owns its memory, ie has to free it upon destruction */
-  char ownsMemory:1;
+public:
+  ScalarArray<T> data;
+private:
   /*! Is this matrix upper triangular? */
   char triUpper_:1;
   /*! Is this matrix lower triangular? */
@@ -51,14 +52,6 @@ template<typename T> class FullMatrix {
   FullMatrix(const FullMatrix<T>& o);
 
 public:
-  /// Fortran style pointer (columnwise)
-  T* m;
-  /// Number of rows
-  int rows;
-  /// Number of columns
-  int cols;
-  /*! Leading dimension, as in BLAS */
-  int lda;
   /*! Holds the pivots for the LU decomposition. */
   int* pivots;
   /*! Diagonal in an LDL^t factored matrix */
@@ -99,6 +92,13 @@ public:
 
   bool isTriLower() {
       return triLower_;
+  }
+
+  int rows() const {
+    return data.rows;
+  }
+  int cols() const {
+    return data.cols;
   }
 
   /** This <- 0.
@@ -233,10 +233,10 @@ public:
       There are 2 types to allow matrix modification or not.
    */
   T& get(int i, int j) {
-    return m[i + ((size_t) lda) * j];
+    return data.m[i + ((size_t) data.lda) * j];
   }
   T get(int i, int j) const {
-    return m[i + ((size_t) lda) * j];
+    return data.m[i + ((size_t) data.lda) * j];
   }
   /** Simpler accessors for the diagonal.
 
@@ -259,9 +259,7 @@ public:
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320 x 100] norm=22.34758")
     */
   std::string description() const {
-    std::ostringstream convert;   // stream used for the conversion
-    convert << "FullMatrix [" << rows << " x " << cols << "] norm=" << norm() ;
-    return convert.str();
+    return data.description();
   }
 };
 

@@ -135,7 +135,7 @@ BlockFunction<T>::assemble(const ClusterData* rows,
 
   if (local_block_info.block_type != hmat_block_null) {
     result = FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
-    compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->m);
+    compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->data.m);
   }
 
   if (!block_info)

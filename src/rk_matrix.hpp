@@ -116,7 +116,7 @@ public:
   ~RkMatrix();
 
   int rank() const {
-      return a ? a->cols : 0;
+      return a ? a->cols() : 0;
   }
 
   /**  Gives a pointer to a RkMatrix representing a subset of indices.

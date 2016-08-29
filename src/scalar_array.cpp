@@ -91,7 +91,6 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
   assert(lda >= rows);
 }
 
-// #define POISON_ALLOCATION
 #ifdef POISON_ALLOCATION
 /*! \brief Fill an array with NaNs.
 
@@ -246,12 +245,12 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result
   if(result == NULL)
     result = new ScalarArray<T>(rows, cols);
 
-  if (lda == rows) {
+  if (lda == rows && result->lda == result->rows) {
     size_t size = ((size_t) rows) * cols * sizeof(T);
     memcpy(result->m, m, size);
   } else {
     for (int col = 0; col < cols; col++) {
-      size_t resultOffset = ((size_t) result->rows) * col;
+      size_t resultOffset = ((size_t) result->lda) * col;
       size_t offset = ((size_t) lda) * col;
       memcpy(result->m + resultOffset, m + offset, rows * sizeof(T));
     }
@@ -260,11 +259,11 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result
   return result;
 }
 
-template<typename T> ScalarArray<T>* ScalarArray<T>::copyAndTranspose() const {
-  ScalarArray<T>* result = new ScalarArray<T>(cols, rows);
-  //result->clear();
+template<typename T> ScalarArray<T>* ScalarArray<T>::copyAndTranspose(ScalarArray<T>* result) const {
+  if(result == NULL)
+    result = new ScalarArray<T>(cols, rows);
 #ifdef HAVE_MKL_IMATCOPY
-  if (lda == rows) {
+  if (lda == rows && result->lda == result->rows) {
     proxy_mkl::omatcopy(rows, cols, m, result->m);
   } else {
 #endif
@@ -489,11 +488,13 @@ void Vector<T>::gemv(char trans, T alpha,
   proxy_cblas::gemv(trans, matRows, matCols, alpha, a->m, lda, x->m, 1, beta, this->m, 1);
 }
 
-template<typename T> void Vector<T>::addToMe(const Vector<T>* x) {
+template<typename T>
+void Vector<T>::addToMe(const Vector<T>* x) {
   ScalarArray<T>::axpy(Constants<T>::pone, x);
 }
 
-template<typename T> void Vector<T>::subToMe(const Vector<T>* x) {
+template<typename T>
+void Vector<T>::subToMe(const Vector<T>* x) {
   ScalarArray<T>::axpy(Constants<T>::mone, x);
 }
 

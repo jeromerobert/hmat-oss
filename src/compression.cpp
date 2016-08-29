@@ -159,8 +159,8 @@ template<typename T> static void findMax(FullMatrix<T>* m, int& i, int& j) {
   i = 0;
   j = 0;
   double maxNorm = squaredNorm<T>(m->get(i, j));
-  const int cols = m->cols;
-  const int rows = m->rows;
+  const int cols = m->cols();
+  const int rows = m->rows();
   for (int col = 0; col < cols; col++) {
     for (int row = 0; row < rows; row++) {
       const double norm = squaredNorm<T>(m->get(row, col));
@@ -281,14 +281,14 @@ template<typename T>
 RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
                             const IndexSet* cols) {
   DECLARE_CONTEXT;
-  assert(m->rows == rows->size());
-  assert(m->cols == cols->size());
-  assert(m->lda >= m->rows);
+  assert(m->rows() == rows->size());
+  assert(m->cols() == cols->size());
+  assert(m->data.lda >= m->rows());
 
   //TODO replace with a case with m==NULL
   bool zeroMatrix = true;
-  for (int col = 0; col < m->cols; col++) {
-    Vector<T> v(m->m + ((size_t) m->rows) * col, m->rows);
+  for (int col = 0; col < m->cols(); col++) {
+    Vector<T> v(m->data.m + ((size_t) m->rows()) * col, m->rows());
     zeroMatrix = zeroMatrix && isZero(v);
     if (!zeroMatrix) break;
   }
@@ -298,8 +298,8 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   // In the case of non-square matrix, we don't calculate singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
   // necessary here, since k < min (n, p) for M matrix (nxp).
-  int rowCount = m->rows;
-  int colCount = m->cols;
+  int rowCount = m->rows();
+  int colCount = m->cols();
   FullMatrix<T> *u = NULL, *vt = NULL;
   Vector<double>* sigma = NULL;
   // TODO compress with something else than SVD
@@ -324,9 +324,9 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
     }
   }
 
-  FullMatrix<T> matU(u->m, rowCount, k);
+  FullMatrix<T> matU(u->data.m, rowCount, k);
   FullMatrix<T>* uTilde = matU.copy();
-  FullMatrix<T> matV(vt->m, k, colCount, maxK);
+  FullMatrix<T> matV(vt->data.m, k, colCount, maxK);
   FullMatrix<T>* vTilde = matV.copyAndTranspose();
 
   delete u;
@@ -360,14 +360,14 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
 
   const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
-  int maxK = min(m->rows, m->cols);
+  int maxK = min(m->rows(), m->cols());
   if (RkMatrix<dp_t>::approx.k > 0) {
     maxK = min(maxK, RkMatrix<dp_t>::approx.k);
   }
 
-  FullMatrix<dp_t> tmpA(m->rows, maxK);
+  FullMatrix<dp_t> tmpA(m->rows(), maxK);
   tmpA.clear();
-  FullMatrix<dp_t> tmpB(m->cols, maxK);
+  FullMatrix<dp_t> tmpB(m->cols(), maxK);
   tmpB.clear();
   int nu;
 
@@ -380,28 +380,28 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     }
 
     // Creation of the vectors A_i_nu and B_j_nu
-    memcpy(tmpA.m + nu * tmpA.rows, m->m + j_nu * m->rows,
-           sizeof(dp_t) * tmpA.rows);
-    for (int j = 0; j < m->cols; j++) {
+    memcpy(tmpA.data.m + nu * tmpA.rows(), m->data.m + j_nu * m->rows(),
+           sizeof(dp_t) * tmpA.rows());
+    for (int j = 0; j < m->cols(); j++) {
       tmpB.get(j, nu) = m->get(i_nu, j) / delta;
     }
 
-    proxy_cblas::ger(m->rows, m->cols, Constants<dp_t>::mone, tmpA.m + nu * tmpA.rows, 1, tmpB.m + nu * tmpB.rows, 1, m->m, m->rows);
+    proxy_cblas::ger(m->rows(), m->cols(), Constants<dp_t>::mone, tmpA.data.m + nu * tmpA.rows(), 1, tmpB.data.m + nu * tmpB.rows(), 1, m->data.m, m->rows());
 
     // Update the estimate norm
     // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
     //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <a_l, a_k> <b_l, b_k>))
     //              + ||a_k||^2 ||b_k||^2
     {
-      Vector<dp_t> va_nu(tmpA.m + nu * tmpA.rows, tmpA.rows);
-      Vector<dp_t> vb_nu(tmpB.m + nu * tmpB.rows, tmpB.rows);
-      Vector<dp_t> a_l(tmpA.m, tmpA.rows);
-      Vector<dp_t> b_l(tmpB.m, tmpB.rows);
+      Vector<dp_t> va_nu(tmpA.data.m + nu * tmpA.rows(), tmpA.rows());
+      Vector<dp_t> vb_nu(tmpB.data.m + nu * tmpB.rows(), tmpB.rows());
+      Vector<dp_t> a_l(tmpA.data.m, tmpA.rows());
+      Vector<dp_t> b_l(tmpB.data.m, tmpB.rows());
       // The sum
       double newEstimate = 0.0;
       for (int l = 0; l < nu - 1; l++) {
-        a_l.m = tmpA.m + l * tmpA.rows;
-        b_l.m = tmpB.m + l * tmpB.rows;
+        a_l.m = tmpA.data.m + l * tmpA.rows();
+        b_l.m = tmpB.data.m + l * tmpB.rows();
         newEstimate += hmat::real(Vector<dp_t>::dot(&va_nu, &a_l) * Vector<dp_t>::dot(&vb_nu, &b_l));
       }
       estimateSquaredNorm += 2.0 * newEstimate;
@@ -424,12 +424,12 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaFull);
   }
 
-  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(tmpA.rows, nu);
+  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(tmpA.rows(), nu);
   newA->clear();
-  memcpy(newA->m, tmpA.m, sizeof(dp_t) * tmpA.rows * nu);
-  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(tmpB.rows, nu);
+  memcpy(newA->data.m, tmpA.data.m, sizeof(dp_t) * tmpA.rows() * nu);
+  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(tmpB.rows(), nu);
   newB->clear();
-  memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
+  memcpy(newB->data.m, tmpB.data.m, sizeof(dp_t) * tmpB.rows() * nu);
 
   return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaFull);
 }
@@ -534,13 +534,13 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
   if (k != 0) {
     newA = new FullMatrix<dp_t>(block.rows->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
+      memcpy(newA->data.m + (i * newA->rows()), aCols[i]->m, sizeof(dp_t) * newA->rows());
       delete aCols[i];
       aCols[i] = NULL;
     }
     newB = new FullMatrix<dp_t>(block.cols->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
+      memcpy(newB->data.m + (i * newB->rows()), bCols[i]->m, sizeof(dp_t) * newB->rows());
       delete bCols[i];
       bCols[i] = NULL;
     }
@@ -690,13 +690,13 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   assert(k > 0);
   FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(block.rows->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
+    memcpy(newA->data.m + (i * newA->rows()), aCols[i]->m, sizeof(dp_t) * newA->rows());
     delete aCols[i];
     aCols[i] = NULL;
   }
   FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(block.cols->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
+    memcpy(newB->data.m + (i * newB->rows()), bCols[i]->m, sizeof(dp_t) * newB->rows());
     delete bCols[i];
     bCols[i] = NULL;
   }
@@ -770,7 +770,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
            << "|M|  = " << fullNorm << std::endl
            << "|Rk| = " << approxNorm << std::endl
            << "|M - Rk| / |M| = " << diffNorm / fullNorm << std::endl
-           << "Rank = " << rk->rank() << " / " << min(full->rows, full->cols) << std::endl << std::endl;
+           << "Rank = " << rk->rank() << " / " << min(full->rows(), full->cols()) << std::endl << std::endl;
 
       if (HMatrix<T>::validationReRun) {
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...

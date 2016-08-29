@@ -186,7 +186,7 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
               << " (" << m->rank() << ") showrank" << endl;
         } else if (m->isFullMatrix()) {
             int zeros = m->full()->storedZeros();
-            double ratio = zeros / ((double) m->full()->rows * m->full()->cols);
+            double ratio = zeros / ((double) m->full()->rows() * m->full()->cols());
             double color = min(1-(1-ratio)*5,0.35);
             f << 0 << " "<< -lengthY << " "
               << -lengthX << " " << 0 << " "

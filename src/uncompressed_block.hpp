@@ -149,9 +149,9 @@ template <typename T> class UncompressedBlock:
         int localColOffset = this->colIndexSet_.offset() - matrix().cols()->offset();
         assert(localRowOffset >= 0);
         assert(localColOffset >= 0);
-        T *sa = matrix().full()->m + localRowOffset +
-                ((size_t)matrix().full()->lda) * localColOffset;
-        FullMatrix<T> source(sa, nr, nc, matrix().full()->lda);
+        T *sa = matrix().full()->data.m + localRowOffset +
+                ((size_t)matrix().full()->data.lda) * localColOffset;
+        FullMatrix<T> source(sa, nr, nc, matrix().full()->data.lda);
         target.copyMatrixAtOffset(&source, 0, 0);
     }
 
@@ -163,9 +163,9 @@ template <typename T> class UncompressedBlock:
         int nc = this->colIndexSet_.size();
         int k = matrix().rank();
         FullMatrix<T> result(this->values_, nr, nc, this->ld());
-        T *sa = matrix().rk()->a->m + this->rowIndexSet_.offset() - matrix().rows()->offset();
+        T *sa = matrix().rk()->a->data.m + this->rowIndexSet_.offset() - matrix().rows()->offset();
         FullMatrix<T> a(sa, nr, k, matrix().rows()->size());
-        T *sb = matrix().rk()->b->m + this->colIndexSet_.offset() - matrix().cols()->offset();
+        T *sb = matrix().rk()->b->data.m + this->colIndexSet_.offset() - matrix().cols()->offset();
         FullMatrix<T> b(sb, nc, k, matrix().cols()->size());
         result.gemm('N', 'T', Constants<T>::pone, &a, &b, Constants<T>::zero);
     }

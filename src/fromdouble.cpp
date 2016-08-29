@@ -39,12 +39,12 @@ FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f) {
   if (!f) {
     return NULL;
   }
-  FullMatrix<T>* result = new FullMatrix<T>(f->rows, f->cols);
+  FullMatrix<T>* result = new FullMatrix<T>(f->rows(), f->cols());
   assert(result);
-  assert(f->lda == f->rows);
-  const size_t size = ((size_t) f->rows) * f->cols;
-  T* const r = result->m;
-  const typename Types<T>::dp* m = f->m;
+  assert(f->data.lda == f->rows());
+  const size_t size = ((size_t) f->rows()) * f->cols();
+  T* const r = result->data.m;
+  const typename Types<T>::dp* m = f->data.m;
   for (size_t i = 0; i < size; ++i) {
     r[i] = T(m[i]);
   }
