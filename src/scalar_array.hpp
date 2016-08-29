@@ -64,7 +64,7 @@ public:
       \param _cols Number of cols
       \param lda Leading dimension, as in BLAS
    */
-  ScalarArray(T* _m, int _rows, int _cols=1, int _lda=-1);
+  ScalarArray(T* _m, int _rows, int _cols, int _lda=-1);
   /** \brief Create an empty matrix, filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
@@ -72,7 +72,7 @@ public:
      \param _rows Number of rows
      \param _cols Number of columns
    */
-  ScalarArray(int _rows, int _cols=1);
+  ScalarArray(int _rows, int _cols);
   /** \brief Create a matrix filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
@@ -80,7 +80,7 @@ public:
      \param _rows Number of rows
      \param _cols Number of columns
    */
-  static ScalarArray* Zero(int rows, int cols=1);
+  static ScalarArray<T>* Zero(int rows, int cols);
   ~ScalarArray();
 
   /** This <- 0.
@@ -161,10 +161,10 @@ public:
 
       There are 2 types to allow matrix modification or not.
    */
-  T& get(int i, int j) {
+  inline T& get(int i, int j) {
     return m[i + ((size_t) lda) * j];
   }
-  T get(int i, int j) const {
+  inline T get(int i, int j) const {
     return m[i + ((size_t) lda) * j];
   }
   /*! Check the matrix for the presence of NaN numbers.
@@ -181,7 +181,64 @@ public:
     convert << "ScalarArray [" << rows << " x " << cols << "] norm=" << norm() ;
     return convert.str();
   }
+
 };
+
+  /*! \brief Templated Vector class = a ScalarArray with 1 column
+
+    As for \a ScalarArray, the template parameter is the scalar type.
+   */
+  template<typename T> class Vector : public ScalarArray<T> {
+
+  public:
+    Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
+    Vector(int _rows):ScalarArray<T>(_rows, 1){}
+    //~Vector(){}
+    void gemv(char trans, T alpha, const ScalarArray<T>* a, const Vector<T>* x,
+              T beta);
+    /** \brief this += x
+     */
+    void addToMe(const Vector<T>* x);
+    /** \brief this -= x
+     */
+    void subToMe(const Vector<T>* x);
+    /** L2 norm of the vector.
+     */
+    int absoluteMaxIndex() const;
+    /** Compute the dot product of two \Vector.
+
+        For real-valued vectors, this is the usual dot product. For
+        complex-valued ones, this is defined as:
+           <x, y> = \bar{x}^t \times y
+        as in BLAS
+
+        \warning DOES NOT work with vectors with >INT_MAX elements
+
+        \param x
+        \param y
+        \return <x, y>
+     */
+    static T dot(const Vector<T>* x, const Vector<T>* y);
+    /** \brief Create a vector filled with 0s.
+
+       In this case, the memory is freed when the object is destroyed.
+
+       \param _rows Number of rows
+     */
+    static Vector<T>* Zero(int rows);
+
+    /** Simpler accessors for the vector data.
+     */
+    inline T& operator[](std::size_t i){
+      return this->m[i];
+    }
+    inline const T& operator[] (std::size_t i) const {
+      return this->m[i];
+    }
+  private:
+    /// Disallow the copy
+    Vector<T>(const Vector<T>& o);
+  };
 
 }  // end namespace hmat
 

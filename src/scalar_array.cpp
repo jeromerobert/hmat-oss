@@ -466,10 +466,66 @@ template<> void ScalarArray<Z_t>::checkNan() const {
   checkNanComplex(this);
 }
 
+template<typename T>
+void Vector<T>::gemv(char trans, T alpha,
+                     const ScalarArray<T>* a,
+                     const Vector* x, T beta)
+{
+  assert(this->cols==1);
+  assert(x->cols==1);
+  int matRows = a->rows;
+  int matCols = a->cols;
+  int lda = a->lda;
+  int64_t ops = (Multipliers<T>::add + Multipliers<T>::mul) * ((int64_t) matRows) * matCols;
+  increment_flops(ops);
+
+  if (trans == 'N') {
+    assert(this->rows == a->rows);
+    assert(x->rows == a->cols);
+  } else {
+    assert(this->rows == a->cols);
+    assert(x->rows == a->rows);
+  }
+  proxy_cblas::gemv(trans, matRows, matCols, alpha, a->m, lda, x->m, 1, beta, this->m, 1);
+}
+
+template<typename T> void Vector<T>::addToMe(const Vector<T>* x) {
+  ScalarArray<T>::axpy(Constants<T>::pone, x);
+}
+
+template<typename T> void Vector<T>::subToMe(const Vector<T>* x) {
+  ScalarArray<T>::axpy(Constants<T>::mone, x);
+}
+
+template<typename T>
+T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
+  assert(x->cols == 1);
+  assert(y->cols == 1);
+  assert(x->rows == y->rows);
+  // TODO: Beware of large vectors (>2 billion elements) !
+  return proxy_cblas_convenience::dot_c(x->rows, x->m, 1, y->m, 1);
+}
+
+template<typename T>
+Vector<T>* Vector<T>::Zero(int rows) {
+  return static_cast<Vector<T>*>(ScalarArray<T>::Zero(rows, 1));
+}
+
+template<typename T>
+int Vector<T>::absoluteMaxIndex() const {
+  assert(this->cols == 1);
+  return proxy_cblas::i_amax(this->rows, this->m, 1);
+}
+
 // the classes declaration
 template class ScalarArray<S_t>;
 template class ScalarArray<D_t>;
 template class ScalarArray<C_t>;
 template class ScalarArray<Z_t>;
 
+// the classes declaration
+template class Vector<S_t>;
+template class Vector<D_t>;
+template class Vector<C_t>;
+template class Vector<Z_t>;
 }  // end namespace hmat

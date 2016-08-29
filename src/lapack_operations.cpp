@@ -270,7 +270,7 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
+  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->m, (*u)->m,
                     (*u)->lda, (*vt)->m, (*vt)->lda);
   HMAT_ASSERT_MSG(!info, "Error in ?gesdd, info=%d", info);
   return info;
@@ -311,7 +311,7 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = svdCall<T>(jobz, jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
+  info = svdCall<T>(jobz, jobz, mm, n, a, lda, (*sigma)->m, (*u)->m,
                     (*u)->lda, (*vt)->m, (*vt)->lda);
   if (info) {
     cerr << "Erreur dans xGESVD: " << info << endl;

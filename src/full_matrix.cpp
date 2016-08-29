@@ -175,7 +175,7 @@ template<typename T> void FullMatrix<T>::clear() {
   size_t size = ((size_t) rows) * cols * sizeof(T);
   memset(m, 0, size);
   if (diagonal) {
-    memset(diagonal->v, 0, rows * sizeof(T));
+    memset(diagonal->m, 0, rows * sizeof(T));
   }
 }
 
@@ -221,7 +221,7 @@ template<typename T> void FullMatrix<T>::scale(T alpha) {
     }
   }
   if (diagonal) {
-    proxy_cblas::scal(rows, alpha, diagonal->v, 1);
+    proxy_cblas::scal(rows, alpha, diagonal->m, 1);
   }
 }
 
@@ -281,7 +281,7 @@ template<typename T> FullMatrix<T>* FullMatrix<T>::copy(FullMatrix<T>* result) c
   if (diagonal) {
     if(!result->diagonal)
       result->diagonal = new Vector<T>(rows);
-    memcpy(result->diagonal->v, diagonal->v, rows * sizeof(T));
+    memcpy(result->diagonal->m, diagonal->m, rows * sizeof(T));
   }
   result->triLower_ = triLower_;
   result->triUpper_ = triUpper_;
@@ -334,7 +334,7 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
   assert(left || (this->cols == d->rows));
   assert(!left || (this->rows == d->rows));
 
-  T* diag = d->v;
+  T* diag = d->m;
   {
     const size_t _rows = rows, _cols = cols;
     increment_flops(Multipliers<T>::mul * _rows * _cols);
@@ -345,7 +345,7 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
       // computations of 1 / diag[i].
       diag = (T*) malloc(d->rows * sizeof(T));
       HMAT_ASSERT(diag);
-      memcpy(diag, d->v, d->rows * sizeof(T));
+      memcpy(diag, d->m, d->rows * sizeof(T));
       for (int i = 0; i < d->rows; i++) {
         diag[i] = Constants<T>::pone / diag[i];
       }
@@ -406,7 +406,7 @@ void FullMatrix<T>::ldltDecomposition() {
   }
 
   for(int i = 0; i < n; i++) {
-    diagonal->v[i] = get(i,i);
+    diagonal->m[i] = get(i,i);
     get(i,i) = Constants<T>::pone;
     for (int j = i + 1; j < n; j++)
       get(i,j) = Constants<T>::zero;
@@ -810,103 +810,6 @@ MmapedFullMatrix<T>* MmapedFullMatrix<T>::fromFile(const char* filename) {
 }
 
 
-/** Vector */
-template<typename T> Vector<T>::Vector(T* _v, int _rows)
-  : ownsMemory(false), v(_v), rows(_rows) {}
-
-template<typename T> Vector<T>::Vector(int _rows)
-  : ownsMemory(true), rows(_rows) {
-  size_t size = rows * sizeof(T);
-  v = (T*) calloc(size, 1);
-  MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
-  HMAT_ASSERT(v);
-}
-
-template<typename T> Vector<T>::~Vector() {
-  if (ownsMemory) {
-    size_t size = rows * sizeof(T);
-    free(v);
-    MemoryInstrumenter::instance().free(size, MemoryInstrumenter::FULL_MATRIX);
-  }
-  v = NULL;
-}
-
-template<typename T> Vector<T>* Vector<T>::Zero(int rows) {
-  Vector<T> *result = new Vector<T>(rows);
-  return result;
-}
-
-template<typename T>
-void Vector<T>::gemv(char trans, T alpha,
-                     const FullMatrix<T>* a,
-                     const Vector* x, T beta)
-{
-  int matRows = a->rows;
-  int matCols = a->cols;
-  int lda = matRows;
-  CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
-  int64_t ops = (Multipliers<T>::add + Multipliers<T>::mul) * ((int64_t) matRows) * matCols;
-  increment_flops(ops);
-
-  if (trans == 'N') {
-    assert(rows == a->rows);
-    assert(x->rows == a->cols);
-  } else {
-    assert(rows == a->cols);
-    assert(x->rows == a->rows);
-  }
-  proxy_cblas::gemv(t, matRows, matCols, alpha, a->m, lda, x->v, 1, beta, v, 1);
-}
-
-template<typename T>
-void Vector<T>::axpy(T alpha, const Vector* x) {
-  assert(rows == x->rows);
-  proxy_cblas::axpy(rows, alpha, x->v, 1, this->v, 1);
-}
-
-template<typename T>
-int Vector<T>::absoluteMaxIndex() const {
-  return proxy_cblas::i_amax(rows, v, 1);
-}
-
-template<typename T>
-T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
-  assert(x->rows == y->rows);
-  // TODO: Beware of large vectors (>2 billion elements) !
-  return proxy_cblas_convenience::dot_c(x->rows, x->v, 1, y->v, 1);
-}
-
-template<typename T> void Vector<T>::addToMe(const Vector<T>* x) {
-  assert(rows == x->rows);
-  axpy(Constants<T>::pone, x);
-}
-
-template<typename T> void Vector<T>::subToMe(const Vector<T>* x) {
-  assert(rows == x->rows);
-  axpy(Constants<T>::mone, x);
-}
-
-template<typename T> double Vector<T>::norm() const {
-  return sqrt(normSqr());
-}
-
-template<typename T> double Vector<T>::normSqr() const {
-  T result = dot(this, this);
-  return hmat::real(result);
-}
-
-template<typename T> void Vector<T>::clear() {
-  memset(this->v, 0, sizeof(T) * this->rows);
-}
-
-template<typename T> void Vector<T>::scale(T alpha) {
-  if (alpha == Constants<T>::zero) {
-    memset(v, 0, sizeof(T) * rows);
-  } else {
-    proxy_cblas::scal(rows, alpha, v, 1);
-  }
-}
-
 // the classes declaration
 template class FullMatrix<S_t>;
 template class FullMatrix<D_t>;
@@ -917,10 +820,5 @@ template class MmapedFullMatrix<S_t>;
 template class MmapedFullMatrix<D_t>;
 template class MmapedFullMatrix<C_t>;
 template class MmapedFullMatrix<Z_t>;
-
-template class Vector<S_t>;
-template class Vector<D_t>;
-template class Vector<C_t>;
-template class Vector<Z_t>;
 
 }  // end namespace hmat

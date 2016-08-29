@@ -76,9 +76,9 @@ void reorderVector(FullMatrix<T>* v, int* indices) {
   for (int col = 0; col < v->cols; col++) {
     T* column = v->m + ((size_t) n) * col;
     for (int i = 0; i < n; i++) {
-      tmp.v[i] = column[indices[i]];
+      tmp.m[i] = column[indices[i]];
     }
-    memcpy(column, tmp.v, sizeof(T) * n);
+    memcpy(column, tmp.m, sizeof(T) * n);
   }
 }
 
@@ -92,9 +92,9 @@ void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
   for (int col = 0; col < v->cols; col++) {
     T* column = v->m + ((size_t) n) * col;
     for (int i = 0; i < n; i++) {
-      tmp.v[indices[i]] = column[i];
+      tmp.m[indices[i]] = column[i];
     }
-    memcpy(column, tmp.v, sizeof(T) * n);
+    memcpy(column, tmp.m, sizeof(T) * n);
   }
 }
 
@@ -545,8 +545,8 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
 template<typename T>
 void HMatrix<T>::gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>* y) const {
   if (rows()->size() == 0 || cols()->size() == 0) return;
-  FullMatrix<T> mx(x->v, x->rows, 1);
-  FullMatrix<T> my(y->v, y->rows, 1);
+  FullMatrix<T> mx(x->m, x->rows, 1);
+  FullMatrix<T> my(y->m, y->rows, 1);
   gemv(trans, alpha, &mx, beta, &my);
 }
 
@@ -1310,7 +1310,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
       full()->multiplyWithDiagOrDiagInv(d->full()->diagonal, inverse, left);
     } else {
       Vector<T> diag(d->rows()->size());
-      d->extractDiagonal(diag.v);
+      d->extractDiagonal(diag.m);
       full()->multiplyWithDiagOrDiagInv(&diag, inverse, left);
     }
   } else {
@@ -1386,7 +1386,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
             full()->diagonal = new Vector<T>(oF->rows);
             HMAT_ASSERT(full()->diagonal);
           }
-          memcpy(full()->diagonal->v, oF->diagonal->v, oF->rows * sizeof(T));
+          memcpy(full()->diagonal->m, oF->diagonal->m, oF->rows * sizeof(T));
         }
       }
     }
@@ -2025,7 +2025,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
       } else {
         Vector<T> diag(d->cols()->size());
-        d->extractDiagonal(diag.v);
+        d->extractDiagonal(diag.m);
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, m->full(), Constants<T>::pone);
@@ -2126,7 +2126,7 @@ void HMatrix<T>::extractDiagonal(T* diag) const {
     assert(isFullMatrix());
     if(full()->diagonal) {
       // LDLt
-      memcpy(diag, full()->diagonal->v, full()->rows * sizeof(T));
+      memcpy(diag, full()->diagonal->m, full()->rows * sizeof(T));
     } else {
       // LLt
       for (int i = 0; i < full()->rows; ++i)
@@ -2172,7 +2172,7 @@ template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
     if (rows()->size() == 0 || cols()->size() == 0) return;
     if(isFullMatrix() && full()->diagonal) {
         // LDLt
-        diag = full()->diagonal->v;
+        diag = full()->diagonal->m;
     } else {
         // LLt
         diag = new T[cols()->size()];

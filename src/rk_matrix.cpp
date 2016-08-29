@@ -251,7 +251,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   }
 
   // Control of approximation
-  int newK = approx.findK(sigma->v, rank(), epsilon);
+  int newK = approx.findK(sigma->m, rank(), epsilon);
   if (newK == 0)
   {
     delete u;
@@ -268,14 +268,14 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   // We put the root of singular values in sigma
   for (int i = 0; i < rank(); i++) {
-    sigma->v[i] = sqrt(sigma->v[i]);
+    sigma->m[i] = sqrt(sigma->m[i]);
   }
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
   // For that we first calculated Utilde * SQRT (SigmaTilde)
   FullMatrix<T>* newA = FullMatrix<T>::Zero(rows->size(), newK);
   for (int col = 0; col < newK; col++) {
-    T alpha = sigma->v[col];
+    T alpha = sigma->m[col];
     for (int row = 0; row < rank(); row++) {
       newA->get(row, col) = u->get(row, col) * alpha;
     }
@@ -290,7 +290,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   FullMatrix<T>* newB = FullMatrix<T>::Zero(cols->size(), newK);
   // Copy with transposing
   for (int col = 0; col < newK; col++) {
-    T alpha = sigma->v[col];
+    T alpha = sigma->m[col];
     for (int row = 0; row < rank(); row++) {
       newB->get(row, col) = vt->get(col, row) * alpha;
     }

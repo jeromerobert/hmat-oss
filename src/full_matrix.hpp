@@ -29,6 +29,7 @@
 #include <cstddef>
 
 #include "data_types.hpp"
+#include "scalar_array.hpp"
 #include "h_matrix.hpp"
 
 namespace hmat {
@@ -74,7 +75,7 @@ public:
       \param lda Leading dimension, as in BLAS
    */
   FullMatrix(T* _m, int _rows, int _cols, int _lda=-1);
-  /* \brief Create an empty matrix, filled with 0s.
+  /** \brief Create an empty matrix, filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
 
@@ -89,7 +90,7 @@ public:
      \param _rows Number of rows
      \param _cols Number of columns
    */
-  static FullMatrix* Zero(int rows, int cols);
+  static FullMatrix<T>* Zero(int rows, int cols);
   ~FullMatrix();
 
   bool isTriUpper() {
@@ -243,10 +244,10 @@ public:
       with \a FullMatrix::ldltDecomposition() beforehand.
    */
   T getD(int i) const {
-    return diagonal->v[i];
+    return diagonal->m[i];
   }
   T& getD(int i) {
-    return diagonal->v[i];
+    return diagonal->m[i];
   }
   /*! Check the matrix for the presence of NaN numbers.
 
@@ -294,99 +295,8 @@ public:
   ~MmapedFullMatrix();
 
 private:
-  MmapedFullMatrix() : m(NULL, 0, 0), mmapedFile(NULL), fd(-1), size(0) {};
+  MmapedFullMatrix() : m(NULL, 0, 0), mmapedFile(NULL), fd(-1), size(0) {}
 };
-
-
-/*! \brief Templated Vector class.
-
-  As for \a FullMatrix, the template parameter is the scalar type.
- */
-template<typename T> class Vector {
-private:
-  /// True if the vector owns its memory
-  bool ownsMemory;
-
-public:
-  /// Pointer to the data
-  T* v;
-  /// Rows count
-  int rows;
-
-public:
-  Vector(T* _v, int _rows);
-  Vector(int _rows);
-  ~Vector();
-  /** Create a vector filled with 0s.
-   */
-  static Vector<T>* Zero(int rows);
-  /**  this = alpha * A * x + beta * this
-
-       Wrapper around the 'GEMV' BLAS call.
-
-       \param trans 'N' or 'T', as in BLAS
-       \param alpha alpha
-       \param a A
-       \param x X
-       \param beta beta
-   */
-  void gemv(char trans, T alpha, const FullMatrix<T>* a, const Vector<T>* x,
-            T beta);
-  /** \brief this += v
-   */
-  void addToMe(const Vector<T>* x);
-  /** \brief this -= v
-   */
-  void subToMe(const Vector<T>* x);
-  /** L2 norm of the vector.
-   */
-  double norm() const;
-  double normSqr() const;
-  /** Set the vector to 0.
-   */
-  void clear();
-  /** This *= alpha.
-   */
-  void scale(T alpha);
-  /** Compute This += alpha X, X a vector.
-   */
-  void axpy(T alpha, const Vector<T>* x);
-  /** \brief Return the index of the maximum absolute value element.
-
-      This function is similar to iXamax() in BLAS.
-
-      \return the index of the maximum absolute value element in the vector.
-   */
-  int absoluteMaxIndex() const;
-  /** Compute the dot product of two \Vector.
-
-      For real-valued vectors, this is the usual dot product. For
-      complex-valued ones, this is defined as:
-         <x, y> = \bar{x}^t \times y
-      as in BLAS
-
-      \warning DOES NOT work with vectors with >INT_MAX elements
-
-      \param x
-      \param y
-      \return <x, y>
-   */
-  static T dot(const Vector<T>* x, const Vector<T>* y);
-
-private:
-  /// Disallow the copy
-  Vector<T>(const Vector<T>& o);
-};
-
-/*! \brief Wrapper around BLAS copy function.
-
-  \param n Number of elements to copy
-  \param from Source
-  \param incFrom increment between elements in from
-  \param to Destination
-  \paarm incTo increment between elenents in to
- */
-template<typename T> void blasCopy(int n, T* from, int incFrom, T* to, int incTo);
 
 }  // end namespace hmat
 
