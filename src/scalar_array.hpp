@@ -1,0 +1,187 @@
+#pragma once
+/*
+  HMat-OSS (HMatrix library, open source software)
+
+  Copyright (C) 2014-2015 Airbus Group SAS
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+  http://github.com/jeromerobert/hmat-oss
+*/
+
+/*! \file
+  \ingroup HMatrix
+  \brief Scalar Array type used by the HMatrix library.
+*/
+#include <cstddef>
+
+#include "data_types.hpp"
+#include "h_matrix.hpp"
+
+namespace hmat {
+
+/*! \brief Templated dense Matrix type.
+
+  The template parameter represents the scalar type of the matrix elements.  The
+  supported types are \a S_t, \a D_t, \a C_t and \a Z_t, as defined in
+  @data_types.hpp.
+ */
+template<typename T> class ScalarArray {
+  /*! True if the matrix owns its memory, ie has to free it upon destruction */
+  char ownsMemory:1;
+  /// Disallow the copy
+  ScalarArray(const ScalarArray<T>& o);
+
+public:
+  /// Fortran style pointer (columnwise)
+  T* m;
+  /// Number of rows
+  int rows;
+  /// Number of columns
+  int cols;
+  /*! Leading dimension, as in BLAS */
+  int lda;
+
+  /** \brief Initialize the matrix with existing data.
+
+      In this case the matrix doesn't own the data (the memory is not
+      freed at the object destruction).
+
+      \param _m Pointer to the data
+      \param _rows Number of rows
+      \param _cols Number of cols
+      \param lda Leading dimension, as in BLAS
+   */
+  ScalarArray(T* _m, int _rows, int _cols=1, int _lda=-1);
+  /** \brief Create an empty matrix, filled with 0s.
+
+     In this case, the memory is freed when the object is destroyed.
+
+     \param _rows Number of rows
+     \param _cols Number of columns
+   */
+  ScalarArray(int _rows, int _cols=1);
+  /** \brief Create a matrix filled with 0s.
+
+     In this case, the memory is freed when the object is destroyed.
+
+     \param _rows Number of rows
+     \param _cols Number of columns
+   */
+  static ScalarArray* Zero(int rows, int cols=1);
+  ~ScalarArray();
+
+  /** This <- 0.
+   */
+  void clear();
+  /** \brief Returns number of allocated zeros
+   */
+  size_t storedZeros();
+  /** \brief this *= alpha.
+
+      \param alpha The scaling factor.
+   */
+  void scale(T alpha);
+  /** \brief Transpose in place.
+   */
+  void transpose();
+  /** Return a copy of this.
+   */
+  ScalarArray<T>* copy(ScalarArray<T>* result = NULL) const;
+  /** \brief Return a new matrix that is a transposed version of this.
+   */
+  ScalarArray<T>* copyAndTranspose() const;
+  /** this = alpha * op(A) * op(B) + beta * this
+
+      Standard "GEMM" call, as in BLAS.
+
+      \param transA 'N' or 'T', as in BLAS
+      \param transB 'N' or 'T', as in BLAS
+      \param alpha alpha
+      \param a the matrix A
+      \param b the matrix B
+      \param beta beta
+   */
+  void gemm(char transA, char transB, T alpha, const ScalarArray<T>* a,
+            const ScalarArray<T>* b, T beta);
+  /*! Copy a matrix A into 'this' at offset (rowOffset, colOffset) (indices start at 0).
+
+    \param a the matrix A
+    \param rowOffset the row offset
+    \param colOffset the column offset
+   */
+  void copyMatrixAtOffset(const ScalarArray<T>* a, int rowOffset, int colOffset);
+  /*! Copy a matrix A into 'this' at offset (rowOffset, colOffset) (indices start at 0).
+
+    In this function, only copy a sub-matrix of size (rowsToCopy, colsToCopy).
+
+    \param a the matrix A
+    \param rowOffset the row offset
+    \param colOffset the column offset
+    \param rowsToCopy number of rows to copy
+    \param colsToCopy number of columns to copy
+   */
+  void copyMatrixAtOffset(const ScalarArray<T>* a, int rowOffset, int colOffset,
+                          int rowsToCopy, int colsToCopy);
+  /*! \brief this += alpha * A
+
+    \param a the Matrix A
+   */
+  void axpy(T alpha, const ScalarArray<T>* a);
+  /*! \brief Return square of the Frobenius norm of the matrix.
+
+    \return the matrix norm.
+   */
+  double normSqr() const;
+  /*! \brief Return the Frobenius norm of the matrix.
+
+    \return the matrix norm.
+   */
+  double norm() const;
+  /*! \brief Write the matrix to a binary file.
+
+    \param filename output filename
+   */
+  void toFile(const char *filename) const;
+
+  void fromFile(const char * filename);
+  /** Simpler accessors for the data.
+
+      There are 2 types to allow matrix modification or not.
+   */
+  T& get(int i, int j) {
+    return m[i + ((size_t) lda) * j];
+  }
+  T get(int i, int j) const {
+    return m[i + ((size_t) lda) * j];
+  }
+  /*! Check the matrix for the presence of NaN numbers.
+
+    If a NaN is found, an assertion is triggered.
+   */
+  void checkNan() const;
+  size_t memorySize() const;
+
+  /*! \brief Return a short string describing the content of this ScalarArray for debug (like: "ScalarArray [320 x 100] norm=22.34758")
+    */
+  std::string description() const {
+    std::ostringstream convert;   // stream used for the conversion
+    convert << "ScalarArray [" << rows << " x " << cols << "] norm=" << norm() ;
+    return convert.str();
+  }
+};
+
+}  // end namespace hmat
+
