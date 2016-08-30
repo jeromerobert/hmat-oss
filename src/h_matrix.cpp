@@ -823,23 +823,23 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
     if(this->isLeaf()) {
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
         tmpMatrix->temporary=true;
+        ClusterTree * r = rows_->slice(rows->offset(), rows->size());
+        ClusterTree * c = cols_->slice(cols->offset(), cols->size());
+
+        // ensure the cluster tree are properly freed
+        r->father = r;
+        c->father = c;
+        tmpMatrix->ownClusterTree_ = true;
+
+        tmpMatrix->rows_ = r;
+        tmpMatrix->cols_ = c;
         if(this->isRkMatrix()) {
-            ClusterTree * r = rows_->slice(rows->offset(), rows->size());
-            ClusterTree * c = cols_->slice(cols->offset(), cols->size());
-
-            // ensure the cluster tree are properly freed
-            r->father = r;
-            c->father = c;
-            tmpMatrix->ownClusterTree_ = true;
-
-            tmpMatrix->rows_ = r;
-            tmpMatrix->cols_ = c;
             tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(
                 tmpMatrix->rows(), tmpMatrix->cols())));
         } else {
-            // 'This' is a full matrix
-            //TODO not yet implemented but will happen
-            HMAT_ASSERT(false);
+          int rowsOffset = rows->offset() - this->rows()->offset();
+          int colsOffset = cols->offset() - this->cols()->offset();
+          tmpMatrix->full(new FullMatrix<T>(this->full()->m + rowsOffset + this->full()->lda * colsOffset, rows->size(), cols->size(), this->full()->lda));
         }
         return tmpMatrix;
     } else {
