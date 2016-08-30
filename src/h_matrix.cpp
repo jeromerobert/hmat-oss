@@ -543,18 +543,10 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
 }
 
 template<typename T>
-void HMatrix<T>::gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>* y) const {
-  if (rows()->size() == 0 || cols()->size() == 0) return;
-  FullMatrix<T> mx(x->m, x->rows, 1);
-  FullMatrix<T> my(y->m, y->rows, 1);
-  gemv(trans, alpha, &mx, beta, &my);
-}
-
-template<typename T>
-void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
-  assert(x->cols() == y->cols());
-  assert((matTrans == 'T' ? cols()->size() : rows()->size()) == y->rows());
-  assert((matTrans == 'T' ? rows()->size() : cols()->size()) == x->rows());
+void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
+  assert(x->cols == y->cols);
+  assert((matTrans == 'T' ? cols()->size() : rows()->size()) == y->rows);
+  assert((matTrans == 'T' ? rows()->size() : cols()->size()) == x->rows);
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (beta != Constants<T>::pone) {
     y->scale(beta);
@@ -591,23 +583,23 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
       int rowsOffset = childRows->offset() - myRows->offset();
       int colsOffset = childCols->offset() - myCols->offset();
       if (trans == 'N') {
-        assert(colsOffset + childCols->size() <= x->rows());
-        assert(rowsOffset + childRows->size() <= y->rows());
-        FullMatrix<T> subX(x->data.m + colsOffset, childCols->size(), x->cols(), x->data.lda);
-        FullMatrix<T> subY(y->data.m + rowsOffset, childRows->size(), y->cols(), y->data.lda);
+        assert(colsOffset + childCols->size() <= x->rows);
+        assert(rowsOffset + childRows->size() <= y->rows);
+        ScalarArray<T> subX(x->m + colsOffset, childCols->size(), x->cols, x->lda);
+        ScalarArray<T> subY(y->m + rowsOffset, childRows->size(), y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
       } else {
         assert(trans == 'T');
-        assert(rowsOffset + childRows->size() <= x->rows());
-        assert(colsOffset + childCols->size() <= y->rows());
-        FullMatrix<T> subX(x->data.m + rowsOffset, childRows->size(), x->cols(), x->data.lda);
-        FullMatrix<T> subY(y->data.m + colsOffset, childCols->size(), y->cols(), y->data.lda);
+        assert(rowsOffset + childRows->size() <= x->rows);
+        assert(colsOffset + childCols->size() <= y->rows);
+        ScalarArray<T> subX(x->m + rowsOffset, childRows->size(), x->cols, x->lda);
+        ScalarArray<T> subY(y->m + colsOffset, childCols->size(), y->cols, y->lda);
         child->gemv(trans, alpha, &subX, beta, &subY);
       }
     }
   } else {
     if (isFullMatrix()) {
-      y->gemm(matTrans, 'N', alpha, full(), x, beta);
+      y->gemm(matTrans, 'N', alpha, &full()->data, x, beta);
     } else if(!isNull()){
       rk()->gemv(matTrans, alpha, x, beta, y);
     } else if(beta != Constants<T>::pone){
@@ -616,6 +608,10 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
   }
 }
 
+template<typename T>
+void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
+  gemv(matTrans, alpha, &x->data, beta, &y->data);
+}
 /**
  * @brief List all Rk matrice in the m matrice.
  * @return true if the matrix contains only rk matrices, fall if it contains
@@ -1127,10 +1123,10 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     const IndexSet * c = transA == 'N' ? a->cols() : a->rows();
     assert(r->offset() - rows()->offset() >= 0);
     assert(c->offset() - b->rows()->offset() >= 0);
-    FullMatrix<T> cSubset(rk()->a->data.m - rows()->offset() + r->offset(),
-                          r->size(), rank(), rk()->a->data.lda);
-    FullMatrix<T> bSubset(b->rk()->a->data.m - b->rows()->offset() + c->offset(),
-                          c->size(), b->rank(), b->rk()->a->data.lda);
+    FullMatrix<T> cSubset(rk()->a->m - rows()->offset() + r->offset(),
+                          r->size(), rank(), rk()->a->lda);
+    FullMatrix<T> bSubset(b->rk()->a->m - b->rows()->offset() + c->offset(),
+                          c->size(), b->rank(), b->rk()->a->lda);
     a->gemv(transA, alpha, &bSubset, beta, &cSubset);
     return;
   }
@@ -1146,10 +1142,10 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     assert(transA == 'N');
     const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
     const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
-    FullMatrix<T> cSubset(rk()->b->data.m - cols()->offset() + c->offset(),
-                          c->size(), rank(), rk()->b->data.lda);
-    FullMatrix<T> aSubset(a->rk()->b->data.m - a->cols()->offset() + r->offset(),
-                          r->size(), a->rank(), a->rk()->b->data.lda);
+    FullMatrix<T> cSubset(rk()->b->m - cols()->offset() + c->offset(),
+                          c->size(), rank(), rk()->b->lda);
+    FullMatrix<T> aSubset(a->rk()->b->m - a->cols()->offset() + r->offset(),
+                          r->size(), a->rank(), a->rk()->b->lda);
     b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
     return;
   }
@@ -1302,8 +1298,6 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
         get(i,j)->multiplyWithDiag(d->get(k,k), left, inverse);
     }
   } else if (isRkMatrix() && !isNull()) {
-    assert(!rk()->a->isTriUpper() && !rk()->b->isTriUpper());
-    assert(!rk()->a->isTriLower() && !rk()->b->isTriLower());
     rk()->multiplyWithDiagOrDiagInv(d, inverse, left);
   } else if(isFullMatrix()){
     if (d->isFullMatrix()) {
@@ -1369,8 +1363,8 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
         delete rk();
       }
       const RkMatrix<T>* oRk = o->rk();
-      FullMatrix<T>* newA = oRk->b ? oRk->b->copy() : NULL;
-      FullMatrix<T>* newB = oRk->a ? oRk->a->copy() : NULL;
+      ScalarArray<T>* newA = oRk->b ? oRk->b->copy() : NULL;
+      ScalarArray<T>* newB = oRk->a ? oRk->a->copy() : NULL;
       rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method));
     } else {
       if (isFullMatrix()) {
@@ -1708,10 +1702,10 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) const {
+void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
-  assert(cols()->size() == b->rows()); // Here : the change : OK or not ??????? : cols <-> rows
+  assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
@@ -1728,10 +1722,10 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
     //
 
     int offset(0);
-    FullMatrix<T> *sub[nrChildRow()];
+    ScalarArray<T> *sub[nrChildRow()];
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = new FullMatrix<T>(b->data.m+offset, get(i, i)->cols()->size(), b->cols(), b->data.lda);
+      sub[i] = new ScalarArray<T>(b->m+offset, get(i, i)->cols()->size(), b->cols, b->lda);
       offset += get(i, i)->cols()->size();
       // Update sub[i] with the contribution of the solutions already computed sub[j] j<i
       for (int j=0 ; j<i ; j++)
@@ -1742,6 +1736,11 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
     for (int i=0 ; i<nrChildRow() ; i++)
       delete sub[i];
   }
+}
+
+template<typename T>
+void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) const {
+  solveLowerTriangularLeft(&b->data, unitriangular);
 }
 
 template<typename T>
@@ -1840,7 +1839,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   if (rows()->size() == 0 || cols()->size() == 0) return;
@@ -1848,7 +1847,7 @@ void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular,
   // so we can deal it with a subset as usual.
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
-    FullMatrix<T>* bCopy = b->copyAndTranspose();
+    ScalarArray<T>* bCopy = b->copyAndTranspose();
     full()->solveUpperTriangularRight(bCopy, unitriangular, lowerStored);
     bCopy->transpose();
     b->copyMatrixAtOffset(bCopy, 0, 0);
@@ -1856,10 +1855,10 @@ void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular,
   } else {
 
     int offset(0);
-    FullMatrix<T> *sub[nrChildRow()];
+    ScalarArray<T> *sub[nrChildRow()];
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = new FullMatrix<T>(b->data.m+offset, get(i, i)->rows()->size(), b->cols(), b->data.lda);
+      sub[i] = new ScalarArray<T>(b->m+offset, get(i, i)->rows()->size(), b->cols, b->lda);
       offset += get(i, i)->rows()->size();
     }
     for (int i=0 ; i<nrChildRow() ; i++) {
@@ -1878,21 +1877,26 @@ void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular,
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+  solveUpperTriangularRight(&b->data, unitriangular, lowerStored);
+}
+
+template<typename T>
+void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
-  assert(rows()->size() == b->rows() || !lowerStored);
-  assert(cols()->size() == b->rows() || lowerStored);
+  assert(rows()->size() == b->rows || !lowerStored);
+  assert(cols()->size() == b->rows || lowerStored);
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, unitriangular, lowerStored);
   } else {
 
     int offset(0);
-    FullMatrix<T> *sub[nrChildRow()];
+    ScalarArray<T> *sub[nrChildRow()];
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = new FullMatrix<T>(b->data.m+offset, get(i, i)->cols()->size(), b->cols(), b->data.lda);
+      sub[i] = new ScalarArray<T>(b->m+offset, get(i, i)->cols()->size(), b->cols, b->lda);
       offset += get(i, i)->cols()->size();
     }
     for (int i=nrChildRow()-1 ; i>=0 ; i--) {
@@ -1909,6 +1913,12 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, 
 
   }
 }
+
+template<typename T>
+void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+  solveUpperTriangularLeft(&b->data, unitriangular, lowerStored);
+}
+
 template<typename T> void HMatrix<T>::lltDecomposition() {
 
     assertLower(this);
@@ -2245,7 +2255,7 @@ template<typename T> void HMatrix<T>::setTriLower(bool value)
     }
 }
 
-template<typename T>  void HMatrix<T>::rk(const FullMatrix<T> * a, const FullMatrix<T> * b, bool updateRank) {
+template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const ScalarArray<T> * b, bool updateRank) {
     assert(isRkMatrix());
     if(a == NULL && isNull())
         return;

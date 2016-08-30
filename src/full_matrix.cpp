@@ -87,6 +87,10 @@ FullMatrix<T>::FullMatrix(T* _m, int _rows, int _cols, int _lda)
   : data(_m, _rows, _cols, _lda), triUpper_(false), triLower_(false), pivots(NULL), diagonal(NULL) {}
 
 template<typename T>
+FullMatrix<T>::FullMatrix(ScalarArray<T> *s)
+  : data(s->m, s->rows, s->cols, s->lda), triUpper_(false), triLower_(false), pivots(NULL), diagonal(NULL) {}
+
+template<typename T>
 FullMatrix<T>::FullMatrix(int _rows, int _cols)
   : data(_rows, _cols), triUpper_(false), triLower_(false), pivots(NULL), diagonal(NULL) {}
 
@@ -304,19 +308,19 @@ void FullMatrix<T>::luDecomposition() {
 // solve LX = (P ^ -1 B), which is done by ZLASWP with
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
-void FullMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangular) const {
+void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, bool unitriangular) const {
   // Void matrix
-  if (x->rows() == 0 || x->cols() == 0) return;
+  if (x->rows == 0 || x->cols == 0) return;
 
   {
-    const size_t _m = rows(), _n = x->cols();
+    const size_t _m = rows(), _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   if (pivots)
-    proxy_lapack::laswp(x->cols(), x->data.m, x->data.lda, 1, rows(), pivots, 1);
-  proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows(), x->cols(), Constants<T>::pone, data.m, data.lda, x->data.m, x->data.lda);
+    proxy_lapack::laswp(x->cols, x->m, x->lda, 1, rows(), pivots, 1);
+  proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows(), x->cols, Constants<T>::pone, data.m, data.lda, x->m, x->lda);
 }
 
 
@@ -326,50 +330,50 @@ void FullMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangula
 //  the matrix was factorized before.
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
   // Void matrix
-  if (x->rows() == 0 || x->cols() == 0) return;
+  if (x->rows == 0 || x->cols == 0) return;
 
   {
-    const size_t _m = rows(), _n = x->cols();
+    const size_t _m = rows(), _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   proxy_cblas::trsm('R', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
-    x->rows(), x->cols(), Constants<T>::pone, data.m, data.lda, x->data.m, x->data.lda);
+    x->rows, x->cols, Constants<T>::pone, data.m, data.lda, x->m, x->lda);
 }
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
   // Void matrix
-  if (x->rows() == 0 || x->cols() == 0) return;
+  if (x->rows == 0 || x->cols == 0) return;
 
   {
-    const size_t _m = rows(), _n = x->cols();
+    const size_t _m = rows(), _n = x->cols;
     const size_t adds = _n * _m * (_n - 1) / 2;
     const size_t muls = _n * _m * (_n + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   proxy_cblas::trsm('L', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
-    x->rows(), x->cols(), Constants<T>::pone, data.m, data.lda, x->data.m, x->data.lda);
+    x->rows, x->cols, Constants<T>::pone, data.m, data.lda, x->m, x->lda);
 }
 
 template<typename T>
-void FullMatrix<T>::solve(FullMatrix<T>* x) const {
+void FullMatrix<T>::solve(ScalarArray<T>* x) const {
   // Void matrix
-  if (x->rows() == 0 || x->cols() == 0) return;
+  if (x->rows == 0 || x->cols == 0) return;
 
   assert(pivots);
   int ierr = 0;
   {
-    const size_t nrhs = x->cols();
+    const size_t nrhs = x->cols;
     const size_t n = rows();
     const size_t adds = n * n * nrhs;
     const size_t muls = (n * n - n) * nrhs;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  ierr = proxy_lapack::getrs('N', rows(), x->cols(), data.m, data.lda, pivots, x->data.m, x->rows());
+  ierr = proxy_lapack::getrs('N', rows(), x->cols, data.m, data.lda, pivots, x->m, x->rows);
   HMAT_ASSERT(!ierr);
 }
 
@@ -441,26 +445,25 @@ template<typename T> double FullMatrix<T>::norm() const {
 }
 
 template<typename T> void FullMatrix<T>::fromFile(const char * filename) {
-//  FILE * f = fopen(filename, "rb");
-//  int code;
-//  int r = fread(&code, sizeof(int), 1, f);
-//  HMAT_ASSERT(r == 1);
-//  HMAT_ASSERT(code == Constants<T>::code);
-//  r = fread(&rows, sizeof(int), 1, f);
-//  lda = rows;
-//  HMAT_ASSERT(r == 1);
-//  r = fread(&cols, sizeof(int), 1, f);
-//  HMAT_ASSERT(r == 1);
-//  r = fseek(f, 2 * sizeof(int), SEEK_CUR);
-//  HMAT_ASSERT(r == 0);
-//  if(m)
-//      free(m);
-//  size_t size = ((size_t) rows) * cols * sizeof(T);
-//  m = (T*) calloc(size, 1);
-//  r = fread(m, size, 1, f);
-//  fclose(f);
-//  HMAT_ASSERT(r == 1);
-  HMAT_ASSERT_MSG(false, "FullMatrix<T>::fromFile not available");
+  FILE * f = fopen(filename, "rb");
+  int code;
+  int r = fread(&code, sizeof(int), 1, f);
+  HMAT_ASSERT(r == 1);
+  HMAT_ASSERT(code == Constants<T>::code);
+  r = fread(&data.rows, sizeof(int), 1, f);
+  data.lda = data.rows;
+  HMAT_ASSERT(r == 1);
+  r = fread(&data.cols, sizeof(int), 1, f);
+  HMAT_ASSERT(r == 1);
+  r = fseek(f, 2 * sizeof(int), SEEK_CUR);
+  HMAT_ASSERT(r == 0);
+  if(data.m)
+      free(data.m);
+  size_t size = ((size_t) data.rows) * data.cols * sizeof(T);
+  data.m = (T*) calloc(size, 1);
+  r = fread(data.m, size, 1, f);
+  fclose(f);
+  HMAT_ASSERT(r == 1);
 }
 
 template<typename T> void FullMatrix<T>::toFile(const char *filename) const {

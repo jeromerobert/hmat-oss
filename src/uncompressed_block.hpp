@@ -70,7 +70,7 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
   protected:
     const M<T> * matrix_;
     IndexSet rowIndexSet_, colIndexSet_;
-    // TODO replace by a FullMatrix ?
+    // TODO replace by a ScalarArray ?
     T *values_;
     int lDim_;
 
@@ -162,11 +162,11 @@ template <typename T> class UncompressedBlock:
         int nr = this->rowIndexSet_.size();
         int nc = this->colIndexSet_.size();
         int k = matrix().rank();
-        FullMatrix<T> result(this->values_, nr, nc, this->ld());
-        T *sa = matrix().rk()->a->data.m + this->rowIndexSet_.offset() - matrix().rows()->offset();
-        FullMatrix<T> a(sa, nr, k, matrix().rows()->size());
-        T *sb = matrix().rk()->b->data.m + this->colIndexSet_.offset() - matrix().cols()->offset();
-        FullMatrix<T> b(sb, nc, k, matrix().cols()->size());
+        ScalarArray<T> result(this->values_, nr, nc, this->ld());
+        T *sa = matrix().rk()->a->m + this->rowIndexSet_.offset() - matrix().rows()->offset();
+        ScalarArray<T> a(sa, nr, k, matrix().rows()->size());
+        T *sb = matrix().rk()->b->m + this->colIndexSet_.offset() - matrix().cols()->offset();
+        ScalarArray<T> b(sb, nc, k, matrix().cols()->size());
         result.gemm('N', 'T', Constants<T>::pone, &a, &b, Constants<T>::zero);
     }
 

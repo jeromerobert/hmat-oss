@@ -29,10 +29,10 @@ namespace hmat {
 template <typename T> void UncompressedValues<T>::getRkValues() {
     const HMatrix<T> & m = *this->matrix_;
     int rank = m.rank();
-    T * a = m.rk()->a->data.m - m.rows()->offset();
-    int lda = m.rk()->a->data.lda;
-    T * b = m.rk()->b->data.m - m.cols()->offset();
-    int ldb = m.rk()->b->data.lda;
+    T * a = m.rk()->a->m - m.rows()->offset();
+    int lda = m.rk()->a->lda;
+    T * b = m.rk()->b->m - m.cols()->offset();
+    int ldb = m.rk()->b->lda;
     for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
         for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
             getValue(r, c, proxy_cblas::dot(rank, a + r->first, lda,

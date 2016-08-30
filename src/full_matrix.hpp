@@ -68,6 +68,11 @@ public:
       \param lda Leading dimension, as in BLAS
    */
   FullMatrix(T* _m, int _rows, int _cols, int _lda=-1);
+  /** \brief Initialize the matrix with an existing ScalarArray.
+
+      \param _s a ScalarArray
+   */
+  FullMatrix(ScalarArray<T> *s);
   /** \brief Create an empty matrix, filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
@@ -159,7 +164,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangular) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* x, bool unitriangular) const;
   /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -167,7 +172,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularRight(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -175,7 +180,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -183,7 +188,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solve(FullMatrix<T>* x) const;
+  void solve(ScalarArray<T>* x) const;
   /*! \brief Compute the inverse of this in place.
    */
   void inverse();

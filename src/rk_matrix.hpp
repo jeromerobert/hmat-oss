@@ -87,8 +87,8 @@ public:
   const IndexSet *rows;
   const IndexSet *cols;
   // A B^t
-  FullMatrix<T>* a;
-  FullMatrix<T>* b;
+  ScalarArray<T>* a;
+  ScalarArray<T>* b;
   CompressionMethod method; /// Method used to compress this RkMatrix
 
 public:
@@ -110,13 +110,13 @@ public:
        \param _b matrix B (not B^t)
        \param _cols indices of the columns (of size k)
    */
-  RkMatrix(FullMatrix<T>* _a, const IndexSet* _rows,
-           FullMatrix<T>* _b, const IndexSet* _cols,
+  RkMatrix(ScalarArray<T>* _a, const IndexSet* _rows,
+           ScalarArray<T>* _b, const IndexSet* _cols,
            CompressionMethod _method);
   ~RkMatrix();
 
   int rank() const {
-      return a ? a->cols() : 0;
+      return a ? a->cols : 0;
   }
 
   /**  Gives a pointer to a RkMatrix representing a subset of indices.
@@ -228,11 +228,17 @@ public:
    */
   void copy(RkMatrix<T>* o);
 
-  /** Compute y <- alpha * op(A) * y + beta * y.
+  /** Compute y <- alpha * op(A) * y + beta * y with x and y FullMatrix<T>*
 
       The arguments are similar to BLAS GEMV.
    */
   void gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const;
+
+  /** Compute y <- alpha * op(A) * y + beta * y with x and y ScalarArray<T>*
+
+      The arguments are similar to BLAS GEMV.
+   */
+  void gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const;
 
   /**  Right multiplication of RkMatrix by a matrix.
 

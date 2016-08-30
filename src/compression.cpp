@@ -300,10 +300,10 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   // necessary here, since k < min (n, p) for M matrix (nxp).
   int rowCount = m->rows();
   int colCount = m->cols();
-  FullMatrix<T> *u = NULL, *vt = NULL;
+  ScalarArray<T> *u = NULL, *vt = NULL;
   Vector<double>* sigma = NULL;
   // TODO compress with something else than SVD
-  int info = truncatedSvd<T>(m, &u, &sigma, &vt); // TODO rename truncatedSvd, since it is NOT truncated.
+  int info = truncatedSvd<T>(&m->data, &u, &sigma, &vt); // TODO rename truncatedSvd, since it is NOT truncated.
   HMAT_ASSERT(info == 0);
   // Control of the approximation
 
@@ -324,15 +324,15 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
     }
   }
 
-  FullMatrix<T> matU(u->data.m, rowCount, k);
-  FullMatrix<T>* uTilde = matU.copy();
-  FullMatrix<T> matV(vt->data.m, k, colCount, maxK);
-  FullMatrix<T>* vTilde = matV.copyAndTranspose();
+  ScalarArray<T> matU(u->m, rowCount, k);
+  ScalarArray<T>* uTilde = matU.copy();
+  ScalarArray<T> matV(vt->m, k, colCount, maxK);
+  ScalarArray<T>* vTilde = matV.copyAndTranspose();
 
   delete u;
   delete vt;
   delete sigma;
-  FullMatrix<T>* a = uTilde; // TODO : why this copy ?
+  ScalarArray<T>* a = uTilde; // TODO : why this copy ?
   return new RkMatrix<T>(a, rows, vTilde, cols, Svd);
 }
 
@@ -365,9 +365,9 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     maxK = min(maxK, RkMatrix<dp_t>::approx.k);
   }
 
-  FullMatrix<dp_t> tmpA(m->rows(), maxK);
+  ScalarArray<dp_t> tmpA(m->rows(), maxK);
   tmpA.clear();
-  FullMatrix<dp_t> tmpB(m->cols(), maxK);
+  ScalarArray<dp_t> tmpB(m->cols(), maxK);
   tmpB.clear();
   int nu;
 
@@ -380,28 +380,28 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     }
 
     // Creation of the vectors A_i_nu and B_j_nu
-    memcpy(tmpA.data.m + nu * tmpA.rows(), m->data.m + j_nu * m->rows(),
-           sizeof(dp_t) * tmpA.rows());
+    memcpy(tmpA.m + nu * tmpA.rows, m->data.m + j_nu * m->rows(),
+           sizeof(dp_t) * tmpA.rows);
     for (int j = 0; j < m->cols(); j++) {
       tmpB.get(j, nu) = m->get(i_nu, j) / delta;
     }
 
-    proxy_cblas::ger(m->rows(), m->cols(), Constants<dp_t>::mone, tmpA.data.m + nu * tmpA.rows(), 1, tmpB.data.m + nu * tmpB.rows(), 1, m->data.m, m->rows());
+    proxy_cblas::ger(m->rows(), m->cols(), Constants<dp_t>::mone, tmpA.m + nu * tmpA.rows, 1, tmpB.m + nu * tmpB.rows, 1, m->data.m, m->rows());
 
     // Update the estimate norm
     // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
     //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <a_l, a_k> <b_l, b_k>))
     //              + ||a_k||^2 ||b_k||^2
     {
-      Vector<dp_t> va_nu(tmpA.data.m + nu * tmpA.rows(), tmpA.rows());
-      Vector<dp_t> vb_nu(tmpB.data.m + nu * tmpB.rows(), tmpB.rows());
-      Vector<dp_t> a_l(tmpA.data.m, tmpA.rows());
-      Vector<dp_t> b_l(tmpB.data.m, tmpB.rows());
+      Vector<dp_t> va_nu(tmpA.m + nu * tmpA.rows, tmpA.rows);
+      Vector<dp_t> vb_nu(tmpB.m + nu * tmpB.rows, tmpB.rows);
+      Vector<dp_t> a_l(tmpA.m, tmpA.rows);
+      Vector<dp_t> b_l(tmpB.m, tmpB.rows);
       // The sum
       double newEstimate = 0.0;
       for (int l = 0; l < nu - 1; l++) {
-        a_l.m = tmpA.data.m + l * tmpA.rows();
-        b_l.m = tmpB.data.m + l * tmpB.rows();
+        a_l.m = tmpA.m + l * tmpA.rows;
+        b_l.m = tmpB.m + l * tmpB.rows;
         newEstimate += hmat::real(Vector<dp_t>::dot(&va_nu, &a_l) * Vector<dp_t>::dot(&vb_nu, &b_l));
       }
       estimateSquaredNorm += 2.0 * newEstimate;
@@ -424,12 +424,12 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaFull);
   }
 
-  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(tmpA.rows(), nu);
+  ScalarArray<dp_t>* newA = new ScalarArray<dp_t>(tmpA.rows, nu);
   newA->clear();
-  memcpy(newA->data.m, tmpA.data.m, sizeof(dp_t) * tmpA.rows() * nu);
-  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(tmpB.rows(), nu);
+  memcpy(newA->m, tmpA.m, sizeof(dp_t) * tmpA.rows * nu);
+  ScalarArray<dp_t>* newB = new ScalarArray<dp_t>(tmpB.rows, nu);
   newB->clear();
-  memcpy(newB->data.m, tmpB.data.m, sizeof(dp_t) * tmpB.rows() * nu);
+  memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
 
   return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaFull);
 }
@@ -530,17 +530,17 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
     }
   } while (rowPivotCount < maxK);
 
-  FullMatrix<dp_t> *newA, *newB;
+  ScalarArray<dp_t> *newA, *newB;
   if (k != 0) {
-    newA = new FullMatrix<dp_t>(block.rows->size(), k);
+    newA = new ScalarArray<dp_t>(block.rows->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newA->data.m + (i * newA->rows()), aCols[i]->m, sizeof(dp_t) * newA->rows());
+      memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
       delete aCols[i];
       aCols[i] = NULL;
     }
-    newB = new FullMatrix<dp_t>(block.cols->size(), k);
+    newB = new ScalarArray<dp_t>(block.cols->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newB->data.m + (i * newB->rows()), bCols[i]->m, sizeof(dp_t) * newB->rows());
+      memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
       delete bCols[i];
       bCols[i] = NULL;
     }
@@ -554,8 +554,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
 
 
 template<typename T>
-static RkMatrix<typename Types<T>::dp>*
-compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
+static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
@@ -688,15 +687,15 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   } while (k < maxK);
 
   assert(k > 0);
-  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(block.rows->size(), k);
+  ScalarArray<dp_t>* newA = new ScalarArray<dp_t>(block.rows->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newA->data.m + (i * newA->rows()), aCols[i]->m, sizeof(dp_t) * newA->rows());
+    memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
     delete aCols[i];
     aCols[i] = NULL;
   }
-  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(block.cols->size(), k);
+  ScalarArray<dp_t>* newB = new ScalarArray<dp_t>(block.cols->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newB->data.m + (i * newB->rows()), bCols[i]->m, sizeof(dp_t) * newB->rows());
+    memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
     delete bCols[i];
     bCols[i] = NULL;
   }

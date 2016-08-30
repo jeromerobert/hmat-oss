@@ -25,7 +25,7 @@
 
 namespace hmat {
 
-/** Returns a potentially lower precision matrix.
+/* Returns a potentially lower precision matrix.
 
     This functions takes a FullMatrix either in double precision, and
     returns a single precision matrix if required. This is used to
@@ -36,8 +36,23 @@ namespace hmat {
     no-op. Otherwise (single precision target type) it performs the
     conversion and destroy the original matrix.
  */
+
+/** \brief Returns a conversion of the ScalarArray 'd' in arithmetics 'T'
+
+  d is either of type T or T::dp. If del is true, d is deleted on exit.
+  */
+template<typename T> ScalarArray<T>* fromDoubleScalarArray(ScalarArray<typename Types<T>::dp>* d, bool del = true);
+
+  /** \brief Returns a conversion of the FullMatrix 'f' in arithmetics 'T'
+
+    f is either of type T or T::dp. f is deleted on exit.
+    */
 template<typename T> FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f);
 
+  /** \brief Returns a conversion of the RkMatrix 'rk' in arithmetics 'T'
+
+    rk is either of type T or T::dp. rk is deleted on exit.
+    */
 template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* rk);
 
 }  // end namespace hmat

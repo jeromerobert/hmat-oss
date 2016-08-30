@@ -60,8 +60,8 @@ int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
 
 
 /** RkMatrix */
-template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _rows,
-                                           FullMatrix<T>* _b, const IndexSet* _cols,
+template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _rows,
+                                           ScalarArray<T>* _b, const IndexSet* _cols,
                                            CompressionMethod _method)
   : rows(_rows),
     cols(_cols),
@@ -74,8 +74,8 @@ template<typename T> RkMatrix<T>::RkMatrix(FullMatrix<T>* _a, const IndexSet* _r
   if ((!a) && (!b)) {
     return;
   }
-  assert(a->rows() == rows->size());
-  assert(b->rows() == cols->size());
+  assert(a->rows == rows->size());
+  assert(b->rows == cols->size());
 }
 
 template<typename T> RkMatrix<T>::~RkMatrix() {
@@ -87,8 +87,8 @@ template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {
   if (rank() == 0) {
     return FullMatrix<T>::Zero(rows->size(), cols->size());
   }
-  FullMatrix<T>* result = new FullMatrix<T>(a->rows(), b->rows());
-  result->gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+  FullMatrix<T>* result = new FullMatrix<T>(a->rows, b->rows);
+  result->data.gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
   return result;
 }
 
@@ -98,14 +98,14 @@ template<typename T> double RkMatrix<T>::normSqr() const {
   const int k = rank();
   for (int i = 1; i < k; ++i) {
     for (int j = 0; j < i; ++j) {
-      result += hmat::real(proxy_cblas_convenience::dot_c(a->rows(), a->data.m + i*a->data.lda, 1, a->data.m + j*a->data.lda, 1) *
-                           proxy_cblas_convenience::dot_c(b->rows(), b->data.m + i*b->data.lda, 1, b->data.m + j*b->data.lda, 1));
+      result += hmat::real(proxy_cblas_convenience::dot_c(a->rows, a->m + i*a->lda, 1, a->m + j*a->lda, 1) *
+                           proxy_cblas_convenience::dot_c(b->rows, b->m + i*b->lda, 1, b->m + j*b->lda, 1));
     }
   }
   result *= 2.0;
   for (int i = 0; i < k; ++i) {
-    result += hmat::real(proxy_cblas_convenience::dot_c(a->rows(), a->data.m + i*a->data.lda, 1, a->data.m + i*a->data.lda, 1) *
-                         proxy_cblas_convenience::dot_c(b->rows(), b->data.m + i*b->data.lda, 1, b->data.m + i*b->data.lda, 1));
+    result += hmat::real(proxy_cblas_convenience::dot_c(a->rows, a->m + i*a->lda, 1, a->m + i*a->lda, 1) *
+                         proxy_cblas_convenience::dot_c(b->rows, b->m + i*b->lda, 1, b->m + i*b->lda, 1));
   }
   return result;
 }
@@ -126,6 +126,11 @@ template<typename T> void RkMatrix<T>::clear() {
 
 template<typename T>
 void RkMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
+  gemv(trans, alpha, &x->data, beta, &y->data);
+}
+
+template<typename T>
+void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
   if (rank() == 0) {
     if (beta != Constants<T>::pone) {
       y->scale(beta);
@@ -133,30 +138,29 @@ void RkMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, Full
     return;
   }
   if (trans == 'N') {
-    FullMatrix<T> z(b->cols(), x->cols());
+    ScalarArray<T> z(b->cols, x->cols);
     z.gemm('T', 'N', Constants<T>::pone, b, x, Constants<T>::zero);
     y->gemm('N', 'N', alpha, a, &z, beta);
   } else {
     assert(trans == 'T');
-    FullMatrix<T> z(a->cols(), x->cols());
+    ScalarArray<T> z(a->cols, x->cols);
     z.gemm('T', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
     y->gemm('N', 'N', alpha, b, &z, beta);
   }
 }
 
-
 template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subRows,
                                                             const IndexSet* subCols) const {
   assert(subRows->isSubset(*rows));
   assert(subCols->isSubset(*cols));
-  FullMatrix<T>* subA = NULL;
-  FullMatrix<T>* subB = NULL;
+  ScalarArray<T>* subA = NULL;
+  ScalarArray<T>* subB = NULL;
   if(rank() > 0) {
     // The offset in the matrix, and not in all the indices
     int rowsOffset = subRows->offset() - rows->offset();
     int colsOffset = subCols->offset() - cols->offset();
-    subA = new FullMatrix<T>(a->data.m + rowsOffset, subRows->size(), rank(), a->data.lda);
-    subB = new FullMatrix<T>(b->data.m + colsOffset, subCols->size(), rank(), b->data.lda);
+    subA = new ScalarArray<T>(a->m + rowsOffset, subRows->size(), rank(), a->lda);
+    subB = new ScalarArray<T>(b->m + colsOffset, subCols->size(), rank(), b->lda);
   }
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
@@ -227,7 +231,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   HMAT_ASSERT(tauB);
 
   // Matrices created by the SVD
-  FullMatrix<T> *u = NULL, *vt = NULL;
+  ScalarArray<T> *u = NULL, *vt = NULL;
   Vector<double> *sigma = NULL;
   {
     // The scope is to automatically delete rAFull.
@@ -236,7 +240,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     //
     // However, there is no multiplication of two triangular matrices in BLAS,
     // left matrix must be converted into full matrix first.
-    FullMatrix<T> rAFull(rank(), rank());
+    ScalarArray<T> rAFull(rank(), rank());
     for (int col = 0; col < rank(); col++) {
       for (int row = 0; row <= col; row++) {
         rAFull.get(row, col) = a->get(row, col);
@@ -273,7 +277,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
   // For that we first calculated Utilde * SQRT (SigmaTilde)
-  FullMatrix<T>* newA = FullMatrix<T>::Zero(rows->size(), newK);
+  ScalarArray<T>* newA = ScalarArray<T>::Zero(rows->size(), newK);
   for (int col = 0; col < newK; col++) {
     T alpha = sigma->m[col];
     for (int row = 0; row < rank(); row++) {
@@ -287,7 +291,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   free(tauA);
 
   // newB = Qb * VTilde * SQRT(SigmaTilde)
-  FullMatrix<T>* newB = FullMatrix<T>::Zero(cols->size(), newK);
+  ScalarArray<T>* newB = ScalarArray<T>::Zero(cols->size(), newK);
   // Copy with transposing
   for (int col = 0; col < newK; col++) {
     T alpha = sigma->m[col];
@@ -391,9 +395,9 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     return result;
   }
 
-  FullMatrix<T>* resultA = new FullMatrix<T>(rows->size(), kTotal);
+  ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), kTotal);
   resultA->clear();
-  FullMatrix<T>* resultB = new FullMatrix<T>(cols->size(), kTotal);
+  ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), kTotal);
   resultB->clear();
   // Special case if the original matrix is not empty.
   if (rank() > 0) {
@@ -419,8 +423,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     resultA->copyMatrixAtOffset(parts[i]->a, rowOffset, kOffset);
     // Scaling the matrix already in place inside resultA
     if (alpha[i] != Constants<T>::pone) {
-      FullMatrix<T> tmp(resultA->data.m + rowOffset + ((size_t) kOffset) * resultA->data.lda,
-                        parts[i]->a->rows(), parts[i]->a->cols(), resultA->data.lda);
+      FullMatrix<T> tmp(resultA->m + rowOffset + ((size_t) kOffset) * resultA->lda,
+                        parts[i]->a->rows, parts[i]->a->cols, resultA->lda);
       tmp.scale(alpha[i]);
     }
     rowOffset = parts[i]->cols->offset() - cols->offset();
@@ -478,20 +482,20 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   RkMatrix<T>* rkCopy = (transR == 'N' ? new RkMatrix<T>(rk->a, rk->rows, rk->b, rk->cols, rk->method)
                          : new RkMatrix<T>(rk->b, rk->cols, rk->a, rk->rows, rk->method));
 
-  FullMatrix<T>* newB = new FullMatrix<T>((transM == 'N')? m->cols() : m->rows(), rkCopy->b->cols());
+  ScalarArray<T>* newB = new ScalarArray<T>((transM == 'N')? m->cols() : m->rows(), rkCopy->b->cols);
   if (transM == 'N') {
-    assert(m->rows() == rkCopy->b->rows());
-    assert(newB->rows() == m->cols());
-    assert(newB->cols() == rkCopy->b->cols());
-    newB->gemm('T', 'N', Constants<T>::pone, m, rkCopy->b, Constants<T>::zero);
+    assert(m->rows() == rkCopy->b->rows);
+    assert(newB->rows == m->cols());
+    assert(newB->cols == rkCopy->b->cols);
+    newB->gemm('T', 'N', Constants<T>::pone, &m->data, rkCopy->b, Constants<T>::zero);
   } else {
-    assert(m->cols() == rkCopy->b->rows());
-    assert(newB->rows() == m->rows());
-    assert(newB->cols() == rkCopy->b->cols());
-    newB->gemm('N','N',Constants<T>::pone, m, rkCopy->b, Constants<T>::zero);
+    assert(m->cols() == rkCopy->b->rows);
+    assert(newB->rows == m->rows());
+    assert(newB->cols == rkCopy->b->cols);
+    newB->gemm('N','N',Constants<T>::pone, &m->data, rkCopy->b, Constants<T>::zero);
   }
 
-  FullMatrix<T>* newA = rkCopy->a->copy();
+  ScalarArray<T>* newA = rkCopy->a->copy();
   RkMatrix<T>* result =  new RkMatrix<T>(newA, rkCopy->rows, newB, mCols, rkCopy->method);
   rkCopy->a = NULL;
   rkCopy->b = NULL;
@@ -509,8 +513,8 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
                                          const IndexSet* mRows) {
   DECLARE_CONTEXT;
   assert((transR == 'N') || (transM == 'N')); // we do not manage the case R^T*M^T
-  FullMatrix<T>* a = rk->a;
-  FullMatrix<T>* b = rk->b;
+  ScalarArray<T>* a = rk->a;
+  ScalarArray<T>* b = rk->b;
   if (transR == 'T') { // permutation to transpose the matrix Rk
     std::swap(a, b);
   }
@@ -518,13 +522,13 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
 
   /* M R = M (A B^t) = (MA) B^t */
   assert(((transM == 'N') ? m->rows() : m->cols()) == mRows->size());
-  FullMatrix<T>* newA = new FullMatrix<T>((transM == 'N')? m->rows():m->cols(),(transR == 'N')? a->cols():b->cols());
+  ScalarArray<T>* newA = new ScalarArray<T>((transM == 'N')? m->rows():m->cols(),(transR == 'N')? a->cols:b->cols);
   if (transM == 'N') {
-    newA->gemm('N', 'N', Constants<T>::pone, m, a, Constants<T>::zero);
+    newA->gemm('N', 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
   } else {
-    newA->gemm('T', 'N',Constants<T>::pone, m, a, Constants<T>::zero);
+    newA->gemm('T', 'N',Constants<T>::pone, &m->data, a, Constants<T>::zero);
   }
-  FullMatrix<T>* newB = b->copy();
+  ScalarArray<T>* newB = b->copy();
   return new RkMatrix<T>(newA, mRows, newB, rkCols, rk->method);
 }
 
@@ -535,8 +539,8 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
   assert((transRk == 'N') || (transH == 'N')); // we do not manage the case R^T*M^T
   assert(((transRk == 'N') ? *rk->cols : *rk->rows) == ((transH == 'N')? *h->rows() : *h->cols()));
 
-  FullMatrix<T>* a = (transRk == 'N')? rk->a : rk->b;
-  FullMatrix<T>* b = (transRk == 'N')? rk->b : rk->a;
+  ScalarArray<T>* a = (transRk == 'N')? rk->a : rk->b;
+  ScalarArray<T>* b = (transRk == 'N')? rk->b : rk->a;
   const IndexSet* rkRows = ((transRk == 'N')? rk->rows : rk->cols);
 
   // R M = A (M^t B)^t
@@ -545,11 +549,11 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transRk, char transH,
   // and the number of columns of B is k.
   int p = rk->rank();
 
-  assert(b->cols() == p);
-  FullMatrix<T>* resB = new FullMatrix<T>(transH == 'N' ? h->cols()->size() : h->rows()->size(), p);
+  assert(b->cols == p);
+  ScalarArray<T>* resB = new ScalarArray<T>(transH == 'N' ? h->cols()->size() : h->rows()->size(), p);
   resB->clear();
   h->gemv(transH == 'N' ? 'T' : 'N', Constants<T>::pone, b, Constants<T>::zero, resB);
-  FullMatrix<T>* newA = a->copy();
+  ScalarArray<T>* newA = a->copy();
   const IndexSet *newCols = ((transH == 'N' )? h->cols() : h->rows());
   return new RkMatrix<T>(newA, rkRows, resB, newCols, rk->method);
 }
@@ -571,18 +575,18 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   // Therefore the product is n x cols(A)
   // and the number of columns of A is k.
   assert((transR == 'N') || (transH == 'N')); // we do not manage the case of product transposee*transposee
-  FullMatrix<T>* a = rk->a;
-  FullMatrix<T>* b = rk->b;
+  ScalarArray<T>* a = rk->a;
+  ScalarArray<T>* b = rk->b;
   if (transR == 'T') { // permutation of a and b to transpose the matrix Rk
     std::swap(a, b);
   }
   const IndexSet *rkCols = ((transR == 'N' )? rk->cols : rk->rows);
   int n = ((transH == 'N')? h->rows()->size() : h->cols()->size());
   int p = rk->rank();
-  FullMatrix<T>* resA = new FullMatrix<T>(n, p);
+  ScalarArray<T>* resA = new ScalarArray<T>(n, p);
   resA->clear();
   h->gemv(transH, Constants<T>::pone, a, Constants<T>::zero, resA);
-  FullMatrix<T>* newB = b->copy();
+  ScalarArray<T>* newB = b->copy();
   const IndexSet* newRows = ((transH == 'N')? h-> rows() : h->cols());
   // If this base been transposed earlier, back in the right direction.
 
@@ -600,12 +604,12 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
   // It is possible to do the computation differently, yielding a
   // different rank and a different amount of computation.
   // TODO: choose the best order.
-  FullMatrix<T>* Aa = (transA == 'N' ? a->a : a->b);
-  FullMatrix<T>* Ab = (transA == 'N' ? a->b : a->a);
-  FullMatrix<T>* Ba = (transB == 'N' ? b->a : b->b);
-  FullMatrix<T>* Bb = (transB == 'N' ? b->b : b->a);
+  ScalarArray<T>* Aa = (transA == 'N' ? a->a : a->b);
+  ScalarArray<T>* Ab = (transA == 'N' ? a->b : a->a);
+  ScalarArray<T>* Ba = (transB == 'N' ? b->a : b->b);
+  ScalarArray<T>* Bb = (transB == 'N' ? b->b : b->a);
 
-  assert(Ab->rows() == Ba->rows()); // compatibility of the multiplication
+  assert(Ab->rows == Ba->rows); // compatibility of the multiplication
 
   // We want to compute the matrix Aa.t^Ab.Ba.t^Bb and return an Rk matrix
   // Usually, the best way is to start with tmp=t^Ab.Ba which produces a 'small' matrix rank_a x rank_b
@@ -614,17 +618,17 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
   // - compute tmp.Bb : the cost is rank_a.rank_b.col_b, the resulting Rk has rank rank_a
   // the best choice depends on the ranks & dimensions, and also on our priority (flops or resulting rank)
 
-  FullMatrix<T>* tmp = new FullMatrix<T>(a->rank(), b->rank());
-  FullMatrix<T>* newA = new FullMatrix<T>(Aa->rows(), b->rank());
+  ScalarArray<T>* tmp = new ScalarArray<T>(a->rank(), b->rank());
+  ScalarArray<T>* newA = new ScalarArray<T>(Aa->rows, b->rank());
 
-  assert(tmp->rows() == Ab->cols());
-  assert(tmp->cols() == Ba->cols());
-  assert(Ab->rows() == Ba->rows());
+  assert(tmp->rows == Ab->cols);
+  assert(tmp->cols == Ba->cols);
+  assert(Ab->rows == Ba->rows);
   tmp->gemm('T', 'N', Constants<T>::pone, Ab, Ba, Constants<T>::zero);
-  assert(Ab->cols() == tmp->rows());
+  assert(Ab->cols == tmp->rows);
   newA->gemm('N', 'N', Constants<T>::pone, Aa, tmp, Constants<T>::zero);
   delete tmp;
-  FullMatrix<T>* newB = Bb->copy();
+  ScalarArray<T>* newB = Bb->copy();
 
   CompressionMethod combined = std::min(a->method, b->method);
   return new RkMatrix<T>(newA, ((transA == 'N') ? a->rows : a->cols), newB, ((transB == 'N') ? b->cols : b->rows), combined);
@@ -634,10 +638,10 @@ template<typename T>
 size_t RkMatrix<T>::computeRkRkMemorySize(char transA, char transB,
                                                 const RkMatrix<T>* a, const RkMatrix<T>* b)
 {
-    FullMatrix<T>* Bb = (transB == 'N' ? b->b : b->a);
-    FullMatrix<T>* Aa = (transA == 'N' ? a->a : a->b);
+    ScalarArray<T>* Bb = (transB == 'N' ? b->b : b->a);
+    ScalarArray<T>* Aa = (transA == 'N' ? a->a : a->b);
     return Bb == NULL ? 0 : Bb->memorySize() +
-           Aa == NULL ? 0 : Aa->rows() * b->rank() * sizeof(T);
+           Aa == NULL ? 0 : Aa->rows * b->rank() * sizeof(T); // pkoi pas Aa->memorySize() ??
 }
 
 template<typename T>
@@ -656,9 +660,9 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
   }
 
   // left multiplication by d of b (if M<-M*D : left = false) or a (if M<-D*M : left = true)
-  FullMatrix<T>* aOrB = (left ? a : b);
+  ScalarArray<T>* aOrB = (left ? a : b);
   for (int j = 0; j < rank(); j++) {
-    for (int i = 0; i < aOrB->rows(); i++) {
+    for (int i = 0; i < aOrB->rows; i++) {
       aOrB->get(i, j) *= diag[i];
     }
   }
