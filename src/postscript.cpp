@@ -215,11 +215,12 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
           int j = k>=m->nrChildCol() ? m->nrChildCol()-1 : k ;
           int colOffset = m->get(i, j)->cols()->offset();
           int rowOffset = m->get(i, j)->rows()->offset();
+          int thickness = max(1, min(30 - depth, (rowsCount + colsCount) / 100));
         f << 0 << " " << -rowsCount << " "
           << colOffset << " " << n - startY << " "
           << colsCount << " " << 0 << " "
           << startX << " " << n - rowOffset << " "
-          << 30 - depth << " cross" << endl;
+          << thickness << " cross" << endl;
     }
         /* La macro 'cross' est definie dans writeHeader() ci-dessus.
            Elle contient une serie de commande postscript (moveto, rlineto, etc.) qui vont depiler
