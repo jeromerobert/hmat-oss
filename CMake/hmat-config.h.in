@@ -21,9 +21,4 @@
 */
 
 #pragma once
-#ifndef __HMAT_CONFIG_H
-#define __HMAT_CONFIG_H
-
 #include <hmat/config-oss.h>
-
-#endif
