@@ -1030,6 +1030,24 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         return;
     }
 
+    // a, b are H matrices and 'this' is full
+    if ( this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
+      for (int i = 0; i < (tA=='N' ? a->nrChildRow() : a->nrChildCol()) ; i++) {
+        for (int j = 0; j < (tB=='N' ? b->nrChildCol() : b->nrChildRow()) ; j++) {
+          const HMatrix<T> *childA, *childB;
+          for (int k = 0; k < (tA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
+            char tA = transA;
+            char tB = transB;
+            childA = a->getChildForGEMM(tA, i, k);
+            childB = b->getChildForGEMM(tB, k, j);
+            if(childA && childB)
+              gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
+          }
+        }
+      }
+      return;
+    }
+
     // The resulting matrix is a full matrix
     FullMatrix<T>* fullMat;
     if (a->isRkMatrix() || b->isRkMatrix()) {
@@ -1045,7 +1063,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
       // if a or b is a leaf, it is Full (since Rk have been treated before)
         fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
     } else {
-        // TODO not yet implemented : a, b are H and 'this' is full
+        // should not happen anymore
         HMAT_ASSERT(false);
     }
     if(isFullMatrix()) {
