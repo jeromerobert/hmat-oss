@@ -50,10 +50,6 @@
 #include <cmath>
 #include <fcntl.h>
 
-#ifndef _WIN32
-#include <sys/mman.h> // mmap
-#endif
-
 #include <sys/stat.h>
 
 #ifdef HAVE_UNISTD_H
@@ -62,47 +58,59 @@
 
 #include <stdlib.h>
 
-#ifdef HAVE_JEMALLOC
-#define JEMALLOC_NO_DEMANGLE
-#include <jemalloc/jemalloc.h>
-#endif
-
-#ifdef _MSC_VER
-// Intel compiler defines isnan in global namespace
-// MSVC defines _isnan
-# ifndef __INTEL_COMPILER
-#  define isnan _isnan
-# endif
-#elif __GLIBC__ == 2 && __GLIBC_MINOR__ < 23
-// https://sourceware.org/bugzilla/show_bug.cgi?id=19439
-#elif __cplusplus >= 201103L || !defined(__GLIBC__)
-using std::isnan;
-#endif
-
 namespace hmat {
 
 /** FullMatrix */
 template<typename T>
 FullMatrix<T>::FullMatrix(T* _m, int _rows, int _cols, int _lda)
-  : data(_m, _rows, _cols, _lda), triUpper_(false), triLower_(false), pivots(NULL), diagonal(NULL) {}
+  : data(_m, _rows, _cols, _lda), triUpper_(false), triLower_(false),
+    rows_(NULL), cols_(NULL), pivots(NULL), diagonal(NULL) {}
+
+template<typename T>
+FullMatrix<T>::FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols, int _lda)
+  : data(_m, _rows->size(), _cols->size(), _lda), triUpper_(false), triLower_(false),
+    rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
+  assert(rows_);
+  assert(cols_);
+}
 
 template<typename T>
 FullMatrix<T>::FullMatrix(ScalarArray<T> *s)
-  : data(s->m, s->rows, s->cols, s->lda), triUpper_(false), triLower_(false), pivots(NULL), diagonal(NULL) {}
+  : data(s->m, s->rows, s->cols, s->lda), triUpper_(false), triLower_(false),
+    rows_(NULL), cols_(NULL), pivots(NULL), diagonal(NULL) {}
+
+//template<typename T>
+//FullMatrix<T>::FullMatrix(int _rows, int _cols)
+//  : data(_rows, _cols), triUpper_(false), triLower_(false),
+//    rows_(NULL), cols_(NULL), pivots(NULL), diagonal(NULL) {}
 
 template<typename T>
-FullMatrix<T>::FullMatrix(int _rows, int _cols)
-  : data(_rows, _cols), triUpper_(false), triLower_(false), pivots(NULL), diagonal(NULL) {}
-
-template<typename T>
-FullMatrix<T>* FullMatrix<T>::Zero(int rows, int cols) {
-  FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
-#ifdef POISON_ALLOCATION
-  // The memory was poisoned in FullMatrix<T>::FullMatrix(), set it back to 0;
-  result->clear();
-#endif
-  return result;
+FullMatrix<T>::FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols)
+  : data(_rows->size(), _cols->size()), triUpper_(false), triLower_(false),
+    rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
+  assert(rows_);
+  assert(cols_);
 }
+
+//template<typename T>
+//FullMatrix<T>* FullMatrix<T>::Zero(int rows, int cols) {
+//  FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
+//#ifdef POISON_ALLOCATION
+//  // The memory was poisoned in FullMatrix<T>::FullMatrix(), set it back to 0;
+//  result->clear();
+//#endif
+//  return result;
+//}
+
+//template<typename T>
+//FullMatrix<T>* FullMatrix<T>::Zero(const IndexSet*  _rows, const IndexSet*  _cols) {
+//  FullMatrix<T>* result = new FullMatrix<T>(_rows, _cols);
+//#ifdef POISON_ALLOCATION
+//  // The memory was poisoned in FullMatrix<T>::FullMatrix(), set it back to 0;
+//  result->clear();
+//#endif
+//  return result;
+//}
 
 template<typename T> FullMatrix<T>::~FullMatrix() {
   if (pivots) {
@@ -131,6 +139,7 @@ template<typename T> void FullMatrix<T>::scale(T alpha) {
 
 template<typename T> void FullMatrix<T>::transpose() {
   data.transpose();
+  std::swap(rows_, cols_);
   if (triUpper_) {
     triUpper_ = false;
     triLower_ = true;
@@ -142,7 +151,7 @@ template<typename T> void FullMatrix<T>::transpose() {
 
 template<typename T> FullMatrix<T>* FullMatrix<T>::copy(FullMatrix<T>* result) const {
   if(result == NULL)
-    result = new FullMatrix<T>(rows(), cols());
+    result = new FullMatrix<T>(rows_, cols_);
 
   data.copy(&result->data);
   if (diagonal) {
@@ -151,13 +160,17 @@ template<typename T> FullMatrix<T>* FullMatrix<T>::copy(FullMatrix<T>* result) c
     diagonal->copy(result->diagonal);
   }
 
+  result->rows_ = rows_;
+  result->cols_ = cols_;
   result->triLower_ = triLower_;
   result->triUpper_ = triUpper_;
   return result;
 }
 
 template<typename T> FullMatrix<T>* FullMatrix<T>::copyAndTranspose() const {
-  FullMatrix<T>* result = new FullMatrix<T>(cols(), rows());
+  assert(cols_);
+  assert(rows_);
+  FullMatrix<T>* result = new FullMatrix<T>(cols_, rows_);
   data.copyAndTranspose(&result->data);
   return result;
 }
@@ -480,85 +493,10 @@ template<typename T> void FullMatrix<T>::checkNan() const {
     diagonal->checkNan();
 }
 
-// MmapedFullMatrix
-template<typename T>
-MmapedFullMatrix<T>::MmapedFullMatrix(int rows, int cols, const char* filename)
-  : m(NULL, rows, cols), mmapedFile(NULL), fd(-1), size(0) {
-#ifdef _WIN32
-  HMAT_ASSERT(false); // no mmap() on Windows
-#else
-  int ierr;
-
-  size = ((size_t) rows) * cols * sizeof(T) + 5 * sizeof(int);
-  fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
-  HMAT_ASSERT(fd != -1);
-  ierr = lseek(fd, size - 1, SEEK_SET);
-  HMAT_ASSERT(ierr != -1);
-  ierr = write(fd, "", 1);
-  HMAT_ASSERT(ierr == 1);
-  mmapedFile = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  ierr = (mmapedFile == MAP_FAILED) ? 1 : 0;
-  HMAT_ASSERT(!ierr);
-  int *asIntArray = (int*) mmapedFile;
-  asIntArray[0] = 0;
-  asIntArray[1] = rows;
-  asIntArray[2] = cols;
-  asIntArray[3] = sizeof(T);
-  asIntArray[4] = 0;
-  asIntArray += 5;
-  T* mat = (T*) asIntArray;
-  m.data.m = mat;
-#endif
-}
-
-template<typename T>
-MmapedFullMatrix<T>::~MmapedFullMatrix() {
-#ifndef _WIN32
-  close(fd);
-  munmap(mmapedFile, size);
-#endif
-}
-
-template<typename T>
-MmapedFullMatrix<T>* MmapedFullMatrix<T>::fromFile(const char* filename) {
-  MmapedFullMatrix<T>* result = new MmapedFullMatrix();
-
-#ifdef _WIN32
-  HMAT_ASSERT(false); // no mmap() on Windows
-#else
-  int ierr;
-  result->fd = open(filename, O_RDONLY);
-  HMAT_ASSERT(result->fd != -1);
-  struct stat fileStat;
-  ierr = fstat(result->fd, &fileStat);
-  HMAT_ASSERT(!ierr);
-  size_t fileSize = fileStat.st_size;
-
-  result->mmapedFile = mmap(0, fileSize, PROT_READ, MAP_SHARED, result->fd, 0);
-  ierr = (result->mmapedFile == MAP_FAILED) ? 1 : 0;
-  HMAT_ASSERT(!ierr);
-  int* header = (int*) result->mmapedFile;
-  // Check the consistency of the file
-  HMAT_ASSERT(header[0] == Constants<T>::code);
-  HMAT_ASSERT(header[3] == sizeof(T));
-  HMAT_ASSERT(header[1] * ((size_t) header[2]) * sizeof(T) + (5 * sizeof(int)) == fileSize);
-  result->m.data.lda = result->m.data.rows = header[1];
-  result->m.data.cols = header[2];
-  result->m.data.m = (T*) (header + 5);
-#endif
-  return result;
-}
-
-
 // the classes declaration
 template class FullMatrix<S_t>;
 template class FullMatrix<D_t>;
 template class FullMatrix<C_t>;
 template class FullMatrix<Z_t>;
-
-template class MmapedFullMatrix<S_t>;
-template class MmapedFullMatrix<D_t>;
-template class MmapedFullMatrix<C_t>;
-template class MmapedFullMatrix<Z_t>;
 
 }  // end namespace hmat

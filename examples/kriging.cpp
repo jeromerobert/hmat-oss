@@ -84,9 +84,9 @@ void readPointsFromFile(const char* filename, std::vector<Point>& points) {
   }
 }
 
-FullMatrix<D_t>* createRhs(const DofCoordinates& coord, double l) {
+ScalarArray<D_t>* createRhs(const DofCoordinates& coord, double l) {
   const int n = (int) coord.size();
-  FullMatrix<D_t>* rhs = FullMatrix<D_t>::Zero(n, 1);
+  ScalarArray<D_t>* rhs = new ScalarArray<D_t>(n, 1);
 
   Point center(0., 0., 0.);
   for (int i = 0; i < n; i++) {
@@ -144,8 +144,8 @@ int go(const char* pointsFilename) {
   DofCoordinates coord(xyz, 3, points.size(), true);
 
   const double l = correlationLength(points);
-  FullMatrix<D_t>* rhs = createRhs(coord, l);
-  FullMatrix<D_t> rhsCopy(n, 1);
+  ScalarArray<D_t>* rhs = createRhs(coord, l);
+  ScalarArray<D_t> rhsCopy(n, 1);
   rhsCopy.copyMatrixAtOffset(rhs, 0, 0);
 
   KrigingAssemblyFunction f(coord, l);

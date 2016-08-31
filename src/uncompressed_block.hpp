@@ -120,7 +120,7 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
     void renumberRows() {
         HMAT_ASSERT_MSG(matrix_->father == NULL && rowIndexSet_ == *me()->matrix().rows(),
                         "Cannot renumber");
-        FullMatrix<T> fm(values_, rowIndexSet_.size(), colIndexSet_.size(), ld());
+        ScalarArray<T> fm(values_, rowIndexSet_.size(), colIndexSet_.size(), ld());
         restoreVectorOrder(&fm, rowsNumbering());
     }
 };

@@ -69,12 +69,12 @@ template<typename T> HMatrix<T>::~HMatrix() {
 }
 
 template<typename T>
-void reorderVector(FullMatrix<T>* v, int* indices) {
+void reorderVector(ScalarArray<T>* v, int* indices) {
   DECLARE_CONTEXT;
-  const int n = v->rows();
+  const int n = v->rows;
   Vector<T> tmp(n);
-  for (int col = 0; col < v->cols(); col++) {
-    T* column = v->data.m + ((size_t) n) * col;
+  for (int col = 0; col < v->cols; col++) {
+    T* column = v->m + ((size_t) n) * col;
     for (int i = 0; i < n; i++) {
       tmp.m[i] = column[indices[i]];
     }
@@ -84,13 +84,13 @@ void reorderVector(FullMatrix<T>* v, int* indices) {
 
 
 template<typename T>
-void restoreVectorOrder(FullMatrix<T>* v, int* indices) {
+void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
   DECLARE_CONTEXT;
-  const int n = v->rows();
+  const int n = v->rows;
   Vector<T> tmp(n);
 
-  for (int col = 0; col < v->cols(); col++) {
-    T* column = v->data.m + ((size_t) n) * col;
+  for (int col = 0; col < v->cols; col++) {
+    T* column = v->m + ((size_t) n) * col;
     for (int i = 0; i < n; i++) {
       tmp.m[indices[i]] = column[i];
     }
@@ -666,7 +666,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                 }
             } else {
                 if(full() == NULL && !x->isNull())
-                    full(new FullMatrix<T>(rows()->size(), cols()->size()));
+                    full(new FullMatrix<T>(rows(), cols()));
                 if(x->isNull()) {
                     // nothig to do
                 } else if(x->isFullMatrix()) {
@@ -787,7 +787,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
     FullMatrix<T> subMat(b->data.m + rowOffset + ((size_t) colOffset) * b->data.lda,
                          this->rows()->size(), this->cols()->size(), b->data.lda);
     if (this->isNull()) {
-      full(FullMatrix<T>::Zero( this->rows()->size(), this->cols()->size()) );
+      full(new FullMatrix<T>( this->rows(), this->cols()) );
     }
     if (isFullMatrix()) {
       full()->axpy(alpha, &subMat);
@@ -1182,8 +1182,8 @@ FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
   assert((transH == 'N' ? h->cols()->size() : h->rows()->size())
            == (transM == 'N' ? mat->rows() : mat->cols()));
   FullMatrix<T>* result =
-    new FullMatrix<T>((transH == 'N' ? h->rows()->size() : h->cols()->size()),
-                      (transM == 'N' ? mat->cols() : mat->rows()));
+    new FullMatrix<T>((transH == 'N' ? h->rows() : h->cols()),
+                      (transM == 'N' ? mat->cols_ : mat->rows_));
   if (transM == 'N') {
     h->gemv(transH, Constants<T>::pone, mat, Constants<T>::zero, result);
   } else {
@@ -1263,8 +1263,8 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
     result = HMatrix<T>::multiplyFullH(transA, transB, a->full(), b);
     HMAT_ASSERT(result);
   } else if (a->isFullMatrix() && b->isFullMatrix()) {
-    int aRows = ((transA == 'N')? a->full()->rows() : a->full()->cols());
-    int bCols = ((transB == 'N')? b->full()->cols() : b->full()->rows());
+    const IndexSet* aRows = (transA == 'N')? a->rows() : a->cols();
+    const IndexSet* bCols = (transB == 'N')? b->cols() : b->rows();
     result = new FullMatrix<T>(aRows, bCols);
     result->gemm(transA, transB, Constants<T>::pone, a->full(), b->full(),
                  Constants<T>::zero);
@@ -1690,7 +1690,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
       assert(this->isLeaf());
       // Evaluate B, solve by column, and restore in the matrix
       // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
+      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
 
       b->evalPart(bFull, b->rows(), b->cols());
       this->solveLowerTriangularLeft(bFull, unitriangular);
@@ -1780,7 +1780,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
       assert(isFullMatrix());
       // Evaluate B, solve by column and restore all in the matrix
       // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
+      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
       b->evalPart(bFull, b->rows(), b->cols());
       bFull->transpose();
       this->solveUpperTriangularRight(bFull, unitriangular, lowerStored);
@@ -1828,7 +1828,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
       assert(this->isLeaf());
       // Evaluate B, solve by column, and restore in the matrix
       // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows()->size(), b->cols()->size());
+      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
       b->evalPart(bFull, b->rows(), b->cols());
       this->solveUpperTriangularLeft(bFull, unitriangular, lowerStored);
       b->clear();
@@ -2029,7 +2029,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       assert(!full()->isTriLower());
       assert(!m->full()->isTriUpper());
       assert(!m->full()->isTriLower());
-      FullMatrix<T> mTmp(m->full()->rows(), m->full()->cols());
+      FullMatrix<T> mTmp(m->rows(), m->cols());
       mTmp.copyMatrixAtOffset(m->full(), 0, 0);
       if (d->isFullMatrix()) {
         mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
@@ -2119,13 +2119,18 @@ void HMatrix<T>::ldltDecomposition() {
 }
 
 template<typename T>
-void HMatrix<T>::solve(FullMatrix<T>* b) const {
+void HMatrix<T>::solve(ScalarArray<T>* b) const {
   DECLARE_CONTEXT;
   // Solve (LU) X = b
   // First compute L Y = b
   this->solveLowerTriangularLeft(b, true);
   // Then compute U X = Y
   this->solveUpperTriangularLeft(b, false, false);
+}
+
+template<typename T>
+void HMatrix<T>::solve(FullMatrix<T>* b) const {
+  solve(&b->data);
 }
 
 template<typename T>
@@ -2174,7 +2179,7 @@ template<typename T> void HMatrix<T>::solve(
     }
 }
 
-template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
+template<typename T> void HMatrix<T>::solveDiagonal(ScalarArray<T>* b) const {
     // Solve D*X = B and store result into B
     // Diagonal extraction
     T* diag;
@@ -2189,8 +2194,8 @@ template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
         extractDiagonal(diag);
         extracted = true;
     }
-    for (int j = 0; j < b->cols(); j++) {
-        for (int i = 0; i < b->rows(); i++) {
+    for (int j = 0; j < b->cols; j++) {
+        for (int i = 0; i < b->rows; i++) {
             b->get(i, j) = b->get(i, j) / diag[i];
         }
     }
@@ -2198,8 +2203,12 @@ template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
         delete[] diag;
 }
 
+template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
+  solveDiagonal(&b->data);
+}
+
 template<typename T>
-void HMatrix<T>::solveLdlt(FullMatrix<T>* b) const {
+void HMatrix<T>::solveLdlt(ScalarArray<T>* b) const {
   DECLARE_CONTEXT;
   assertLdlt(this);
   // L*D*L^T * X = B
@@ -2214,7 +2223,12 @@ void HMatrix<T>::solveLdlt(FullMatrix<T>* b) const {
 }
 
 template<typename T>
-void HMatrix<T>::solveLlt(FullMatrix<T>* b) const {
+void HMatrix<T>::solveLdlt(FullMatrix<T>* b) const {
+  solveLdlt(&b->data);
+}
+
+template<typename T>
+void HMatrix<T>::solveLlt(ScalarArray<T>* b) const {
   DECLARE_CONTEXT;
   // L*L^T * X = B
   // B <- solution of L * Y = B : Y = L^T * X
@@ -2222,6 +2236,11 @@ void HMatrix<T>::solveLlt(FullMatrix<T>* b) const {
 
   // B <- solution of L^T X = B :  the solution X we are looking for is stored in B
   this->solveUpperTriangularLeft(b, false, true);
+}
+
+template<typename T>
+void HMatrix<T>::solveLlt(FullMatrix<T>* b) const {
+  solveLlt(&b->data);
 }
 
 template<typename T>
@@ -2328,15 +2347,15 @@ template class HMatrixNodeDumper<D_t>;
 template class HMatrixNodeDumper<C_t>;
 template class HMatrixNodeDumper<Z_t>;
 
-template void reorderVector(FullMatrix<S_t>* v, int* indices);
-template void reorderVector(FullMatrix<D_t>* v, int* indices);
-template void reorderVector(FullMatrix<C_t>* v, int* indices);
-template void reorderVector(FullMatrix<Z_t>* v, int* indices);
+template void reorderVector(ScalarArray<S_t>* v, int* indices);
+template void reorderVector(ScalarArray<D_t>* v, int* indices);
+template void reorderVector(ScalarArray<C_t>* v, int* indices);
+template void reorderVector(ScalarArray<Z_t>* v, int* indices);
 
-template void restoreVectorOrder(FullMatrix<S_t>* v, int* indices);
-template void restoreVectorOrder(FullMatrix<D_t>* v, int* indices);
-template void restoreVectorOrder(FullMatrix<C_t>* v, int* indices);
-template void restoreVectorOrder(FullMatrix<Z_t>* v, int* indices);
+template void restoreVectorOrder(ScalarArray<S_t>* v, int* indices);
+template void restoreVectorOrder(ScalarArray<D_t>* v, int* indices);
+template void restoreVectorOrder(ScalarArray<C_t>* v, int* indices);
+template void restoreVectorOrder(ScalarArray<Z_t>* v, int* indices);
 
 template class EpsilonTruncate<S_t>;
 template class EpsilonTruncate<D_t>;

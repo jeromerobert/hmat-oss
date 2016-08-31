@@ -283,13 +283,15 @@ template<typename T>
 void ScalarArray<T>::gemm(char transA, char transB, T alpha,
                          const ScalarArray<T>* a, const ScalarArray<T>* b,
                          T beta) {
-  int m = (transA == 'N' ? a->rows : a->cols);
-  int n = (transB == 'N' ? b->cols : b->rows);
-  int k = (transA == 'N' ? a->cols : a->rows);
+  int m  = (transA == 'N' ? a->rows : a->cols);
+  int n  = (transB == 'N' ? b->cols : b->rows);
+  int k  = (transA == 'N' ? a->cols : a->rows);
+  int k2 = (transB == 'N' ? b->rows : b->cols);
   assert(a->lda >= (transA == 'N' ? m : k));
   assert(b->lda >= (transB == 'N' ? k : n));
   assert(rows == m);
   assert(cols == n);
+  assert(k == k2);
   {
     const size_t _m = m, _n = n, _k = k;
     const size_t adds = _m * _n * _k;
@@ -518,11 +520,85 @@ int Vector<T>::absoluteMaxIndex() const {
   return proxy_cblas::i_amax(this->rows, this->m, 1);
 }
 
+// MmapedScalarArray
+template<typename T>
+MmapedScalarArray<T>::MmapedScalarArray(int rows, int cols, const char* filename)
+  : m(NULL, rows, cols), mmapedFile(NULL), fd(-1), size(0) {
+#ifdef _WIN32
+  HMAT_ASSERT(false); // no mmap() on Windows
+#else
+  int ierr;
+
+  size = ((size_t) rows) * cols * sizeof(T) + 5 * sizeof(int);
+  fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
+  HMAT_ASSERT(fd != -1);
+  ierr = lseek(fd, size - 1, SEEK_SET);
+  HMAT_ASSERT(ierr != -1);
+  ierr = write(fd, "", 1);
+  HMAT_ASSERT(ierr == 1);
+  mmapedFile = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  ierr = (mmapedFile == MAP_FAILED) ? 1 : 0;
+  HMAT_ASSERT(!ierr);
+  int *asIntArray = (int*) mmapedFile;
+  asIntArray[0] = 0;
+  asIntArray[1] = rows;
+  asIntArray[2] = cols;
+  asIntArray[3] = sizeof(T);
+  asIntArray[4] = 0;
+  asIntArray += 5;
+  T* mat = (T*) asIntArray;
+  m.m = mat;
+#endif
+}
+
+template<typename T>
+MmapedScalarArray<T>::~MmapedScalarArray() {
+#ifndef _WIN32
+  close(fd);
+  munmap(mmapedFile, size);
+#endif
+}
+
+template<typename T>
+MmapedScalarArray<T>* MmapedScalarArray<T>::fromFile(const char* filename) {
+  MmapedScalarArray<T>* result = new MmapedScalarArray();
+
+#ifdef _WIN32
+  HMAT_ASSERT(false); // no mmap() on Windows
+#else
+  int ierr;
+  result->fd = open(filename, O_RDONLY);
+  HMAT_ASSERT(result->fd != -1);
+  struct stat fileStat;
+  ierr = fstat(result->fd, &fileStat);
+  HMAT_ASSERT(!ierr);
+  size_t fileSize = fileStat.st_size;
+
+  result->mmapedFile = mmap(0, fileSize, PROT_READ, MAP_SHARED, result->fd, 0);
+  ierr = (result->mmapedFile == MAP_FAILED) ? 1 : 0;
+  HMAT_ASSERT(!ierr);
+  int* header = (int*) result->mmapedFile;
+  // Check the consistency of the file
+  HMAT_ASSERT(header[0] == Constants<T>::code);
+  HMAT_ASSERT(header[3] == sizeof(T));
+  HMAT_ASSERT(header[1] * ((size_t) header[2]) * sizeof(T) + (5 * sizeof(int)) == fileSize);
+  result->m.lda = result->m.rows = header[1];
+  result->m.cols = header[2];
+  result->m.m = (T*) (header + 5);
+#endif
+  return result;
+}
+
 // the classes declaration
 template class ScalarArray<S_t>;
 template class ScalarArray<D_t>;
 template class ScalarArray<C_t>;
 template class ScalarArray<Z_t>;
+
+template class MmapedScalarArray<S_t>;
+template class MmapedScalarArray<D_t>;
+template class MmapedScalarArray<C_t>;
+template class MmapedScalarArray<Z_t>;
 
 // the classes declaration
 template class Vector<S_t>;

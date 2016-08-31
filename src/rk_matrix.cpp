@@ -85,9 +85,9 @@ template<typename T> RkMatrix<T>::~RkMatrix() {
 template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {
   // Special case of the empty matrix, assimilated to the zero matrix.
   if (rank() == 0) {
-    return FullMatrix<T>::Zero(rows->size(), cols->size());
+    return new FullMatrix<T>(rows, cols);
   }
-  FullMatrix<T>* result = new FullMatrix<T>(a->rows, b->rows);
+  FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
   result->data.gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
   return result;
 }

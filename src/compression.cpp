@@ -96,7 +96,7 @@ public:
       return f.assemble(rows, cols, &info, allocationObserver_) ;
     else
       // TODO return
-      return FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
+      return new FullMatrix<typename Types<T>::dp>(rows, cols);
   }
 private:
   ClusterAssemblyFunction(ClusterAssemblyFunction&o) {} // No copy

@@ -66,7 +66,7 @@ SimpleFunction<T>::assemble(const ClusterData* rows,
                             const hmat_block_info_t *,
                             const AllocationObserver &) const {
   FullMatrix<typename Types<T>::dp>* result =
-    new FullMatrix<typename Types<T>::dp>(rows->size(), cols->size());
+    new FullMatrix<typename Types<T>::dp>(rows, cols);
   const int* rows_indices = rows->indices() + rows->offset();
   const int* cols_indices = cols->indices() + cols->offset();
   for (int j = 0; j < cols->size(); ++j) {
@@ -134,7 +134,7 @@ BlockFunction<T>::assemble(const ClusterData* rows,
     local_block_info = *block_info ;
 
   if (local_block_info.block_type != hmat_block_null) {
-    result = FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
+    result = new FullMatrix<typename Types<T>::dp>(rows, cols);
     compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->data.m);
   }
 

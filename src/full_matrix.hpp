@@ -34,7 +34,9 @@
 
 namespace hmat {
 
-/*! \brief Templated dense Matrix type.
+class IndexSet;
+
+  /*! \brief Templated dense Matrix type.
 
   The template parameter represents the scalar type of the matrix elements.  The
   supported types are \a S_t, \a D_t, \a C_t and \a Z_t, as defined in
@@ -52,12 +54,28 @@ private:
   FullMatrix(const FullMatrix<T>& o);
 
 public:
+  const IndexSet *rows_;
+  const IndexSet *cols_;
+
+public:
   /*! Holds the pivots for the LU decomposition. */
   int* pivots;
   /*! Diagonal in an LDL^t factored matrix */
   Vector<T>* diagonal;
 
   /** \brief Initialize the matrix with existing data.
+
+      In this case the matrix doesn't own the data (the memory is not
+      freed at the object destruction).
+       The represented matrix R corresponds to a set of indices _rows and _cols.
+
+      \param _m Pointer to the data
+      \param _rows indices of the rows
+      \param _cols indices of the columns
+      \param lda Leading dimension, as in BLAS
+   */
+  FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols, int _lda=-1);
+  /** \brief Initialize the matrix with existing data and 2 IndexSets.
 
       In this case the matrix doesn't own the data (the memory is not
       freed at the object destruction).
@@ -77,10 +95,18 @@ public:
 
      In this case, the memory is freed when the object is destroyed.
 
+      \param _rows indices of the rows
+      \param _cols indices of the columns
+   */
+  FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols);
+  /** \brief Create an empty matrix, filled with 0s.
+
+     In this case, the memory is freed when the object is destroyed.
+
      \param _rows Number of rows
      \param _cols Number of columns
    */
-  FullMatrix(int _rows, int _cols);
+ // FullMatrix(int _rows, int _cols);
   /** \brief Create a matrix filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
@@ -88,7 +114,15 @@ public:
      \param _rows Number of rows
      \param _cols Number of columns
    */
-  static FullMatrix<T>* Zero(int rows, int cols);
+//  static FullMatrix<T>* Zero(int rows, int cols);
+  /** \brief Create a matrix filled with 0s.
+
+     In this case, the memory is freed when the object is destroyed.
+
+      \param _rows indices of the rows
+      \param _cols indices of the columns
+   */
+//  FullMatrix<T>* Zero(const IndexSet*  _rows, const IndexSet*  _cols);
   ~FullMatrix();
 
   bool isTriUpper() {
@@ -266,39 +300,6 @@ public:
   std::string description() const {
     return data.description();
   }
-};
-
-
-/** \brief Wraps a FullMatrix backed by a file (using mmap()).
- */
-template<typename T> class MmapedFullMatrix {
-public:
-  FullMatrix<T> m;
-private:
-  void* mmapedFile;
-  int fd;
-  size_t size;
-
-public:
-  /** \brief Maps a .res file into memory.
-
-      The mapping is read-only.
-
-      \param filename The filename
-      \return an instance of MMapedFullMatrix<T> mapping the file.
-   */
-  static MmapedFullMatrix<T>* fromFile(const char* filename);
-  /** \brief Creates a FullMatrix backed by a file, wrapped into a MMapedFullMatrix<T>.
-
-      \param rows number of rows of the matrix.
-      \param cols number of columns of the matrix.
-      \param filename Filename. The file is not destroyed with the object.
-   */
-  MmapedFullMatrix(int rows, int cols, const char* filename);
-  ~MmapedFullMatrix();
-
-private:
-  MmapedFullMatrix() : m(NULL, 0, 0), mmapedFile(NULL), fd(-1), size(0) {}
 };
 
 }  // end namespace hmat

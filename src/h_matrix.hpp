@@ -74,7 +74,7 @@ struct LocalSettings {
      \param indices Array of indices after construction ClusterTree.
 
  */
-template<typename T> void reorderVector(FullMatrix<T>* v, int* indices);
+template<typename T> void reorderVector(ScalarArray<T>* v, int* indices);
 
 /** Inverse permutation of a vector.
 
@@ -84,7 +84,7 @@ template<typename T> void reorderVector(FullMatrix<T>* v, int* indices);
      \param indices Array of indices after construction ClusterTree.
 
  */
-template<typename T> void restoreVectorOrder(FullMatrix<T>* v, int *indices);
+template<typename T> void restoreVectorOrder(ScalarArray<T>* v, int *indices);
 
 template<typename T> class HMatrix;
 /** Class to write user defined data when dumping matrix onto disk.
@@ -472,16 +472,17 @@ public:
   */
   void solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const;
   void solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const;
-  /* Solve D x = b, in place with D a diagonal matrix.
+  /*! Solve D x = b, in place with D a diagonal matrix.
 
      \param b Input: B, Output: X
    */
+  void solveDiagonal(ScalarArray<T>* b) const;
   void solveDiagonal(FullMatrix<T>* b) const;
-  void solveDiagonal(HMatrix<T>* b) const;
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
+  void solve(ScalarArray<T>* b) const;
   void solve(FullMatrix<T>* b) const;
   /*! Resolution de This * X = b.
 
@@ -492,11 +493,13 @@ public:
 
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.
    */
+  void solveLdlt(ScalarArray<T>* b) const ;
   void solveLdlt(FullMatrix<T>* b) const ;
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::lltDecomposition() avant.
    */
+  void solveLlt(ScalarArray<T>* b) const ;
   void solveLlt(FullMatrix<T>* b) const ;
   /*! Triggers an assertion is the HMatrix contains any NaN.
    */

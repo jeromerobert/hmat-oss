@@ -239,5 +239,37 @@ public:
     Vector<T>(const Vector<T>& o);
   };
 
+  /** \brief Wraps a ScalarArray backed by a file (using mmap()).
+   */
+  template<typename T> class MmapedScalarArray {
+  public:
+    ScalarArray<T> m;
+  private:
+    void* mmapedFile;
+    int fd;
+    size_t size;
+
+  public:
+    /** \brief Maps a .res file into memory.
+
+        The mapping is read-only.
+
+        \param filename The filename
+        \return an instance of MMapedScalarArray<T> mapping the file.
+     */
+    static MmapedScalarArray<T>* fromFile(const char* filename);
+    /** \brief Creates a ScalarArray backed by a file, wrapped into a MMapedScalarArray<T>.
+
+        \param rows number of rows of the matrix.
+        \param cols number of columns of the matrix.
+        \param filename Filename. The file is not destroyed with the object.
+     */
+    MmapedScalarArray(int rows, int cols, const char* filename);
+    ~MmapedScalarArray();
+
+  private:
+    MmapedScalarArray() : m(NULL, 0, 0), mmapedFile(NULL), fd(-1), size(0) {}
+  };
+
 }  // end namespace hmat
 
