@@ -61,12 +61,8 @@
 namespace hmat {
 
 /** FullMatrix */
-template<typename T>
-FullMatrix<T>::FullMatrix(T* _m, int _rows, int _cols, int _lda)
-  : data(_m, _rows, _cols, _lda), triUpper_(false), triLower_(false),
-    rows_(NULL), cols_(NULL), pivots(NULL), diagonal(NULL) {}
 
-template<typename T>
+  template<typename T>
 FullMatrix<T>::FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols, int _lda)
   : data(_m, _rows->size(), _cols->size(), _lda), triUpper_(false), triLower_(false),
     rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
@@ -75,14 +71,15 @@ FullMatrix<T>::FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols,
 }
 
 template<typename T>
-FullMatrix<T>::FullMatrix(ScalarArray<T> *s)
+FullMatrix<T>::FullMatrix(ScalarArray<T> *s, const IndexSet*  _rows, const IndexSet*  _cols)
   : data(s->m, s->rows, s->cols, s->lda), triUpper_(false), triLower_(false),
-    rows_(NULL), cols_(NULL), pivots(NULL), diagonal(NULL) {}
-
-//template<typename T>
-//FullMatrix<T>::FullMatrix(int _rows, int _cols)
-//  : data(_rows, _cols), triUpper_(false), triLower_(false),
-//    rows_(NULL), cols_(NULL), pivots(NULL), diagonal(NULL) {}
+    rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
+  assert(rows_);
+  assert(cols_);
+  // check the coherency between IndexSet and ScalarArray
+  assert(rows_->size() == s->rows);
+  assert(cols_->size() == s->cols);
+}
 
 template<typename T>
 FullMatrix<T>::FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols)
@@ -91,26 +88,6 @@ FullMatrix<T>::FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols)
   assert(rows_);
   assert(cols_);
 }
-
-//template<typename T>
-//FullMatrix<T>* FullMatrix<T>::Zero(int rows, int cols) {
-//  FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
-//#ifdef POISON_ALLOCATION
-//  // The memory was poisoned in FullMatrix<T>::FullMatrix(), set it back to 0;
-//  result->clear();
-//#endif
-//  return result;
-//}
-
-//template<typename T>
-//FullMatrix<T>* FullMatrix<T>::Zero(const IndexSet*  _rows, const IndexSet*  _cols) {
-//  FullMatrix<T>* result = new FullMatrix<T>(_rows, _cols);
-//#ifdef POISON_ALLOCATION
-//  // The memory was poisoned in FullMatrix<T>::FullMatrix(), set it back to 0;
-//  result->clear();
-//#endif
-//  return result;
-//}
 
 template<typename T> FullMatrix<T>::~FullMatrix() {
   if (pivots) {

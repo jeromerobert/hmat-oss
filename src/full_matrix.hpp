@@ -75,22 +75,13 @@ public:
       \param lda Leading dimension, as in BLAS
    */
   FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols, int _lda=-1);
-  /** \brief Initialize the matrix with existing data and 2 IndexSets.
-
-      In this case the matrix doesn't own the data (the memory is not
-      freed at the object destruction).
-
-      \param _m Pointer to the data
-      \param _rows Number of rows
-      \param _cols Number of cols
-      \param lda Leading dimension, as in BLAS
-   */
-  FullMatrix(T* _m, int _rows, int _cols, int _lda=-1);
-  /** \brief Initialize the matrix with an existing ScalarArray.
+  /** \brief Initialize the matrix with an existing ScalarArray and 2 IndexSets.
 
       \param _s a ScalarArray
+      \param _rows indices of the rows
+      \param _cols indices of the columns
    */
-  FullMatrix(ScalarArray<T> *s);
+  FullMatrix(ScalarArray<T> *s, const IndexSet*  _rows, const IndexSet*  _cols);
   /** \brief Create an empty matrix, filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
@@ -99,30 +90,6 @@ public:
       \param _cols indices of the columns
    */
   FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols);
-  /** \brief Create an empty matrix, filled with 0s.
-
-     In this case, the memory is freed when the object is destroyed.
-
-     \param _rows Number of rows
-     \param _cols Number of columns
-   */
- // FullMatrix(int _rows, int _cols);
-  /** \brief Create a matrix filled with 0s.
-
-     In this case, the memory is freed when the object is destroyed.
-
-     \param _rows Number of rows
-     \param _cols Number of columns
-   */
-//  static FullMatrix<T>* Zero(int rows, int cols);
-  /** \brief Create a matrix filled with 0s.
-
-     In this case, the memory is freed when the object is destroyed.
-
-      \param _rows indices of the rows
-      \param _cols indices of the columns
-   */
-//  FullMatrix<T>* Zero(const IndexSet*  _rows, const IndexSet*  _cols);
   ~FullMatrix();
 
   bool isTriUpper() {

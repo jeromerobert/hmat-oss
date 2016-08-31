@@ -72,14 +72,6 @@ public:
      \param _cols Number of columns
    */
   ScalarArray(int _rows, int _cols);
-  /** \brief Create a matrix filled with 0s.
-
-     In this case, the memory is freed when the object is destroyed.
-
-     \param _rows Number of rows
-     \param _cols Number of columns
-   */
-  static ScalarArray<T>* Zero(int rows, int cols);
   ~ScalarArray();
 
   /** This <- 0.
@@ -218,13 +210,6 @@ public:
         \return <x, y>
      */
     static T dot(const Vector<T>* x, const Vector<T>* y);
-    /** \brief Create a vector filled with 0s.
-
-       In this case, the memory is freed when the object is destroyed.
-
-       \param _rows Number of rows
-     */
-    static Vector<T>* Zero(int rows);
 
     /** Simpler accessors for the vector data.
      */

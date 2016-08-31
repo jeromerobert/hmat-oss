@@ -770,22 +770,24 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
       if (!child) {
         continue;
       }
-      IndexSet childRows, childCols;
-      childRows.intersection(*child->rows(), *rows);
-      childCols.intersection(*child->cols(), *cols);
-      if (childRows.size() > 0 && childCols.size() > 0) {
-        int rowOffset = childRows.offset() - rows->offset();
-        int colOffset = childCols.offset() - cols->offset();
+      IndexSet *childRows=new IndexSet(), *childCols=new IndexSet();
+      childRows->intersection(*child->rows(), *rows);
+      childCols->intersection(*child->cols(), *cols);
+      if (childRows->size() > 0 && childCols->size() > 0) {
+        int rowOffset = childRows->offset() - rows->offset();
+        int colOffset = childCols->offset() - cols->offset();
         FullMatrix<T> subB(b->data.m + rowOffset + colOffset * b->data.lda,
-                           childRows.size(), childCols.size(), b->data.lda);
-        child->axpy(alpha, &subB, &childRows, &childCols);
+                           childRows, childCols, b->data.lda);
+        child->axpy(alpha, &subB, childRows, childCols);
       }
+      delete(childRows);
+      delete(childCols);
     }
   } else {
     int rowOffset = this->rows()->offset() - rows->offset();
     int colOffset = this->cols()->offset() - cols->offset();
     FullMatrix<T> subMat(b->data.m + rowOffset + ((size_t) colOffset) * b->data.lda,
-                         this->rows()->size(), this->cols()->size(), b->data.lda);
+                         this->rows(), this->cols(), b->data.lda);
     if (this->isNull()) {
       full(new FullMatrix<T>( this->rows(), this->cols()) );
     }
@@ -843,7 +845,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         } else {
           int rowsOffset = rows->offset() - this->rows()->offset();
           int colsOffset = cols->offset() - this->cols()->offset();
-          tmpMatrix->full(new FullMatrix<T>(this->full()->m + rowsOffset + this->full()->lda * colsOffset, rows->size(), cols->size(), this->full()->lda));
+          tmpMatrix->full(new FullMatrix<T>(this->full()->data.m + rowsOffset + this->full()->data.lda * colsOffset, rows, cols, this->full()->data.lda));
         }
         return tmpMatrix;
     } else {
@@ -1123,9 +1125,9 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     const IndexSet * c = transA == 'N' ? a->cols() : a->rows();
     assert(r->offset() - rows()->offset() >= 0);
     assert(c->offset() - b->rows()->offset() >= 0);
-    FullMatrix<T> cSubset(rk()->a->m - rows()->offset() + r->offset(),
+    ScalarArray<T> cSubset(rk()->a->m - rows()->offset() + r->offset(),
                           r->size(), rank(), rk()->a->lda);
-    FullMatrix<T> bSubset(b->rk()->a->m - b->rows()->offset() + c->offset(),
+    ScalarArray<T> bSubset(b->rk()->a->m - b->rows()->offset() + c->offset(),
                           c->size(), b->rank(), b->rk()->a->lda);
     a->gemv(transA, alpha, &bSubset, beta, &cSubset);
     return;
@@ -1142,9 +1144,9 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     assert(transA == 'N');
     const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
     const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
-    FullMatrix<T> cSubset(rk()->b->m - cols()->offset() + c->offset(),
+    ScalarArray<T> cSubset(rk()->b->m - cols()->offset() + c->offset(),
                           c->size(), rank(), rk()->b->lda);
-    FullMatrix<T> aSubset(a->rk()->b->m - a->cols()->offset() + r->offset(),
+    ScalarArray<T> aSubset(a->rk()->b->m - a->cols()->offset() + r->offset(),
                           r->size(), a->rank(), a->rk()->b->lda);
     b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
     return;

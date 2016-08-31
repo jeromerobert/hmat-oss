@@ -277,7 +277,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
   // For that we first calculated Utilde * SQRT (SigmaTilde)
-  ScalarArray<T>* newA = ScalarArray<T>::Zero(rows->size(), newK);
+  ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
   for (int col = 0; col < newK; col++) {
     T alpha = sigma->m[col];
     for (int row = 0; row < rank(); row++) {
@@ -291,7 +291,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   free(tauA);
 
   // newB = Qb * VTilde * SQRT(SigmaTilde)
-  ScalarArray<T>* newB = ScalarArray<T>::Zero(cols->size(), newK);
+  ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
   // Copy with transposing
   for (int col = 0; col < newK; col++) {
     T alpha = sigma->m[col];
@@ -423,7 +423,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     resultA->copyMatrixAtOffset(parts[i]->a, rowOffset, kOffset);
     // Scaling the matrix already in place inside resultA
     if (alpha[i] != Constants<T>::pone) {
-      FullMatrix<T> tmp(resultA->m + rowOffset + ((size_t) kOffset) * resultA->lda,
+      ScalarArray<T> tmp(resultA->m + rowOffset + ((size_t) kOffset) * resultA->lda,
                         parts[i]->a->rows, parts[i]->a->cols, resultA->lda);
       tmp.scale(alpha[i]);
     }

@@ -246,9 +246,9 @@ template<typename T> int truncatedSdd(ScalarArray<T>* m, ScalarArray<T>** u, Vec
   int cols = m->cols;
   int p = min(rows, cols);
 
-  *u = ScalarArray<T>::Zero(rows, p);
-  *sigma = Vector<double>::Zero(p);
-  *vt = ScalarArray<T>::Zero(p, cols);
+  *u = new ScalarArray<T>(rows, p);
+  *sigma = new Vector<double>(p);
+  *vt = new ScalarArray<T>(p, cols);
 
   assert(m->lda >= m->rows);
 
@@ -287,9 +287,9 @@ template<typename T> int truncatedSvd(ScalarArray<T>* m, ScalarArray<T>** u, Vec
   int cols = m->cols;
   int p = min(rows, cols);
 
-  *u = ScalarArray<T>::Zero(rows, p);
-  *sigma = Vector<double>::Zero(p);
-  *vt = ScalarArray<T>::Zero(p, cols);
+  *u = new ScalarArray<T>(rows, p);
+  *sigma = new Vector<double>(p);
+  *vt = new ScalarArray<T>(p, cols);
 
   assert(m->lda >= m->rows);
 

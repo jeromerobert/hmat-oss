@@ -144,14 +144,14 @@ template <typename T> class UncompressedBlock:
     void getFullValues() {
         int nr = this->rows().size();
         int nc = this->cols().size();
-        FullMatrix<T> target(this->values_, nr, nc, this->ld());
+        ScalarArray<T> target(this->values_, nr, nc, this->ld());
         int localRowOffset = this->rowIndexSet_.offset() - matrix().rows()->offset();
         int localColOffset = this->colIndexSet_.offset() - matrix().cols()->offset();
         assert(localRowOffset >= 0);
         assert(localColOffset >= 0);
         T *sa = matrix().full()->data.m + localRowOffset +
                 ((size_t)matrix().full()->data.lda) * localColOffset;
-        FullMatrix<T> source(sa, nr, nc, matrix().full()->data.lda);
+        ScalarArray<T> source(sa, nr, nc, matrix().full()->data.lda);
         target.copyMatrixAtOffset(&source, 0, 0);
     }
 

@@ -91,35 +91,6 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
   assert(lda >= rows);
 }
 
-#ifdef POISON_ALLOCATION
-/*! \brief Fill an array with NaNs.
-
-  The purpose of this function is to help spotting initialized memory
-  earlier by making sure that any code using uninitialized memory
-  encounters NaNs.
- */
-template<typename T> void poisonArray(T* array, size_t n);
-
-template<> static void poisonArray(S_t* array, size_t n) {
-  const float nanFloat = nanf("");
-  for (size_t i = 0; i < n; i++) {
-    array[i] = nanFloat;
-  }
-}
-template<> static void poisonArray(D_t* array, size_t n) {
-  const double nanDouble = nan("");
-  for (size_t i = 0; i < n; i++) {
-    array[i] = nanDouble;
-  }
-}
-template<> static void poisonArray(C_t* array, size_t n) {
-  poisonArray<S_t>((S_t*) array, 2 * n);
-}
-template<> static void poisonArray(Z_t* array, size_t n) {
-  poisonArray<D_t>((D_t*) array, 2 * n);
-}
-#endif
-
 template<typename T>
 ScalarArray<T>::ScalarArray(int _rows, int _cols)
   : ownsMemory(true), rows(_rows), cols(_cols), lda(_rows) {
@@ -131,21 +102,6 @@ ScalarArray<T>::ScalarArray(int _rows, int _cols)
 #endif
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
-#ifdef POISON_ALLOCATION
-  // This memory is not initialized, fill it with NaNs to force a
-  // crash when using it.
-  poisonArray<T>(m, ((size_t) rows) * cols);
-#endif
-}
-
-template<typename T>
-ScalarArray<T>* ScalarArray<T>::Zero(int rows, int cols) {
-  ScalarArray<T>* result = new ScalarArray<T>(rows, cols);
-#ifdef POISON_ALLOCATION
-  // The memory was poisoned in ScalarArray<T>::ScalarArray(), set it back to 0;
-  result->clear();
-#endif
-  return result;
 }
 
 template<typename T> ScalarArray<T>::~ScalarArray() {
@@ -507,11 +463,6 @@ T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
   assert(x->rows == y->rows);
   // TODO: Beware of large vectors (>2 billion elements) !
   return proxy_cblas_convenience::dot_c(x->rows, x->m, 1, y->m, 1);
-}
-
-template<typename T>
-Vector<T>* Vector<T>::Zero(int rows) {
-  return static_cast<Vector<T>*>(ScalarArray<T>::Zero(rows, 1));
 }
 
 template<typename T>
