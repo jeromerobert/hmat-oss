@@ -49,6 +49,7 @@ public:
 
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   /*! \brief Clean up data which may be allocated by isAdmissible  */
   virtual void clean(const ClusterTree&) const {}
 
