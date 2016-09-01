@@ -42,13 +42,10 @@ class IndexSet;
     controlled by \a RkMatrix::approx.
 
     \param m The matrix to compress. It is modified but not detroyed by the function.
-    \param rows The block rows
-    \param cols The block colums
     \return A RkMatrix approximationg the argument \a m.
 */
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
-                            const IndexSet* cols);
+RkMatrix<T>* compressMatrix(FullMatrix<T>* m);
 
 /** Compress a block into an RkMatrix.
 

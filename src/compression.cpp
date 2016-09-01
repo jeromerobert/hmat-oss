@@ -278,12 +278,8 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
 
 
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
-                            const IndexSet* cols) {
+RkMatrix<T>* compressMatrix(FullMatrix<T>* m) {
   DECLARE_CONTEXT;
-  assert(m->rows() == rows->size());
-  assert(m->cols() == cols->size());
-  assert(m->data.lda >= m->rows());
 
   //TODO replace with a case with m==NULL
   bool zeroMatrix = true;
@@ -293,7 +289,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
     if (!zeroMatrix) break;
   }
   if (zeroMatrix) {
-    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
   }
   // In the case of non-square matrix, we don't calculate singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
@@ -315,7 +311,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
     delete u;
     delete vt;
     delete sigma;
-    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
   }
 
   for (int col = 0; col < k; col++) {
@@ -333,7 +329,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
   delete vt;
   delete sigma;
   ScalarArray<T>* a = uTilde; // TODO : why this copy ?
-  return new RkMatrix<T>(a, rows, vTilde, cols, Svd);
+  return new RkMatrix<T>(a, m->rows_, vTilde, m->cols_, Svd);
 }
 
 
@@ -344,7 +340,7 @@ compressSvd(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = block.assemble();
-  RkMatrix<dp_t>* result = compressMatrix(m, block.rows, block.cols);
+  RkMatrix<dp_t>* result = compressMatrix(m);
   delete m;
   return result;
 }
@@ -801,10 +797,10 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 }
 
 // Declaration of the used templates
-template RkMatrix<S_t>* compressMatrix(FullMatrix<S_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<S_t>* compressMatrix(FullMatrix<S_t>* m);
+template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m);
+template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m);
+template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m);
 
 template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);

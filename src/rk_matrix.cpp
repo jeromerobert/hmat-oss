@@ -189,7 +189,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // TODO: in this case, the epsilon of recompression is not respected
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
-    RkMatrix<T>* rk = compressMatrix(tmp, rows, cols);
+    RkMatrix<T>* rk = compressMatrix(tmp);
     delete tmp;
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
@@ -460,7 +460,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** part
       }
     }
   }
-  RkMatrix<T>* result = compressMatrix(me, rows, cols); // TODO compress with something else than SVD
+  RkMatrix<T>* result = compressMatrix(me); // TODO compress with something else than SVD
   delete me;
   return result;
 }
@@ -747,8 +747,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = compressMatrix(fullMat, (transHA == 'N' ? ha->rows() : ha->cols()),
-                           (transHB == 'N' ? hb->cols() : hb->rows()));
+        rk = compressMatrix(fullMat);
         delete fullMat;
       }
     }

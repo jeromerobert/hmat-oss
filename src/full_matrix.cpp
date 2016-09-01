@@ -184,7 +184,7 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
     // TODO: Test with scale to see if it is better.
     for (int j = 0; j < cols(); j++) {
       for (int i = 0; i < rows(); i++) {
-        data.m[i + j * ((size_t) data.lda)] *= diag[i];
+        get(i, j) *= diag[i];
       }
     }
     if (inverse) {
