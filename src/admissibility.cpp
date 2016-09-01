@@ -32,6 +32,14 @@
 
 namespace hmat {
 
+std::pair<bool, bool>
+AdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
+{
+  bool admissibile = isAdmissible(rows, cols);
+  return std::pair<bool, bool>(admissibile, admissibile);
+};
+
+
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(
     double eta, size_t maxElementsPerBlock, size_t maxElementsPerBlockRows):
     eta_(eta), maxElementsPerBlock(maxElementsPerBlock),
