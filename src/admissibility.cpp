@@ -108,6 +108,16 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
         eta_ * rows_bbox->distanceTo(*cols_bbox);
 }
 
+std::pair<bool, bool>
+StandardAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
+{
+  std::pair<bool, bool> tall_skinny_admissible = TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(rows, cols);
+  bool standard_admissible = isAdmissible(rows, cols);
+  tall_skinny_admissible.first |= standard_admissible;
+  tall_skinny_admissible.second |= standard_admissible;
+  return tall_skinny_admissible;
+}
+
 void
 StandardAdmissibilityCondition::clean(const ClusterTree& current) const
 {
