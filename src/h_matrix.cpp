@@ -998,14 +998,18 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                     }
                     // Handles the case where the matrix is symmetric and we get an element
                     // on the "wrong" side of the diagonal e.g. isUpper=true and i>k (below the diagonal)
-                    if (!childA) {
+                    if ((a->isUpper &&  i>k) || (a->isLower &&  i<k)) {
                         tA = (tA == 'N' ? 'T' : 'N');
                         childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
                     }
-                    if (!childB) {
+                    if ((b->isUpper &&  j<k) || (b->isLower &&  j<k)) {
                         tB = (tB == 'N' ? 'T' : 'N');
                         childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
                     }
+
+                    if (!childA || !childB)
+                        continue;
+
                     child->gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
                 }
             }
