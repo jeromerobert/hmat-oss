@@ -542,9 +542,27 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
   }
 }
 
+template<typename T> const HMatrix<T> * HMatrix<T>::getChildForGEMM(char & t, int i, int j) const {
+  assert(isUpper+isLower+isTriUpper+isTriLower<2); // At most 1 of these flags must be 'true'
+  assert(!this->isLeaf());
+
+  const HMatrix<T>* res;
+  if(t == 'T')
+    std::swap(i,j);
+  if( (isLower && j > i) ||
+      (isUpper && i > j) ) {
+    res = get(j, i);
+    t = t == 'N' ? 'T' : 'N';
+  } else {
+    res = get(i, j);
+  }
+  return res;
+}
+
 // y <- alpha * op(this) * x + beta * y.
 template<typename T>
 void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
+  // The dimensions of the H-matrix and the 2 ScalarArrays must match exactly
   assert(x->cols == y->cols);
   assert((matTrans == 'T' ? cols()->size() : rows()->size()) == y->rows);
   assert((matTrans == 'T' ? rows()->size() : cols()->size()) == x->rows);
@@ -555,49 +573,38 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   beta = Constants<T>::pone;
 
   if (!this->isLeaf()) {
-    const ClusterData* myRows = rows();
-    const ClusterData* myCols = cols();
-    for (int i = 0; i < nrChildRow(); i++)
-      for (int j = 0; j < nrChildCol(); j++) {
-        HMatrix<T>* child = get(i,j);
-      char trans = matTrans;
-        if(!child) /* For NULL children, in the symmetric cases, we take the transposed block */
-      {
-        if (isTriLower || isTriUpper)
-          continue;
-        else if (isLower)
-        {
-            assert(i<j); // TODO: not true since we can have NULL children anywhere
-            child = get(j, i);
-          trans = (trans == 'N' ? 'T' : 'N');
-        }
-        else
-        {
-            assert(isUpper); // TODO: not true since we can have NULL children anywhere
-            assert(i>j);
-            child = get(j, i);
-          trans = (trans == 'N' ? 'T' : 'N');
+    ScalarArray<T> *subX, *subY;
+    for (int i = 0; i < (matTrans=='N' ? nrChildRow() : nrChildCol()); i++)
+      for (int j = 0; j < (matTrans=='N' ? nrChildCol() : nrChildRow()); j++) {
+        char trans = matTrans;
+        // trans(child) = the child (i,j) of matTrans(this)
+        const HMatrix<T>* child = getChildForGEMM(trans, i, j);
+        if (child) {
+
+          // I get the rows and cols info of 'child'
+          int colsOffset = child->cols()->offset() - cols()->offset();
+          int colsSize   = child->cols()->size();
+          int rowsOffset = child->rows()->offset() - rows()->offset();
+          int rowsSize   = child->rows()->size();
+
+          // swap if needed to get the info for trans(child)
+          if (trans=='T') {
+            std::swap(colsOffset, rowsOffset);
+            std::swap(colsSize,   rowsSize);
+          }
+
+          // get the rows subset of X aligned with 'trans(child)' cols and Y aligned with 'trans(child)' rows
+          subX = x->rowsSubset(colsOffset, colsSize);
+          subY = y->rowsSubset(rowsOffset, rowsSize);
+
+          child->gemv(trans, alpha, subX, beta, subY);
+          delete subX;
+          delete subY;
         }
       }
-      const ClusterData* childRows = child->rows();
-      const ClusterData* childCols = child->cols();
-      int rowsOffset = childRows->offset() - myRows->offset();
-      int colsOffset = childCols->offset() - myCols->offset();
-      ScalarArray<T> *subX, *subY;
-      if (trans == 'N') {
-        subX = x->rowsSubset(colsOffset, childCols->size());
-        subY = y->rowsSubset(rowsOffset, childRows->size());
-        child->gemv(trans, alpha, subX, beta, subY);
-      } else {
-        assert(trans == 'T');
-        subX = x->rowsSubset(rowsOffset, childRows->size());
-        subY = y->rowsSubset(colsOffset, childCols->size());
-        child->gemv(trans, alpha, subX, beta, subY);
-      }
-      delete subX;
-      delete subY;
-    }
+
   } else {
+    // We are on a leaf of the matrix 'this'
     if (isFullMatrix()) {
       y->gemm(matTrans, 'N', alpha, &full()->data, x, beta);
     } else if(!isNull()){
@@ -612,6 +619,7 @@ template<typename T>
 void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
   gemv(matTrans, alpha, &x->data, beta, &y->data);
 }
+
 /**
  * @brief List all Rk matrice in the m matrice.
  * @return true if the matrix contains only rk matrices, fall if it contains
@@ -948,38 +956,13 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                 // Void child
                 if (child->rows()->size() == 0 || child->cols()->size() == 0) continue;
 
-                char tA = transA, tB = transB;
-                // loop on the common dimension of A and B
-                for (int k = 0; k < (tA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
-                    // childA states :
-                    // if A is symmetric and childA_ik is NULL
-                    // then childA_ki^T is used and transA is changed accordingly.
-                    // However A may be triangular( upper/lower ) so childA_ik is NULL
-                    // and must be taken as 0.
-                    const HMatrix<T>* childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
-                    const HMatrix<T>* childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
-
-
-                    // TODO: update in the sparse case, where we can have NULL child in other circumstances
-
-                    if (!childA && (a->isTriUpper || a->isTriLower)) {
-                        assert(*a->rows() == *a->cols());
-                        continue;
-                    }
-                    if (!childB && (b->isTriUpper || b->isTriLower)) {
-                        assert(*b->rows() == *b->cols());
-                        continue;
-                    }
-                    // Handles the case where the matrix is symmetric and we get an element
-                    // on the "wrong" side of the diagonal e.g. isUpper=true and i>k (below the diagonal)
-                    if (!childA) {
-                        tA = (tA == 'N' ? 'T' : 'N');
-                        childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
-                    }
-                    if (!childB) {
-                        tB = (tB == 'N' ? 'T' : 'N');
-                        childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
-                    }
+                const HMatrix<T> *childA, *childB;
+                for (int k = 0; k < (transA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
+                  char tA = transA;
+                  char tB = transB;
+                  childA = a->getChildForGEMM(tA, i, k);
+                  childB = b->getChildForGEMM(tB, k, j);
+                  if(childA && childB)
                     child->gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
                 }
             }

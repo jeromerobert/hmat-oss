@@ -554,6 +554,18 @@ public:
     insertChild(i+j*nrChildRow(), child) ;
   }
 
+  /*! \brief Find the correct child when recursing in GEMM or GEMV
+
+    This function returns the child (i,j) of op(this) where 'op' is 'T' or 'N'.
+    If the matrix is symmetric (upper or lower), and if the child required is in the
+    part of the matrix that is not stored, it returns the symmetric block and switches 'op'.
+   \param[in,out] t input is the transpose flag for this, ouput is the transpose flag for the returned matrix
+   \param[in] i row index of the child
+   \param[in] j col index of the child
+   \return Pointer on the child
+  */
+  const HMatrix<T> * getChildForGEMM(char & t, int i, int j) const;
+
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
   HMatrix<T> * subset(const IndexSet * rows, const IndexSet * cols) const;
 
