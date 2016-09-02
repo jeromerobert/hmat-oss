@@ -88,12 +88,13 @@ private:
  * @param eta    a parameter used in the evaluation of the admissibility.
  * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression
  */
-class StandardAdmissibilityCondition : public AdmissibilityCondition
+class StandardAdmissibilityCondition : public TallSkinnyAdmissibilityCondition
 {
 public:
   StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 5000000,
                                  size_t maxElementsPerBlockAca = 0);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
