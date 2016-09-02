@@ -39,6 +39,18 @@ AdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const Clus
   return std::pair<bool, bool>(admissibile, admissibile);
 };
 
+std::pair<bool, bool>
+TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
+{
+  if (rows.data.size() >= ratio * cols.data.size() && cols.isLeaf()) {
+    // rows are two times larger than cols so we won't subdivide rows
+    return std::pair<bool, bool>(false, true);
+  } else if (cols.data.size() >= ratio * rows.data.size() && rows.isLeaf()) {
+    // cols are two times larger than rows so we won't subdivide cols
+    return std::pair<bool, bool>(true, false);
+  } else // approximately the same size and non leaf
+  return std::pair<bool, bool>(false, false);
+}
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(
     double eta, size_t maxElementsPerBlock, size_t maxElementsPerBlockRows):
