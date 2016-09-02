@@ -137,7 +137,10 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
         // if cols not admissible, don't recurse on them
         ClusterTree* colChild = (colsAdmissible ? _cols : static_cast<ClusterTree*>(_cols->getChild(j)));
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
+          if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
+            // Create child only if not 'inert' (inert = will always be null)
             this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
+          }
         }
       }
     }
@@ -164,6 +167,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     if(withChildren) {
         for(int i = 0; i < nrChildRow(); i++) {
             for(int j = 0; j < nrChildCol(); j++) {
+              if (get(i,j)) {
                 HMatrix<T>* child = new HMatrix<T>(localSettings.global);
                 child->temporary = temporary;
                 assert(rows_->getChild(i) != NULL);
@@ -174,6 +178,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
                                                  NULL, &child->cols_->data,
                                                  NoCompression));
                 r->insertChild(i, j, child);
+              }
             }
         }
     }
@@ -264,7 +269,8 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     full_ = NULL;
     rk_ = NULL;
     for (int i = 0; i < this->nrChild(); i++) {
-      this->getChild(i)->assemble(f, ao);
+      if (this->getChild(i))
+        this->getChild(i)->assemble(f, ao);
     }
     assembledRecurse();
     if (coarsening)
@@ -389,6 +395,7 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
 template<typename T>
 void HMatrix<T>::eval(FullMatrix<T>* result, bool renumber) const {
   if (this->isLeaf()) {
+    if (this->isNull()) return;
     FullMatrix<T> *mat = isRkMatrix() ? rk()->eval() : full();
     int *rowIndices = rows()->indices() + rows()->offset();
     int rowCount = rows()->size();
@@ -418,6 +425,7 @@ template<typename T>
 void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
                           const IndexSet* _cols) const {
   if (this->isLeaf()) {
+    if (this->isNull()) return;
     FullMatrix<T> *mat = isRkMatrix() ? rk()->eval() : full();
     int rowOffset = rows()->offset() - _rows->offset();
     int rowCount = rows()->size();
@@ -557,9 +565,9 @@ template<typename T>
 void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
   // The dimensions of the H-matrix and the 2 ScalarArrays must match exactly
   assert(x->cols == y->cols);
+  if (rows()->size() == 0 || cols()->size() == 0) return;
   assert((matTrans == 'T' ? cols()->size() : rows()->size()) == y->rows);
   assert((matTrans == 'T' ? rows()->size() : cols()->size()) == x->rows);
-  if (rows()->size() == 0 || cols()->size() == 0) return;
   if (beta != Constants<T>::pone) {
     y->scale(beta);
   }
@@ -594,6 +602,7 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
           delete subX;
           delete subY;
         }
+        else continue;
       }
 
   } else {
@@ -1240,6 +1249,17 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!this->isLeaf()) {
+    if (d->isLeaf()) {
+      for (int i=0 ; i<std::min(nrChildRow(), nrChildCol()) ; i++)
+        get(i,i)->multiplyWithDiag(d, left, inverse);
+      for (int i=0 ; i<nrChildRow() ; i++)
+        for (int j=0 ; j<nrChildCol() ; j++)
+          if (i!=j && get(i,j)) {
+            get(i,j)->multiplyWithDiag(d, left, inverse);
+          }
+      return;
+    }
+
     // First the diagonal, then the rest...
     for (int i=0 ; i<nrChildRow() ; i++)
       get(i,i)->multiplyWithDiag(d->get(i,i), left, inverse);
@@ -1683,8 +1703,10 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular)
       sub[i] = b->rowsSubset(offset, get(i, i)->cols()->size());
       offset += get(i, i)->cols()->size();
       // Update sub[i] with the contribution of the solutions already computed sub[j] j<i
+      if (!sub[i]) continue;
       for (int j=0 ; j<i ; j++)
-        get(i, j)->gemv('N', Constants<T>::mone, sub[j], Constants<T>::pone, sub[i]);
+        if (get(i,j) && sub[j])
+          get(i, j)->gemv('N', Constants<T>::mone, sub[j], Constants<T>::pone, sub[i]);
       // Solve the i-th diagonal system
       get(i, i)->solveLowerTriangularLeft(sub[i], unitriangular);
     }
@@ -1818,9 +1840,11 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular
     }
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Update sub[i] with the contribution of the solutions already computed sub[j]
+      if (!sub[i]) continue;
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (lowerStored ? get(i, j) : get(j, i));
-        u_ji->gemv(lowerStored ? 'N' : 'T', Constants<T>::mone, sub[j], Constants<T>::pone, sub[i]);
+        if (u_ji && sub[j])
+          u_ji->gemv(lowerStored ? 'N' : 'T', Constants<T>::mone, sub[j], Constants<T>::pone, sub[i]);
       }
       // Solve the i-th diagonal system
       get(i, i)->solveUpperTriangularRight(sub[i], unitriangular, lowerStored);
@@ -1856,11 +1880,13 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular,
     }
     for (int i=nrChildRow()-1 ; i>=0 ; i--) {
       // Solve the i-th diagonal system
+      if (!sub[i]) continue;
       get(i, i)->solveUpperTriangularLeft(sub[i], unitriangular, lowerStored);
       // Update sub[j] j<i with the contribution of the solutions just computed sub[i]
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (lowerStored ? get(i, j) : get(j, i));
-        u_ji->gemv(lowerStored ? 'T' : 'N', Constants<T>::mone, sub[i], Constants<T>::pone, sub[j]);
+        if (u_ji && sub[j])
+          u_ji->gemv(lowerStored ? 'T' : 'N', Constants<T>::mone, sub[i], Constants<T>::pone, sub[j]);
       }
     }
     for (int i=0 ; i<nrChildRow() ; i++)

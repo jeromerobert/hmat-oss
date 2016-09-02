@@ -59,6 +59,9 @@ public:
     \return a pair of boolean.
    */
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  /*! \brief if the result of this function is true,
+  *    the corresponding H-Matrix block will not be created. */
+  virtual bool isInert(const ClusterTree& rows, const ClusterTree& cols) = 0;
   /*! \brief Clean up data which may be allocated by isAdmissible  */
   virtual void clean(const ClusterTree&) const {}
 
@@ -95,6 +98,7 @@ public:
                                  size_t maxElementsPerBlockAca = 0);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  bool isInert(const ClusterTree& rows, const ClusterTree& cols) {return false;};
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
