@@ -72,7 +72,7 @@ FullMatrix<T>::FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols,
 
 template<typename T>
 FullMatrix<T>::FullMatrix(ScalarArray<T> *s, const IndexSet*  _rows, const IndexSet*  _cols)
-  : data(s->m, s->rows, s->cols, s->lda), triUpper_(false), triLower_(false),
+  : data(*s), triUpper_(false), triLower_(false),
     rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
   assert(rows_);
   assert(cols_);
@@ -150,6 +150,17 @@ template<typename T> FullMatrix<T>* FullMatrix<T>::copyAndTranspose() const {
   FullMatrix<T>* result = new FullMatrix<T>(cols_, rows_);
   data.copyAndTranspose(&result->data);
   return result;
+}
+
+template<typename T> const FullMatrix<T>* FullMatrix<T>::subset(const IndexSet* subRows,
+                                                                const IndexSet* subCols) const {
+  assert(subRows->isSubset(*rows_));
+  assert(subCols->isSubset(*cols_));
+  // The offset in the matrix, and not in all the indices
+  int rowsOffset = subRows->offset() - rows_->offset();
+  int colsOffset = subCols->offset() - cols_->offset();
+  ScalarArray<T>* sub = new ScalarArray<T>(data.m + rowsOffset + colsOffset * data.lda, subRows->size(), subCols->size(), data.lda);
+  return new FullMatrix<T>(sub, subRows, subCols);
 }
 
 

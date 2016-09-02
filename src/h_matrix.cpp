@@ -542,6 +542,7 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
   }
 }
 
+// y <- alpha * op(this) * x + beta * y.
 template<typename T>
 void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
   assert(x->cols == y->cols);
@@ -566,13 +567,13 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
           continue;
         else if (isLower)
         {
-            assert(i<j);
+            assert(i<j); // TODO: not true since we can have NULL children anywhere
             child = get(j, i);
           trans = (trans == 'N' ? 'T' : 'N');
         }
         else
         {
-          assert(isUpper);
+            assert(isUpper); // TODO: not true since we can have NULL children anywhere
             assert(i>j);
             child = get(j, i);
           trans = (trans == 'N' ? 'T' : 'N');
@@ -582,20 +583,19 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
       const ClusterData* childCols = child->cols();
       int rowsOffset = childRows->offset() - myRows->offset();
       int colsOffset = childCols->offset() - myCols->offset();
+      ScalarArray<T> *subX, *subY;
       if (trans == 'N') {
-        assert(colsOffset + childCols->size() <= x->rows);
-        assert(rowsOffset + childRows->size() <= y->rows);
-        ScalarArray<T> subX(x->m + colsOffset, childCols->size(), x->cols, x->lda);
-        ScalarArray<T> subY(y->m + rowsOffset, childRows->size(), y->cols, y->lda);
-        child->gemv(trans, alpha, &subX, beta, &subY);
+        subX = x->rowsSubset(colsOffset, childCols->size());
+        subY = y->rowsSubset(rowsOffset, childRows->size());
+        child->gemv(trans, alpha, subX, beta, subY);
       } else {
         assert(trans == 'T');
-        assert(rowsOffset + childRows->size() <= x->rows);
-        assert(colsOffset + childCols->size() <= y->rows);
-        ScalarArray<T> subX(x->m + rowsOffset, childRows->size(), x->cols, x->lda);
-        ScalarArray<T> subY(y->m + colsOffset, childCols->size(), y->cols, y->lda);
-        child->gemv(trans, alpha, &subX, beta, &subY);
+        subX = x->rowsSubset(rowsOffset, childRows->size());
+        subY = y->rowsSubset(colsOffset, childCols->size());
+        child->gemv(trans, alpha, subX, beta, subY);
       }
+      delete subX;
+      delete subY;
     }
   } else {
     if (isFullMatrix()) {
@@ -692,7 +692,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
         if(x->isNull()) {
             // nothing to do
         } else if(x->isFullMatrix()) {
-            axpy(alpha, x->full(), x->rows(), x->cols());
+            axpy(alpha, x->full());
             return;
         }
         else if(x->isRkMatrix()) {
@@ -707,7 +707,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
     }
 }
 
-/** @brief AXPY between this an a subset of B with B a RkMatrix */
+/** @brief AXPY between 'this' an H matrix and a subset of B with B a RkMatrix */
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   DECLARE_CONTEXT;
@@ -719,6 +719,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     return;
   }
 
+  // If 'this' is not a leaf, we recurse with the same 'b'
   if (!this->isLeaf()) {
     for (int i = 0; i < this->nrChild(); i++) {
       if (this->getChild(i)) {
@@ -757,47 +758,34 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   }
 }
 
-/** @brief AXPY between this an a subset of B with B a FullMatrix */
+/** @brief AXPY between 'this' an H matrix and a subset of B with B a FullMatrix */
 template<typename T>
-void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows,
-                      const IndexSet* cols) {
+void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
   DECLARE_CONTEXT;
   // this += alpha * b
-  assert(rows->isSuperSet(*this->rows()) && cols->isSuperSet(*this->cols()));
+  assert(b->rows_->isSuperSet(*this->rows()) && b->cols_->isSuperSet(*this->cols()));
+
+  // If 'this' is not a leaf, we recurse with the same 'b'
   if (!this->isLeaf()) {
     for (int i = 0; i < this->nrChild(); i++) {
       HMatrix<T>* child = this->getChild(i);
-      if (!child) {
-        continue;
-      }
-      IndexSet *childRows=new IndexSet(), *childCols=new IndexSet();
-      childRows->intersection(*child->rows(), *rows);
-      childCols->intersection(*child->cols(), *cols);
-      if (childRows->size() > 0 && childCols->size() > 0) {
-        int rowOffset = childRows->offset() - rows->offset();
-        int colOffset = childCols->offset() - cols->offset();
-        FullMatrix<T> subB(b->data.m + rowOffset + colOffset * b->data.lda,
-                           childRows, childCols, b->data.lda);
-        child->axpy(alpha, &subB, childRows, childCols);
-      }
-      delete(childRows);
-      delete(childCols);
+      if (child)
+        child->axpy(alpha, b);
     }
   } else {
-    int rowOffset = this->rows()->offset() - rows->offset();
-    int colOffset = this->cols()->offset() - cols->offset();
-    FullMatrix<T> subMat(b->data.m + rowOffset + ((size_t) colOffset) * b->data.lda,
-                         this->rows(), this->cols(), b->data.lda);
+    const FullMatrix<T>* subMat = b->subset(rows(), cols());
+
     if (this->isNull()) {
-      full(new FullMatrix<T>( this->rows(), this->cols()) );
+      full(new FullMatrix<T>( this->rows(), this->cols()) ); // TODO : check this ?!?! isNull() could mean rank()==0 !!
     }
     if (isFullMatrix()) {
-      full()->axpy(alpha, &subMat);
+      full()->axpy(alpha, subMat);
     } else {
       assert(isRkMatrix());
-      rk()->axpy(alpha, &subMat);
+      rk()->axpy(alpha, subMat);
       rank_ = rk()->rank();
     }
+    delete subMat;
   }
 }
 
@@ -840,12 +828,9 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         tmpMatrix->rows_ = r;
         tmpMatrix->cols_ = c;
         if(this->isRkMatrix()) {
-            tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(
-                tmpMatrix->rows(), tmpMatrix->cols())));
+          tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(tmpMatrix->rows(), tmpMatrix->cols())));
         } else {
-          int rowsOffset = rows->offset() - this->rows()->offset();
-          int colsOffset = cols->offset() - this->cols()->offset();
-          tmpMatrix->full(new FullMatrix<T>(this->full()->data.m + rowsOffset + this->full()->data.lda * colsOffset, rows, cols, this->full()->data.lda));
+          tmpMatrix->full(const_cast<FullMatrix<T>*>(full()->subset(tmpMatrix->rows(), tmpMatrix->cols())));
         }
         return tmpMatrix;
     } else {
@@ -1031,7 +1016,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
             // a full matrix so as the result.
             assert(a->isFullMatrix() || b->isFullMatrix());
             FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
-            axpy(alpha, fullMat, rows(), cols());
+            axpy(alpha, fullMat);
             delete fullMat;
         }
         return;
@@ -1123,13 +1108,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     assert(transB == 'N');
     const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
     const IndexSet * c = transA == 'N' ? a->cols() : a->rows();
-    assert(r->offset() - rows()->offset() >= 0);
-    assert(c->offset() - b->rows()->offset() >= 0);
-    ScalarArray<T> cSubset(rk()->a->m - rows()->offset() + r->offset(),
-                          r->size(), rank(), rk()->a->lda);
-    ScalarArray<T> bSubset(b->rk()->a->m - b->rows()->offset() + c->offset(),
-                          c->size(), b->rank(), b->rk()->a->lda);
-    a->gemv(transA, alpha, &bSubset, beta, &cSubset);
+    ScalarArray<T> *bSubset, *cSubset;
+    cSubset =    rk()->a->rowsSubset( r->offset() -    rows()->offset(), r->size());
+    bSubset = b->rk()->a->rowsSubset( c->offset() - b->rows()->offset(), c->size());
+    a->gemv(transA, alpha, bSubset, beta, cSubset);
+    delete bSubset;
+    delete cSubset;
     return;
   }
 
@@ -1144,11 +1128,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     assert(transA == 'N');
     const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
     const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
-    ScalarArray<T> cSubset(rk()->b->m - cols()->offset() + c->offset(),
-                          c->size(), rank(), rk()->b->lda);
-    ScalarArray<T> aSubset(a->rk()->b->m - a->cols()->offset() + r->offset(),
-                          r->size(), a->rank(), a->rk()->b->lda);
-    b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
+    ScalarArray<T> *aSubset, *cSubset;
+    cSubset =    rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size());
+    aSubset = a->rk()->b->rowsSubset( r->offset() - a->cols()->offset(), r->size());
+    b->gemv(transB == 'N' ? 'T' : 'N', alpha, aSubset, beta, cSubset);
+    delete aSubset;
+    delete cSubset;
     return;
   }
 
@@ -1697,7 +1682,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) con
       b->evalPart(bFull, b->rows(), b->cols());
       this->solveLowerTriangularLeft(bFull, unitriangular);
       b->clear();
-      b->axpy(Constants<T>::pone, bFull, b->rows(), b->cols());
+      b->axpy(Constants<T>::pone, bFull);
       delete bFull;
     }
   }
@@ -1727,7 +1712,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular)
     ScalarArray<T> *sub[nrChildRow()];
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = new ScalarArray<T>(b->m+offset, get(i, i)->cols()->size(), b->cols, b->lda);
+      sub[i] = b->rowsSubset(offset, get(i, i)->cols()->size());
       offset += get(i, i)->cols()->size();
       // Update sub[i] with the contribution of the solutions already computed sub[j] j<i
       for (int j=0 ; j<i ; j++)
@@ -1797,7 +1782,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
       //   blasCopy<T>(bCols, bRow.v, 1, bFull->data.m + row, bRows);      // }
       // }
       b->clear();
-      b->axpy(Constants<T>::pone, bFull, b->rows(), b->cols());
+      b->axpy(Constants<T>::pone, bFull);
       delete bFull;
     }
   }
@@ -1834,7 +1819,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
       b->evalPart(bFull, b->rows(), b->cols());
       this->solveUpperTriangularLeft(bFull, unitriangular, lowerStored);
       b->clear();
-      b->axpy(Constants<T>::pone, bFull, b->rows(), b->cols());
+      b->axpy(Constants<T>::pone, bFull);
       delete bFull;
     }
   }
@@ -1860,7 +1845,7 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular
     ScalarArray<T> *sub[nrChildRow()];
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = new ScalarArray<T>(b->m+offset, get(i, i)->rows()->size(), b->cols, b->lda);
+      sub[i] = b->rowsSubset(offset, get(i, i)->rows()->size());
       offset += get(i, i)->rows()->size();
     }
     for (int i=0 ; i<nrChildRow() ; i++) {
@@ -1898,7 +1883,7 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular,
     ScalarArray<T> *sub[nrChildRow()];
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = new ScalarArray<T>(b->m+offset, get(i, i)->cols()->size(), b->cols, b->lda);
+      sub[i] = b->rowsSubset(offset, get(i, i)->cols()->size());
       offset += get(i, i)->cols()->size();
     }
     for (int i=nrChildRow()-1 ; i>=0 ; i--) {
@@ -1998,7 +1983,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       HMAT_ASSERT(fullMat);
       delete copy_m;
 
-      this->axpy(Constants<T>::mone, fullMat, rows(), cols());
+      this->axpy(Constants<T>::mone, fullMat);
       delete fullMat;
     } else {
       // m is a null matrix (either Rk or Full) so nothing to do.

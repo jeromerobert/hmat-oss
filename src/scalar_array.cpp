@@ -234,6 +234,11 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copyAndTranspose(ScalarArra
   return result;
 }
 
+template<typename T>
+ScalarArray<T>* ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSize) const {
+  assert(rowsOffset + rowsSize <= rows);
+  return new ScalarArray<T>(m + rowsOffset, rowsSize, cols, lda);
+}
 
 template<typename T>
 void ScalarArray<T>::gemm(char transA, char transB, T alpha,

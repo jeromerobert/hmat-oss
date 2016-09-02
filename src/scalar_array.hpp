@@ -40,8 +40,6 @@ namespace hmat {
 template<typename T> class ScalarArray {
   /*! True if the matrix owns its memory, ie has to free it upon destruction */
   char ownsMemory:1;
-  /// Disallow the copy
-  ScalarArray(const ScalarArray<T>& o);
 
 public:
   /// Fortran style pointer (columnwise)
@@ -53,6 +51,14 @@ public:
   /*! Leading dimension, as in BLAS */
   int lda;
 
+  /** \brief Initialize the ScalarArray with existing ScalarArray.
+
+      In this case the matrix doesn't own the data (the memory is not
+      freed at the object destruction).
+
+      \param d a ScalarArray
+   */
+  ScalarArray(const ScalarArray& d) : ownsMemory(false), m(d.m), rows(d.rows), cols(d.cols), lda(d.lda) {}
   /** \brief Initialize the matrix with existing data.
 
       In this case the matrix doesn't own the data (the memory is not
@@ -94,6 +100,14 @@ public:
   /** \brief Return a new matrix that is a transposed version of this.
    */
   ScalarArray<T>* copyAndTranspose(ScalarArray<T>* result = NULL) const;
+  /**  Returns a pointer to a new ScalarArray representing a subset of row indices.
+       Columns and leading dimension are unchanged.
+       \param rowOffset offset to apply on the rows
+       \param rowSize new number of rows
+       \return pointer to a new ScalarArray.
+   */
+  ScalarArray<T>* rowsSubset(const int rowOffset, const int rowSize) const ;
+
   /** this = alpha * op(A) * op(B) + beta * this
 
       Standard "GEMM" call, as in BLAS.

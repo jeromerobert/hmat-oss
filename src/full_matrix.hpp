@@ -127,6 +127,16 @@ public:
   /** \brief Return a new matrix that is a transposed version of this.
    */
   FullMatrix<T>* copyAndTranspose() const;
+
+  /**  Returns a pointer to a new FullMatrix representing a subset of indices.
+       The pointer is supposed to be read-only (for efficiency reasons).
+
+       \param subRows subset of rows
+       \param subCols subset of columns
+       \return pointer to a new matrix with subRows and subCols.
+   */
+  const FullMatrix<T>* subset(const IndexSet* subRows, const IndexSet* subCols) const ;
+
   /** this = alpha * op(A) * op(B) + beta * this
 
       Standard "GEMM" call, as in BLAS.

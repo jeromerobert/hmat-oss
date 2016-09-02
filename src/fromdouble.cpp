@@ -41,7 +41,6 @@ ScalarArray<T>* fromDoubleScalarArray(ScalarArray<typename Types<T>::dp>* d, boo
   }
   ScalarArray<T>* result = new ScalarArray<T>(d->rows, d->cols);
   assert(result);
-  assert(d->lda == d->rows);
   const size_t size = ((size_t) d->rows) * d->cols;
   T* const r = result->m;
   const typename Types<T>::dp* m = d->m;

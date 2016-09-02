@@ -379,7 +379,7 @@ public:
       \param rows
       \param cols
    */
-  void axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows, const IndexSet* cols);
+  void axpy(T alpha, const FullMatrix<T>* b);
   /** This <- This + alpha * Id
 
       \param alpha

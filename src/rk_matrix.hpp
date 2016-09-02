@@ -119,7 +119,7 @@ public:
       return a ? a->cols : 0;
   }
 
-  /**  Gives a pointer to a RkMatrix representing a subset of indices.
+  /**  Returns a pointer to a new RkMatrix representing a subset of indices.
        The pointer is supposed to be read-only (for efficiency reasons).
 
        \param subRows subset of rows
