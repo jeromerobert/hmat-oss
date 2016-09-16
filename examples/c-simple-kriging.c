@@ -302,8 +302,8 @@ int main(int argc, char **argv) {
   double l;
 
   int nrhs = 1;
-  double *drhs, *drhsCopy, derr;
-  float  *frhs, *frhsCopy, ferr;
+  double *drhs=NULL, *drhsCopy=NULL, derr;
+  float  *frhs=NULL, *frhsCopy=NULL, ferr;
 
   if (argc != 3) {
       fprintf(stderr, "Usage: %s pointsfilename (S|D)\n", argv[0]);
