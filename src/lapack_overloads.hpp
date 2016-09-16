@@ -334,9 +334,12 @@ inline int
 gesvd<hmat::Z_t, hmat::D_t>(char jobu, char jobvt, int m, int n, hmat::Z_t* a, int lda,  hmat::D_t* s, hmat::Z_t* u, int ldu, hmat::Z_t* vt, int ldvt, hmat::Z_t* work, int lwork) {
   int info = 0;
   const int mn = (m < n ? m : n);
-  hmat::D_t* rwork = (lwork == -1 ? NULL : new hmat::D_t[5 * mn]);
+  // For rwork, MKL says: Workspace array, size at least max(1, 5*min(m, n)). Used in complex flavors only.
+  //            NETLIB says: (workspace) DOUBLE PRECISION array, dimension (5*min(M,N))
+  // We do like MKL says to please both
+  hmat::D_t* rwork = new hmat::D_t[ mn == 0 ? 1 : 5*mn ];
   _ZGESVD_(&jobu, &jobvt, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, &info);
-  if (rwork) delete [] rwork;
+  delete [] rwork;
   return info;
 }
 #undef _SGESVD_
