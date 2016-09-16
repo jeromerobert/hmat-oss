@@ -324,9 +324,9 @@ inline int
 gesvd<hmat::C_t, hmat::S_t>(char jobu, char jobvt, int m, int n, hmat::C_t* a, int lda,  hmat::S_t* s, hmat::C_t* u, int ldu, hmat::C_t* vt, int ldvt, hmat::C_t* work, int lwork) {
   int info = 0;
   const int mn = (m < n ? m : n);
-  hmat::S_t* rwork = (lwork == -1 ? NULL : new hmat::S_t[5 * mn]);
+  hmat::S_t* rwork = new hmat::S_t[ mn == 0 ? 1 : 5*mn ];
   _CGESVD_(&jobu, &jobvt, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, rwork, &info);
-  if (rwork) delete [] rwork;
+  delete [] rwork;
   return info;
 }
 template<>
