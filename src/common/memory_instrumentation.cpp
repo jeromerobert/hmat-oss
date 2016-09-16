@@ -28,15 +28,21 @@
 #include "common/my_assert.h"
 #include <algorithm>
 
-#ifdef __GLIBC__
+#if defined(HAVE_JEMALLOC) && defined(__linux__)
+#include <jemalloc/jemalloc.h>
+#endif
+
+#if defined(__GLIBC__) && !defined(HAVE_JEMALLOC)
 #include <malloc.h>
 // Do not care about thread safety. This is an acceptable approximation.
 static struct mallinfo global_mallinfo;
-static int mallinfo_counter;
 #endif
+static int mallinfo_counter;
 static int write_counter;
 static int mallinfo_sampling;
 static int write_sampling;
+// -1 unsigned is the max value for size_t
+static size_t jemalloc_heapdump_trigger = (size_t)-1;
 
 namespace hmat {
 
@@ -48,8 +54,16 @@ static size_t get_res_mem(void *)
     FILE * statm_file = fopen("/proc/self/statm", "r");
     fscanf(statm_file, "%*s %lu", &resident);
     fclose(statm_file);
+    resident *= 4096;
+  #ifdef HAVE_JEMALLOC
+    if(resident >= jemalloc_heapdump_trigger) {
+        // It would be to slow to do multiple heap dump
+        jemalloc_heapdump_trigger = (size_t)-1;
+        mallctl("prof.dump", NULL, NULL, NULL, 0);
+    }
+  #endif
 #endif
-    return resident * 4096;
+    return resident;
 }
 #endif
 
@@ -58,6 +72,8 @@ MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
     write_sampling = ws ? atoi(ws) : 1;
     char * mi = getenv("HMAT_MEMINSTR_MI");
     mallinfo_sampling = mi ? atoi(mi) : 100;
+    char * ht = getenv("HMAT_HEAPDUMP");
+    jemalloc_heapdump_trigger = ht ? atol(ht) : jemalloc_heapdump_trigger;
     addType("Time", false);
 #if __GNUC__
     addType("FullMatrix", false);
@@ -139,7 +155,7 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
         if(type > 0)
             buffer[type] = size;
 
-#ifdef __GLIBC__
+#if defined(__GLIBC__) && !defined(HAVE_JEMALLOC)
         mallinfo_counter ++;
         if(mallinfo_counter >= mallinfo_sampling) {
             global_mallinfo = mallinfo();
