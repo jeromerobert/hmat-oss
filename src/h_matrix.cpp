@@ -1482,9 +1482,11 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>&
     string delimiter("");
     for (int i = 0; i < this->nrChild(); i++) {
       const HMatrix<T>* child = this->getChild(i);
-      if (!child) continue;
       f << delimiter;
-      child->dumpSubTree(f, depth + 1, nodeDumper);
+      if (!child)
+        f << prefix << "{ }";
+      else
+        child->dumpSubTree(f, depth + 1, nodeDumper);
       f << endl;
       delimiter = ",";
     }
