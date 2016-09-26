@@ -254,11 +254,6 @@ const char * hmat_get_version()
     return HMAT_VERSION;
 }
 
-const char * hmat_get_build_date()
-{
-  return "Built on " __DATE__ " at " __TIME__ "" ;
-}
-
 void hmat_assemble_context_init(hmat_assemble_context_t * context) {
     context->assembly = NULL;
     context->block_compute = NULL;

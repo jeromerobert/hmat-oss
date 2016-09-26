@@ -713,12 +713,6 @@ void hmat_print_parameters(hmat_settings_t*);
 const char * hmat_get_version();
 
 /*!
- * \brief hmat_get_build_date
- * \return The build date of this library
- */
-const char * hmat_get_build_date();
-
-/*!
  \brief hmat_tracing_dump Dumps the trace info in the given filename
 
  The file is in json format. Hmat library must be compiled with -DHAVE_CONTEXT for this to work.
