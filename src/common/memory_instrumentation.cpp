@@ -108,13 +108,13 @@ MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
 }
 
 void MemoryInstrumenter::setFile(const std::string & filename) {
+    mallinfo_counter = 0;
 #ifdef HMAT_MEM_INSTR
     filename_ = filename;
     output_ = fopen(filename.c_str(), "w+");
     HMAT_ASSERT_MSG(output_ != NULL, "Cannot open %s", filename.c_str());
     start_ = now();
     fullMatrixMem_ = 0;
-    mallinfo_counter = 0;
 
     FILE * labelsf = fopen((filename_+".labels").c_str(), "w");
     for(int i = 0; i < labels_.size(); i++) {
