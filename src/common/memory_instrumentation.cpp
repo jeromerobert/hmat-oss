@@ -29,6 +29,7 @@
 #include <algorithm>
 
 #if defined(HAVE_JEMALLOC) && defined(__linux__)
+#define JEMALLOC_NO_DEMANGLE
 #include <jemalloc/jemalloc.h>
 #endif
 
@@ -59,7 +60,7 @@ static size_t get_res_mem(void *)
     if(resident >= jemalloc_heapdump_trigger) {
         // It would be to slow to do multiple heap dump
         jemalloc_heapdump_trigger = (size_t)-1;
-        mallctl("prof.dump", NULL, NULL, NULL, 0);
+        je_mallctl("prof.dump", NULL, NULL, NULL, 0);
     }
   #endif
 #endif
