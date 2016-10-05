@@ -110,19 +110,15 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
   rowsAdmissible = admissible.first;
   colsAdmissible = admissible.second;
-  if ( (rowsAdmissible && colsAdmissible) || ( !rowsAdmissible && !colsAdmissible && (_rows->isLeaf() || _cols->isLeaf()) ) ) {
+  if ( (rowsAdmissible && colsAdmissible) || (_rows->isLeaf() && _cols->isLeaf()) ) {
     // We create a block of matrix in one of the following case:
     // - rowsAdmissible && colsAdmissible : we dont divide neither on rows nor on columns
-    // - rowsAdmissible && colsAdmissible && (_rows->isLeaf() || _cols->isLeaf()) : we want to divide in both rows and columns,
-    //     but we cant because one of the 2 is a leaf.
+    // - _rows->isLeaf() && _cols->isLeaf() : both rows and cols are leaf.
     // In the other cases, we subdivide.
-    // Maybe not all situations are handled, and this may change in the future, but at least this mimics the
-    // previous behaviour when rowsAdmissible == colsAdmissible
-
-    if (rowsAdmissible && colsAdmissible) {
-      // 'admissible' is also the criteria to choose Rk or Full.
-      // if (admissible), we create a Rk, otherwise assembly will create a full (see void AssemblyFunction<T>::assemble)
-      // TODO: Implement a separate 'compressibility' criteria
+    // Note that AdmissibilityCondition::isRowsColsAdmissible() has been modified, and now if rows or cols is a leaf, the block is admissible
+    
+    if (admissibilityCondition->isCompressible(*(rows_), *(cols_))) {
+      // 'isCompressible' is the criteria to choose Rk or Full.
       rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
     }
   } else {

@@ -50,6 +50,11 @@ public:
 
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  /*! \brief Returns true if the block of interaction between 2 nodes should be compressed.
+
+    \return true  if the block should be Rk.
+   */
+  virtual bool isCompressible(const ClusterTree& rows, const ClusterTree& cols);
   /*! \brief Returns a pair of boolean telling if 2 nodes are row- or col- admissible together.
 
     If a pair of nodes is row-admissible (resp col-admissible), then we dont subdivide the

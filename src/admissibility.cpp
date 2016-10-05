@@ -35,8 +35,14 @@ namespace hmat {
 std::pair<bool, bool>
 AdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
 {
-  bool admissibile = isAdmissible(rows, cols);
-  return std::pair<bool, bool>(admissibile, admissibile);
+  bool admissible = (isAdmissible(rows, cols) || rows.isLeaf() || cols.isLeaf());
+  return std::pair<bool, bool>(admissible, admissible);
+}
+
+bool
+AdmissibilityCondition::isCompressible(const ClusterTree& rows, const ClusterTree& cols)
+{
+  return isAdmissible(rows, cols);
 }
 
 std::pair<bool, bool>
