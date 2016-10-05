@@ -110,12 +110,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
   rowsAdmissible = admissible.first;
   colsAdmissible = admissible.second;
-  if ( (rowsAdmissible && colsAdmissible) || ( !rowsAdmissible && !colsAdmissible && (_rows->isLeaf() || _cols->isLeaf()) ) ) {
-    // if rowsAdmissible == colsAdmissible == false, we check rows and cols to see if they are leaf
-    if (rowsAdmissible && colsAdmissible) {
-      // 'admissible' is also the criteria to choose Rk or Full.
-      // if (admissible), we create a Rk, otherwise assembly will create a full (see void AssemblyFunction<T>::assemble)
-      // TODO: Implement a separate 'compressibility' criteria
+  if ((rowsAdmissible && colsAdmissible)  || (_rows->isLeaf() && _cols->isLeaf()) ) {
+    if (admissibilityCondition->isCompressible(*(rows_), *(cols_))) {
       rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
     }
   } else {

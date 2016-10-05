@@ -49,6 +49,7 @@ public:
 
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  virtual bool isCompressible(const ClusterTree& rows, const ClusterTree& cols);
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   /*! \brief if the result of this function is true,
   *    the corresponding H-Matrix block will not be created. */
