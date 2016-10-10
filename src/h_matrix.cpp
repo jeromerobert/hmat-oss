@@ -1099,18 +1099,22 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
                 continue;
               }
               if (!childB && (b->isTriUpper || b->isTriLower)) {
-                assert(*b->rows() == *b->cols());
-                continue;
+                  assert(*b->rows() == *b->cols());
+                  continue;
+              }
+              // Handles the case where the matrix is symmetric and we get an element
+              // on the "wrong" side of the diagonal e.g. isUpper=true and i>k (below the diagonal)
+              if ((a->isUpper &&  i>k) || (a->isLower &&  i<k)) {
+                  tA = (tA == 'N' ? 'T' : 'N');
+                  childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
+              }
+              if ((b->isUpper &&  j<k) || (b->isLower &&  j<k)) {
+                  tB = (tB == 'N' ? 'T' : 'N');
+                  childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
               }
 
-              if (!childA) {
-                tA = (tA == 'N' ? 'T' : 'N');
-                childA = (tA == 'N' ? a->get(i, k) : a->get(k, i));
-              }
-              if (!childB) {
-                tB = (tB == 'N' ? 'T' : 'N');
-                childB = (tB == 'N' ? b->get(k, j) : b->get(j, k));
-              }
+              if (!childA || !childB) continue;
+              
               gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
             }
           }
