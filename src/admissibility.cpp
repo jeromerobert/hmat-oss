@@ -121,6 +121,8 @@ StandardAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, co
   bool standard_admissible = isAdmissible(rows, cols);
   tall_skinny_admissible.first |= standard_admissible;
   tall_skinny_admissible.second |= standard_admissible;
+  if ( !tall_skinny_admissible.first && !tall_skinny_admissible.second && (rows.isLeaf() || cols.isLeaf()))
+    tall_skinny_admissible.first = tall_skinny_admissible.second = true;
   return tall_skinny_admissible;
 }
 
