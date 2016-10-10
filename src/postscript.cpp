@@ -213,9 +213,13 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
         for (int k=1 ; k < std::max(m->nrChildRow(), m->nrChildCol()) ; k++) {
           int i = k>=m->nrChildRow() ? m->nrChildRow()-1 : k ;
           int j = k>=m->nrChildCol() ? m->nrChildCol()-1 : k ;
-          int colOffset = m->get(i, j)->cols()->offset();
-          int rowOffset = m->get(i, j)->rows()->offset();
-          int thickness = max(1, min(30 - depth, (rowsCount + colsCount) / 100));
+          int colOffset = m->cols()->offset();
+          int rowOffset = m->rows()->offset();
+          if (m->get(i, j)) {
+            colOffset = m->get(i, j)->cols()->offset();
+            rowOffset = m->get(i, j)->rows()->offset();
+          }
+          int thickness = max(1, min(10 - depth, (rowsCount + colsCount) / 100));
         f << 0 << " " << -rowsCount << " "
           << colOffset << " " << n - startY << " "
           << colsCount << " " << 0 << " "
