@@ -111,6 +111,11 @@ StandardAdmissibilityCondition::isAdmissible(const ClusterTree& rows, const Clus
 std::pair<bool, bool>
 StandardAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
 {
+  // We mix the 2 admissibility conditions, one on the ratio number of rows / number of cols coming from
+  // TallSkinnyAdmissibilityCondition and one on the ratio distance/diameter adapted to BEM matrices.
+  // The new criteria is that to be row- or col-admissible, you need to be admissible for 1 of the 2 conditions.
+  // Therefore, you subdivide only if both criteria for subdivision are satisfied (i.e. the matrix block is not too large
+  // in the considered dimension AND the 2 cluster trees are too close w.r.t.their sizes).
   std::pair<bool, bool> tall_skinny_admissible = TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(rows, cols);
   bool standard_admissible = isAdmissible(rows, cols);
   tall_skinny_admissible.first |= standard_admissible;
