@@ -37,7 +37,7 @@ AdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const Clus
 {
   bool admissibile = isAdmissible(rows, cols);
   return std::pair<bool, bool>(admissibile, admissibile);
-};
+}
 
 std::pair<bool, bool>
 TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)

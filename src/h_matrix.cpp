@@ -111,7 +111,14 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   rowsAdmissible = admissible.first;
   colsAdmissible = admissible.second;
   if ( (rowsAdmissible && colsAdmissible) || ( !rowsAdmissible && !colsAdmissible && (_rows->isLeaf() || _cols->isLeaf()) ) ) {
-    // if rowsAdmissible == colsAdmissible == false, we check rows and cols to see if they are leaf
+    // We create a block of matrix in one of the following case:
+    // - rowsAdmissible && colsAdmissible : we dont divide neither on rows nor on columns
+    // - rowsAdmissible && colsAdmissible && (_rows->isLeaf() || _cols->isLeaf()) : we want to divide in both rows and columns,
+    //     but we cant because one of the 2 is a leaf.
+    // In the other cases, we subdivide.
+    // Maybe not all situations are handled, and this may change in the future, but at least this mimics the
+    // previous behaviour when rowsAdmissible == colsAdmissible
+
     if (rowsAdmissible && colsAdmissible) {
       // 'admissible' is also the criteria to choose Rk or Full.
       // if (admissible), we create a Rk, otherwise assembly will create a full (see void AssemblyFunction<T>::assemble)
