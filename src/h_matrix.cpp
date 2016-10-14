@@ -669,16 +669,18 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     rk(tmp);
                 }
             } else {
-                if(full() == NULL)
+                if(full() == NULL && !x->isNull())
                     full(new FullMatrix<T>(rows()->size(), cols()->size()));
-                if(x->isFullMatrix()) {
+                if(x->isNull()) {
+                    // nothig to do
+                } else if(x->isFullMatrix()) {
                     full()->axpy(alpha, x->full());
                 } else if(x->isRkMatrix()) {
                     FullMatrix<T> * f = x->rk()->eval();
                     full()->axpy(alpha, f);
                     delete f;
                 } else {
-                    // nothing TODO
+                    HMAT_ASSERT(false);
                 }
             }
         } else {
@@ -691,7 +693,9 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
             }
         }
     } else {
-        if(x->isFullMatrix()) {
+        if(x->isNull()) {
+            // nothing to do
+        } else if(x->isFullMatrix()) {
             axpy(alpha, x->full(), x->rows(), x->cols());
             return;
         }
