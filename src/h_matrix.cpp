@@ -111,9 +111,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   rowsAdmissible = admissible.first;
   colsAdmissible = admissible.second;
   if ((rowsAdmissible && colsAdmissible)  || (_rows->isLeaf() && _cols->isLeaf()) ) {
-    if (admissibilityCondition->isCompressible(*(rows_), *(cols_))) {
-      rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
-    }
+    isCompressible = admissibilityCondition->isCompressible(*(rows_), *(cols_));
   } else {
     isUpper = false;
     isLower = (symFlag == kLowerSymmetric ? true : false);
@@ -270,7 +268,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     // if not we keep the matrix.
     FullMatrix<T> * m = NULL;
     RkMatrix<T>* assembledRk = NULL;
-    f.assemble(localSettings, *rows_, *cols_, isRkMatrix(), m, assembledRk, ao);
+    f.assemble(localSettings, *rows_, *cols_, isCompressible, m, assembledRk, ao);
     HMAT_ASSERT(m == NULL || assembledRk == NULL);
     if(assembledRk) {
         if(rk_)

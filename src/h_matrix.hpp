@@ -573,6 +573,7 @@ public:
   char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
        rowsAdmissible:1, colsAdmissible:1,
+       isCompressible:1,
        temporary:1, ownClusterTree_:1;
   LocalSettings localSettings;
 
