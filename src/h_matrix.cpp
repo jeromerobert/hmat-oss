@@ -1005,18 +1005,6 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         return;
     }
 
-    // We now know that 'this' is a leaf
-    // We treat first the case where it is an Rk matrix
-    // - if it is uninitialized, and a is Rk, or b is Rk, or both are H
-    //   ( this choice might be bad if a or b contains lots of full matrices
-    //     but this case should almost never happen)
-    // - if it is allready Rk
-    if( (rank_ == UNINITIALIZED_BLOCK && ( a->isRkMatrix() || b->isRkMatrix() || (!a->isLeaf() && !b->isLeaf()) ))
-        || (isRkMatrix() && rk() == NULL) )
-    {
-        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
-    }
-
     if (isRkMatrix()) {
         // The resulting matrix is a RkMatrix leaf.
         // At least one of the matrix is not a leaf.
@@ -1034,6 +1022,8 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         assert((transA == 'N' ? *a->cols() : *a->rows()) == (transB == 'N' ? *b->rows() : *b->cols()));
         assert(*rows() == (transA == 'N' ? *a->rows() : *a->cols()));
         assert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
+        if(rk() == NULL)
+            rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
         rk()->gemmRk(transA, transB, alpha, a, b, Constants<T>::pone);
         rank_ = rk()->rank();
         return;
