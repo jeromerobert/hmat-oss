@@ -104,7 +104,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
+    isTriUpper(false), isTriLower(false), rowsAdmissible(false), colsAdmissible(false), isCompressible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
 {
   pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
@@ -117,10 +117,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     // In the other cases, we subdivide.
     // Note that AdmissibilityCondition::isRowsColsAdmissible() has been modified, and now if rows or cols is a leaf, the block is admissible
     
-    if (admissibilityCondition->isCompressible(*(rows_), *(cols_))) {
-      // 'isCompressible' is the criteria to choose Rk or Full.
-      rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
-    }
+    // 'isCompressible' is the criteria to choose Rk or Full.
+    isCompressible = admissibilityCondition->isCompressible(*(rows_), *(cols_));
   } else {
     isUpper = false;
     isLower = (symFlag == kLowerSymmetric ? true : false);
@@ -149,7 +147,7 @@ template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
-    rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
+    rowsAdmissible(false), colsAdmissible(false), isCompressible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
     {}
 
@@ -157,6 +155,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     HMatrix<T> * r = new HMatrix<T>(localSettings.global);
     r->rows_ = rows_;
     r->cols_ = cols_;
+    r->isCompressible = isCompressible;
     r->rowsAdmissible = rowsAdmissible;
     r->colsAdmissible = colsAdmissible;
     r->temporary = temporary;
@@ -190,6 +189,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->isTriLower = isTriLower;
   h->rowsAdmissible = rowsAdmissible;
   h->colsAdmissible = colsAdmissible;
+  h->isCompressible = isCompressible;
   h->rank_ = rank_ >= 0 ? 0 : rank_;
   if(!this->isLeaf()){
     for (int i = 0; i < this->nrChild(); ++i) {
@@ -211,6 +211,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->isTriLower = o->isTriLower;
   h->rowsAdmissible = o->rowsAdmissible;
   h->colsAdmissible = o->colsAdmissible;
+  h->isCompressible = o->isCompressible;
   h->rank_ = o->rank_ >= 0 ? 0 : o->rank_;
   if (h->rank_==0)
     h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
@@ -250,7 +251,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     // if not we keep the matrix.
     FullMatrix<T> * m = NULL;
     RkMatrix<T>* assembledRk = NULL;
-    f.assemble(localSettings, *rows_, *cols_, isRkMatrix(), m, assembledRk, ao);
+    f.assemble(localSettings, *rows_, *cols_, isCompressible, m, assembledRk, ao);
     HMAT_ASSERT(m == NULL || assembledRk == NULL);
     if(assembledRk) {
         if(rk_)
@@ -296,7 +297,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
                                           NULL, upper->cols(), rk()->method);
         newRk->a = rk()->b ? rk()->b->copy() : NULL;
         newRk->b = rk()->a ? rk()->a->copy() : NULL;
-        if(upper->rk() != NULL)
+        if(upper->isRkMatrix() && upper->rk() != NULL)
             delete upper->rk();
         upper->rk(newRk);
       }
@@ -1028,10 +1029,10 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 
     // a, b are H matrices and 'this' is full
     if ( this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
-      for (int i = 0; i < (tA=='N' ? a->nrChildRow() : a->nrChildCol()) ; i++) {
-        for (int j = 0; j < (tB=='N' ? b->nrChildCol() : b->nrChildRow()) ; j++) {
+      for (int i = 0; i < (transA=='N' ? a->nrChildRow() : a->nrChildCol()) ; i++) {
+        for (int j = 0; j < (transB=='N' ? b->nrChildCol() : b->nrChildRow()) ; j++) {
           const HMatrix<T> *childA, *childB;
-          for (int k = 0; k < (tA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
+          for (int k = 0; k < (transA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
             char tA = transA;
             char tB = transB;
             childA = a->getChildForGEMM(tA, i, k);
