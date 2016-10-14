@@ -147,8 +147,8 @@ void DefaultEngine<T>::inverse() {
 }
 
 template<typename T>
-void DefaultEngine<T>::gemv(char trans, T alpha, FullMatrix<T>& x,
-                                      T beta, FullMatrix<T>& y) const {
+void DefaultEngine<T>::gemv(char trans, T alpha, ScalarArray<T>& x,
+                                      T beta, ScalarArray<T>& y) const {
   hmat->gemv(trans, alpha, &x, beta, &y);
 }
 
@@ -165,7 +165,7 @@ void DefaultEngine<T>::addIdentity(T alpha) {
 }
 
 template<typename T>
-void DefaultEngine<T>::solve(FullMatrix<T>& b, hmat_factorization_t t) const {
+void DefaultEngine<T>::solve(ScalarArray<T>& b, hmat_factorization_t t) const {
   switch(t) {
   case hmat_factorization_lu:
       hmat->solve(&b);
@@ -188,7 +188,7 @@ void DefaultEngine<T>::solve(DefaultEngine<T>& b, hmat_factorization_t f) const 
 }
 
 template<typename T>
-void DefaultEngine<T>::solveLower(FullMatrix<T>& b, hmat_factorization_t t, bool transpose) const {
+void DefaultEngine<T>::solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose) const {
   bool unitriangular = (t == hmat_factorization_lu || t == hmat_factorization_ldlt);
   if (transpose)
     hmat->solveUpperTriangularLeft(&b, unitriangular, true);

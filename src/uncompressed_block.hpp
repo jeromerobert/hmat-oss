@@ -70,7 +70,7 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
   protected:
     const M<T> * matrix_;
     IndexSet rowIndexSet_, colIndexSet_;
-    // TODO replace by a FullMatrix ?
+    // TODO replace by a ScalarArray ?
     T *values_;
     int lDim_;
 
@@ -120,7 +120,7 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
     void renumberRows() {
         HMAT_ASSERT_MSG(matrix_->father == NULL && rowIndexSet_ == *me()->matrix().rows(),
                         "Cannot renumber");
-        FullMatrix<T> fm(values_, rowIndexSet_.size(), colIndexSet_.size(), ld());
+        ScalarArray<T> fm(values_, rowIndexSet_.size(), colIndexSet_.size(), ld());
         restoreVectorOrder(&fm, rowsNumbering());
     }
 };
@@ -142,17 +142,10 @@ template <typename T> class UncompressedBlock:
     }
 
     void getFullValues() {
-        int nr = this->rows().size();
-        int nc = this->cols().size();
-        FullMatrix<T> target(this->values_, nr, nc, this->ld());
-        int localRowOffset = this->rowIndexSet_.offset() - matrix().rows()->offset();
-        int localColOffset = this->colIndexSet_.offset() - matrix().cols()->offset();
-        assert(localRowOffset >= 0);
-        assert(localColOffset >= 0);
-        T *sa = matrix().full()->m + localRowOffset +
-                ((size_t)matrix().full()->lda) * localColOffset;
-        FullMatrix<T> source(sa, nr, nc, matrix().full()->lda);
-        target.copyMatrixAtOffset(&source, 0, 0);
+      FullMatrix<T> target(this->values_, &this->rows(), &this->cols(), this->ld());
+      const FullMatrix<T> *source = matrix().full()->subset(&this->rows(), &this->cols());
+      target.copyMatrixAtOffset(source, 0, 0);
+      delete source;
     }
 
     void getRkValues() {
@@ -162,11 +155,11 @@ template <typename T> class UncompressedBlock:
         int nr = this->rowIndexSet_.size();
         int nc = this->colIndexSet_.size();
         int k = matrix().rank();
-        FullMatrix<T> result(this->values_, nr, nc, this->ld());
+        ScalarArray<T> result(this->values_, nr, nc, this->ld());
         T *sa = matrix().rk()->a->m + this->rowIndexSet_.offset() - matrix().rows()->offset();
-        FullMatrix<T> a(sa, nr, k, matrix().rows()->size());
+        ScalarArray<T> a(sa, nr, k, matrix().rows()->size());
         T *sb = matrix().rk()->b->m + this->colIndexSet_.offset() - matrix().cols()->offset();
-        FullMatrix<T> b(sb, nc, k, matrix().cols()->size());
+        ScalarArray<T> b(sb, nc, k, matrix().cols()->size());
         result.gemm('N', 'T', Constants<T>::pone, &a, &b, Constants<T>::zero);
     }
 

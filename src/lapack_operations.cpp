@@ -237,7 +237,7 @@ template<> int sddCall<hmat::Z_t>(char jobz, int m, int n, hmat::Z_t* a, int lda
 
 namespace hmat {
 
-template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vector<double>** sigma, FullMatrix<T>** vt) {
+template<typename T> int truncatedSdd(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt) {
   DECLARE_CONTEXT;
 
 
@@ -246,9 +246,9 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
   int cols = m->cols;
   int p = min(rows, cols);
 
-  *u = FullMatrix<T>::Zero(rows, p);
-  *sigma = Vector<double>::Zero(p);
-  *vt = FullMatrix<T>::Zero(p, cols);
+  *u = new ScalarArray<T>(rows, p);
+  *sigma = new Vector<double>(p);
+  *vt = new ScalarArray<T>(p, cols);
 
   assert(m->lda >= m->rows);
 
@@ -270,13 +270,13 @@ template<typename T> int truncatedSdd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
+  info = sddCall<T>(jobz, mm, n, a, lda, (*sigma)->m, (*u)->m,
                     (*u)->lda, (*vt)->m, (*vt)->lda);
   HMAT_ASSERT_MSG(!info, "Error in ?gesdd, info=%d", info);
   return info;
 }
 
-template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vector<double>** sigma, FullMatrix<T>** vt) {
+template<typename T> int truncatedSvd(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt) {
   DECLARE_CONTEXT;
   static char * useGESSD = getenv("HMAT_GESSD");
   if(useGESSD)
@@ -287,9 +287,9 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
   int cols = m->cols;
   int p = min(rows, cols);
 
-  *u = FullMatrix<T>::Zero(rows, p);
-  *sigma = Vector<double>::Zero(p);
-  *vt = FullMatrix<T>::Zero(p, cols);
+  *u = new ScalarArray<T>(rows, p);
+  *sigma = new Vector<double>(p);
+  *vt = new ScalarArray<T>(p, cols);
 
   assert(m->lda >= m->rows);
 
@@ -311,7 +311,7 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = svdCall<T>(jobz, jobz, mm, n, a, lda, (*sigma)->v, (*u)->m,
+  info = svdCall<T>(jobz, jobz, mm, n, a, lda, (*sigma)->m, (*u)->m,
                     (*u)->lda, (*vt)->m, (*vt)->lda);
   if (info) {
     cerr << "Erreur dans xGESVD: " << info << endl;
@@ -321,12 +321,12 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
 }
 
 // Explicit instantiations
-template int truncatedSvd(FullMatrix<S_t>* m, FullMatrix<S_t>** u, Vector<double>** sigma, FullMatrix<S_t>** vt);
-template int truncatedSvd(FullMatrix<D_t>* m, FullMatrix<D_t>** u, Vector<double>** sigma, FullMatrix<D_t>** vt);
-template int truncatedSvd(FullMatrix<C_t>* m, FullMatrix<C_t>** u, Vector<double>** sigma, FullMatrix<C_t>** vt);
-template int truncatedSvd(FullMatrix<Z_t>* m, FullMatrix<Z_t>** u, Vector<double>** sigma, FullMatrix<Z_t>** vt);
+template int truncatedSvd(ScalarArray<S_t>* m, ScalarArray<S_t>** u, Vector<double>** sigma, ScalarArray<S_t>** vt);
+template int truncatedSvd(ScalarArray<D_t>* m, ScalarArray<D_t>** u, Vector<double>** sigma, ScalarArray<D_t>** vt);
+template int truncatedSvd(ScalarArray<C_t>* m, ScalarArray<C_t>** u, Vector<double>** sigma, ScalarArray<C_t>** vt);
+template int truncatedSvd(ScalarArray<Z_t>* m, ScalarArray<Z_t>** u, Vector<double>** sigma, ScalarArray<Z_t>** vt);
 
-template<typename T> T* qrDecomposition(FullMatrix<T>* m) {
+template<typename T> T* qrDecomposition(ScalarArray<T>* m) {
   DECLARE_CONTEXT;
   //  SUBROUTINE DGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
   int rows = m->rows;
@@ -356,15 +356,15 @@ template<typename T> T* qrDecomposition(FullMatrix<T>* m) {
 }
 
 // templates declaration
-template S_t* qrDecomposition<S_t>(FullMatrix<S_t>* m);
-template D_t* qrDecomposition<D_t>(FullMatrix<D_t>* m);
-template C_t* qrDecomposition<C_t>(FullMatrix<C_t>* m);
-template Z_t* qrDecomposition<Z_t>(FullMatrix<Z_t>* m);
+template S_t* qrDecomposition<S_t>(ScalarArray<S_t>* m);
+template D_t* qrDecomposition<D_t>(ScalarArray<D_t>* m);
+template C_t* qrDecomposition<C_t>(ScalarArray<C_t>* m);
+template Z_t* qrDecomposition<Z_t>(ScalarArray<Z_t>* m);
 
 
 
 template<typename T>
-void myTrmm(FullMatrix<T>* aFull, FullMatrix<T>* bTri) {
+void myTrmm(ScalarArray<T>* aFull, ScalarArray<T>* bTri) {
   DECLARE_CONTEXT;
   int mm = aFull->rows;
   int n = aFull->rows;
@@ -383,13 +383,13 @@ void myTrmm(FullMatrix<T>* aFull, FullMatrix<T>* bTri) {
   proxy_cblas::trmm('R', 'U', 'T', 'N', mm, n, alpha, aData, lda, bData, ldb);
 }
 // Explicit instantiations
-template void myTrmm(FullMatrix<S_t>* aFull, FullMatrix<S_t>* bTri);
-template void myTrmm(FullMatrix<D_t>* aFull, FullMatrix<D_t>* bTri);
-template void myTrmm(FullMatrix<C_t>* aFull, FullMatrix<C_t>* bTri);
-template void myTrmm(FullMatrix<Z_t>* aFull, FullMatrix<Z_t>* bTri);
+template void myTrmm(ScalarArray<S_t>* aFull, ScalarArray<S_t>* bTri);
+template void myTrmm(ScalarArray<D_t>* aFull, ScalarArray<D_t>* bTri);
+template void myTrmm(ScalarArray<C_t>* aFull, ScalarArray<C_t>* bTri);
+template void myTrmm(ScalarArray<Z_t>* aFull, ScalarArray<Z_t>* bTri);
 
 template<typename T>
-int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c) {
+int productQ(char side, char trans, ScalarArray<T>* qr, T* tau, ScalarArray<T>* c) {
   DECLARE_CONTEXT;
   int m = c->rows;
   int n = c->cols;
@@ -418,10 +418,10 @@ int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c)
   return 0;
 }
 // Explicit instantiations
-template int productQ(char side, char trans, FullMatrix<S_t>* qr, S_t* tau, FullMatrix<S_t>* c);
-template int productQ(char side, char trans, FullMatrix<D_t>* qr, D_t* tau, FullMatrix<D_t>* c);
-template int productQ(char side, char trans, FullMatrix<C_t>* qr, C_t* tau, FullMatrix<C_t>* c);
-template int productQ(char side, char trans, FullMatrix<Z_t>* qr, Z_t* tau, FullMatrix<Z_t>* c);
+template int productQ(char side, char trans, ScalarArray<S_t>* qr, S_t* tau, ScalarArray<S_t>* c);
+template int productQ(char side, char trans, ScalarArray<D_t>* qr, D_t* tau, ScalarArray<D_t>* c);
+template int productQ(char side, char trans, ScalarArray<C_t>* qr, C_t* tau, ScalarArray<C_t>* c);
+template int productQ(char side, char trans, ScalarArray<Z_t>* qr, Z_t* tau, ScalarArray<Z_t>* c);
 
 }  // end namespace hmat
 

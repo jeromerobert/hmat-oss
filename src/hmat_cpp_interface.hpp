@@ -216,7 +216,7 @@ public:
   /** Matrix-Vector product.
 
       This computes \f$ y \gets \alpha . op(A) x + \beta y\f$, with A = this, x
-      and y FullMatrix<T>. If trans == 'N', then op(A) = A, if trans == 'T',
+      and y ScalarArray<T>. If trans == 'N', then op(A) = A, if trans == 'T',
       then op(A) = A^T, as in BLAS.
 
       @param trans 'N' or 'T'
@@ -225,7 +225,7 @@ public:
       @param beta
       @param y
    */
-  void gemv(char trans, T alpha, FullMatrix<T>& x, T beta, FullMatrix<T>& y) const;
+  void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
   /** Matrix-Matrix product.
 
       This computes \f$ C \gets \alpha . op(A) \times op(B) + \beta C\f$ with A,
@@ -245,35 +245,35 @@ public:
   /** Full <- Full x HMatrix product.
 
       This computes the product \f$ C_F \gets \alpha . op(A_F) \times op(B_H) +
-      \beta C_F\f$, with \f$A_F\f$, \f$C_F\f$ two FullMatrix<T>, and \f$B_H\f$
+      \beta C_F\f$, with \f$A_F\f$, \f$C_F\f$ two ScalarArray<T>, and \f$B_H\f$
       an HMatrixInterface<T> instance.
 
       The meaning of the arguments is as in \a HMatInterface<T>::gemm(), and in
       BLAS.
    */
-  static void gemm(FullMatrix<T>& c, char transA, char transB, T alpha, FullMatrix<T>& a, const HMatInterface<T, E>& b, T beta);
+  static void gemm(ScalarArray<T>& c, char transA, char transB, T alpha, ScalarArray<T>& a, const HMatInterface<T, E>& b, T beta);
   /** Return a new copy of this.
    */
   HMatInterface<T, E>* copy() const;
   /** Transpose this in place.
    */
   void transpose();
-  /** Solve the system \f$A x = b\f$ in place, with A = this, and b a FullMatrix.
+  /** Solve the system \f$A x = b\f$ in place, with A = this, and b a ScalarArray.
 
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */
-  void solve(FullMatrix<T>& b) const;
+  void solve(ScalarArray<T>& b) const;
   /** Solve the system \f$A x = B\f$ in place, with A = this, and B a HMatInterface<T>.
 
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */
   void solve(HMatInterface<T, E>& b) const;
   /** Solve the system \f$op(L) x = b\f$ in place, with L being the lower triangular part of
-      an already factorized matrix, and b a FullMatrix.
+      an already factorized matrix, and b a ScalarArray.
 
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */
-  void solveLower(FullMatrix<T>& b, bool transpose=false) const;
+  void solveLower(ScalarArray<T>& b, bool transpose=false) const;
   /** Return an approximation of the Frobenius norm of this.
    */
   double norm() const;

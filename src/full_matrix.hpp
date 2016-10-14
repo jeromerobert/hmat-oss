@@ -29,19 +29,23 @@
 #include <cstddef>
 
 #include "data_types.hpp"
+#include "scalar_array.hpp"
 #include "h_matrix.hpp"
 
 namespace hmat {
 
-/*! \brief Templated dense Matrix type.
+class IndexSet;
+
+  /*! \brief Templated dense Matrix type.
 
   The template parameter represents the scalar type of the matrix elements.  The
   supported types are \a S_t, \a D_t, \a C_t and \a Z_t, as defined in
   @data_types.hpp.
  */
 template<typename T> class FullMatrix {
-  /*! True if the matrix owns its memory, ie has to free it upon destruction */
-  char ownsMemory:1;
+public:
+  ScalarArray<T> data;
+private:
   /*! Is this matrix upper triangular? */
   char triUpper_:1;
   /*! Is this matrix lower triangular? */
@@ -50,14 +54,10 @@ template<typename T> class FullMatrix {
   FullMatrix(const FullMatrix<T>& o);
 
 public:
-  /// Fortran style pointer (columnwise)
-  T* m;
-  /// Number of rows
-  int rows;
-  /// Number of columns
-  int cols;
-  /*! Leading dimension, as in BLAS */
-  int lda;
+  const IndexSet *rows_;
+  const IndexSet *cols_;
+
+public:
   /*! Holds the pivots for the LU decomposition. */
   int* pivots;
   /*! Diagonal in an LDL^t factored matrix */
@@ -67,29 +67,29 @@ public:
 
       In this case the matrix doesn't own the data (the memory is not
       freed at the object destruction).
+       The represented matrix R corresponds to a set of indices _rows and _cols.
 
       \param _m Pointer to the data
-      \param _rows Number of rows
-      \param _cols Number of cols
+      \param _rows indices of the rows
+      \param _cols indices of the columns
       \param lda Leading dimension, as in BLAS
    */
-  FullMatrix(T* _m, int _rows, int _cols, int _lda=-1);
-  /* \brief Create an empty matrix, filled with 0s.
+  FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols, int _lda=-1);
+  /** \brief Initialize the matrix with an existing ScalarArray and 2 IndexSets.
+
+      \param _s a ScalarArray
+      \param _rows indices of the rows
+      \param _cols indices of the columns
+   */
+  FullMatrix(ScalarArray<T> *s, const IndexSet*  _rows, const IndexSet*  _cols);
+  /** \brief Create an empty matrix, filled with 0s.
 
      In this case, the memory is freed when the object is destroyed.
 
-     \param _rows Number of rows
-     \param _cols Number of columns
+      \param _rows indices of the rows
+      \param _cols indices of the columns
    */
-  FullMatrix(int _rows, int _cols);
-  /** \brief Create a matrix filled with 0s.
-
-     In this case, the memory is freed when the object is destroyed.
-
-     \param _rows Number of rows
-     \param _cols Number of columns
-   */
-  static FullMatrix* Zero(int rows, int cols);
+  FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols);
   ~FullMatrix();
 
   bool isTriUpper() {
@@ -98,6 +98,13 @@ public:
 
   bool isTriLower() {
       return triLower_;
+  }
+
+  int rows() const {
+    return data.rows;
+  }
+  int cols() const {
+    return data.cols;
   }
 
   /** This <- 0.
@@ -120,6 +127,16 @@ public:
   /** \brief Return a new matrix that is a transposed version of this.
    */
   FullMatrix<T>* copyAndTranspose() const;
+
+  /**  Returns a pointer to a new FullMatrix representing a subset of indices.
+       The pointer is supposed to be read-only (for efficiency reasons).
+
+       \param subRows subset of rows
+       \param subCols subset of columns
+       \return pointer to a new matrix with subRows and subCols.
+   */
+  const FullMatrix<T>* subset(const IndexSet* subRows, const IndexSet* subCols) const ;
+
   /** this = alpha * op(A) * op(B) + beta * this
 
       Standard "GEMM" call, as in BLAS.
@@ -158,7 +175,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveLowerTriangularLeft(FullMatrix<T>* x, bool unitriangular) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* x, bool unitriangular) const;
   /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -166,7 +183,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularRight(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -174,7 +191,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularLeft(FullMatrix<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -182,7 +199,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solve(FullMatrix<T>* x) const;
+  void solve(ScalarArray<T>* x) const;
   /*! \brief Compute the inverse of this in place.
    */
   void inverse();
@@ -232,10 +249,10 @@ public:
       There are 2 types to allow matrix modification or not.
    */
   T& get(int i, int j) {
-    return m[i + ((size_t) lda) * j];
+    return data.m[i + ((size_t) data.lda) * j];
   }
   T get(int i, int j) const {
-    return m[i + ((size_t) lda) * j];
+    return data.m[i + ((size_t) data.lda) * j];
   }
   /** Simpler accessors for the diagonal.
 
@@ -243,10 +260,10 @@ public:
       with \a FullMatrix::ldltDecomposition() beforehand.
    */
   T getD(int i) const {
-    return diagonal->v[i];
+    return diagonal->m[i];
   }
   T& getD(int i) {
-    return diagonal->v[i];
+    return diagonal->m[i];
   }
   /*! Check the matrix for the presence of NaN numbers.
 
@@ -258,135 +275,9 @@ public:
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320 x 100] norm=22.34758")
     */
   std::string description() const {
-    std::ostringstream convert;   // stream used for the conversion
-    convert << "FullMatrix [" << rows << " x " << cols << "] norm=" << norm() ;
-    return convert.str();
+    return data.description();
   }
 };
-
-
-/** \brief Wraps a FullMatrix backed by a file (using mmap()).
- */
-template<typename T> class MmapedFullMatrix {
-public:
-  FullMatrix<T> m;
-private:
-  void* mmapedFile;
-  int fd;
-  size_t size;
-
-public:
-  /** \brief Maps a .res file into memory.
-
-      The mapping is read-only.
-
-      \param filename The filename
-      \return an instance of MMapedFullMatrix<T> mapping the file.
-   */
-  static MmapedFullMatrix<T>* fromFile(const char* filename);
-  /** \brief Creates a FullMatrix backed by a file, wrapped into a MMapedFullMatrix<T>.
-
-      \param rows number of rows of the matrix.
-      \param cols number of columns of the matrix.
-      \param filename Filename. The file is not destroyed with the object.
-   */
-  MmapedFullMatrix(int rows, int cols, const char* filename);
-  ~MmapedFullMatrix();
-
-private:
-  MmapedFullMatrix() : m(NULL, 0, 0), mmapedFile(NULL), fd(-1), size(0) {};
-};
-
-
-/*! \brief Templated Vector class.
-
-  As for \a FullMatrix, the template parameter is the scalar type.
- */
-template<typename T> class Vector {
-private:
-  /// True if the vector owns its memory
-  bool ownsMemory;
-
-public:
-  /// Pointer to the data
-  T* v;
-  /// Rows count
-  int rows;
-
-public:
-  Vector(T* _v, int _rows);
-  Vector(int _rows);
-  ~Vector();
-  /** Create a vector filled with 0s.
-   */
-  static Vector<T>* Zero(int rows);
-  /**  this = alpha * A * x + beta * this
-
-       Wrapper around the 'GEMV' BLAS call.
-
-       \param trans 'N' or 'T', as in BLAS
-       \param alpha alpha
-       \param a A
-       \param x X
-       \param beta beta
-   */
-  void gemv(char trans, T alpha, const FullMatrix<T>* a, const Vector<T>* x,
-            T beta);
-  /** \brief this += v
-   */
-  void addToMe(const Vector<T>* x);
-  /** \brief this -= v
-   */
-  void subToMe(const Vector<T>* x);
-  /** L2 norm of the vector.
-   */
-  double norm() const;
-  double normSqr() const;
-  /** Set the vector to 0.
-   */
-  void clear();
-  /** This *= alpha.
-   */
-  void scale(T alpha);
-  /** Compute This += alpha X, X a vector.
-   */
-  void axpy(T alpha, const Vector<T>* x);
-  /** \brief Return the index of the maximum absolute value element.
-
-      This function is similar to iXamax() in BLAS.
-
-      \return the index of the maximum absolute value element in the vector.
-   */
-  int absoluteMaxIndex() const;
-  /** Compute the dot product of two \Vector.
-
-      For real-valued vectors, this is the usual dot product. For
-      complex-valued ones, this is defined as:
-         <x, y> = \bar{x}^t \times y
-      as in BLAS
-
-      \warning DOES NOT work with vectors with >INT_MAX elements
-
-      \param x
-      \param y
-      \return <x, y>
-   */
-  static T dot(const Vector<T>* x, const Vector<T>* y);
-
-private:
-  /// Disallow the copy
-  Vector<T>(const Vector<T>& o);
-};
-
-/*! \brief Wrapper around BLAS copy function.
-
-  \param n Number of elements to copy
-  \param from Source
-  \param incFrom increment between elements in from
-  \param to Destination
-  \paarm incTo increment between elenents in to
- */
-template<typename T> void blasCopy(int n, T* from, int incFrom, T* to, int incTo);
 
 }  // end namespace hmat
 

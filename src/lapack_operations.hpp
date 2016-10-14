@@ -37,7 +37,7 @@ namespace hmat {
     \param vt
     \return
  */
-template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vector<double>** sigma, FullMatrix<T>** vt);
+template<typename T> int truncatedSvd(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt);
 /** QR matrix decomposition.
 
     Warning: m is modified!
@@ -46,7 +46,7 @@ template<typename T> int truncatedSvd(FullMatrix<T>* m, FullMatrix<T>** u, Vecto
     \param tau
     \return
  */
-template<typename T> T* qrDecomposition(FullMatrix<T>* m);
+template<typename T> T* qrDecomposition(ScalarArray<T>* m);
 
 /** Do the product by Q.
 
@@ -63,7 +63,7 @@ template<typename T> T* qrDecomposition(FullMatrix<T>* m);
     \return 0 for success
  */
 template<typename T>
-int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c);
+int productQ(char side, char trans, ScalarArray<T>* qr, T* tau, ScalarArray<T>* c);
 
 
 /** Multiplication used in RkMatrix::truncate()
@@ -72,8 +72,8 @@ int productQ(char side, char trans, FullMatrix<T>* qr, T* tau, FullMatrix<T>* c)
      (non-unitary diagonal)
 
  */
-template<typename T> void myTrmm(FullMatrix<T>* aFull,
-                                 FullMatrix<T>* bTri);
+template<typename T> void myTrmm(ScalarArray<T>* aFull,
+                                 ScalarArray<T>* bTri);
 
 }  // end namespace hmat
 

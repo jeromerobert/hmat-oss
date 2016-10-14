@@ -96,7 +96,7 @@ public:
       return f.assemble(rows, cols, &info, allocationObserver_) ;
     else
       // TODO return
-      return FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
+      return new FullMatrix<typename Types<T>::dp>(rows, cols);
   }
 private:
   ClusterAssemblyFunction(ClusterAssemblyFunction&o) {} // No copy
@@ -128,7 +128,7 @@ template<> double squaredNorm(const Z_t x) {
 
 template<typename T> static bool isZero(const Vector<T>& v) {
   int index = v.absoluteMaxIndex();
-  return v.v[index] == Constants<T>::zero;
+  return v.m[index] == Constants<T>::zero;
 }
 
 
@@ -144,7 +144,7 @@ template<typename T>
 static void updateRow(Vector<T>& rowVec, int row, const vector<Vector<T>*>& rows,
                       const vector<Vector<T>*>& cols, int k) {
   for (int l = 0; l < k; l++) {
-    rowVec.axpy(Constants<T>::mone * cols[l]->v[row], rows[l]);
+    rowVec.axpy(Constants<T>::mone * cols[l]->m[row], rows[l]);
   }
 }
 
@@ -159,8 +159,8 @@ template<typename T> static void findMax(FullMatrix<T>* m, int& i, int& j) {
   i = 0;
   j = 0;
   double maxNorm = squaredNorm<T>(m->get(i, j));
-  const int cols = m->cols;
-  const int rows = m->rows;
+  const int cols = m->cols();
+  const int rows = m->rows();
   for (int col = 0; col < cols; col++) {
     for (int row = 0; row < rows; row++) {
       const double norm = squaredNorm<T>(m->get(row, col));
@@ -221,7 +221,7 @@ static int findMinRow(const ClusterAssemblyFunction<T>& block,
     minNorm2 = DBL_MAX;
     for (int i = 0; i < rowCount; i++) {
       if (rowFree[i]) {
-        double norm2 = squaredNorm<typename Types<T>::dp>(aRef.v[i]);
+        double norm2 = squaredNorm<typename Types<T>::dp>(aRef.m[i]);
         if (norm2 < minNorm2) {
           i_ref = i;
           minNorm2 = norm2;
@@ -257,7 +257,7 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
     minNorm2 = DBL_MAX;
     for (int j = 0; j < colCount; j++) {
       if (colFree[j]) {
-        double norm2 = squaredNorm<typename Types<T>::dp>(bRef.v[j]);
+        double norm2 = squaredNorm<typename Types<T>::dp>(bRef.m[j]);
         if (norm2 < minNorm2) {
           j_ref = j;
           minNorm2 = norm2;
@@ -278,62 +278,58 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
 
 
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m, const IndexSet* rows,
-                            const IndexSet* cols) {
+RkMatrix<T>* compressMatrix(FullMatrix<T>* m) {
   DECLARE_CONTEXT;
-  assert(m->rows == rows->size());
-  assert(m->cols == cols->size());
-  assert(m->lda >= m->rows);
 
   //TODO replace with a case with m==NULL
   bool zeroMatrix = true;
-  for (int col = 0; col < m->cols; col++) {
-    Vector<T> v(m->m + ((size_t) m->rows) * col, m->rows);
+  for (int col = 0; col < m->cols(); col++) {
+    Vector<T> v(m->data.m + ((size_t) m->rows()) * col, m->rows());
     zeroMatrix = zeroMatrix && isZero(v);
     if (!zeroMatrix) break;
   }
   if (zeroMatrix) {
-    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
   }
   // In the case of non-square matrix, we don't calculate singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
   // necessary here, since k < min (n, p) for M matrix (nxp).
-  int rowCount = m->rows;
-  int colCount = m->cols;
-  FullMatrix<T> *u = NULL, *vt = NULL;
+  int rowCount = m->rows();
+  int colCount = m->cols();
+  ScalarArray<T> *u = NULL, *vt = NULL;
   Vector<double>* sigma = NULL;
   // TODO compress with something else than SVD
-  int info = truncatedSvd<T>(m, &u, &sigma, &vt); // TODO rename truncatedSvd, since it is NOT truncated.
+  int info = truncatedSvd<T>(&m->data, &u, &sigma, &vt); // TODO rename truncatedSvd, since it is NOT truncated.
   HMAT_ASSERT(info == 0);
   // Control of the approximation
 
   int maxK = min(rowCount, colCount);
-  int k = RkMatrix<T>::approx.findK(sigma->v, maxK, RkMatrix<T>::approx.assemblyEpsilon);
+  int k = RkMatrix<T>::approx.findK(sigma->m, maxK, RkMatrix<T>::approx.assemblyEpsilon);
 
   if(k == 0)
   {
     delete u;
     delete vt;
     delete sigma;
-    return new RkMatrix<T>(NULL, rows, NULL, cols, NoCompression);
+    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
   }
 
   for (int col = 0; col < k; col++) {
     for (int row = 0; row < rowCount; row++) {
-      u->get(row, col) *= sigma->v[col];
+      u->get(row, col) *= sigma->m[col];
     }
   }
 
-  FullMatrix<T> matU(u->m, rowCount, k);
-  FullMatrix<T>* uTilde = matU.copy();
-  FullMatrix<T> matV(vt->m, k, colCount, maxK);
-  FullMatrix<T>* vTilde = matV.copyAndTranspose();
+  ScalarArray<T> matU(u->m, rowCount, k);
+  ScalarArray<T>* uTilde = matU.copy();
+  ScalarArray<T> matV(vt->m, k, colCount, maxK);
+  ScalarArray<T>* vTilde = matV.copyAndTranspose();
 
   delete u;
   delete vt;
   delete sigma;
-  FullMatrix<T>* a = uTilde; // TODO : why this copy ?
-  return new RkMatrix<T>(a, rows, vTilde, cols, Svd);
+  ScalarArray<T>* a = uTilde; // TODO : why this copy ?
+  return new RkMatrix<T>(a, m->rows_, vTilde, m->cols_, Svd);
 }
 
 
@@ -344,7 +340,7 @@ compressSvd(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = block.assemble();
-  RkMatrix<dp_t>* result = compressMatrix(m, block.rows, block.cols);
+  RkMatrix<dp_t>* result = compressMatrix(m);
   delete m;
   return result;
 }
@@ -360,14 +356,14 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
 
   const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
-  int maxK = min(m->rows, m->cols);
+  int maxK = min(m->rows(), m->cols());
   if (RkMatrix<dp_t>::approx.k > 0) {
     maxK = min(maxK, RkMatrix<dp_t>::approx.k);
   }
 
-  FullMatrix<dp_t> tmpA(m->rows, maxK);
+  ScalarArray<dp_t> tmpA(m->rows(), maxK);
   tmpA.clear();
-  FullMatrix<dp_t> tmpB(m->cols, maxK);
+  ScalarArray<dp_t> tmpB(m->cols(), maxK);
   tmpB.clear();
   int nu;
 
@@ -380,13 +376,13 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     }
 
     // Creation of the vectors A_i_nu and B_j_nu
-    memcpy(tmpA.m + nu * tmpA.rows, m->m + j_nu * m->rows,
+    memcpy(tmpA.m + nu * tmpA.rows, m->data.m + j_nu * m->rows(),
            sizeof(dp_t) * tmpA.rows);
-    for (int j = 0; j < m->cols; j++) {
+    for (int j = 0; j < m->cols(); j++) {
       tmpB.get(j, nu) = m->get(i_nu, j) / delta;
     }
 
-    proxy_cblas::ger(m->rows, m->cols, Constants<dp_t>::mone, tmpA.m + nu * tmpA.rows, 1, tmpB.m + nu * tmpB.rows, 1, m->m, m->rows);
+    proxy_cblas::ger(m->rows(), m->cols(), Constants<dp_t>::mone, tmpA.m + nu * tmpA.rows, 1, tmpB.m + nu * tmpB.rows, 1, m->data.m, m->rows());
 
     // Update the estimate norm
     // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
@@ -400,8 +396,8 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
       // The sum
       double newEstimate = 0.0;
       for (int l = 0; l < nu - 1; l++) {
-        a_l.v = tmpA.m + l * tmpA.rows;
-        b_l.v = tmpB.m + l * tmpB.rows;
+        a_l.m = tmpA.m + l * tmpA.rows;
+        b_l.m = tmpB.m + l * tmpB.rows;
         newEstimate += hmat::real(Vector<dp_t>::dot(&va_nu, &a_l) * Vector<dp_t>::dot(&vb_nu, &b_l));
       }
       estimateSquaredNorm += 2.0 * newEstimate;
@@ -424,10 +420,10 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaFull);
   }
 
-  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(tmpA.rows, nu);
+  ScalarArray<dp_t>* newA = new ScalarArray<dp_t>(tmpA.rows, nu);
   newA->clear();
   memcpy(newA->m, tmpA.m, sizeof(dp_t) * tmpA.rows * nu);
-  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(tmpB.rows, nu);
+  ScalarArray<dp_t>* newB = new ScalarArray<dp_t>(tmpB.rows, nu);
   newB->clear();
   memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
 
@@ -469,14 +465,14 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
     // Find max and argmax of the residue
     double maxNorm2 = 0.;
     for (int j = 0; j < colCount; j++) {
-      const double norm2 = squaredNorm<dp_t>(bCol->v[j]);
+      const double norm2 = squaredNorm<dp_t>(bCol->m[j]);
       if (colFree[j] && norm2 > maxNorm2) {
         maxNorm2 = norm2;
         J = j;
       }
     }
 
-    if (bCol->v[J] == Constants<dp_t>::zero) {
+    if (bCol->m[J] == Constants<dp_t>::zero) {
       delete bCol;
       // We look for another row which has not already been used.
       I = 0;
@@ -485,7 +481,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       }
     } else {
       // Find pivot and scale column B
-      dp_t pivot = Constants<dp_t>::pone / bCol->v[J];
+      dp_t pivot = Constants<dp_t>::pone / bCol->m[J];
       bCol->scale(pivot);
       bCols.push_back(bCol);
 
@@ -499,7 +495,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       // Find max and argmax of the residue
       maxNorm2 = 0.;
       for (int i = 0; i < rowCount; i++) {
-        const double norm2 = squaredNorm<dp_t>(aCol->v[i]);
+        const double norm2 = squaredNorm<dp_t>(aCol->m[i]);
         if (rowFree[i] && norm2 > maxNorm2) {
           maxNorm2 = norm2;
           I = i;
@@ -530,17 +526,17 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
     }
   } while (rowPivotCount < maxK);
 
-  FullMatrix<dp_t> *newA, *newB;
+  ScalarArray<dp_t> *newA, *newB;
   if (k != 0) {
-    newA = new FullMatrix<dp_t>(block.rows->size(), k);
+    newA = new ScalarArray<dp_t>(block.rows->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newA->m + (i * newA->rows), aCols[i]->v, sizeof(dp_t) * newA->rows);
+      memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
       delete aCols[i];
       aCols[i] = NULL;
     }
-    newB = new FullMatrix<dp_t>(block.cols->size(), k);
+    newB = new ScalarArray<dp_t>(block.cols->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newB->m + (i * newB->rows), bCols[i]->v, sizeof(dp_t) * newB->rows);
+      memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
       delete bCols[i];
       bCols[i] = NULL;
     }
@@ -554,8 +550,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
 
 
 template<typename T>
-static RkMatrix<typename Types<T>::dp>*
-compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
+static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
@@ -584,10 +579,10 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
     dp_t i_star_value, j_star_value;
 
     i_star = aRef.absoluteMaxIndex();
-    i_star_value = aRef.v[i_star];
+    i_star_value = aRef.m[i_star];
 
     j_star = bRef.absoluteMaxIndex();
-    j_star_value = bRef.v[j_star];
+    j_star_value = bRef.m[j_star];
 
     if (squaredNorm<dp_t>(i_star_value) > squaredNorm<dp_t>(j_star_value)) {
       // i_star is fixed, we look for j_star
@@ -595,7 +590,7 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
       // Calculate the residue
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
       j_star = bVec->absoluteMaxIndex();
-      dp_t pivot = bVec->v[j_star];
+      dp_t pivot = bVec->m[j_star];
       HMAT_ASSERT(pivot != Constants<dp_t>::zero);
       // Calculate a
       block.getCol(j_star, *aVec);
@@ -606,7 +601,7 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
       block.getCol(j_star, *aVec);
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
       i_star = aVec->absoluteMaxIndex();
-      dp_t pivot = aVec->v[i_star];
+      dp_t pivot = aVec->m[i_star];
       HMAT_ASSERT(pivot != Constants<dp_t>::zero);
       // Calculate b
       block.getRow(i_star, *bVec);
@@ -642,8 +637,8 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
     }
 
     // Update of a_ref and b_ref
-    aRef.axpy(Constants<dp_t>::mone * bCols[k - 1]->v[j_ref], aCols[k - 1]);
-    bRef.axpy(Constants<dp_t>::mone * aCols[k - 1]->v[i_ref], bCols[k - 1]);
+    aRef.axpy(Constants<dp_t>::mone * bCols[k - 1]->m[j_ref], aCols[k - 1]);
+    bRef.axpy(Constants<dp_t>::mone * aCols[k - 1]->m[i_ref], bCols[k - 1]);
     const bool needNewA = isZero(aRef) || (j_star == j_ref);
     const bool needNewB = isZero(bRef) || (i_star == i_ref);
 
@@ -688,15 +683,15 @@ compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
   } while (k < maxK);
 
   assert(k > 0);
-  FullMatrix<dp_t>* newA = new FullMatrix<dp_t>(block.rows->size(), k);
+  ScalarArray<dp_t>* newA = new ScalarArray<dp_t>(block.rows->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newA->m + (i * newA->rows), aCols[i]->v, sizeof(dp_t) * newA->rows);
+    memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
     delete aCols[i];
     aCols[i] = NULL;
   }
-  FullMatrix<dp_t>* newB = new FullMatrix<dp_t>(block.cols->size(), k);
+  ScalarArray<dp_t>* newB = new ScalarArray<dp_t>(block.cols->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newB->m + (i * newB->rows), bCols[i]->v, sizeof(dp_t) * newB->rows);
+    memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
     delete bCols[i];
     bCols[i] = NULL;
   }
@@ -770,7 +765,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
            << "|M|  = " << fullNorm << std::endl
            << "|Rk| = " << approxNorm << std::endl
            << "|M - Rk| / |M| = " << diffNorm / fullNorm << std::endl
-           << "Rank = " << rk->rank() << " / " << min(full->rows, full->cols) << std::endl << std::endl;
+           << "Rank = " << rk->rank() << " / " << min(full->rows(), full->cols()) << std::endl << std::endl;
 
       if (HMatrix<T>::validationReRun) {
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
@@ -802,10 +797,10 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
 }
 
 // Declaration of the used templates
-template RkMatrix<S_t>* compressMatrix(FullMatrix<S_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m, const IndexSet* rows, const IndexSet* cols);
-template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m, const IndexSet* rows, const IndexSet* cols);
+template RkMatrix<S_t>* compressMatrix(FullMatrix<S_t>* m);
+template RkMatrix<D_t>* compressMatrix(FullMatrix<D_t>* m);
+template RkMatrix<C_t>* compressMatrix(FullMatrix<C_t>* m);
+template RkMatrix<Z_t>* compressMatrix(FullMatrix<Z_t>* m);
 
 template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);

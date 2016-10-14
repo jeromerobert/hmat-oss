@@ -210,13 +210,13 @@ int full_gemm(char transA, char transB, int mc, int nc, void* c,
   DECLARE_CONTEXT;
 
   const hmat::HMatInterface<T, E>* b = (hmat::HMatInterface<T, E>*)holder;
-  hmat::FullMatrix<T> matC((T*)c, mc, nc);
-  hmat::FullMatrix<T>* matA = NULL;
+  hmat::ScalarArray<T> matC((T*)c, mc, nc);
+  hmat::ScalarArray<T>* matA = NULL;
   if (transA == 'N') {
-    matA = new hmat::FullMatrix<T>((T*)a, mc, transB == 'N' ? b->rows()->size()
+    matA = new hmat::ScalarArray<T>((T*)a, mc, transB == 'N' ? b->rows()->size()
                              : b->cols()->size());
   } else {
-    matA = new hmat::FullMatrix<T>((T*)a, transB == 'N' ? b->rows()->size()
+    matA = new hmat::ScalarArray<T>((T*)a, transB == 'N' ? b->rows()->size()
                              : b->cols()->size(), mc);
   }
   hmat::HMatInterface<T, E>::gemm(matC, transA, transB, *((T*)alpha), *matA, *b, *((T*)beta));
@@ -242,8 +242,8 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
   const hmat::ClusterData* bData = (trans_a == 'N' ? hmat->cols(): hmat->rows());
   const hmat::ClusterData* cData = (trans_a == 'N' ? hmat->rows(): hmat->cols());
-  hmat::FullMatrix<T> mb((T*) vec_b, bData->size(), nrhs);
-  hmat::FullMatrix<T> mc((T*) vec_c, cData->size(), nrhs);
+  hmat::ScalarArray<T> mb((T*) vec_b, bData->size(), nrhs);
+  hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
   hmat->gemv(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
   return 0;
 }
@@ -286,7 +286,7 @@ template<typename T, template <typename> class E>
 int solve_systems(hmat_matrix_t* holder, void* b, int nrhs) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
-  hmat::FullMatrix<T> mb((T*) b, hmat->cols()->size(), nrhs);
+  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
   hmat->solve(mb);
   return 0;
 }
@@ -335,7 +335,7 @@ int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
   (void)size; //for API compatibility
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
   hmat->engine().hmat->extractDiagonal(static_cast<T*>(diag));
-  hmat::FullMatrix<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), 1);
+  hmat::ScalarArray<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), 1);
   hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices());
   return 0;
 }
@@ -345,7 +345,7 @@ int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nr
 {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)holder;
-  hmat::FullMatrix<T> mb((T*) b, hmat->cols()->size(), nrhs);
+  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
   hmat->solveLower(mb, transpose);
   return 0;
 }

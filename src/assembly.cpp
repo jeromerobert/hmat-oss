@@ -66,7 +66,7 @@ SimpleFunction<T>::assemble(const ClusterData* rows,
                             const hmat_block_info_t *,
                             const AllocationObserver &) const {
   FullMatrix<typename Types<T>::dp>* result =
-    new FullMatrix<typename Types<T>::dp>(rows->size(), cols->size());
+    new FullMatrix<typename Types<T>::dp>(rows, cols);
   const int* rows_indices = rows->indices() + rows->offset();
   const int* cols_indices = cols->indices() + cols->offset();
   for (int j = 0; j < cols->size(); ++j) {
@@ -86,7 +86,7 @@ void SimpleFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
   const int row = *(rows->indices() + rows->offset() + rowIndex);
   const int* cols_indices = cols->indices() + cols->offset();
   for (int j = 0; j < cols->size(); j++) {
-    result->v[j] = interaction(row, cols_indices[j]);
+    result->m[j] = interaction(row, cols_indices[j]);
   }
 }
 
@@ -97,7 +97,7 @@ void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
   const int col = *(cols->indices() + cols->offset() + colIndex);
   const int* rows_indices = rows->indices() + rows->offset();
   for (int i = 0; i < rows->size(); i++) {
-    result->v[i] = interaction(rows_indices[i], col);
+    result->m[i] = interaction(rows_indices[i], col);
   }
 }
 
@@ -134,8 +134,8 @@ BlockFunction<T>::assemble(const ClusterData* rows,
     local_block_info = *block_info ;
 
   if (local_block_info.block_type != hmat_block_null) {
-    result = FullMatrix<typename Types<T>::dp>::Zero(rows->size(), cols->size());
-    compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->m);
+    result = new FullMatrix<typename Types<T>::dp>(rows, cols);
+    compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->data.m);
   }
 
   if (!block_info)
@@ -188,7 +188,7 @@ void BlockFunction<T>::getRow(const ClusterData*,
                                        Vector<typename Types<T>::dp>* result) const {
   DECLARE_CONTEXT;
   assert(handle);
-  compute(handle, rowIndex, 1, 0, cols->size(), (void*) result->v);
+  compute(handle, rowIndex, 1, 0, cols->size(), (void*) result->m);
 }
 
 template<typename T>
@@ -198,7 +198,7 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
                                        Vector<typename Types<T>::dp>* result) const {
   DECLARE_CONTEXT;
   assert(handle);
-  compute(handle, 0, rows->size(), colIndex, 1, (void*) result->v);
+  compute(handle, 0, rows->size(), colIndex, 1, (void*) result->m);
 
   // for (int i = 0; i < rows->size(); i++) {
   //   if (result->v[i] == Constants<T>::zero) {

@@ -74,7 +74,7 @@ struct LocalSettings {
      \param indices Array of indices after construction ClusterTree.
 
  */
-template<typename T> void reorderVector(FullMatrix<T>* v, int* indices);
+template<typename T> void reorderVector(ScalarArray<T>* v, int* indices);
 
 /** Inverse permutation of a vector.
 
@@ -84,7 +84,7 @@ template<typename T> void reorderVector(FullMatrix<T>* v, int* indices);
      \param indices Array of indices after construction ClusterTree.
 
  */
-template<typename T> void restoreVectorOrder(FullMatrix<T>* v, int *indices);
+template<typename T> void restoreVectorOrder(ScalarArray<T>* v, int *indices);
 
 template<typename T> class HMatrix;
 /** Class to write user defined data when dumping matrix onto disk.
@@ -219,12 +219,12 @@ public:
 
       The arguments are similar to BLAS GEMV.
    */
-  void gemv(char trans, T alpha, const Vector<T>* x, T beta, Vector<T>* y) const;
+  void gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const;
   /** Compute y <- alpha * op(this) * x + beta * y.
 
       The arguments are similar to BLAS GEMV.
    */
-  void gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const;
+  void gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const;
   /*! \brief this <- alpha * op(A) * op(B) + beta * this
 
     \param transA 'N' or 'T', as in BLAS
@@ -379,7 +379,7 @@ public:
       \param rows
       \param cols
    */
-  void axpy(T alpha, const FullMatrix<T>* b, const IndexSet* rows, const IndexSet* cols);
+  void axpy(T alpha, const FullMatrix<T>* b);
   /** This <- This + alpha * Id
 
       \param alpha
@@ -442,6 +442,7 @@ public:
 
     \param b Le vecteur b en entree, et x en sortie.
    */
+  void solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular) const;
   void solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) const;
   /*! Resolution de X U = B, avec U = this, et X = B.
 
@@ -459,6 +460,7 @@ public:
 
     \param b Le vecteur b en entree, x en sortie.
    */
+  void solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const;
   void solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const;
   /*! Resolution de U x = b, avec U = this, et x = b.
     U peut etre en fait L^T ou L est une matrice stockee inferieurement
@@ -468,17 +470,19 @@ public:
     \param indice les indices portes par le vecteur
     \param lowerStored indique le stockage de la matrice U ou L^T
   */
+  void solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const;
   void solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const;
-  /* Solve D x = b, in place with D a diagonal matrix.
+  /*! Solve D x = b, in place with D a diagonal matrix.
 
      \param b Input: B, Output: X
    */
+  void solveDiagonal(ScalarArray<T>* b) const;
   void solveDiagonal(FullMatrix<T>* b) const;
-  void solveDiagonal(HMatrix<T>* b) const;
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
+  void solve(ScalarArray<T>* b) const;
   void solve(FullMatrix<T>* b) const;
   /*! Resolution de This * X = b.
 
@@ -489,11 +493,13 @@ public:
 
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.
    */
+  void solveLdlt(ScalarArray<T>* b) const ;
   void solveLdlt(FullMatrix<T>* b) const ;
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::lltDecomposition() avant.
    */
+  void solveLlt(ScalarArray<T>* b) const ;
   void solveLlt(FullMatrix<T>* b) const ;
   /*! Triggers an assertion is the HMatrix contains any NaN.
    */
@@ -548,6 +554,18 @@ public:
     insertChild(i+j*nrChildRow(), child) ;
   }
 
+  /*! \brief Find the correct child when recursing in GEMM or GEMV
+
+    This function returns the child (i,j) of op(this) where 'op' is 'T' or 'N'.
+    If the matrix is symmetric (upper or lower), and if the child required is in the
+    part of the matrix that is not stored, it returns the symmetric block and switches 'op'.
+   \param[in,out] t input is the transpose flag for this, ouput is the transpose flag for the returned matrix
+   \param[in] i row index of the child
+   \param[in] j col index of the child
+   \return Pointer on the child
+  */
+  const HMatrix<T> * getChildForGEMM(char & t, int i, int j) const;
+
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
   HMatrix<T> * subset(const IndexSet * rows, const IndexSet * cols) const;
 
@@ -583,7 +601,7 @@ public:
       return rk_;
   }
 
-  void rk(const FullMatrix<T> * a, const FullMatrix<T> * b, bool updateRank = true);
+  void rk(const ScalarArray<T> * a, const ScalarArray<T> * b, bool updateRank = true);
 
   void rk(RkMatrix<T> * m) {
       rk_ = m;

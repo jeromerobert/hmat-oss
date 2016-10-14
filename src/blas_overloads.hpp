@@ -26,6 +26,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include "data_types.hpp"
 
 #ifdef HAVE_MKL_CBLAS_H

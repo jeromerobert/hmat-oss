@@ -96,8 +96,8 @@ void HMatInterface<T, E>::inverse(hmat_progress_t * progress) {
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::gemv(char trans, T alpha, FullMatrix<T>& x, T beta,
-                            FullMatrix<T>& y) const {
+void HMatInterface<T, E>::gemv(char trans, T alpha, ScalarArray<T>& x, T beta,
+                            ScalarArray<T>& y) const {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   reorderVector(&x, trans == 'N' ? engine_.hmat->cols()->indices() : engine_.hmat->rows()->indices());
@@ -117,8 +117,8 @@ void HMatInterface<T, E>::gemm(char transA, char transB, T alpha,
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::gemm(FullMatrix<T>& c, char transA, char transB, T alpha,
-                            FullMatrix<T>& a, const HMatInterface<T, E>& b,
+void HMatInterface<T, E>::gemm(ScalarArray<T>& c, char transA, char transB, T alpha,
+                            ScalarArray<T>& a, const HMatInterface<T, E>& b,
                             T beta) {
   DECLARE_CONTEXT;
   // C <- AB + C  <=>  C^t <- B^t A^t + C^t
@@ -138,7 +138,7 @@ void HMatInterface<T, E>::gemm(FullMatrix<T>& c, char transA, char transB, T alp
 
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::solve(FullMatrix<T>& b) const {
+void HMatInterface<T, E>::solve(ScalarArray<T>& b) const {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   reorderVector<T>(&b, engine_.hmat->cols()->indices());
@@ -154,7 +154,7 @@ void HMatInterface<T, E>::solve(HMatInterface<T, E>& b) const {
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::solveLower(FullMatrix<T>& b, bool transpose) const {
+void HMatInterface<T, E>::solveLower(ScalarArray<T>& b, bool transpose) const {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   if (transpose)

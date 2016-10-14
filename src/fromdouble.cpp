@@ -26,6 +26,36 @@
 namespace hmat {
 
 template<>
+ScalarArray<D_t>* fromDoubleScalarArray(ScalarArray<D_t>* d, bool) {
+  return d;
+}
+template<>
+ScalarArray<Z_t>* fromDoubleScalarArray(ScalarArray<Z_t>* d, bool) {
+  return d;
+}
+
+template<typename T>
+ScalarArray<T>* fromDoubleScalarArray(ScalarArray<typename Types<T>::dp>* d, bool del) {
+  if (!d) {
+    return NULL;
+  }
+  ScalarArray<T>* result = new ScalarArray<T>(d->rows, d->cols);
+  assert(result);
+  const size_t size = ((size_t) d->rows) * d->cols;
+  T* const r = result->m;
+  const typename Types<T>::dp* m = d->m;
+  for (size_t i = 0; i < size; ++i) {
+    r[i] = T(m[i]);
+  }
+  if (del)
+    delete d;
+  return result;
+}
+
+template ScalarArray<S_t>* fromDoubleScalarArray(ScalarArray<Types<S_t>::dp>* d, bool);
+template ScalarArray<C_t>* fromDoubleScalarArray(ScalarArray<Types<C_t>::dp>* d, bool);
+
+template<>
 FullMatrix<D_t>* fromDoubleFull(FullMatrix<D_t>* f) {
   return f;
 }
@@ -36,18 +66,9 @@ FullMatrix<Z_t>* fromDoubleFull(FullMatrix<Z_t>* f) {
 
 template<typename T>
 FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f) {
-  if (!f) {
+  if (!f)
     return NULL;
-  }
-  FullMatrix<T>* result = new FullMatrix<T>(f->rows, f->cols);
-  assert(result);
-  assert(f->lda == f->rows);
-  const size_t size = ((size_t) f->rows) * f->cols;
-  T* const r = result->m;
-  const typename Types<T>::dp* m = f->m;
-  for (size_t i = 0; i < size; ++i) {
-    r[i] = T(m[i]);
-  }
+  FullMatrix<T>* result = new FullMatrix<T>(fromDoubleScalarArray<T>(&f->data, false), f->rows_, f->cols_); // 'false' because we cant delete f->data (its not a pointer)
   delete f;
   return result;
 }
@@ -63,12 +84,12 @@ template<> RkMatrix<Z_t>* fromDoubleRk(RkMatrix<Z_t>* rk) {
 }
 
 template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* rk) {
-  RkMatrix<T>* result = new RkMatrix<T>(fromDoubleFull<T>(rk->a),
+  RkMatrix<T>* result = new RkMatrix<T>(fromDoubleScalarArray<T>(rk->a),
                                         rk->rows,
-                                        fromDoubleFull<T>(rk->b),
+                                        fromDoubleScalarArray<T>(rk->b),
                                         rk->cols,
                                         rk->method);
-  rk->a= NULL;
+  rk->a = NULL; // because rk->a and rk->b have allready been deleted in fromDoubleScalarArray
   rk->b = NULL;
   delete rk;
   return result;
