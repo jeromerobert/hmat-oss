@@ -721,23 +721,22 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     RkMatrix<T>* subRks[nbRows * nbCols];
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
-        bool firstNotNull = false;
+        subRks[i + j * nbRows]=(RkMatrix<T>*)NULL;
         for (int k = 0; k < nbCom; k++) {
           // C_ij = A_ik * B_kj
           const HMatrix<T>* a_ik = (transHA == 'N' ? ha->get(i, k) : ha->get(k, i));
           const HMatrix<T>* b_kj = (transHB == 'N' ? hb->get(k, j) : hb->get(j, k));
           if (a_ik && b_kj) {
-            if (!firstNotNull) {
-              firstNotNull = true;
+            if (subRks[i + j * nbRows]==NULL) {
               const IndexSet* subRows = (transHA == 'N' ? a_ik->rows() : a_ik->cols());
               const IndexSet* subCols = (transHB == 'N' ? b_kj->cols() : b_kj->rows());
               subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
             }
             subRks[i + j * nbRows]->gemmRk(transHA, transHB, alpha, a_ik, b_kj, beta);
           }
-        }
-      }
-    }
+        } // k loop
+      } // j loop
+    } // i loop
     // Reconstruction of C by adding the parts
     std::vector<T> alpha(nbRows * nbCols, Constants<T>::pone);
     RkMatrix<T>* rk = formattedAddParts(&alpha[0], (const RkMatrix<T>**) subRks, nbRows * nbCols);
