@@ -43,12 +43,21 @@ public:
 
     This is used for the tree construction on which we develop the HMatrix.
     Two leaves are admissible if they satisfy the criterion allowing the
-    compression of the resulting matrix block.
+    compression of the resulting matrix block. In that case, the corresponding
+    block of matrix is kept in the h-matrix. Otherwise, it is subdivided (if possible).
 
     \return true  if 2 nodes are admissible.
 
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  /*! \brief Returns a pair of boolean telling if 2 nodes are row- or col- admissible together.
+
+    If a pair of nodes is row-admissible (resp col-admissible), then we dont subdivide the
+    corresponding block of matrix along the rows (resp. columns). If it is both row- and col-admissible,
+    then it is admissible as in isAdmissible().
+
+    \return a pair of boolean.
+   */
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   /*! \brief Clean up data which may be allocated by isAdmissible  */
   virtual void clean(const ClusterTree&) const {}
