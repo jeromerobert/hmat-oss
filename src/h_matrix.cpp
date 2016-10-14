@@ -1567,13 +1567,16 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
 
 template<typename T>
 void HMatrix<T>::clear() {
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (rows()->size() == 0 || cols()->size() == 0 || !isAssembled())
+      return;
   if (this->isLeaf()) {
-    if (isFullMatrix()) {
+    if(isNull()) {
+    } else if(isRkMatrix()) {
+      rk()->clear();
+    } else {
+      assert(isFullMatrix());
       delete full_;
       full_ = NULL;
-    } else if(isRkMatrix()){
-      rk()->clear();
     }
   } else {
     for (int i = 0; i < this->nrChild(); i++) {
