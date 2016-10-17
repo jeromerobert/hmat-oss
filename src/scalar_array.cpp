@@ -252,7 +252,7 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
   assert(b->lda >= (transB == 'N' ? k : n));
   assert(rows == m);
   assert(cols == n);
-  assert(k == k2);
+  assert(k == (transB == 'N' ? b->rows : b->cols));
   {
     const size_t _m = m, _n = n, _k = k;
     const size_t adds = _m * _n * _k;
