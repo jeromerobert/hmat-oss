@@ -247,7 +247,7 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
   int m  = (transA == 'N' ? a->rows : a->cols);
   int n  = (transB == 'N' ? b->cols : b->rows);
   int k  = (transA == 'N' ? a->cols : a->rows);
-  int k2 = (transB == 'N' ? b->rows : b->cols);
+  //int k2 = (transB == 'N' ? b->rows : b->cols);
   assert(a->lda >= (transA == 'N' ? m : k));
   assert(b->lda >= (transB == 'N' ? k : n));
   assert(rows == m);
