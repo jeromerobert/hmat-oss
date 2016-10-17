@@ -134,7 +134,9 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
           if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
             // Create child only if not 'inert' (inert = will always be null)
             this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
-          }
+          } else
+            // If 'inert', the child is NULL
+            this->insertChild(i, j, NULL);
         }
       }
     }
