@@ -157,26 +157,25 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     HMatrix<T> * r = new HMatrix<T>(localSettings.global);
     r->rows_ = rows_;
     r->cols_ = cols_;
-    r->isCompressible = isCompressible;
-    r->rowsAdmissible = rowsAdmissible;
-    r->colsAdmissible = colsAdmissible;
     r->temporary = temporary;
     if(withChildren) {
-        for(int i = 0; i < nrChildRow(); i++) {
-            for(int j = 0; j < nrChildCol(); j++) {
-              if (get(i,j)) {
+      // Here, we come from HMatrixHandle<T>::createGemmTemporyRk()
+      // we want to go 1 level below data (which is an Rk)
+      // so we don't use get(i,j) since data has no children
+      // we dont use this->nrChildRow and this->nrChildCol either, they would return 1
+      // (since 'this' is rows- and cols-admissible, unlike 'r')
+        for(int i = 0; i < r->nrChildRow(); i++) {
+            for(int j = 0; j < r->nrChildCol(); j++) {
                 HMatrix<T>* child = new HMatrix<T>(localSettings.global);
                 child->temporary = temporary;
                 assert(rows_->getChild(i) != NULL);
                 assert(cols_->getChild(j) != NULL);
-                child->rows_ = get(i,j)->rows_;
-                child->cols_ = get(i,j)->cols_;
+                child->rows_ = rows_->me()->getChild(i);
+                child->cols_ = cols_->me()->getChild(j);
                 child->rk(new RkMatrix<T>(NULL, &child->rows_->data,
                                                  NULL, &child->cols_->data,
                                                  NoCompression));
                 r->insertChild(i, j, child);
-              } else
-                r->insertChild(i, j, NULL);
             }
         }
     }
