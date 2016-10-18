@@ -35,7 +35,7 @@ namespace hmat {
 std::pair<bool, bool>
 AdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
 {
-  bool admissible = (isAdmissible(rows, cols) || rows.isLeaf() || cols.isLeaf());
+  bool admissible = (isAdmissible(rows, cols) );
   return std::pair<bool, bool>(admissible, admissible);
 }
 
@@ -48,10 +48,10 @@ AdmissibilityCondition::isCompressible(const ClusterTree& rows, const ClusterTre
 std::pair<bool, bool>
 TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
 {
-  if (rows.data.size() >= ratio * cols.data.size() && cols.isLeaf()) {
+  if (rows.data.size() >= ratio * cols.data.size() ) {
     // rows are two times larger than cols so we won't subdivide rows
     return std::pair<bool, bool>(false, true);
-  } else if (cols.data.size() >= ratio * rows.data.size() && rows.isLeaf()) {
+  } else if (cols.data.size() >= ratio * rows.data.size() ) {
     // cols are two times larger than rows so we won't subdivide cols
     return std::pair<bool, bool>(true, false);
   } else // approximately the same size and non leaf
@@ -121,14 +121,14 @@ StandardAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, co
   // TallSkinnyAdmissibilityCondition and one on the ratio distance/diameter adapted to BEM matrices.
   // The new criteria is that to be row- or col-admissible, you need to be admissible for 1 of the 2 conditions.
   // Therefore, you subdivide only if both criteria for subdivision are satisfied (i.e. the matrix block is not too large
-  // in the considered dimension AND the 2 cluster trees are too close w.r.t.their sizes).
+  // in the considered dimension AND the 2 cluster trees are too close w.r.t. their sizes).
   std::pair<bool, bool> tall_skinny_admissible = TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(rows, cols);
   bool standard_admissible = isAdmissible(rows, cols);
   tall_skinny_admissible.first |= standard_admissible;
   tall_skinny_admissible.second |= standard_admissible;
   // If I want to subdivide in both direction but one is a leaf, then I subdivide in neither direction
-  if ( !tall_skinny_admissible.first && !tall_skinny_admissible.second && (rows.isLeaf() || cols.isLeaf()))
-    tall_skinny_admissible.first = tall_skinny_admissible.second = true;
+  //  if ( !tall_skinny_admissible.first && !tall_skinny_admissible.second && (rows.isLeaf() || cols.isLeaf()))
+  //    tall_skinny_admissible.first = tall_skinny_admissible.second = true;
   return tall_skinny_admissible;
 }
 

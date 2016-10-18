@@ -83,7 +83,7 @@ public:
 class TallSkinnyAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  TallSkinnyAdmissibilityCondition(double ratio_ = 2) : ratio(ratio_) {};
+  TallSkinnyAdmissibilityCondition(double ratio_ = 2) : ratio(ratio_) {}
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
 private:
   double ratio;
