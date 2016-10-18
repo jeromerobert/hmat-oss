@@ -39,7 +39,7 @@
 #  define HMAT_FUNCTION ((const char *) 0)
 #endif
 
-#ifdef __GLIBC__
+#if !defined (_WIN32) /* It's a UNIX system, I know this ! */
 #include <execinfo.h>
 #include <unistd.h>
 inline static void hmat_backtrace(){
