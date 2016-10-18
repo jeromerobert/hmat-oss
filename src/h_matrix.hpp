@@ -550,7 +550,7 @@ public:
   HMatrix<T>* get(int i, int j) const {
     assert(i>=0 && i<nrChildRow());
     assert(j>=0 && j<nrChildCol());
-    assert(i + j * nrChildRow() < this->nrChild());
+    // assert(i + j * nrChildRow() < this->nrChild()); This assertion will be done inside this->getChild()
     return this->getChild(i + j * nrChildRow());
   }
 
