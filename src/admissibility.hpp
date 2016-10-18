@@ -48,7 +48,7 @@ public:
     block of matrix is kept in the h-matrix. Otherwise, it is subdivided (if possible).
 
     \return true  if 2 nodes are admissible.
-
+   TODO isAdmissibility prend la hmat en argument ?
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
   /*! \brief Returns true if the block of interaction between 2 nodes should be compressed.
