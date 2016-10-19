@@ -63,7 +63,7 @@ public:
   int depth;
 
 protected:
-  /// empty for a leaf, pointeur on a vector of sons otherwise.
+  /// empty for a leaf, pointer on a vector of sons otherwise.
   std::vector<TreeNode*> children;
 public:
   /// Pointer to the father, NULL if this node is the root
@@ -97,9 +97,11 @@ public:
   void insertChild(int index, TreeNode *child) {
     if (nrChild()<=index)
       children.resize(index+1, (TreeNode*)NULL);
-    child->father = me();
     children[index] = child;
-    child->depth = depth + 1;
+    if (child) {
+      child->father = me();
+      child->depth = depth + 1;
+    }
   }
 
   /*! \brief Remove a child, and delete it if necessary.
