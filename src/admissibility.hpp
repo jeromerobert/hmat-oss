@@ -103,7 +103,16 @@ public:
                                  size_t maxElementsPerBlockAca = 0);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
-  bool isInert(const ClusterTree& rows, const ClusterTree& cols) {return false;};
+  /**
+   * Return true if the block is always null,
+   * (i.e. we know that is will not even be filled during the factorization).
+   * @param rows the rows cluster tree
+   * @param cols the cols cluster tree
+   */
+  bool isInert(const ClusterTree& rows, const ClusterTree& cols) {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
