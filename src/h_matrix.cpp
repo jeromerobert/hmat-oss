@@ -757,16 +757,15 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
     }
   } else {
     const FullMatrix<T>* subMat = b->subset(rows(), cols());
-
-    if (this->isNull()) {
-      full(new FullMatrix<T>( this->rows(), this->cols()) ); // TODO : check this ?!?! isNull() could mean rank()==0 !!
-    }
-    if (isFullMatrix()) {
-      full()->axpy(alpha, subMat);
-    } else {
-      assert(isRkMatrix());
+    if (isRkMatrix()) {
+      if(!rk())
+        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
       rk()->axpy(alpha, subMat);
       rank_ = rk()->rank();
+    } else {
+       if (!full())
+         full(new FullMatrix<T>(rows(), cols()));
+       full()->axpy(alpha, subMat);
     }
     delete subMat;
   }
