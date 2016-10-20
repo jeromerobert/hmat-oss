@@ -261,16 +261,7 @@ public:
       \return a 0 matrix with the same structure as H.
    */
   static HMatrix<T>* Zero(const HMatrix<T>* h);
-  /** Create a matrix filled with 0s, based on 2 ClusterTree.
 
-      \param rows the row ClusterTree.
-      \param cols the column ClusterTree.
-      \return a 0 HMatrix.
-   */
-  static HMatrix<T>* Zero(const ClusterTree* rows, const ClusterTree* cols,
-                          const MatrixSettings * settings,
-                          AdmissibilityCondition * admissibilityCondition =
-                          &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
   /*! \brief Create a Postscript file representing the HMatrix.
 
     The result .ps file shows the matrix structure and the compression ratio. In

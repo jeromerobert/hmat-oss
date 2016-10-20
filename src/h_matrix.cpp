@@ -208,31 +208,6 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
 }
 
 template<typename T>
-HMatrix<T>* HMatrix<T>::Zero(const ClusterTree* rows, const ClusterTree* cols,
-                             const hmat::MatrixSettings * settings,
-                             AdmissibilityCondition * admissibilityCondition) {
-  // Leaves are filled by 0
-  HMatrix<T> *h = new HMatrix<T>(settings);
-  h->rows_ = rows;
-  h->cols_ = cols;
-  h->admissible = admissibilityCondition->isAdmissible(*(h->rows_), *(h->cols_));
-  if (rows->isLeaf() || cols->isLeaf() || h->admissible) {
-    if (h->admissible) {
-      h->rank_ = 0;
-    } else {
-      h->rank_ = FULL_BLOCK;
-    }
-  } else {
-    for (int i = 0; i < h->nrChildRow(); ++i) {
-      for (int j = 0; j < h->nrChildCol(); ++j) {
-        h->insertChild(i, j, HMatrix<T>::Zero(h->rows_->getChild(i), h->cols_->getChild(j), settings, admissibilityCondition));
-      }
-    }
-  }
-  return h;
-}
-
-template<typename T>
 void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* cols) {
     rows_ = rows;
     cols_ = cols;
