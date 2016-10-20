@@ -175,7 +175,8 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
                                                  NULL, &child->cols_->data,
                                                  NoCompression));
                 r->insertChild(i, j, child);
-              }
+              } else
+                r->insertChild(i, j, NULL);
             }
         }
     }
@@ -198,6 +199,8 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
       if (this->getChild(i)) {
         h->insertChild(i, this->getChild(i)->copyStructure());
       }
+      else
+        h->insertChild(i, NULL);
     }
   }
   return h;
@@ -222,7 +225,8 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
       for (int j = 0; j < o->nrChildCol(); ++j) {
         if (o->get(i, j)) {
           h->insertChild(i, j, HMatrix<T>::Zero(o->get(i, j)));
-        }
+        } else
+          h->insertChild(i, j, NULL);
       }
     }
   }
