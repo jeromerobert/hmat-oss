@@ -104,7 +104,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
                     SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), rowsAdmissible(false), colsAdmissible(false), isCompressible(false), temporary(false), ownClusterTree_(false),
+    isTriUpper(false), isTriLower(false), rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
 {
   pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
@@ -118,7 +118,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     // Note that AdmissibilityCondition::isRowsColsAdmissible() has been modified, and now if rows or cols is a leaf, the block is admissible
     
     // 'isCompressible' is the criteria to choose Rk or Full.
-    isCompressible = admissibilityCondition->isCompressible(*(rows_), *(cols_));
+    if(admissibilityCondition->isCompressible(*(rows_), *(cols_)))
+      rk(NULL);
   } else {
     isUpper = false;
     isLower = (symFlag == kLowerSymmetric ? true : false);
@@ -149,7 +150,7 @@ template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
-    rowsAdmissible(false), colsAdmissible(false), isCompressible(false), temporary(false), ownClusterTree_(false),
+    rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
     {}
 
@@ -191,7 +192,6 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->isTriLower = isTriLower;
   h->rowsAdmissible = rowsAdmissible;
   h->colsAdmissible = colsAdmissible;
-  h->isCompressible = isCompressible;
   h->rank_ = rank_ >= 0 ? 0 : rank_;
   if(!this->isLeaf()){
     for (int i = 0; i < this->nrChild(); ++i) {
@@ -215,7 +215,6 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->isTriLower = o->isTriLower;
   h->rowsAdmissible = o->rowsAdmissible;
   h->colsAdmissible = o->colsAdmissible;
-  h->isCompressible = o->isCompressible;
   h->rank_ = o->rank_ >= 0 ? 0 : o->rank_;
   if (h->rank_==0)
     h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
@@ -256,7 +255,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     // if not we keep the matrix.
     FullMatrix<T> * m = NULL;
     RkMatrix<T>* assembledRk = NULL;
-    f.assemble(localSettings, *rows_, *cols_, isCompressible, m, assembledRk, ao);
+    f.assemble(localSettings, *rows_, *cols_, isRkMatrix(), m, assembledRk, ao);
     HMAT_ASSERT(m == NULL || assembledRk == NULL);
     if(assembledRk) {
         if(rk_)
