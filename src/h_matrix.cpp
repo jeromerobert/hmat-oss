@@ -238,6 +238,9 @@ void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* col
     if(isRkMatrix() && rk()) {
         rk()->rows = &(rows->data);
         rk()->cols = &(cols->data);
+    } else if(isFullMatrix()) {
+        full()->rows_ = &(rows->data);
+        full()->cols_ = &(cols->data);
     } else if(!this->isLeaf()) {
       for (int i = 0; i < nrChildRow(); ++i) {
         // if rows not admissible, don't recurse on them
