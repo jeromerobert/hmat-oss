@@ -239,12 +239,16 @@ void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* col
         rk()->rows = &(rows->data);
         rk()->cols = &(cols->data);
     } else if(!this->isLeaf()) {
-        for (int i = 0; i < rows->nrChild(); ++i) {
-            for (int j = 0; j < cols->nrChild(); ++j) {
-                if(get(i, j))
-                    get(i, j)->setClusterTrees(rows->getChild(i), cols->getChild(j));
-            }
+      for (int i = 0; i < nrChildRow(); ++i) {
+        // if rows not admissible, don't recurse on them
+        const ClusterTree* rowChild = (rowsAdmissible ? rows : rows->me()->getChild(i));
+        for (int j = 0; j < nrChildCol(); ++j) {
+          // if cols not admissible, don't recurse on them
+          const ClusterTree* colChild = (colsAdmissible ? cols : cols->me()->getChild(j));
+          if(get(i, j))
+            get(i, j)->setClusterTrees(rowChild, colChild);
         }
+      }
     }
 }
 
