@@ -1308,6 +1308,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
 }
 
 template<typename T> void HMatrix<T>::transposeNoRecurse() {
+    // called by HMatrix<T>::transpose() and HMatrixHandle<T>::transpose()
     // if the matrix is symmetric, inverting it(Upper/Lower)
     if (isLower || isUpper) {
         isLower = !isLower;
@@ -1318,30 +1319,35 @@ template<typename T> void HMatrix<T>::transposeNoRecurse() {
         isTriLower = !isTriLower;
         isTriUpper = !isTriUpper;
     }
-    for (int i=0 ; i<nrChildRow() ; i++)
-      for (int j=0 ; j<i ; j++)
-        swap(this->children[i + j * nrChildRow()], this->children[j + i * nrChildRow()]);
+    // Warning: nrChildRow() uses rowsAdmissible and rows_
+    bool tmp = colsAdmissible; // can't use swap on bitfield so manual swap...
+    colsAdmissible = rowsAdmissible;
+    rowsAdmissible = tmp;
     swap(rows_, cols_);
+    if (!this->isLeaf()) {
+      // We cannot not, in general, transpose in-place, so we need a backup of 'children'
+      std::vector<HMatrix<T>*> children_bak=this->children;
+      // and finally we fill 'children'
+      for (int i=0 ; i<nrChildRow() ; i++)
+        for (int j=0 ; j<nrChildCol() ; j++)
+          this->children[i + j * nrChildRow()] = children_bak[j + i * nrChildCol()];
+    }
 }
 
 template<typename T>
 void HMatrix<T>::transpose() {
-  bool tmp = colsAdmissible; // can't use swap on bitfield so manual swap...
-  colsAdmissible = rowsAdmissible;
-  rowsAdmissible = tmp;
+  this->transposeNoRecurse();
   if (!this->isLeaf()) {
-    this->transposeNoRecurse();
     for (int i=0 ; i<this->nrChild() ; i++)
       if (this->getChild(i))
         this->getChild(i)->transpose();
   } else {
-    swap(rows_, cols_);
     if (isRkMatrix() && rk()) {
       // To transpose an Rk-matrix, simple exchange A and B : (AB^T)^T = (BA^T)
       swap(rk()->a, rk()->b);
       swap(rk()->rows, rk()->cols);
     } else if (isFullMatrix()) {
-      assert(full()->data.lda == full()->rows());
+      assert(full()->data.lda == full()->rows()); // WHY ?
       full()->transpose();
     }
   }
