@@ -86,6 +86,7 @@ namespace hmat {
     //  X21 * U11 = b21 (by recursive backward substitution)
     //  X11 * U12 + X12 * U22 = b12 (backward substitution of X12*U22=b12-X11*U12)
     //  X21 * U12 + X22 * U22 = b22 (backward substitution of X22*U22=b22-X21*U12)
+    // X and b are not necessarily square
 
     for (int k=0 ; k<b->nrChildRow() ; k++) // loop on the lines of b
       for (int i=0 ; i<me()->nrChildRow() ; i++) {
@@ -143,7 +144,7 @@ namespace hmat {
     //  L11 * X12 = b12 (by recursive forward substitution)
     //  L21 * X11 + L22 * X21 = b21 (forward substitution of L22*X21=b21-L21*X11)
     //  L21 * X12 + L22 * X22 = b22 (forward substitution of L22*X22=b22-L21*X12)
-    //
+    // X and b are not necessarily square
 
     for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
       for (int i=0 ; i<me()->nrChildRow() ; i++) {
@@ -294,6 +295,8 @@ namespace hmat {
     //  U22 * X22 = b22 (by recursive backward substitution)
     //  U11 * X12 + U12 * X22 = b12 (backward substitution of U11*X12=b12-U12*X22)
     //  U11 * X11 + U12 * X21 = b11 (backward substitution of U11*X11=b11-U12*X21)
+    // X and b are not necessarily square
+
     for (int k=0 ; k<b->nrChildCol() ; k++) { // Loop on the column of the RHS
       for (int i=me()->nrChildRow()-1 ; i>=0 ; i--) {
         // Solve the i-th diagonal system
