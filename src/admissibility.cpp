@@ -49,12 +49,12 @@ std::pair<bool, bool>
 TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols)
 {
   if (rows.data.size() >= ratio * cols.data.size() ) {
-    // rows are two times larger than cols so we won't subdivide rows
+    // rows are two times larger than cols so we won't subdivide cols
     return std::pair<bool, bool>(false, true);
   } else if (cols.data.size() >= ratio * rows.data.size() ) {
-    // cols are two times larger than rows so we won't subdivide cols
+    // cols are two times larger than rows so we won't subdivide rows
     return std::pair<bool, bool>(true, false);
-  } else // approximately the same size and non leaf
+  } else // approximately the same size and non leaf, we can subdivide both
   return std::pair<bool, bool>(false, false);
 }
 
