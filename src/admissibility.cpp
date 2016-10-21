@@ -125,7 +125,7 @@ StandardAdmissibilityCondition::isRowsColsAdmissible(const ClusterTree& rows, co
   bool standard_admissible = isAdmissible(rows, cols);
 
   // this currently breaks some tests
-#if 0
+#if 1
   std::pair<bool, bool> tall_skinny_admissible = TallSkinnyAdmissibilityCondition::isRowsColsAdmissible(rows, cols);
   tall_skinny_admissible.first |= standard_admissible;
   tall_skinny_admissible.second |= standard_admissible;
