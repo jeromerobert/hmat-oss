@@ -1509,7 +1509,7 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>&
     // It's a leaf
     if (isFullMatrix()) {
       f << prefix << " \"leaf_type\": \"Full\"";
-    } else if (isRkMatrix()) {
+    } else if (isRkMatrix() && rk()) {
       f << prefix << " \"leaf_type\": \"Rk\", \"k\": " << rank() << ",";
       // f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
       f << prefix << " \"method\": " << rk()->method;
