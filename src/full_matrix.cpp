@@ -173,6 +173,7 @@ void FullMatrix<T>::gemm(char transA, char transB, T alpha,
 
 template<typename T>
 void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, bool left) {
+  assert(d);
   assert(left || (cols() == d->rows));
   assert(!left || (rows() == d->rows));
 

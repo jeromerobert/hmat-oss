@@ -86,12 +86,15 @@ namespace hmat {
     //  X21 * U11 = b21 (by recursive backward substitution)
     //  X11 * U12 + X12 * U22 = b12 (backward substitution of X12*U22=b12-X11*U12)
     //  X21 * U12 + X22 * U22 = b22 (backward substitution of X22*U22=b22-X21*U12)
+    // X and b are not necessarily square
 
     for (int k=0 ; k<b->nrChildRow() ; k++) // loop on the lines of b
       for (int i=0 ; i<me()->nrChildRow() ; i++) {
         // Update b[k,i] with the contribution of the solutions already computed b[k,j] j<i
+        if (!b->get(k, i)) continue;
         for (int j=0 ; j<i ; j++)
-          b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), lowerStored ? me()->get(i,j) : me()->get(j,i), Constants<T>::pone);
+          if (b->get(k, j) && (lowerStored ? me()->get(i,j) : me()->get(j,i)))
+            b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), lowerStored ? me()->get(i,j) : me()->get(j,i), Constants<T>::pone);
         // Solve the i-th diagonal system
         me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), unitriangular, lowerStored);
       }
@@ -116,9 +119,15 @@ namespace hmat {
         for(int k=0 ; k<me()->nrChildRow() ; k++) {
           //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
           if (i==j)
-            me()->get(i,i)->mdmtProduct(m->get(i,k), d->get(k,k)); //  hii -= Mik.Dk.tMik
+            if (d->isLeaf())
+              me()->get(i,i)->mdmtProduct(m->get(i,0),  d); //  hii -= Mi0.D.tMj0
+            else
+              me()->get(i,i)->mdmtProduct(m->get(i,k), d->get(k,k)); //  hii -= Mik.Dk.tMik
           else {
-            me()->get(i,j)->mdntProduct(m->get(i,k), d->get(k,k), m->get(j,k)); // hij -= Mik.Dk.tMjk
+            if (d->isLeaf())
+              me()->get(i,j)->mdntProduct(m->get(i,0), d, m->get(j,0)); // hij -= Mi0.D.tMj0
+            else
+              me()->get(i,j)->mdntProduct(m->get(i,k), d->get(k,k), m->get(j,k)); // hij -= Mik.Dk.tMjk
           }
         }
   }
@@ -135,13 +144,15 @@ namespace hmat {
     //  L11 * X12 = b12 (by recursive forward substitution)
     //  L21 * X11 + L22 * X21 = b21 (forward substitution of L22*X21=b21-L21*X11)
     //  L21 * X12 + L22 * X22 = b22 (forward substitution of L22*X22=b22-L21*X12)
-    //
+    // X and b are not necessarily square
 
     for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
       for (int i=0 ; i<me()->nrChildRow() ; i++) {
         // Update b[i,k] with the contribution of the solutions already computed b[j,k] j<i
+        if (!b->get(i, k)) continue;
         for (int j=0 ; j<i ; j++)
-          b->get(i, k)->gemm('N', 'N', Constants<T>::mone, me()->get(i, j), b->get(j,k), Constants<T>::pone);
+          if (me()->get(i,j) && b->get(j,k))
+            b->get(i, k)->gemm('N', 'N', Constants<T>::mone, me()->get(i, j), b->get(j,k), Constants<T>::pone);
         // Solve the i-th diagonal system
         me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), unitriangular);
       }
@@ -173,14 +184,17 @@ namespace hmat {
       me()->get(k,k)->luDecomposition();
       // Solve the rest of line k: solve Lkk Uki = Hki and get Uki
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
-        me()->get(k,k)->solveLowerTriangularLeft(me()->get(k,i), true);
+        if (me()->get(k,k) && me()->get(k,i))
+          me()->get(k,k)->solveLowerTriangularLeft(me()->get(k,i), true);
       // Solve the rest of column k: solve Lik Ukk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
-        me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, false);
+        if (me()->get(k,k) && me()->get(i,k))
+          me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, false);
       // update the rest of the matrix starting at (k+1, k+1)
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         for (int j=k+1 ; j<me()->nrChildRow() ; j++)
           // Hij <- Hij - Lik Ukj
+          if (me()->get(i,j) && me()->get(i,k) && me()->get(k,j))
           me()->get(i,j)->gemm('N', 'N', Constants<T>::mone, me()->get(i,k), me()->get(k,j), Constants<T>::pone);
     }
 
@@ -281,6 +295,8 @@ namespace hmat {
     //  U22 * X22 = b22 (by recursive backward substitution)
     //  U11 * X12 + U12 * X22 = b12 (backward substitution of U11*X12=b12-U12*X22)
     //  U11 * X11 + U12 * X21 = b11 (backward substitution of U11*X11=b11-U12*X21)
+    // X and b are not necessarily square
+
     for (int k=0 ; k<b->nrChildCol() ; k++) { // Loop on the column of the RHS
       for (int i=me()->nrChildRow()-1 ; i>=0 ; i--) {
         // Solve the i-th diagonal system
@@ -296,4 +312,3 @@ namespace hmat {
   }
 
 }  // end namespace hmat
-

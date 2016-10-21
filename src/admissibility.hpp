@@ -29,6 +29,7 @@
 
 #include <cstddef>
 #include <string>
+#include <math.h>
 
 namespace hmat {
 
@@ -43,16 +44,50 @@ public:
 
     This is used for the tree construction on which we develop the HMatrix.
     Two leaves are admissible if they satisfy the criterion allowing the
-    compression of the resulting matrix block.
+    compression of the resulting matrix block. In that case, the corresponding
+    block of matrix is kept in the h-matrix. Otherwise, it is subdivided (if possible).
 
     \return true  if 2 nodes are admissible.
 
    */
   virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  /*! \brief Returns true if the block of interaction between 2 nodes should be compressed.
+
+    \return true  if the block should be Rk.
+   */
+  virtual bool isCompressible(const ClusterTree& rows, const ClusterTree& cols);
+  /*! \brief Returns a pair of boolean telling if 2 nodes are row- or col- admissible together.
+
+    If a pair of nodes is row-admissible (resp col-admissible), then we dont subdivide the
+    corresponding block of matrix along the rows (resp. columns). If it is both row- and col-admissible,
+    then it is admissible as in isAdmissible().
+
+    \return a pair of boolean.
+   */
+  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  /*! \brief if the result of this function is true,
+  *    the corresponding H-Matrix block will not be created. */
+  virtual bool isInert(const ClusterTree& rows, const ClusterTree& cols) = 0;
   /*! \brief Clean up data which may be allocated by isAdmissible  */
   virtual void clean(const ClusterTree&) const {}
 
   virtual std::string str() const = 0;
+};
+
+/**
+ * @brief Admissibility criteria that returns two booleans, one for rows and one for cols.
+ * For each ClusterTree:
+ * true if its size is x times smaller than the other.
+ * It allows then to handle Tall & Skinny blocks in H-Matrices
+ * @param ratio the ratio between the two sizes
+ */
+class TallSkinnyAdmissibilityCondition : public AdmissibilityCondition
+{
+public:
+  TallSkinnyAdmissibilityCondition(double ratio_ = M_SQRT2) : ratio(ratio_) {}
+  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+private:
+  double ratio;
 };
 
 /**
@@ -62,12 +97,23 @@ public:
  * @param eta    a parameter used in the evaluation of the admissibility.
  * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression
  */
-class StandardAdmissibilityCondition : public AdmissibilityCondition
+class StandardAdmissibilityCondition : public TallSkinnyAdmissibilityCondition
 {
 public:
   StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 5000000,
                                  size_t maxElementsPerBlockAca = 0);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  /**
+   * Return true if the block is always null,
+   * (i.e. we know that is will not even be filled during the factorization).
+   * @param rows the rows cluster tree
+   * @param cols the cols cluster tree
+   */
+  bool isInert(const ClusterTree& rows, const ClusterTree& cols) {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);

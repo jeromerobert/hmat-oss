@@ -80,6 +80,7 @@ public:
   }
 
   // https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
+  // "me()->" replaces "this->" when calling a method of TreeNode
   TreeNode* me() {
       return static_cast<TreeNode*>(this);
   }

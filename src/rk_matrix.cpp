@@ -680,29 +680,33 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   // Indeed, this is ugly...
   while (!ha->isLeaf())
   {
-    if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
-    {
-      ha = ha->get(1, 1);
-      continue;
-    }
-    if (ha->get(1, 1) && ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
-    {
-      ha = ha->get(0, 0);
-      continue;
+    if (ha->nrChild() >= 4) {
+      if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
+      {
+        ha = ha->get(1, 1);
+        continue;
+      }
+      if (ha->get(1, 1) && ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
+      {
+        ha = ha->get(0, 0);
+        continue;
+      }
     }
     break;
   }
   while (!hb->isLeaf())
   {
-    if (hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
-    {
-      hb = hb->get(1, 1);
-      continue;
-    }
-    if (hb->get(1, 1) && hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
-    {
-      hb = hb->get(0, 0);
-      continue;
+    if (hb->nrChild() >= 4) {
+      if (hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
+      {
+        hb = hb->get(1, 1);
+        continue;
+      }
+      if (hb->get(1, 1) && hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
+      {
+        hb = hb->get(0, 0);
+        continue;
+      }
     }
     break;
   }
@@ -717,17 +721,22 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     RkMatrix<T>* subRks[nbRows * nbCols];
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
-        const IndexSet* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
-        const IndexSet* subCols = (transHB == 'N' ? hb->get(i, j)->cols() : hb->get(j, i)->rows());
-        subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
+        subRks[i + j * nbRows]=(RkMatrix<T>*)NULL;
         for (int k = 0; k < nbCom; k++) {
           // C_ij = A_ik * B_kj
           const HMatrix<T>* a_ik = (transHA == 'N' ? ha->get(i, k) : ha->get(k, i));
           const HMatrix<T>* b_kj = (transHB == 'N' ? hb->get(k, j) : hb->get(j, k));
-          subRks[i + j * nbRows]->gemmRk(transHA, transHB, alpha, a_ik, b_kj, beta);
-        }
-      }
-    }
+          if (a_ik && b_kj) {
+            if (subRks[i + j * nbRows]==NULL) {
+              const IndexSet* subRows = (transHA == 'N' ? a_ik->rows() : a_ik->cols());
+              const IndexSet* subCols = (transHB == 'N' ? b_kj->cols() : b_kj->rows());
+              subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
+            }
+            subRks[i + j * nbRows]->gemmRk(transHA, transHB, alpha, a_ik, b_kj, beta);
+          }
+        } // k loop
+      } // j loop
+    } // i loop
     // Reconstruction of C by adding the parts
     std::vector<T> alpha(nbRows * nbCols, Constants<T>::pone);
     RkMatrix<T>* rk = formattedAddParts(&alpha[0], (const RkMatrix<T>**) subRks, nbRows * nbCols);
@@ -783,4 +792,3 @@ template class RkMatrix<C_t>;
 template class RkMatrix<Z_t>;
 
 }  // end namespace hmat
-

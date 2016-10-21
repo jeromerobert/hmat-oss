@@ -504,13 +504,15 @@ public:
   /*! \brief Return the number of children in the row dimension.
     */
   inline int nrChildRow() const {
-    return rows_->nrChild();
+    // if rows admissible, only one child = itself
+    return rowsAdmissible ? 1 : rows_->nrChild() ;
   }
 
   /*! \brief Return the number of children in the column dimension.
     */
   inline int nrChildCol() const {
-    return cols_->nrChild();
+    // if cols admissible, only one child = itself
+    return colsAdmissible ? 1 : cols_->nrChild() ;
   }
   /*! \brief Destroy the HMatrix.
     */
@@ -529,6 +531,7 @@ public:
   HMatrix<T>* get(int i, int j) const {
     assert(i>=0 && i<nrChildRow());
     assert(j>=0 && j<nrChildCol());
+    assert(i + j * nrChildRow() < this->nrChild());
     return this->getChild(i + j * nrChildRow());
   }
 
@@ -578,8 +581,8 @@ public:
   static double validationErrorThreshold;
   char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
-       admissible:1, temporary:1,
-       ownClusterTree_:1;
+       rowsAdmissible:1, colsAdmissible:1,
+       temporary:1, ownClusterTree_:1;
   LocalSettings localSettings;
 
   int rank() const {
