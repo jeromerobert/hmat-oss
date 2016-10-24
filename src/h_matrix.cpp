@@ -656,13 +656,15 @@ template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<
  */
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
+    if(x->isLeaf() && x->isNull())
+        return;
+
     if(*rows() == *x->rows() && *cols() == *x->cols()) {
         if (this->isLeaf()) {
             if (isRkMatrix()) {
+                if(!rk())
+                    rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
                 if(x->isRkMatrix()) {
-                    if (x->isNull()) {
-                        return;
-                    }
                     rk()->axpy(alpha, x->rk());
                     rank_ = rk()->rank();
                 } else if(!x->isLeaf()){
@@ -683,11 +685,9 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     rk(tmp);
                 }
             } else {
-                if(full() == NULL && !x->isNull())
+                if(full() == NULL)
                     full(new FullMatrix<T>(rows(), cols()));
-                if(x->isNull()) {
-                    // nothig to do
-                } else if(x->isFullMatrix()) {
+                if(x->isFullMatrix()) {
                     full()->axpy(alpha, x->full());
                 } else if(x->isRkMatrix()) {
                     FullMatrix<T> * f = x->rk()->eval();
@@ -707,9 +707,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
             }
         }
     } else {
-        if(x->isNull()) {
-            // nothing to do
-        } else if(x->isFullMatrix()) {
+        if(x->isFullMatrix()) {
             axpy(alpha, x->full());
             return;
         }
