@@ -219,13 +219,11 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   if (h->rank_==0)
     h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
   if(!o->isLeaf()){
-    for (int i = 0; i < o->nrChildRow(); ++i) {
-      for (int j = 0; j < o->nrChildCol(); ++j) {
-        if (o->get(i, j)) {
-          h->insertChild(i, j, HMatrix<T>::Zero(o->get(i, j)));
+    for (int i = 0; i < o->nrChild(); ++i) {
+      if (o->getChild(i)) {
+        h->insertChild(i, HMatrix<T>::Zero(o->getChild(i)));
         } else
-          h->insertChild(i, j, NULL);
-      }
+        h->insertChild(i, NULL);
     }
   }
   return h;
@@ -698,14 +696,12 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                 }
             }
         } else {
-            for (int i = 0; i < nrChildRow(); i++) {
-                for (int j = 0; j < nrChildCol(); j++) {
-                    HMatrix<T>* child = get(i, j);
-                    const HMatrix<T>* bChild = x->isLeaf() ? x : x->get(i, j);
+            for (int i = 0; i < this->nrChild(); i++) {
+                    HMatrix<T>* child = this->getChild(i);
+                    const HMatrix<T>* bChild = x->isLeaf() ? x : x->getChild(i);
                     child->axpy(alpha, bChild);
                 }
             }
-        }
     } else {
         if(x->isFullMatrix()) {
             axpy(alpha, x->full());
@@ -1557,14 +1553,12 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
     }
   } else {
     rank_ = o->rank_;
-    for (int i = 0; i < o->nrChildRow(); i++) {
-      for (int j = 0; j < o->nrChildCol(); j++) {
-        if (o->get(i, j)) {
-          assert(get(i, j));
-          get(i, j)->copy(o->get(i, j));
+    for (int i = 0; i < o->nrChild(); i++) {
+        if (o->getChild(i)) {
+          assert(this->getChild(i));
+          this->getChild(i)->copy(o->getChild(i));
         } else {
-          assert(!get(i, j));
-        }
+          assert(!this->getChild(i));
       }
     }
   }
@@ -2267,11 +2261,9 @@ void HMatrix<T>::checkNan() const {
       rk()->checkNan();
     }
   } else {
-    for (int i = 0; i < nrChildRow(); i++) {
-      for (int j = 0; j < nrChildCol(); j++) {
-        if (get(i, j)) {
-          get(i, j)->checkNan();
-        }
+    for (int i = 0; i < this->nrChild(); i++) {
+        if (this->getChild(i)) {
+          this->getChild(i)->checkNan();
       }
     }
   }
