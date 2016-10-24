@@ -110,7 +110,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
   rowsAdmissible = admissible.first;
   colsAdmissible = admissible.second;
-  if ( (rowsAdmissible && colsAdmissible) || (_rows->isLeaf() && _cols->isLeaf()) ) {
+  if ( (rowsAdmissible && colsAdmissible) || (_rows->isLeaf() || _cols->isLeaf()) ) {
     // We create a block of matrix in one of the following case:
     // - rowsAdmissible && colsAdmissible : we dont divide neither on rows nor on columns
     // - _rows->isLeaf() && _cols->isLeaf() : both rows and cols are leaf.
