@@ -621,6 +621,9 @@ public:
       return rank_ > UNINITIALIZED_BLOCK;
   }
 
+  bool isVoid() const {
+      return rows()->size() == 0 || cols()->size() == 0;
+  }
   /**
    * Tag a not leaf block as assembled.
    * Must only be called when all leaves of this block have been

@@ -898,7 +898,8 @@ makeCompatible(bool row_a, bool row_b,
  */
 template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
                                                   const HMatrix<T>* a, const HMatrix<T>* b) {
-    if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
+    if(a->isVoid())
+        return;
     HMatrix<T> * va = NULL;
     HMatrix<T> * vb = NULL;
     HMatrix<T> * vc = NULL;;
@@ -946,7 +947,8 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
 template<typename T> void
 HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b) {
     // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
-    if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
+    if(a->isVoid())
+        return;
 
     // None of the matrices is a leaf
     if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
@@ -957,7 +959,7 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                     continue;
                 }
                 // Void child
-                if (child->rows()->size() == 0 || child->cols()->size() == 0) continue;
+                if (child->isVoid()) continue;
 
                 const HMatrix<T> *childA, *childB;
                 for (int k = 0; k < (transA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
@@ -1082,7 +1084,8 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if(isVoid())
+      return;
 
   if ((transA == 'T') && (transB == 'T')) {
     // This code has *not* been tested because it's currently not used.
@@ -1265,7 +1268,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
   assert(left || (*cols() == *d->rows()));
   assert(!left || (*rows() == *d->cols()));
 
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (isVoid()) return;
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!this->isLeaf()) {
@@ -1566,7 +1569,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
 
 template<typename T>
 void HMatrix<T>::clear() {
-  if (rows()->size() == 0 || cols()->size() == 0 || !isAssembled())
+  if (isVoid() || !isAssembled())
       return;
   if (this->isLeaf()) {
     if(isNull()) {
@@ -1667,7 +1670,7 @@ void HMatrix<T>::inverse() {
 template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) const {
   DECLARE_CONTEXT;
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (isVoid()) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, unitriangular);
@@ -1707,7 +1710,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular)
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (isVoid()) return;
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
     // LAPACK resolution
