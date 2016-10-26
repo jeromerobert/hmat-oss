@@ -29,7 +29,6 @@
 
 #include <cstddef>
 #include <string>
-#include <math.h>
 
 namespace hmat {
 
@@ -91,7 +90,7 @@ public:
 class TallSkinnyAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  TallSkinnyAdmissibilityCondition(double ratio_ = M_SQRT2) : ratio(ratio_) {}
+  TallSkinnyAdmissibilityCondition(double ratio_ = 1.41421356237309504880) : ratio(ratio_) {}
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
 private:
   double ratio;
