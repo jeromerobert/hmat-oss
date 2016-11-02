@@ -1082,7 +1082,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 }
 
 template<typename T>
-void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
+void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, bool) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
   if(isVoid())
       return;
@@ -1668,7 +1668,7 @@ void HMatrix<T>::inverse() {
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) const {
+void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, bool) const {
   DECLARE_CONTEXT;
   if (isVoid()) return;
   // At first, the recursion one (simple case)

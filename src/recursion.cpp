@@ -133,7 +133,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular) const {
+  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular, bool mainSolve) const {
 
     //  Forward substitution:
     //  [ L11 |  0  ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -152,9 +152,10 @@ namespace hmat {
         if (!b->get(i, k)) continue;
         for (int j=0 ; j<i ; j++)
           if (me()->get(i,j) && b->get(j,k))
-            b->get(i, k)->gemm('N', 'N', Constants<T>::mone, me()->get(i, j), b->get(j,k), Constants<T>::pone);
+            b->get(i, k)->gemm('N', 'N', Constants<T>::mone, me()->get(i, j), b->get(j,k),
+              Constants<T>::pone, mainSolve);
         // Solve the i-th diagonal system
-        me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), unitriangular);
+        me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), unitriangular, mainSolve);
       }
   }
 
