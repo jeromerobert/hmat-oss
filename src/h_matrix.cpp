@@ -2166,18 +2166,25 @@ template<typename T> void HMatrix<T>::solve(
         HMatrix<T>* b,
         hmat_factorization_t factorizationType) const {
     DECLARE_CONTEXT;
+    switch(factorizationType) {
+    case hmat_factorization_lu:
     /* Solve LX=B, result in B */
     this->solveLowerTriangularLeft(b, true);
     /* Solve UX=B, result in B */
-    switch(factorizationType) {
-    case hmat_factorization_lu:
         this->solveUpperTriangularLeft(b, false, false);
         break;
     case hmat_factorization_ldlt:
+        /* Solve LX=B, result in B */
+        this->solveLowerTriangularLeft(b, true);
+        /* Solve DX=B, result in B */
         b->multiplyWithDiag(this, true, true);
+        /* Solve L^tX=B, result in B */
         this->solveUpperTriangularLeft(b, true, true);
         break;
     case hmat_factorization_llt:
+        /* Solve LX=B, result in B */
+        this->solveLowerTriangularLeft(b, false);
+        /* Solve L^tX=B, result in B */
         this->solveUpperTriangularLeft(b, false, true);
         break;
     default:
