@@ -311,7 +311,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 }
 
 // Swap members with members from another instance.
-// Since rows and cols are constant, they must not be swapped.
 template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
 {
   assert(rows == other.rows);
