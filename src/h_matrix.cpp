@@ -755,14 +755,11 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       // In this case, the matrix has small size
       // then evaluating the Rk-matrix is cheaper
       FullMatrix<T>* rkMat = newRk->eval();
-      if(isFullMatrix()) {
+      if(!isFullMatrix())
+        full(new FullMatrix<T>(rows(), cols()));
+
         full()->axpy(alpha, rkMat);
         delete rkMat;
-      } else {
-        // cas isNull
-        full(rkMat);
-        full()->scale(alpha);
-      }
     }
     if (needResizing) {
       delete newRk;
@@ -1070,15 +1067,14 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         // should not happen anymore
         HMAT_ASSERT(false);
     }
-    if(isFullMatrix()) {
-        full()->axpy(alpha, fullMat);
-        delete fullMat;
-    } else {
+
         // It's not optimal to concider that the result is a FullMatrix but
         // this is a H*F case and it almost never happen
-        fullMat->scale(alpha);
-        full(fullMat);
-    }
+    if (!isFullMatrix())
+      full(new FullMatrix<T>(rows(), cols()));
+    full()->axpy(alpha, fullMat);
+    delete fullMat;
+
 }
 
 template<typename T>
