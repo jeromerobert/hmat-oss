@@ -20,6 +20,7 @@
   http://github.com/jeromerobert/hmat-oss
 */
 
+#include "config.h"
 #include "hmat/hmat.h"
 #include "coordinates.hpp"
 #include "hmat_cpp_interface.hpp"
@@ -252,6 +253,17 @@ void hmat_print_parameters(hmat_settings_t* settings)
 const char * hmat_get_version()
 {
     return HMAT_VERSION;
+}
+
+void hmat_get_build_date(const char **date, const char **time)
+{
+#ifdef HMAT_EXPORT_BUILD_DATE
+  *date=(const char*)&__DATE__;
+  *time=(const char*)&__TIME__;
+#else
+  *date="N/A";
+  *time="N/A";
+#endif
 }
 
 void hmat_assemble_context_init(hmat_assemble_context_t * context) {

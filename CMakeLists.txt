@@ -157,6 +157,12 @@ if(HMAT_CONTEXT)
     set(HAVE_CONTEXT TRUE)
 endif()
 
+# Build date export through hmat_get_build_date()
+option(HMAT_EXPORT_BUILD_DATE "Hmat exports build date." OFF)
+if(HMAT_EXPORT_BUILD_DATE)
+    message(STATUS "Exports build date")
+endif(HMAT_EXPORT_BUILD_DATE)
+
 option(USE_DEBIAN_OPENBLAS "On Debian, link to openblas instead of generic blas." ON)
 # BLAS/LAPACK
 if (NOT MKL_FOUND)
@@ -250,7 +256,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Sources
 file(GLOB_RECURSE HMAT_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} src/*.[ch]pp include/*.h)
-list(REMOVE_ITEM HMAT_SOURCES src/hmat_cpp_interface.cpp src/recursion.cpp) # because it is included in default_engine.cpp
+list(REMOVE_ITEM HMAT_SOURCES src/hmat_cpp_interface.cpp src/recursion.cpp) # because it is included in default_engine.cpp (and the other *_engine.cpp) and h_matrix.cpp
 
 link_directories(${PROJECT_BINARY_DIR} ${BLAS_LIBRARY_DIRS})
 
