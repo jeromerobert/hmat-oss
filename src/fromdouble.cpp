@@ -68,7 +68,11 @@ template<typename T>
 FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f) {
   if (!f)
     return NULL;
-  FullMatrix<T>* result = new FullMatrix<T>(fromDoubleScalarArray<T>(&f->data, false), f->rows_, f->cols_); // 'false' because we cant delete f->data (its not a pointer)
+  FullMatrix<T>* result = new FullMatrix<T>(f->rows_, f->cols_);
+  const size_t size = ((size_t) f->data.rows) * f->data.cols;
+  for (size_t i = 0; i < size; ++i) {
+    result->data.m[i] = T(f->data.m[i]);
+  }
   delete f;
   return result;
 }
