@@ -758,8 +758,8 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       if(!isFullMatrix())
         full(new FullMatrix<T>(rows(), cols()));
 
-        full()->axpy(alpha, rkMat);
-        delete rkMat;
+      full()->axpy(alpha, rkMat);
+      delete rkMat;
     }
     if (needResizing) {
       delete newRk;
