@@ -494,7 +494,7 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
   // leaves. Note that this operation could be used hierarchically.
 
   bool allRkLeaves = true;
-  const RkMatrix<T>* childrenArray[this->nrChild()];
+  std::vector<const RkMatrix<T>*> childrenArray(this->nrChild());
   size_t childrenElements = 0;
   for (int i = 0; i < this->nrChild(); i++) {
     HMatrix<T> *child = this->getChild(i);
@@ -510,7 +510,7 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
   if (allRkLeaves) {
     std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
     RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-    RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild());
+    RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], &childrenArray[0], this->nrChild());
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
     if (elements < childrenElements) {
       cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
@@ -1696,7 +1696,7 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) 
     //
 
     int offset(0);
-    FullMatrix<T> *sub[nrChildRow()];
+    std::vector<FullMatrix<T>*> sub(nrChildRow());
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
       sub[i] = new FullMatrix<T>(b->m+offset, get(i, i)->cols()->size(), b->cols, b->lda);
@@ -1824,7 +1824,7 @@ void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular,
   } else {
 
     int offset(0);
-    FullMatrix<T> *sub[nrChildRow()];
+    std::vector<FullMatrix<T> *> sub(nrChildRow());
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
       sub[i] = new FullMatrix<T>(b->m+offset, get(i, i)->rows()->size(), b->cols, b->lda);
@@ -1857,7 +1857,7 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, 
   } else {
 
     int offset(0);
-    FullMatrix<T> *sub[nrChildRow()];
+    std::vector<FullMatrix<T> *> sub(nrChildRow());
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
       sub[i] = new FullMatrix<T>(b->m+offset, get(i, i)->cols()->size(), b->cols, b->lda);

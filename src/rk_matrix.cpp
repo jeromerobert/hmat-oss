@@ -703,7 +703,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
     int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
     int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
-    RkMatrix<T>* subRks[nbRows * nbCols];
+    std::vector<RkMatrix<T>*> subRks(nbRows * nbCols);
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
         const IndexSet* subRows = (transHA == 'N' ? ha->get(i, j)->rows() : ha->get(j, i)->cols());
@@ -719,7 +719,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     }
     // Reconstruction of C by adding the parts
     std::vector<T> alpha(nbRows * nbCols, Constants<T>::pone);
-    RkMatrix<T>* rk = formattedAddParts(&alpha[0], (const RkMatrix<T>**) subRks, nbRows * nbCols);
+    RkMatrix<T>* rk = formattedAddParts(&alpha[0], const_cast<const RkMatrix<T>**>(&subRks[0]), nbRows * nbCols);
     swap(*rk);
     for (int i = 0; i < nbRows * nbCols; i++) {
       delete subRks[i];

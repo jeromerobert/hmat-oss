@@ -142,7 +142,6 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
-  HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
   /*! \brief Auxiliary function used by HMatrix::dumpTreeToFile().
    */
   void dumpSubTree(std::ofstream& f, int depth, const HMatrixNodeDumper<T>& nodeDumper) const;
@@ -474,7 +473,6 @@ public:
      \param b Input: B, Output: X
    */
   void solveDiagonal(FullMatrix<T>* b) const;
-  void solveDiagonal(HMatrix<T>* b) const;
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
