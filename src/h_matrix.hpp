@@ -291,6 +291,13 @@ public:
     \param filename path to the output file.
    */
   void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& nodeDumper) const;
+
+  /**
+   * Used internally for deserialization
+   * @see serialization.hpp
+   */
+  static HMatrix<T> * unmarshall(const MatrixSettings * settings, int rank, char bitfield);
+
   /** Returns a copy of this (with all the structure and data)
        */
   HMatrix<T>* copy() const ;

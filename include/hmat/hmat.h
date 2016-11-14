@@ -318,6 +318,14 @@ typedef struct hmat_progress_struct {
 } hmat_progress_t;
 
 /**
+ * Function representing a generic stream.
+ * It could be implemented as FILE*, unix fd, C++ iostream while using a C API.
+ * @param buffer the buffer to read or write
+ * @param n the size of the buffer
+ */
+typedef void (*hmat_iostream)(void * buffer, size_t n, void *user_data);
+
+/**
  * Argument of the assemble_generic function.
  * Only one of block_compute, simple_compute or assembly can be non NULL.
  */
@@ -654,6 +662,10 @@ hmat
     /** For internal use only */
     void * internal;
 
+    hmat_matrix_t * (*read_struct)(hmat_iostream readfunc, void * user_data);
+    void (*write_struct)(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data);
+    void (*read_data)(hmat_matrix_t* matrix, hmat_iostream readfunc, void * user_data);
+    void (*write_data)(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data);
 }  hmat_interface_t;
 
 void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);

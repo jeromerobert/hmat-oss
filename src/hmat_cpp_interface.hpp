@@ -342,8 +342,12 @@ public:
       return engine_;
   }
 
+  hmat_factorization_t factorization() {
+      return factorizationType;
+  }
+
+  HMatInterface(HMatrix<T>* h, hmat_factorization_t factorization = hmat_factorization_none);
 private:
-  HMatInterface(HMatrix<T>* h);
   /// Disallow the copy
   HMatInterface(const HMatInterface<T, E>& o);
 };

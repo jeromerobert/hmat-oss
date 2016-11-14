@@ -31,6 +31,8 @@
 #include "full_matrix.hpp"
 #include "h_matrix.hpp"
 #include "uncompressed_values.hpp"
+#include "serialization.hpp"
+#include "hmat_cpp_interface.hpp"
 
 namespace
 {
@@ -399,6 +401,33 @@ int walk(hmat_matrix_t* holder, hmat_procedure_t* proc) {
     return 0;
 }
 
+template <typename T, template <typename> class E>
+hmat_matrix_t * read_struct(hmat_iostream readfunc, void * user_data) {
+    hmat::MatrixStructUnmarshaller<T> unmarshaller(&hmat::HMatSettings::getInstance(), readfunc, user_data);
+    hmat::HMatrix<T> * m = unmarshaller.read();
+    hmat::HMatInterface<T, E> * r = new hmat::HMatInterface<T, E>(m, unmarshaller.factorization());
+    return (hmat_matrix_t*) r;
+}
+
+template <typename T, template <typename> class E>
+void read_data(hmat_matrix_t * matrix, hmat_iostream readfunc, void * user_data) {
+    hmat::HMatInterface<T, E> * hmi = (hmat::HMatInterface<T, E> *) matrix;
+    hmat::MatrixDataUnmarshaller<T>(readfunc, user_data).read(hmi->engine().hmat);
+}
+
+template <typename T, template <typename> class E>
+void write_struct(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data) {
+    hmat::HMatInterface<T, E> * hmi = (hmat::HMatInterface<T, E> *) matrix;
+    hmat::MatrixStructMarshaller<T>(writefunc, user_data).write(
+        hmi->engine().hmat, hmi->factorization());
+}
+
+template <typename T, template <typename> class E>
+void write_data(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data) {
+    hmat::HMatInterface<T, E> * hmi = (hmat::HMatInterface<T, E> *) matrix;
+    hmat::MatrixDataMarshaller<T>(writefunc, user_data).write(hmi->engine().hmat);
+}
+
 }  // end anonymous namespace
 
 namespace hmat {
@@ -438,6 +467,10 @@ static void createCInterface(hmat_interface_t * i)
     i->get_values = get_values<T, E>;
     i->get_block = get_block<T, E>;
     i->walk = walk<T, E>;
+    i->read_struct = read_struct<T, E>;
+    i->write_struct = write_struct<T, E>;
+    i->write_data = write_data<T, E>;
+    i->read_data = read_data<T, E>;
 }
 
 }  // end namespace hmat

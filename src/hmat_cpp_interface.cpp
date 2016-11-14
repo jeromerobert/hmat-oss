@@ -65,8 +65,8 @@ HMatInterface<T, E>::~HMatInterface() {
 }
 
 template<typename T, template <typename> class E>
-HMatInterface<T, E>::HMatInterface(HMatrix<T>* h) :
-    engine_(h)
+HMatInterface<T, E>::HMatInterface(HMatrix<T>* h, hmat_factorization_t factorization) :
+    engine_(h), factorizationType(factorization)
 {}
 
 template<typename T, template <typename> class E>
