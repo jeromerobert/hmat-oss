@@ -196,6 +196,15 @@ template<typename T> void RkMatrix<T>::addRand(double epsilon) {
   return;
 }
 
+template<typename T> size_t RkMatrix<T>::storedZeros() {
+  size_t result = 0;
+  if (a)
+    result += a->storedZeros() ;
+  if (b)
+    result += b->storedZeros() ;
+  return result;
+}
+
 template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   DECLARE_CONTEXT;
 
