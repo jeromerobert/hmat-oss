@@ -949,41 +949,6 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   // TODO: remove this limitation, if needed.
   assert(beta == Constants<T>::pone);
 
-  // This is ugly!  When ha node is void, we replace ha by its non-void child
-  // so that further computations are similar to the non-void case.
-  // Indeed, this is ugly...
-  while (!ha->isLeaf())
-  {
-    if (ha->nrChildRow() >= 2 && ha->nrChildCol() >= 2) {
-      if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
-      {
-        ha = ha->get(1, 1);
-        continue;
-      }
-      if (ha->get(1, 1) && ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
-      {
-        ha = ha->get(0, 0);
-        continue;
-      }
-    }
-    break;
-  }
-  while (!hb->isLeaf())
-  {
-    if (hb->nrChildRow() >= 2 && hb->nrChildCol() >= 2) {
-      if (hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
-      {
-        hb = hb->get(1, 1);
-        continue;
-      }
-      if (hb->get(1, 1) && hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
-      {
-        hb = hb->get(0, 0);
-        continue;
-      }
-    }
-    break;
-  }
   // void matrix
   if (ha->rows()->size() == 0 || ha->cols()->size() == 0 || hb->rows()->size() == 0 || hb->cols()->size() == 0) return;
 
