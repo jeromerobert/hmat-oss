@@ -192,6 +192,11 @@ double HMatInterface<T, E>::norm() const {
 }
 
 template<typename T, template <typename> class E>
+void HMatInterface<T, E>::eval(FullMatrix<T>* result, bool renumber) const {
+  engine_.hmat->eval(result, renumber);
+}
+
+template<typename T, template <typename> class E>
 void HMatInterface<T, E>::scale(T alpha) {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
@@ -244,4 +249,3 @@ void HMatInterface<T, E>::walk(TreeProcedure<HMatrix<T> > *proc){
   return engine_.hmat->walk(proc);
 }
 } // end namespace hmat
-

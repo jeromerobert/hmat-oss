@@ -277,6 +277,16 @@ public:
   /** Return an approximation of the Frobenius norm of this.
    */
   double norm() const;
+  /*! \brief Evaluate the HMatrix, ie converts it to a full matrix.
+
+    This conversion does the reorderng of the unknowns such that the resulting
+    matrix can directly be used or compared with a full matrix assembled
+    otherwise.
+
+    \param result a FullMatrix that has to be preallocated at the same size than
+    this.
+   */
+  void eval(FullMatrix<T>* result, bool renumber = true) const;
   /** this <- alpha * this
    */
   void scale(T alpha);
