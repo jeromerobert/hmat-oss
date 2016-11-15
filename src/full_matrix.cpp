@@ -109,6 +109,31 @@ template<typename T> size_t FullMatrix<T>::storedZeros() {
   return data.storedZeros();
 }
 
+template<typename T> size_t FullMatrix<T>::info(hmat_info_t & result, size_t& rowsMin, size_t& colsMin, size_t& rowsMax, size_t& colsMax) {
+  size_t colsCount = 0, rowsCount = 0;
+  colsMax = 0;
+  colsMin = cols();
+  rowsMax = 0;
+  rowsMin = rows();
+  bool* notNullRows = (bool*) calloc(rows(), sizeof(bool));
+  bool* notNullCols = (bool*) calloc(cols(), sizeof(bool));
+  for (int col = 0; col < cols(); col++) {
+    for (int row = 0; row < rows(); row++) {
+      if (std::abs(get(row, col)) > 1e-16) {
+        rowsMin = (rowsMin < row) ? rowsMin : row;
+        rowsMax = (rowsMax > row) ? rowsMax : row;
+        colsMin = (colsMin < col) ? colsMin : col;
+        colsMax = (colsMax > col) ? colsMax : col;
+        if (!notNullRows[row]) rowsCount++;
+        if (!notNullCols[col]) colsCount++;
+        notNullRows[row] = true;
+        notNullCols[col] = true;
+      }
+    }
+  }
+  return colsCount * rowsCount;
+}
+
 template<typename T> void FullMatrix<T>::scale(T alpha) {
   data.scale(alpha);
   if (diagonal)

@@ -114,6 +114,9 @@ public:
   /** \brief Returns number of allocated zeros
    */
   size_t storedZeros();
+  /** \brief Returns some info about block, like size of square that fit nnz locality (i.e all null rows/cols ignored)
+   */
+  size_t info(hmat_info_t & result, size_t& rowsMin, size_t& colsMin, size_t& rowsMax, size_t& colsMax);
   /** \brief this *= alpha.
 
       \param alpha The scaling factor.

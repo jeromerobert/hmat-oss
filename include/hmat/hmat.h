@@ -343,9 +343,22 @@ HMAT_API void hmat_delete_admissibility(hmat_admissibility_t * cond);
 /** Information on the HMatrix */
 typedef struct
 {
-  /*! Number of allocated zeros */
-  int full_zeros;
-  /** Total number of terms stored in the full leaves of the HMatrix */
+  /*! Number of allocated zeros & nnz */
+  size_t full_fit_nnz;
+  size_t rk_fit_nnz;
+  size_t rk_square_fit_nnz;
+  size_t full_square_fit_nnz;
+  size_t rk_fit_compressed_size;
+  size_t full_fit_compressed_size;
+  size_t rk_compressed_zeros;
+  size_t rk_compressed_nnz;
+  size_t rk_eval_zeros;
+  size_t rk_eval_nnz;
+  size_t full_zeros;
+  size_t full_nnz;
+  size_t full_as_rk_size;
+  size_t rk_as_full_size;
+  /* ! Total number of terms stored in the full leaves of the HMatrix */
   size_t full_size;
 
   /** @deprecated Use compressed_size, uncompressed_size or full_size */
