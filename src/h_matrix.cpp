@@ -116,7 +116,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     // - _rows->isLeaf() && _cols->isLeaf() : both rows and cols are leaf.
     // In the other cases, we subdivide.
     // Note that AdmissibilityCondition::isRowsColsAdmissible() has been modified, and now if rows or cols is a leaf, the block is admissible
-    
+
     // 'isCompressible' is the criteria to choose Rk or Full.
     if(admissibilityCondition->isCompressible(*(rows_), *(cols_)))
       rk(NULL);
@@ -366,9 +366,39 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
     } else if(this->isLeaf()) {
         size_t s = ((size_t)r) * c;
         result.uncompressed_size += s;
+        size_t rowsMin, colsMin, rowsMax, colsMax;
         if(isRkMatrix()) {
             size_t mem = rank() * (((size_t)r) + c);
             result.compressed_size += mem;
+
+            FullMatrix<T>* rk_eval = rk()->eval();
+            result.rk_fit_nnz += rk_eval->info(result, rowsMin, colsMin, rowsMax, colsMax);
+            if (colsMax == 0) {
+              colsMax = cols()->size();
+              colsMin = 0;
+              rowsMax = rows()->size();
+              rowsMin = 0;
+            } else
+              result.rk_square_fit_nnz += (colsMax - colsMin) * (rowsMax - rowsMin);
+
+            HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
+            tmpMatrix->temporary=true;
+            tmpMatrix->ownClusterTree_ = true;
+            ClusterTree * rows_subset = rows_->slice(rows()->offset() + rowsMin, rowsMax - rowsMin);
+            ClusterTree * cols_subset = cols_->slice(cols()->offset() + colsMin, colsMax - colsMin);
+            rows_subset->father = rows_subset;
+            cols_subset->father = cols_subset;
+            tmpMatrix->rows_ = rows_subset;
+            tmpMatrix->cols_ = cols_subset;
+            RkMatrix<T>* newRk = const_cast<RkMatrix<T>*>(rk()->subset(tmpMatrix->rows(), tmpMatrix->cols()));
+            result.rk_fit_compressed_size += newRk->rank() * (((size_t)newRk->rows->size()) + newRk->cols->size());
+            size_t rk_eval_zeros = rk_eval->storedZeros();
+            size_t rk_compressed_zeros = rk()->storedZeros();
+            result.rk_as_full_size += rk()->uncompressedSize();
+            result.rk_eval_zeros += rk_eval_zeros;
+            result.rk_eval_nnz += s - rk_eval_zeros;
+            result.rk_compressed_zeros += rk_compressed_zeros;
+            result.rk_compressed_nnz += mem - rk_compressed_zeros;
             int dim = result.largest_rk_dim_cols + result.largest_rk_dim_rows;
             if(rows()->size() + cols()->size() > dim) {
                 result.largest_rk_dim_cols = c;
@@ -387,6 +417,29 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
           if (isFullMatrix()) {
             result.full_zeros += full()->storedZeros();
           }
+            result.full_fit_nnz += full()->info(result, rowsMin, colsMin, rowsMax, colsMax);
+            if (colsMax == 0) {
+              colsMax = 0;
+              colsMin = 0;
+              rowsMax = 0;
+              rowsMin = 0;
+            } else
+              result.full_square_fit_nnz += (colsMax - colsMin) * (rowsMax - rowsMin);
+            RkMatrix<T>* rk = compressMatrix(full()->copy());
+            result.full_as_rk_size += rk->compressedSize();
+            HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
+            tmpMatrix->temporary=true;
+            tmpMatrix->ownClusterTree_ = true;
+            ClusterTree * r = rows_->slice(rows()->offset() + rowsMin, rowsMax - rowsMin);
+            ClusterTree * c = cols_->slice(cols()->offset() + colsMin, colsMax - colsMin);
+            r->father = r;
+            c->father = c;
+            tmpMatrix->rows_ = r;
+            tmpMatrix->cols_ = c;
+            RkMatrix<T>* newRk = const_cast<RkMatrix<T>*>(rk->subset(tmpMatrix->rows(), tmpMatrix->cols()));
+            result.full_fit_compressed_size += newRk->rank() * (((size_t)newRk->rows->size()) + newRk->cols->size());
+            delete newRk;
+            delete tmpMatrix;
             result.compressed_size += s;
             result.full_count ++;
             result.full_size += s;
