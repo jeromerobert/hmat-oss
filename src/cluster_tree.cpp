@@ -152,8 +152,6 @@ ClusterTree::slice(int offset, int size) const
   ClusterTree* result = new ClusterTree(*this);
   result->data.offset_ = offset;
   result->data.size_ = size;
-  result->clusteringAlgoData_ = NULL;
-  result->admissibilityAlgoData_ = NULL;
   return result;
 }
 
@@ -222,7 +220,9 @@ AxisAlignedBoundingBox::AxisAlignedBoundingBox(int dim, const double *bboxMin, c
 AxisAlignedBoundingBox::~AxisAlignedBoundingBox()
 {
   delete [] bbMin;
+  bbMin = NULL;
   delete [] bbMax;
+  bbMax = NULL;
 }
 
 double
@@ -256,4 +256,3 @@ AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) const
 }
 
 }  // end namespace hmat
-
