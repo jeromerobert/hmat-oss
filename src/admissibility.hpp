@@ -29,7 +29,6 @@
 
 #include <cstddef>
 #include <string>
-#include <math.h>
 
 namespace hmat {
 
@@ -65,9 +64,16 @@ public:
     \return a pair of boolean.
    */
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
-  /*! \brief if the result of this function is true,
-  *    the corresponding H-Matrix block will not be created. */
-  virtual bool isInert(const ClusterTree& rows, const ClusterTree& cols) = 0;
+  /**
+   * Return true if the block is always null,
+   * (i.e. we know that is will not even be filled during the factorization).
+   * @param rows the rows cluster tree
+   * @param cols the cols cluster tree
+   */
+  bool isInert(const ClusterTree& rows, const ClusterTree& cols) {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
   /*! \brief Clean up data which may be allocated by isAdmissible  */
   virtual void clean(const ClusterTree&) const {}
 
@@ -84,7 +90,7 @@ public:
 class TallSkinnyAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  TallSkinnyAdmissibilityCondition(double ratio_ = M_SQRT2) : ratio(ratio_) {}
+  TallSkinnyAdmissibilityCondition(double ratio_ = 1.41421356237309504880) : ratio(ratio_) {}
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
 private:
   double ratio;
@@ -104,16 +110,6 @@ public:
                                  size_t maxElementsPerBlockAca = 0);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
-  /**
-   * Return true if the block is always null,
-   * (i.e. we know that is will not even be filled during the factorization).
-   * @param rows the rows cluster tree
-   * @param cols the cols cluster tree
-   */
-  bool isInert(const ClusterTree& rows, const ClusterTree& cols) {
-      (void)rows, (void)cols; // unused
-      return false;
-  }
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);

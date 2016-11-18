@@ -59,3 +59,5 @@
 #cmakedefine HAVE_JEMALLOC
 
 #cmakedefine HAVE_CONTEXT
+
+#cmakedefine HMAT_EXPORT_BUILD_DATE

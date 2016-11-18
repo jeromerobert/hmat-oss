@@ -234,7 +234,7 @@ public:
     \param b the matrix B
     \param beta beta
    */
-  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta);
+  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, bool mainSolve = false);
   /*! \brief this <- this - M * D * M^T, where 'this' is symmetric (Lower stored),
       D diagonal
 
@@ -426,7 +426,7 @@ public:
 
     \param b la matrice B en entree, et X en sortie.
    */
-  void solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) const;
+  void solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, bool mainSolve = false) const;
   /*! \brief Resolution du systeme L x = x, avec this = L, et x = b vecteur.
 
     B est un vecteur a plusieurs colonnes, donc une FullMatrix.
@@ -621,6 +621,9 @@ public:
       return rank_ > UNINITIALIZED_BLOCK;
   }
 
+  bool isVoid() const {
+      return rows()->size() == 0 || cols()->size() == 0;
+  }
   /**
    * Tag a not leaf block as assembled.
    * Must only be called when all leaves of this block have been

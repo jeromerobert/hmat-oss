@@ -101,9 +101,11 @@ public:
   }
 
   int rows() const {
+    assert(data.rows==this->rows_->size());
     return data.rows;
   }
   int cols() const {
+    assert(data.cols==this->cols_->size());
     return data.cols;
   }
 
@@ -275,10 +277,13 @@ public:
   void checkNan() const;
   size_t memorySize() const;
 
-  /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320 x 100] norm=22.34758")
+  /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320, 452]x[760, 890] norm=22.34758")
     */
   std::string description() const {
-    return data.description();
+    std::ostringstream convert;
+    convert << "FullMatrix " << this->rows_->description() << "x" << this->cols_->description() ;
+    convert << "norm=" << norm();
+    return convert.str();
   }
 };
 

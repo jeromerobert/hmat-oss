@@ -110,7 +110,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
   rowsAdmissible = admissible.first;
   colsAdmissible = admissible.second;
-  if ( (rowsAdmissible && colsAdmissible) || (_rows->isLeaf() && _cols->isLeaf()) ) {
+  if ( (rowsAdmissible && colsAdmissible) || (_rows->isLeaf() || _cols->isLeaf()) ) {
     // We create a block of matrix in one of the following case:
     // - rowsAdmissible && colsAdmissible : we dont divide neither on rows nor on columns
     // - _rows->isLeaf() && _cols->isLeaf() : both rows and cols are leaf.
@@ -707,13 +707,15 @@ template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<
  */
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
+    if(x->isLeaf() && x->isNull())
+        return;
+
     if(*rows() == *x->rows() && *cols() == *x->cols()) {
         if (this->isLeaf()) {
             if (isRkMatrix()) {
+                if(!rk())
+                    rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
                 if(x->isRkMatrix()) {
-                    if (x->isNull()) {
-                        return;
-                    }
                     rk()->axpy(alpha, x->rk());
                     rank_ = rk()->rank();
                 } else if(!x->isLeaf()){
@@ -734,11 +736,9 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     rk(tmp);
                 }
             } else {
-                if(full() == NULL && !x->isNull())
+                if(full() == NULL)
                     full(new FullMatrix<T>(rows(), cols()));
-                if(x->isNull()) {
-                    // nothig to do
-                } else if(x->isFullMatrix()) {
+                if(x->isFullMatrix()) {
                     full()->axpy(alpha, x->full());
                 } else if(x->isRkMatrix()) {
                     FullMatrix<T> * f = x->rk()->eval();
@@ -756,9 +756,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                 }
             }
     } else {
-        if(x->isNull()) {
-            // nothing to do
-        } else if(x->isFullMatrix()) {
+        if(x->isFullMatrix()) {
             axpy(alpha, x->full());
             return;
         }
@@ -811,14 +809,11 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       // In this case, the matrix has small size
       // then evaluating the Rk-matrix is cheaper
       FullMatrix<T>* rkMat = newRk->eval();
-      if(isFullMatrix()) {
-        full()->axpy(alpha, rkMat);
-        delete rkMat;
-      } else {
-        // cas isNull
-        full(rkMat);
-        full()->scale(alpha);
-      }
+      if(!isFullMatrix())
+        full(new FullMatrix<T>(rows(), cols()));
+
+      full()->axpy(alpha, rkMat);
+      delete rkMat;
     }
     if (needResizing) {
       delete newRk;
@@ -954,7 +949,8 @@ makeCompatible(bool row_a, bool row_b,
  */
 template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
                                                   const HMatrix<T>* a, const HMatrix<T>* b) {
-    if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
+    if(a->isVoid())
+        return;
     HMatrix<T> * va = NULL;
     HMatrix<T> * vb = NULL;
     HMatrix<T> * vc = NULL;;
@@ -1002,7 +998,8 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
 template<typename T> void
 HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b) {
     // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
-    if (a->rows()->size() == 0 || a->cols()->size() == 0) return;
+    if(a->isVoid())
+        return;
 
     // None of the matrices is a leaf
     if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
@@ -1013,7 +1010,7 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                     continue;
                 }
                 // Void child
-                if (child->rows()->size() == 0 || child->cols()->size() == 0) continue;
+                if (child->isVoid()) continue;
 
                 const HMatrix<T> *childA, *childB;
                 for (int k = 0; k < (transA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
@@ -1124,21 +1121,21 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         // should not happen anymore
         HMAT_ASSERT(false);
     }
-    if(isFullMatrix()) {
-        full()->axpy(alpha, fullMat);
-        delete fullMat;
-    } else {
+
         // It's not optimal to concider that the result is a FullMatrix but
         // this is a H*F case and it almost never happen
-        fullMat->scale(alpha);
-        full(fullMat);
-    }
+    if (!isFullMatrix())
+      full(new FullMatrix<T>(rows(), cols()));
+    full()->axpy(alpha, fullMat);
+    delete fullMat;
+
 }
 
 template<typename T>
-void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta) {
+void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, bool) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if(isVoid())
+      return;
 
   if ((transA == 'T') && (transB == 'T')) {
     // This code has *not* been tested because it's currently not used.
@@ -1321,7 +1318,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
   assert(left || (*cols() == *d->rows()));
   assert(!left || (*rows() == *d->cols()));
 
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (isVoid()) return;
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!this->isLeaf()) {
@@ -1625,7 +1622,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
 
 template<typename T>
 void HMatrix<T>::clear() {
-  if (rows()->size() == 0 || cols()->size() == 0 || !isAssembled())
+  if (isVoid() || !isAssembled())
       return;
   if (this->isLeaf()) {
     if(isNull()) {
@@ -1724,9 +1721,9 @@ void HMatrix<T>::inverse() {
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular) const {
+void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, bool) const {
   DECLARE_CONTEXT;
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (isVoid()) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, unitriangular);
@@ -1766,7 +1763,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular)
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (isVoid()) return;
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
     // LAPACK resolution
@@ -2226,18 +2223,25 @@ template<typename T> void HMatrix<T>::solve(
         HMatrix<T>* b,
         hmat_factorization_t factorizationType) const {
     DECLARE_CONTEXT;
+    switch(factorizationType) {
+    case hmat_factorization_lu:
     /* Solve LX=B, result in B */
     this->solveLowerTriangularLeft(b, true);
     /* Solve UX=B, result in B */
-    switch(factorizationType) {
-    case hmat_factorization_lu:
         this->solveUpperTriangularLeft(b, false, false);
         break;
     case hmat_factorization_ldlt:
+        /* Solve LX=B, result in B */
+        this->solveLowerTriangularLeft(b, true);
+        /* Solve DX=B, result in B */
         b->multiplyWithDiag(this, true, true);
+        /* Solve L^tX=B, result in B */
         this->solveUpperTriangularLeft(b, true, true);
         break;
     case hmat_factorization_llt:
+        /* Solve LX=B, result in B */
+        this->solveLowerTriangularLeft(b, false);
+        /* Solve L^tX=B, result in B */
         this->solveUpperTriangularLeft(b, false, true);
         break;
     default:

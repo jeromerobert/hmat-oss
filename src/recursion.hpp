@@ -43,7 +43,7 @@ namespace hmat {
     void recursiveLdltDecomposition() ;
     void recursiveSolveUpperTriangularRight(Mat* b, bool unitriangular, bool lowerStored) const;
     void recursiveMdmtProduct(const Mat* m, const Mat* d);
-    void recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular) const;
+    void recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular, bool mainSolve = false) const;
     void recursiveLuDecomposition() ;
     void recursiveInverseNosym() ;
     void recursiveLltDecomposition() ;

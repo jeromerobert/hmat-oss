@@ -49,6 +49,7 @@
 #include <fstream>
 #include <cmath>
 #include <fcntl.h>
+#include <complex>
 
 #include <sys/stat.h>
 
@@ -289,23 +290,51 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
     // Void matrix
     if (rows() == 0 || cols() == 0) return;
 
+  int n = this->rows();
+  assert(this->rows() == this->cols()); // We expect a square matrix
+
+  // Standard LLt factorization algorithm is:
+  //  L(j,j) = sqrt( A(j,j) - sum_{k < j} L(j,k)^2)
+  //  L(i,j) = ( A(i,j) - sum_{k < j} L(i,k)L(j,k) ) / L(j,j)
+
     // from http://www.netlib.org/lapack/lawnspdf/lawn41.pdf page 120
-    const size_t n2 = ((size_t) rows()) * rows();
-    const size_t n3 = n2 * rows();
-    const size_t muls = n3 / 6 + n2 / 2 + rows() / 3;
-    const size_t adds = n3 / 6 - rows() / 6;
+  const size_t n2 = (size_t) n*n;
+  const size_t n3 = n2 * n;
+  const size_t muls = n3 / 6 + n2 / 2 + n / 3;
+  const size_t adds = n3 / 6 - n / 6;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
 
-    int info = proxy_lapack::potrf('L', this->rows(), this->data.m, this->data.lda);
-    if(info != 0)
-        // throw a pointer to be compliant with the Status class
-        throw hmat::LapackException("potrf", info);
-    triLower_ = true;
-    for (int j = 0; j < this->cols(); j++) {
+  for (int j = 0; j < n; j++) {
+    for (int k = 0; k < j; k++)
+      get(j,j) -= get(j,k) * get(j,k);
+
+    get(j,j) = std::sqrt(get(j,j));
+
+    for (int k = 0; k < j; k++)
+      for (int i = j+1; i < n; i++)
+        get(i,j) -= get(i,k) * get(j,k);
+
+    for (int i = j+1; i < n; i++) {
+      HMAT_ASSERT_MSG(get(j,j) != Constants<T>::zero, "Division by 0 in LDLt");
+      get(i,j) /= get(j,j);
+    }
+  }
+
+  // For real matrices, we could use the lapack version, could be faster
+  // (There is no L.Lt factorisation for complex matrices in lapack)
+  //    int info = proxy_lapack::potrf('L', this->rows(), this->data.m, this->data.lda);
+  //    if(info != 0)
+  //        // throw a pointer to be compliant with the Status class
+  //        throw hmat::LapackException("potrf", info);
+
+  for (int j = 0; j < n; j++) {
         for(int i = 0; i < j; i++) {
             get(i,j) = Constants<T>::zero;
         }
     }
+
+  triLower_ = true;
+  assert(!isTriUpper());
 }
 
 template<typename T>
