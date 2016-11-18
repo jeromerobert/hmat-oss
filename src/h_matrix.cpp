@@ -368,6 +368,8 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
         if(isRkMatrix()) {
             size_t mem = rank() * (((size_t)r) + c);
             result.compressed_size += mem;
+            if(!rk())
+                rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
 
             FullMatrix<T>* rk_eval = rk()->eval();
             result.rk_fit_nnz += rk_eval->info(result, rowsMin, colsMin, rowsMax, colsMax);
@@ -414,7 +416,6 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
         } else {
           if (isFullMatrix()) {
             result.full_zeros += full()->storedZeros();
-          }
             result.full_fit_nnz += full()->info(result, rowsMin, colsMin, rowsMax, colsMax);
             if (colsMax == 0) {
               colsMax = 0;
@@ -441,6 +442,7 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
             result.compressed_size += s;
             result.full_count ++;
             result.full_size += s;
+          }
         }
     } else {
         for (int i = 0; i < this->nrChild(); i++) {
