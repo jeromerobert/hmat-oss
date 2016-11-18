@@ -70,7 +70,7 @@ public:
    * @param rows the rows cluster tree
    * @param cols the cols cluster tree
    */
-  bool isInert(const ClusterTree& rows, const ClusterTree& cols) {
+  virtual bool isInert(const ClusterTree& rows, const ClusterTree& cols) {
       (void)rows, (void)cols; // unused
       return false;
   }
