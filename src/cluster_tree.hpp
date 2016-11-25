@@ -168,20 +168,6 @@ public:
 
   virtual ~ClusterTree();
 
-  /*! \brief Returns the admissibility parameter eta corresponding to two clusters.
-
-    As described in \a ClusterTree::isAdmissibleWith documentation,
-    this criteria is defined by:
-
-      eta = min(diameter(), other->diameter()) / distanceTo(other);
-
-    The lower it is, the farther away are the two boxes. It is thus
-    linked with the compression ratio one can expect from a block, the
-    lower eta is, the more the block can be compressed. It can be used
-    as a parameter in a crude a-priori work estimation method.
-   */
-  double getEta(const ClusterTree* other) const;
-
   ClusterTree* slice(int offset, int size) const;
 
   /*! \brief Return a copy to this.
