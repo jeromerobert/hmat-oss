@@ -28,7 +28,7 @@
 #include "disable_threading.hpp"
 #include "json.hpp"
 #include "iengine.hpp"
-
+#include "serialization.hpp"
 #include <cstring>
 #include <fstream>
 
@@ -59,6 +59,11 @@ HMatInterface<T>::HMatInterface(IEngine<T>* engine, HMatrix<T>* h, hmat_factoriz
       factorizationType = factorization;
 }
 
+static void io_write(void * buffer, size_t size, void * user_data) {
+    size_t r = fwrite(buffer, size, 1, (FILE*)user_data);
+    HMAT_ASSERT(r == 1);
+}
+
 template<typename T>
 void HMatInterface<T>::assemble(Assembly<T>& f, SymmetryFlag sym, bool,
                                    hmat_progress_t * progress, bool ownAssembly) {
@@ -66,6 +71,11 @@ void HMatInterface<T>::assemble(Assembly<T>& f, SymmetryFlag sym, bool,
   DECLARE_CONTEXT;
   engine_->progress(progress);
   engine_->assembly(f, sym, ownAssembly);
+  FILE * file = fopen("assembled.hmat", "wb");
+  HMAT_ASSERT(file != NULL);
+  MatrixStructMarshaller<T>(io_write, file).write(engine_.hmat, factorizationType);
+  fclose(file);
+  exit(0);
 }
 
 template<typename T>
