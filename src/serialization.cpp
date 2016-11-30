@@ -35,8 +35,8 @@ void MatrixStructMarshaller<T>::write(const ClusterTree * clusterTree) {
     int dim = d.coordinates()->dimension();
     writeValue(s);
     writeValue(dim);
-    for(int i = 0; i < s; i++) {
-        for(int j = 0; j < dim; j++) {
+    for(int j = 0; j < s; j++) {
+        for(int i = 0; i < dim; i++) {
             writeValue(d.coordinates()->get(i, j));
         }
     }
