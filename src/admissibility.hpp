@@ -106,7 +106,7 @@ private:
 class StandardAdmissibilityCondition : public TallSkinnyAdmissibilityCondition
 {
 public:
-  StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 5000000,
+  StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 20000000,
                                  size_t maxElementsPerBlockAca = 0);
   bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
   virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
