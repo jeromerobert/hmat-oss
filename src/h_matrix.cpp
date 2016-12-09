@@ -102,7 +102,9 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     int depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
+  : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(),
+    rows_(_rows), cols_(_cols), rk_(NULL),
+    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
@@ -119,8 +121,10 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     // Note that AdmissibilityCondition::isRowsColsAdmissible() has been modified, and now if rows or cols is a leaf, the block is admissible
     
     // 'isCompressible' is the criteria to choose Rk or Full.
-    if(admissibilityCondition->isCompressible(*(rows_), *(cols_)))
+    if(admissibilityCondition->isCompressible(*(rows_), *(cols_))) {
       rk(NULL);
+    }
+    approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
   } else {
     isUpper = false;
     isLower = (symFlag == kLowerSymmetric ? true : false);
@@ -143,6 +147,51 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
       }
     }
   }
+
+  // After children have been created, check if Rk leaves should be merged.
+  // We want to merge only one level, and thus use a prefix tree traversal.
+  if(coarsening && this->father == NULL) {
+    std::vector<HMatrix<T> *> stack;
+    stack.push_back(this);
+    while(!stack.empty()) {
+      HMatrix<T> * current = stack.back();
+      stack.pop_back();
+      if (current->isLeaf())
+        continue;
+      bool allRkLeaves = true;
+      size_t cumulative_size = 0;
+      for(int i = 0; i < current->nrChild(); ++i)
+      {
+        HMatrix<T>* child = current->getChild(i);
+        if(child != NULL && !child->isVoid())
+        {
+          if (child->isRkMatrix())
+            cumulative_size += (child->rows()->size() + child->cols()->size()) * child->approximateRank_;
+          else {
+            allRkLeaves = false;
+            break;
+          }
+        }
+      }
+      if (allRkLeaves)
+      {
+        approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
+        if (approximateRank_ > 0 && (rows()->size() + cols()->size()) * approximateRank_ < cumulative_size)
+        {
+          for (int i = 0; i < current->nrChild(); i++)
+            current->removeChild(i);
+          current->children.clear();
+          current->rk(NULL);
+        }
+      }
+      for(int i = 0; i < current->nrChild(); ++i)
+      {
+        HMatrix<T>* child = current->getChild(i);
+        if(child != NULL && !child->isVoid() && !child->isLeaf())
+          stack.push_back(child);
+      }
+    }
+  }
   admissibilityCondition->clean(*(rows_));
   admissibilityCondition->clean(*(cols_));
 }
@@ -150,7 +199,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
-    rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
+    rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
+    isUpper(false), isLower(false),
     rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
     {}
@@ -194,6 +244,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->rowsAdmissible = rowsAdmissible;
   h->colsAdmissible = colsAdmissible;
   h->rank_ = rank_ >= 0 ? 0 : rank_;
+  h->approximateRank_ = approximateRank_;
   if(!this->isLeaf()){
     for (int i = 0; i < this->nrChild(); ++i) {
       if (this->getChild(i)) {
@@ -219,6 +270,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->rank_ = o->rank_ >= 0 ? 0 : o->rank_;
   if (h->rank_==0)
     h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
+  h->approximateRank_ = o->approximateRank_;
   if(!o->isLeaf()){
     for (int i = 0; i < o->nrChild(); ++i) {
       if (o->getChild(i)) {
@@ -280,8 +332,6 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
         this->getChild(i)->assemble(f, ao);
     }
     assembledRecurse();
-    if (coarsening)
-      coarsen();
   }
 }
 
@@ -348,8 +398,6 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           }
         }
         upper->assembledRecurse();
-        if (coarsening)
-          coarsen(upper);
       }
     }
     assembledRecurse();
@@ -1531,6 +1579,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
   isUpper = o->isUpper;
   isTriUpper = o->isTriUpper;
   isTriLower = o->isTriLower;
+  approximateRank_ = o->approximateRank_;
   if (this->isLeaf()) {
     assert(o->isLeaf());
     if (isAssembled() && isNull() && o->isNull()) {
