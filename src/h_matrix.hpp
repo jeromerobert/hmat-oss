@@ -451,7 +451,7 @@ public:
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, bool mainSolve = false) const;
   /*! Resolution de x U = b, avec U = this, et x = b.
 
     \warning b est un vecteur ligne et non colonne.

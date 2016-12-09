@@ -47,7 +47,7 @@ namespace hmat {
     void recursiveLuDecomposition() ;
     void recursiveInverseNosym() ;
     void recursiveLltDecomposition() ;
-    void recursiveSolveUpperTriangularLeft(Mat* b, bool unitriangular, bool lowerStored) const;
+    void recursiveSolveUpperTriangularLeft(Mat* b, bool unitriangular, bool lowerStored, bool mainSolve = false) const;
 
     // https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
     // "me()->" replaces "this->" when calling a method of Mat

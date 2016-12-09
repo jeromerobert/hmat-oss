@@ -1808,7 +1808,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
    Only called by luDecomposition
  */
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, bool) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)

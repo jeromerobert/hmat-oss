@@ -285,7 +285,8 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft(Mat* b, bool unitriangular, bool lowerStored) const {
+  void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft(Mat* b,
+     bool unitriangular, bool lowerStored, bool mainSolve) const {
 
     //  Backward substitution:
     //  [ U11 | U12 ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -301,11 +302,12 @@ namespace hmat {
     for (int k=0 ; k<b->nrChildCol() ; k++) { // Loop on the column of the RHS
       for (int i=me()->nrChildRow()-1 ; i>=0 ; i--) {
         // Solve the i-th diagonal system
-        me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored);
+        me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored, mainSolve);
         // Update b[j,k] j<i with the contribution of the solutions just computed b[i,k]
         for (int j=0 ; j<i ; j++) {
           const Mat* u_ji = (lowerStored ? me()->get(i, j) : me()->get(j, i));
-          b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji, b->get(i,k), Constants<T>::pone);
+          b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji, b->get(i,k),
+                            Constants<T>::pone, mainSolve);
         }
       }
     }
