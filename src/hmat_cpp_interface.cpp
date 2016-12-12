@@ -55,7 +55,7 @@ HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, Symme
                                    AdmissibilityCondition * admissibilityCondition)
 {
   DECLARE_CONTEXT;
-  engine_.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), sym, admissibilityCondition);
+  engine_.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), 0, sym, admissibilityCondition);
 }
 
 template<typename T, template <typename> class E>

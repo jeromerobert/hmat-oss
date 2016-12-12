@@ -101,12 +101,13 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
 
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
-                    SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
+                    int depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
 {
+  this->depth = depth;
   pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
   rowsAdmissible = admissible.first;
   colsAdmissible = admissible.second;
@@ -134,7 +135,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
             // Create child only if not 'inert' (inert = will always be null)
-            this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
+            this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, depth+1, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
           } else
             // If 'inert', the child is NULL
             this->insertChild(i, j, NULL);
