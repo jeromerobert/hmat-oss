@@ -102,7 +102,9 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     int depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree<HMatrix<T> >(NULL, depth), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
+  : Tree<HMatrix<T> >(NULL, depth), RecursionMatrix<T, HMatrix<T> >(),
+    rows_(_rows), cols_(_cols), rk_(NULL),
+    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), keepSameRows(false), keepSameCols(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
@@ -127,6 +129,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     assert(!(forceFull && forceRk));
     if (forceRk || (lowRank && !forceFull))
       rk(NULL);
+    approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
   } else {
     pair<bool, bool> split = admissibilityCondition->splitRowsCols(*rows_, *cols_);
     keepSameRows = !split.first;
@@ -156,7 +159,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
-    rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
+    rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
+    isUpper(false), isLower(false),
     keepSameRows(false), keepSameCols(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
     {}
@@ -200,6 +204,7 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->keepSameRows = keepSameRows;
   h->keepSameCols = keepSameCols;
   h->rank_ = rank_ >= 0 ? 0 : rank_;
+  h->approximateRank_ = approximateRank_;
   if(!this->isLeaf()){
     for (int i = 0; i < this->nrChild(); ++i) {
       if (this->getChild(i)) {
@@ -225,6 +230,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->rank_ = o->rank_ >= 0 ? 0 : o->rank_;
   if (h->rank_==0)
     h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
+  h->approximateRank_ = o->approximateRank_;
   if(!o->isLeaf()){
     for (int i = 0; i < o->nrChild(); ++i) {
       if (o->getChild(i)) {
@@ -1534,6 +1540,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
   isUpper = o->isUpper;
   isTriUpper = o->isTriUpper;
   isTriLower = o->isTriLower;
+  approximateRank_ = o->approximateRank_;
   if (this->isLeaf()) {
     assert(o->isLeaf());
     if (isAssembled() && isNull() && o->isNull()) {

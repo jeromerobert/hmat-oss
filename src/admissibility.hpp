@@ -105,7 +105,14 @@ public:
       (void)rows, (void)cols; // unused
       return false;
   }
-  /*! \brief Clean up data which may be allocated by isCompressible  */
+
+  /*! \brief Get approximate rank of a block cluster */
+  virtual int getApproximateRank(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return 25;
+  }
+
+  /*! \brief Clean up data which may be allocated by isLowRank  */
   virtual void clean(const ClusterTree&) const {}
 
   virtual std::string str() const = 0;

@@ -137,8 +137,10 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
    /// Full block, or NULL if the block is not a leaf or is compressed.
    FullMatrix<T> * full_;
   };
-  /// rank_ of the block for Rk matrices, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix, NONLEAF_BLOCK=-2 for non leaf, FULL_BLOCK=-1 for full a matrix
+  /// rank of the block for Rk matrices, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix, NONLEAF_BLOCK=-2 for non leaf, FULL_BLOCK=-1 for full a matrix
   int rank_;
+  /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
+  int approximateRank_;
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
@@ -320,6 +322,13 @@ public:
   double norm() const {
     return sqrt(normSqr());
   }
+
+  /*! \brief Return the approximated rank.
+   */
+  int approximateRank() const {
+    return approximateRank_;
+  }
+
   /** Set a matrix to 0.
    */
   void clear();
