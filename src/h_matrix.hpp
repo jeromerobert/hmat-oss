@@ -322,6 +322,13 @@ public:
   double norm() const {
     return sqrt(normSqr());
   }
+
+  /*! \brief Return the approximated rank.
+   */
+  int approximateRank() const {
+    return approximateRank_;
+  }
+
   /** Set a matrix to 0.
    */
   void clear();
