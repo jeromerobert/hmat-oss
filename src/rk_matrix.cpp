@@ -274,6 +274,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   for (int i = 0; i < rank(); i++) {
     sigma->m[i] = sqrt(sigma->m[i]);
   }
+  // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
   // For that we first calculated Utilde * SQRT (SigmaTilde)
@@ -616,11 +617,15 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
   // - compute Aa.tmp : the cost is rank_a.rank_b.row_a, the resulting Rk has rank rank_b
   // - compute tmp.Bb : the cost is rank_a.rank_b.col_b, the resulting Rk has rank rank_a
   // the best choice depends on the ranks & dimensions, and also on our priority (flops or resulting rank)
+  // Here we use always the 1st solution
+
+  // TODO also, once we have the small matrix tmp=t^Ab.Ba, we could do a recompression on it for low cost
+  // using SVD + truncation. This also removes the choice above, since tmp=U.S.V is then applied on both sides
 
   ScalarArray<T>* tmp = new ScalarArray<T>(a->rank(), b->rank());
   ScalarArray<T>* newA = new ScalarArray<T>(Aa->rows, b->rank());
 
-  assert(tmp->rows == Ab->cols);
+  assert(tmp->rows == Ab->cols); // Aren't these tests done in the gemm ?
   assert(tmp->cols == Ba->cols);
   assert(Ab->rows == Ba->rows);
   tmp->gemm('T', 'N', Constants<T>::pone, Ab, Ba, Constants<T>::zero);
@@ -640,7 +645,7 @@ size_t RkMatrix<T>::computeRkRkMemorySize(char transA, char transB,
     ScalarArray<T>* Bb = (transB == 'N' ? b->b : b->a);
     ScalarArray<T>* Aa = (transA == 'N' ? a->a : a->b);
     return Bb == NULL ? 0 : Bb->memorySize() +
-           Aa == NULL ? 0 : Aa->rows * b->rank() * sizeof(T); // pkoi pas Aa->memorySize() ??
+           Aa == NULL ? 0 : Aa->rows * b->rank() * sizeof(T);
 }
 
 template<typename T>

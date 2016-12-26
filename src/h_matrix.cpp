@@ -820,7 +820,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
 {
     if((this->rows() == rows && this->cols() == cols) ||
        (*(this->rows()) == *rows && *(this->cols()) == *cols) ||
-       (!rows->isSubset(*(this->rows())) || !cols->isSubset(*(this->cols()))))
+       (!rows->isSubset(*(this->rows())) || !cols->isSubset(*(this->cols())))) // TODO cette ligne me parait louche... si rows et cols sont pas bons, on renvoie 'this' sans meme se plaindre ???
         return const_cast<HMatrix<T>*>(this);
 
     if(this->isLeaf()) {
@@ -1288,6 +1288,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
         if (i!=j && get(i,j)) {
         int k = left ? i : j;
         get(i,j)->multiplyWithDiag(d->get(k,k), left, inverse);
+        // TODO couldn't we handle this case with the previous one, using getChildForGEMM(d,i,i) that returns 'd' itself when 'd' is a leaf ?
     }
   } else if (isRkMatrix() && !isNull()) {
     rk()->multiplyWithDiagOrDiagInv(d, inverse, left);

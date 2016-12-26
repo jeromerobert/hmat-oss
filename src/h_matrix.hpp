@@ -544,7 +544,7 @@ public:
 
   /*! Set the child (i, j) of this.
 
-    \warning do not use on a leaf !
+    \warning do not use on a leaf ! <- how can I know, since I am inserting a child ???
 
     \param i row index
     \param j column index

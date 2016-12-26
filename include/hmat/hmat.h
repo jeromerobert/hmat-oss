@@ -71,7 +71,7 @@ struct hmat_block_info_t_struct {
     hmat_block_t block_type;
     /**
      * user data to pass from prepare function to compute function.
-     * Will also contains iser data required to execute is_null_row and
+     * Will also contains user data required to execute is_null_row and
      * is_null_col
      */
     void * user_data;

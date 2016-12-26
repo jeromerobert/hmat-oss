@@ -220,6 +220,7 @@ void FullMatrix<T>::ldltDecomposition() {
   diagonal = new Vector<T>(n);
   HMAT_ASSERT(diagonal);
   assert(this->rows() == this->cols()); // We expect a square matrix
+  //TODO : add flops counter
 
   // Standard LDLt factorization algorithm is:
   //  diag[j] = A(j,j) - sum_{k < j} L(j,k)^2 diag[k]

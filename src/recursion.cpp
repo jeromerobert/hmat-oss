@@ -64,7 +64,7 @@ namespace hmat {
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         for (int j=k+1 ; j<=i ; j++)
           // Hij <- Hij - Lik Dk tLjk
-          // if i=j, we can use mdmtProduct, otherwise we must write it explicitly
+          // if i=j, we can use mdmtProduct, otherwise we use mdntProduct
           if (i==j)
             me()->get(i,i)->mdmtProduct(me()->get(i,k), me()->get(k,k)); //  hii -= Lik.Dk.tLik
           else {
@@ -171,7 +171,7 @@ namespace hmat {
     // h11 = L11 * U11 => (L11,U11) = h11.luDecomposition
     // h12 = L11 * U12 => trsm L
     // h21 = L21 * U11 => trsm R
-    // h22 = L21 * U12 + L22 * U22 => (L22,U22) = (h22 - L21*U12).lltDecomposition()
+    // h22 = L21 * U12 + L22 * U22 => (L22,U22) = (h22 - L21*U12).luDecomposition()
     //
     // hij = sum_k Lik Ukj k<=i,j
     // The algorithm loops over 3 steps: for all k=1, 2, ..., n
