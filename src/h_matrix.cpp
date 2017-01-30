@@ -994,7 +994,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         tmpMatrix->ownClusterTrees(true, true);
         if(this->isRkMatrix()) {
           tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(tmpMatrix->rows(), tmpMatrix->cols())));
-        } else {
+        } else if (this->isFullMatrix()) {
           tmpMatrix->full(const_cast<FullMatrix<T>*>(full()->subset(tmpMatrix->rows(), tmpMatrix->cols())));
         }
         return tmpMatrix;
