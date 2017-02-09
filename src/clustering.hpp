@@ -96,7 +96,7 @@ private:
   int maxLeafSize_;
 protected:
   /* the number of children created by division at each level (2 by default) */
-  int divider_ ;
+  mutable int divider_ ;
 };
 
 class AxisAlignClusteringAlgorithm : public ClusteringAlgorithm {
