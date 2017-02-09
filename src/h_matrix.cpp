@@ -1281,7 +1281,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
     }
 
     // First the diagonal, then the rest...
-    for (int i=0 ; i<nrChildRow() ; i++)
+    for (int i=0 ; i<std::min(nrChildRow(), nrChildCol()) ; i++)
       get(i,i)->multiplyWithDiag(d->get(i,i), left, inverse);
     for (int i=0 ; i<nrChildRow() ; i++)
       for (int j=0 ; j<nrChildCol() ; j++)
