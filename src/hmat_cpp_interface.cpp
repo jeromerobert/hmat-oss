@@ -85,6 +85,7 @@ void HMatInterface<T, E>::factorize(hmat_factorization_t t, hmat_progress_t * pr
   engine_.progress(progress);
   engine_.factorization(t);
   factorizationType = t;
+  engine_.hmat->checkStructure();
 }
 
 template<typename T, template <typename> class E>
@@ -114,6 +115,7 @@ void HMatInterface<T, E>::gemm(char transA, char transB, T alpha,
     DISABLE_THREADING_IN_BLOCK;
     DECLARE_CONTEXT;
     engine_.gemm(transA, transB, alpha, a->engine_, b->engine_, beta);
+    engine_.hmat->checkStructure();
 }
 
 template<typename T, template <typename> class E>
@@ -174,6 +176,7 @@ HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
   HMatInterface<T, E>* result = new HMatInterface<T, E>(NULL);
   engine_.copy(result->engine_);
   assert(result->engine_.hmat);
+  result->engine_.hmat->checkStructure();
   return result;
 }
 
@@ -181,6 +184,7 @@ template<typename T, template <typename> class E>
 void HMatInterface<T, E>::transpose() {
   DECLARE_CONTEXT;
   engine_.transpose();
+  engine_.hmat->checkStructure();
 }
 
 

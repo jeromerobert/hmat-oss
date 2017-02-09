@@ -2259,6 +2259,21 @@ void HMatrix<T>::solveLlt(FullMatrix<T>* b) const {
 }
 
 template<typename T>
+void HMatrix<T>::checkStructure() const {
+  return;
+  if (this->isLeaf()) {
+    return;
+  }
+  for (int i = 0; i < this->nrChild(); i++) {
+      HMatrix<T>* child = this->getChild(i);
+      if (child) {
+        assert(child->rows()->isSubset(*(this->rows())) && child->cols()->isSubset(*(this->cols())));
+        child->checkStructure();
+    }
+  }
+}
+
+template<typename T>
 void HMatrix<T>::checkNan() const {
   return;
   if (this->isLeaf()) {

@@ -499,9 +499,13 @@ public:
    */
   void solveLlt(ScalarArray<T>* b) const ;
   void solveLlt(FullMatrix<T>* b) const ;
-  /*! Triggers an assertion is the HMatrix contains any NaN.
+  /*! Triggers an assertion if the HMatrix contains any NaN.
    */
   void checkNan() const;
+  /*! Triggers an assertion if children of an HMatrix are not contained within
+      this HMatrix.
+   */
+  void checkStructure() const;
   /** Recursively set the isTriLower flag on this matrix */
   void setTriLower(bool value);
 
