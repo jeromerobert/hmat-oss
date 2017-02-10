@@ -160,8 +160,9 @@ template<typename T> const FullMatrix<T>* FullMatrix<T>::subset(const IndexSet* 
   // The offset in the matrix, and not in all the indices
   int rowsOffset = subRows->offset() - rows_->offset();
   int colsOffset = subCols->offset() - cols_->offset();
-  ScalarArray<T>* sub = new ScalarArray<T>(data.m + rowsOffset + colsOffset * data.lda, subRows->size(), subCols->size(), data.lda);
-  return new FullMatrix<T>(sub, subRows, subCols);
+  ScalarArray<T> sub(data.m + rowsOffset + colsOffset * data.lda,
+                     subRows->size(), subCols->size(), data.lda);
+  return new FullMatrix<T>(&sub, subRows, subCols);
 }
 
 
