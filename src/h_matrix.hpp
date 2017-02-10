@@ -339,7 +339,12 @@ public:
    * Swap non diagonal blocks and cluster trees.
    * Only used internally.
    */
-  void transposeNoRecurse();
+  void transposeMeta();
+  /**
+   * Swap Rk or Full blocks around the diagonal
+   * Only used internally.
+   */
+  void transposeData();
 
   /*! \brief this <- o^t
 
