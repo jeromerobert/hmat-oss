@@ -551,7 +551,8 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
 }
 
 template<typename T> const HMatrix<T> * HMatrix<T>::getChildForGEMM(char & t, int i, int j) const {
-  assert(isUpper+isLower+isTriUpper+isTriLower<2); // At most 1 of these flags must be 'true'
+  // At most 1 of these flags must be 'true'
+  assert(isUpper + isLower + isTriUpper + isTriLower >= -1);
   assert(!this->isLeaf());
 
   const HMatrix<T>* res;
