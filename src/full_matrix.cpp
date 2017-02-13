@@ -263,6 +263,18 @@ void FullMatrix<T>::ldltDecomposition() {
   delete[] v;
 }
 
+template<typename T> void assertPositive(T v) {
+    HMAT_ASSERT_MSG(v != Constants<T>::zero, "Non positive diagonal value in LLt");
+}
+
+template<> void assertPositive(S_t v) {
+    HMAT_ASSERT_MSG(v > 0, "Non positive diagonal value in LLt");
+}
+
+template<> void assertPositive(D_t v) {
+    HMAT_ASSERT_MSG(v > 0, "Non positive diagonal value in LLt");
+}
+
 template<typename T> void FullMatrix<T>::lltDecomposition() {
     // Void matrix
     if (rows() == 0 || cols() == 0) return;
@@ -284,6 +296,7 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
   for (int j = 0; j < n; j++) {
     for (int k = 0; k < j; k++)
       get(j,j) -= get(j,k) * get(j,k);
+    assertPositive(get(j, j));
 
     get(j,j) = std::sqrt(get(j,j));
 
@@ -292,7 +305,6 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
         get(i,j) -= get(i,k) * get(j,k);
 
     for (int i = j+1; i < n; i++) {
-      HMAT_ASSERT_MSG(get(j,j) != Constants<T>::zero, "Division by 0 in LDLt");
       get(i,j) /= get(j,j);
     }
   }
