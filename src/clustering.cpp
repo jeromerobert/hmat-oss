@@ -147,7 +147,7 @@ ClusteringAlgorithm::getDivider() const
 }
 
 void
-ClusteringAlgorithm::setDivider(int divider)
+ClusteringAlgorithm::setDivider(int divider) const
 {
   divider_ = divider;
 }
