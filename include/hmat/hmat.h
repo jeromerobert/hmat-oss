@@ -161,8 +161,10 @@ hmat_clustering_algorithm_t* hmat_create_clustering_geometric();
 hmat_clustering_algorithm_t* hmat_create_clustering_hybrid();
 /* Create a new clustering algorithm by setting the maximum number of degrees of freedom in a leaf */
 hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
-/* Create a new clustering algorithm (for tests purpose only */
+/* Create a new clustering algorithm (for tests purpose only) */
 hmat_clustering_algorithm_t* hmat_create_void_clustering(const hmat_clustering_algorithm_t* algo);
+/* Create a new clustering algorithm (for tests purpose only) */
+hmat_clustering_algorithm_t* hmat_create_shuffle_clustering(const hmat_clustering_algorithm_t* algo, int from_divider, int to_divider);
 /* Delete clustering algorithm */
 void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
 /* Set the clustering divider parameter */

@@ -308,6 +308,22 @@ VoidClusteringAlgorithm::clean(ClusterTree& current) const
   algo_->clean(current);
 }
 
+void
+ShuffleClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+{
+  algo_->partition(current, children);
+  ++divider_;
+  if (divider_ > toDivider_)
+      divider_ = fromDivider_;
+  setDivider(divider_);
+}
+
+void
+ShuffleClusteringAlgorithm::clean(ClusterTree& current) const
+{
+  algo_->clean(current);
+}
+
 ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo)
 {
   algo_.push_front(std::pair<int, ClusteringAlgorithm*>(0, algo.clone()));
