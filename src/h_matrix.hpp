@@ -511,8 +511,10 @@ public:
       this HMatrix.
    */
   void checkStructure() const;
-  /** Recursively set the isTriLower flag on this matrix */
+  /** Recursively set the isTriLower flag on this matrix diagonal blocks */
   void setTriLower(bool value);
+  /** Recursively set the isLower flag on this matrix diagonal blocks */
+  void setLower(bool value);
 
   const ClusterData* rows() const;
   const ClusterData* cols() const;

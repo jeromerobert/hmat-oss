@@ -2297,6 +2297,16 @@ template<typename T> void HMatrix<T>::setTriLower(bool value)
     }
 }
 
+template<typename T> void HMatrix<T>::setLower(bool value)
+{
+    isLower = value;
+    if(!this->isLeaf())
+    {
+      for (int i = 0; i < nrChildRow(); i++)
+        get(i, i)->setLower(value);
+    }
+}
+
 template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const ScalarArray<T> * b, bool updateRank) {
     assert(isRkMatrix());
     if(a == NULL && isNull())
