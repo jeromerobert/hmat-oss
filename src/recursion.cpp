@@ -145,7 +145,7 @@ namespace hmat {
 
       for(int i=0 ; i<me()->nrChildRow() ; i++)
         for (int j=0 ; j<=i ; j++)
-          for(int k=0 ; k<me()->nrChildRow() ; k++) {
+          for(int k=0 ; k<m->nrChildCol() ; k++) {
             //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
             if (i==j)
               if (d->isLeaf())
