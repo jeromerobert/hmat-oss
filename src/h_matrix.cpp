@@ -707,11 +707,9 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
     } else {
         if(x->isFullMatrix()) {
             axpy(alpha, x->full());
-            return;
         }
         else if(x->isRkMatrix()) {
             axpy(alpha, x->rk());
-            return;
         }
         else if(x->isLeaf()){
             // X is an empty leaf, so nothing to do
