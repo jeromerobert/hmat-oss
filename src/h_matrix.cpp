@@ -701,7 +701,9 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
             for (int i = 0; i < this->nrChild(); i++) {
                     HMatrix<T>* child = this->getChild(i);
                     const HMatrix<T>* bChild = x->isLeaf() ? x : x->getChild(i);
-                    child->axpy(alpha, bChild);
+                    if (child && bChild)
+                        child->axpy(alpha, bChild);
+                    // TODO what to do if only 1 of the 2 is NULL ?
                 }
             }
     } else {
