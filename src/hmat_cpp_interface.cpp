@@ -52,7 +52,8 @@ void HMatInterface<T, E>::finalize() {
 
 template<typename T, template <typename> class E>
 HMatInterface<T, E>::HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
-                                   AdmissibilityCondition * admissibilityCondition)
+                                   AdmissibilityCondition * admissibilityCondition) :
+    engine_(), factorizationType(hmat_factorization_none)
 {
   DECLARE_CONTEXT;
   engine_.hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), 0, sym, admissibilityCondition);
