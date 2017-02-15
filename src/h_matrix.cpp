@@ -2372,12 +2372,12 @@ template<typename T>
 HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, char bitfield) {
     HMatrix<T> * m = new HMatrix<T>(settings);
     m->rank_ = rank;
-    m->isUpper = bitfield & 1 << 0;
-    m->isLower = bitfield & 1 << 1;
-    m->isTriUpper = bitfield & 1 << 2;
-    m->isTriLower = bitfield & 1 << 3;
-    m->rowsAdmissible = bitfield & 1 << 4;
-    m->colsAdmissible = bitfield & 1 << 5;
+    m->isUpper = (bitfield & 1 << 0 ? true : false);
+    m->isLower = (bitfield & 1 << 1 ? true : false);
+    m->isTriUpper = (bitfield & 1 << 2 ? true : false);
+    m->isTriLower = (bitfield & 1 << 3 ? true : false);
+    m->rowsAdmissible = (bitfield & 1 << 4 ? true : false);
+    m->colsAdmissible = (bitfield & 1 << 5 ? true : false);
     return m;
 }
 
