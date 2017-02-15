@@ -57,6 +57,18 @@ static double writeHeader(ofstream & file, int maxDim)
          << "        closepath" << endl
          << "        fill"  << endl
          << "} def"  << endl
+         << "/grayrectangle {" << endl
+         << "        newpath" << endl
+         << "	     setlinewidth"  << endl
+         << "        0.83 setgray" << endl
+         << "        moveto" << endl
+         << "        rlineto" << endl
+         << "        rlineto" << endl
+         << "        rlineto" << endl
+         << "        rlineto" << endl
+         << "        closepath" << endl
+         << "        fill"  << endl
+         << "} def"  << endl
          << ""  << endl
          << "/emptyrectangle {"  << endl
          << "	newpath"  << endl
@@ -73,7 +85,7 @@ static double writeHeader(ofstream & file, int maxDim)
          << "/emptybluerectangle {"  << endl
          << "	newpath"  << endl
          << "	setlinewidth"  << endl
-         << "	0 0 255 setrgbcolor"  << endl
+         << "	0 0 1 setrgbcolor"  << endl
          << "	moveto"  << endl
          << "	rlineto"  << endl
          << "	rlineto"  << endl
@@ -139,7 +151,11 @@ void PostscriptDumper<T>::write(const void * tree, const std::string& filename) 
 template<typename T>
 void PostscriptDumper<T>::recursiveDrawing(const void * tree, ofstream& f, int depth) const {
   const HMatrix<T> * m = castToHMatrix(tree);
-    if (!m->isLeaf()) {
+
+  if (depth == 0)
+    drawRectangle(m, f, "grayrectangle", 0);
+
+  if (!m->isLeaf()) {
         for (int i = 0; i < m->nrChild(); i++) {
             const HMatrix<T> * child = m->getChild(i);
             if (child) {
@@ -149,7 +165,7 @@ void PostscriptDumper<T>::recursiveDrawing(const void * tree, ofstream& f, int d
     }
 
     if (depth == 0)
-      drawRectangle(m, f, "emptyrectangle", 30-depth);
+      drawRectangle(m, f, "emptyrectangle", 10-depth);
     drawMatrix(tree, f, depth);
 }
 
@@ -182,8 +198,12 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
               << startX << " " << startY;
             f << " 0 " << color << " 0 "
               << " greenrectangle" << endl;
-            f << startX << " " << startY + (lengthY * .95) << " " << .7 * std::min(lengthX, - lengthY)
-              << " (" << m->rank() << ") showrank" << endl;
+            // value to write: rank
+            int value = m->rank();
+            // size of the characters
+            double size= (value>=100?.5:0.7) * min(-lengthY,lengthX);
+            f << startX + 10 - depth << " " << startY + (lengthY * .75) << " " << size
+              << " (" << value << ") showrank" << endl;
         } else if (m->isFullMatrix()) {
             int zeros = m->full()->storedZeros();
             double ratio = zeros / ((double) m->full()->rows() * m->full()->cols());
@@ -198,8 +218,12 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
             else
               f << " " << "1 " << color << " " << color;
             f << " redrectangle" << endl;
-            f << startX + 10 - depth << " " << startY + (lengthY * .85) << " " << .7 * min(-lengthY,lengthX)
-            << " (" << (int) (100 * (1-ratio)) << ") showrank" << endl;
+            // value to write: percentage of non-zeros
+            int value = (int) (100 * (1-ratio));
+            // size of the characters
+            double size= (value>=100?.5:0.7) * min(-lengthY,lengthX);
+            f << startX + 10 - depth << " " << startY + (lengthY * .75) << " " << size
+            << " (" << value << ") showrank" << endl;
         }
     } else if(cross){ /* true pour une hmat, !(handle->position == kAboveL0) pour une HMatrixHandle */
         int n = m->rows()->coordinates()->size();
@@ -215,10 +239,14 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
           int j = k>=m->nrChildCol() ? m->nrChildCol()-1 : k ;
           int colOffset = m->cols()->offset();
           int rowOffset = m->rows()->offset();
-          if (m->get(i, j)) {
-            colOffset = m->get(i, j)->cols()->offset();
-            rowOffset = m->get(i, j)->rows()->offset();
-          }
+          // to get colOffset, I try to find a non-null child in the same column
+          for (int i2=0 ; i2<m->nrChildRow() ; i2++)
+            if (m->get(i2, j))
+              colOffset = m->get(i2, j)->cols()->offset();
+          // to get rowOffset, I try to find a non-null child in the same row
+          for (int j2=0 ; j2<m->nrChildCol() ; j2++)
+            if (m->get(i, j2))
+              rowOffset = m->get(i, j2)->rows()->offset();
           int thickness = max(1, min(10 - depth, (rowsCount + colsCount) / 100));
         f << 0 << " " << -rowsCount << " "
           << colOffset << " " << n - startY << " "
@@ -232,7 +260,7 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
            un postcript a l'endroit.
        /cross {
          newpath
-         setlinewidth             (30-depth) trait plus epais en haut de l'arbre
+         setlinewidth             (10-depth) trait plus epais en haut de l'arbre
          0 0 0 setrgbcolor        (noir)
          moveto                   (startX, n-rowoffset)
          rlineto                  (colsCount,0) trait horizontal
