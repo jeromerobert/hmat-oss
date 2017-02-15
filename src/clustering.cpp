@@ -147,7 +147,7 @@ ClusteringAlgorithm::getDivider() const
 }
 
 void
-ClusteringAlgorithm::setDivider(int divider)
+ClusteringAlgorithm::setDivider(int divider) const
 {
   divider_ = divider;
 }
@@ -304,6 +304,22 @@ VoidClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree
 
 void
 VoidClusteringAlgorithm::clean(ClusterTree& current) const
+{
+  algo_->clean(current);
+}
+
+void
+ShuffleClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+{
+  algo_->partition(current, children);
+  ++divider_;
+  if (divider_ > toDivider_)
+      divider_ = fromDivider_;
+  setDivider(divider_);
+}
+
+void
+ShuffleClusteringAlgorithm::clean(ClusterTree& current) const
 {
   algo_->clean(current);
 }

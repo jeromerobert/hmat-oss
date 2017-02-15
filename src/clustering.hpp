@@ -87,10 +87,10 @@ public:
   virtual void clean(ClusterTree&) const {}
 
   int getMaxLeafSize() const;
-  void setMaxLeafSize(int maxLeafSize);
+  virtual void setMaxLeafSize(int maxLeafSize);
 
   int getDivider() const;
-  void setDivider(int divider);
+  virtual void setDivider(int divider) const;
 
 private:
   int maxLeafSize_;
@@ -210,6 +210,26 @@ public:
 
 private:
   const ClusteringAlgorithm *algo_;
+};
+
+class ShuffleClusteringAlgorithm : public AxisAlignClusteringAlgorithm
+{
+public:
+  ShuffleClusteringAlgorithm(const ClusteringAlgorithm &algo, int fromDivider, int toDivider)
+    : AxisAlignClusteringAlgorithm(), algo_(algo.clone()), fromDivider_(fromDivider), toDivider_(toDivider) {}
+
+  ClusteringAlgorithm* clone() const { return new ShuffleClusteringAlgorithm(*this); }
+  std::string str() const { return "ShuffleClusteringAlgorithm"; }
+
+  void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+  void clean(ClusterTree& current) const;
+  void setMaxLeafSize(int maxLeafSize) { algo_->setMaxLeafSize(maxLeafSize); }
+  void setDivider(int divider) const { algo_->setDivider(divider); }
+
+private:
+  ClusteringAlgorithm *algo_;
+  const int fromDivider_;
+  const int toDivider_;
 };
 
 }  // end namespace hmat

@@ -211,6 +211,8 @@ int main(int argc, char **argv) {
   hmat_info_t mat_info;
   char arithmetic;
   hmat_clustering_algorithm_t* clustering;
+  hmat_clustering_algorithm_t* clustering_shuffle;
+  hmat_clustering_algorithm_t* clustering_max_dof;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t * hmatrix;
   int kLowerSymmetric = 1; /* =0 if not Symmetric */
@@ -284,7 +286,13 @@ int main(int argc, char **argv) {
   }
 
   clustering = hmat_create_clustering_median();
-  cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering);
+  /* To test with n-ary trees, change final argument to a value > 2 */
+  clustering_shuffle = hmat_create_shuffle_clustering(clustering, 2, 2);
+  /* Change maxLeafSize to have a deep tree */
+  clustering_max_dof = hmat_create_clustering_max_dof(clustering_shuffle, 10);
+  cluster_tree = hmat_create_cluster_tree(points, 3, n, clustering_max_dof);
+  hmat_delete_clustering(clustering_max_dof);
+  hmat_delete_clustering(clustering_shuffle);
   hmat_delete_clustering(clustering);
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix(cluster_tree, cluster_tree, 1);

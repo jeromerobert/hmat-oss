@@ -72,6 +72,13 @@ hmat_create_void_clustering(const hmat_clustering_algorithm_t* algo)
   return static_cast<hmat_clustering_algorithm_t*>((void*) result);
 }
 
+hmat_clustering_algorithm_t*
+hmat_create_shuffle_clustering(const hmat_clustering_algorithm_t* algo, int from_divider, int to_divider)
+{
+  ShuffleClusteringAlgorithm* result = new ShuffleClusteringAlgorithm(*(static_cast<const ClusteringAlgorithm*>((void*) algo)), from_divider, to_divider);
+  return static_cast<hmat_clustering_algorithm_t*>((void*) result);
+}
+
 hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo)
 {
     DofCoordinates dofs(coord, dimension, size, true);
