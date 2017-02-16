@@ -78,18 +78,22 @@ template<typename T> struct Types {
 template<> struct Types<S_t> {
   typedef D_t dp;
   typedef S_t sp;
+  static const ScalarTypes TYPE = S_TYPE;
 };
 template<> struct Types<D_t> {
   typedef D_t dp;
   typedef S_t sp;
+  static const ScalarTypes TYPE = D_TYPE;
 };
 template<> struct Types<C_t> {
   typedef Z_t dp;
   typedef C_t sp;
+  static const ScalarTypes TYPE = C_TYPE;
 };
 template<> struct Types<Z_t> {
   typedef Z_t dp;
   typedef C_t sp;
+  static const ScalarTypes TYPE = Z_TYPE;
 };
 
 }  // end namespace hmat

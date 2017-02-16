@@ -24,6 +24,7 @@
 #include <vector>
 #include "compression.hpp"
 #include "rk_matrix.hpp"
+#include "common/my_assert.h"
 
 namespace hmat {
 
@@ -112,6 +113,7 @@ template<typename TR> int MatrixStructMarshaller<T>::writeTree(const TR * tree) 
 
 template<typename T>
 void MatrixStructMarshaller<T>::write(const HMatrix<T> * matrix, hmat_factorization_t factorization){
+    writeValue(Types<T>::TYPE);
     writeValue(factorization);
     write(matrix->rowsTree());
     write(matrix->colsTree());
@@ -197,6 +199,10 @@ template<typename TR> TR * MatrixStructUnmarshaller<T>::readTree(TR * tree) {
 
 template<typename T>
 HMatrix<T> * MatrixStructUnmarshaller<T>::read(){
+    int type = readValue<int>();
+    HMAT_ASSERT_MSG(type != Types<T>::TYPE,
+                    "Type mismatch. Unmarshaller type is %d while data type is %d",
+                    Types<T>::TYPE, type);
     factorization_ = hmat_factorization_t(readValue<int>());
     ClusterTree * rows = readClusterTree();
     ClusterTree * cols = readClusterTree();
