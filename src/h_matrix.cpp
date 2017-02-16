@@ -1926,8 +1926,9 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, 
 template<typename T> void HMatrix<T>::lltDecomposition() {
 
     assertLower(this);
-    if (rows()->size() == 0 || cols()->size() == 0) return;
-    if(this->isLeaf()) {
+    if (isVoid()) {
+        // nothing to do
+    } else if(this->isLeaf()) {
         full()->lltDecomposition();
     } else {
         HMAT_ASSERT(isLower);
@@ -2107,8 +2108,9 @@ void HMatrix<T>::ldltDecomposition() {
   DECLARE_CONTEXT;
   assertLower(this);
 
-  if (rows()->size() == 0 || cols()->size() == 0) return;
-  if (this->isLeaf()) {
+  if (isVoid()) {
+    // nothing to do
+  } else if (this->isLeaf()) {
     //The basic case of the recursion is necessarily a full matrix leaf
     //since the recursion is done with *rows() == *cols().
 
