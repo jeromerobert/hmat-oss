@@ -102,36 +102,35 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
                     int depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
+  : Tree<HMatrix<T> >(NULL, depth), RecursionMatrix<T, HMatrix<T> >(), rows_(_rows), cols_(_cols), rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
+    isTriUpper(false), isTriLower(false), keepSameRows(false), keepSameCols(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
 {
-  this->depth = depth;
-  pair<bool, bool> admissible = admissibilityCondition->isRowsColsAdmissible(*(rows_), *(cols_));
-  rowsAdmissible = admissible.first;
-  colsAdmissible = admissible.second;
-  if ( (rowsAdmissible && colsAdmissible) || (_rows->isLeaf() || _cols->isLeaf()) ) {
-    // We create a block of matrix in one of the following case:
-    // - rowsAdmissible && colsAdmissible : we dont divide neither on rows nor on columns
-    // - _rows->isLeaf() && _cols->isLeaf() : both rows and cols are leaf.
-    // In the other cases, we subdivide.
-    // Note that AdmissibilityCondition::isRowsColsAdmissible() has been modified, and now if rows or cols is a leaf, the block is admissible
-    
-    // 'isCompressible' is the criteria to choose Rk or Full.
-    if(admissibilityCondition->isCompressible(*(rows_), *(cols_)))
+  if (isVoid())
+    return;
+  // We create a block of matrix in one of the following case:
+  // - rows_->isLeaf() && cols_->isLeaf() : both rows and cols are leaves.
+  // - Block is too small to recurse and compress (for performance)
+  // - Block is compressible and in-place compression is possible
+  // In the other cases, we subdivide.
+  bool tooSmall = admissibilityCondition->isTooSmall(*rows_, *cols_);
+  bool lowRank = admissibilityCondition->isLowRank(*rows_, *cols_);
+  bool tooLarge = admissibilityCondition->isTooLarge(*rows_, *cols_);
+  if ((rows_->isLeaf() && cols_->isLeaf()) || tooSmall || (lowRank && !tooLarge)) {
+    if (lowRank && !tooSmall)
       rk(NULL);
   } else {
-    isUpper = false;
+    pair<bool, bool> split = admissibilityCondition->splitRowsCols(*rows_, *cols_);
+    keepSameRows = !split.first;
+    keepSameCols = !split.second;
     isLower = (symFlag == kLowerSymmetric ? true : false);
-    isTriUpper = false;
-    isTriLower = false;
     for (int i = 0; i < nrChildRow(); ++i) {
-      // if rows not admissible, don't recurse on them
-      ClusterTree* rowChild = (rowsAdmissible ? _rows : static_cast<ClusterTree*>(_rows->getChild(i)));
+      // Don't recurse on rows if splitRowsCols() told us not to.
+      ClusterTree* rowChild = (keepSameRows ? _rows : const_cast<ClusterTree*>(rows_->getChild(i)));
       for (int j = 0; j < nrChildCol(); ++j) {
-        // if cols not admissible, don't recurse on them
-        ClusterTree* colChild = (colsAdmissible ? _cols : static_cast<ClusterTree*>(_cols->getChild(j)));
+        // Don't recurse on cols if splitRowsCols() told us not to.
+        ClusterTree* colChild = (keepSameCols ? _cols : const_cast<ClusterTree*>(cols_->getChild(j)));
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
             // Create child only if not 'inert' (inert = will always be null)
@@ -151,7 +150,7 @@ template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
-    rowsAdmissible(false), colsAdmissible(false), temporary(false), ownClusterTree_(false),
+    keepSameRows(false), keepSameCols(false), temporary(false), ownClusterTree_(false),
     localSettings(settings)
     {}
 
@@ -191,8 +190,8 @@ HMatrix<T>* HMatrix<T>::copyStructure() const {
   h->isLower = isLower;
   h->isTriUpper = isTriUpper;
   h->isTriLower = isTriLower;
-  h->rowsAdmissible = rowsAdmissible;
-  h->colsAdmissible = colsAdmissible;
+  h->keepSameRows = keepSameRows;
+  h->keepSameCols = keepSameCols;
   h->rank_ = rank_ >= 0 ? 0 : rank_;
   if(!this->isLeaf()){
     for (int i = 0; i < this->nrChild(); ++i) {
@@ -214,8 +213,8 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->isUpper = o->isUpper;
   h->isTriUpper = o->isTriUpper;
   h->isTriLower = o->isTriLower;
-  h->rowsAdmissible = o->rowsAdmissible;
-  h->colsAdmissible = o->colsAdmissible;
+  h->keepSameRows = o->keepSameRows;
+  h->keepSameCols = o->keepSameCols;
   h->rank_ = o->rank_ >= 0 ? 0 : o->rank_;
   if (h->rank_==0)
     h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
@@ -243,10 +242,10 @@ void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* col
     } else if(!this->isLeaf()) {
       for (int i = 0; i < nrChildRow(); ++i) {
         // if rows not admissible, don't recurse on them
-        const ClusterTree* rowChild = (rowsAdmissible ? rows : rows->me()->getChild(i));
+        const ClusterTree* rowChild = (keepSameRows ? rows : rows->me()->getChild(i));
         for (int j = 0; j < nrChildCol(); ++j) {
           // if cols not admissible, don't recurse on them
-          const ClusterTree* colChild = (colsAdmissible ? cols : cols->me()->getChild(j));
+          const ClusterTree* colChild = (keepSameCols ? cols : cols->me()->getChild(j));
           if(get(i, j))
             get(i, j)->setClusterTrees(rowChild, colChild);
         }
@@ -1318,10 +1317,10 @@ template<typename T> void HMatrix<T>::transposeMeta() {
         isTriLower = !isTriLower;
         isTriUpper = !isTriUpper;
     }
-    // Warning: nrChildRow() uses rowsAdmissible and rows_
-    bool tmp = colsAdmissible; // can't use swap on bitfield so manual swap...
-    colsAdmissible = rowsAdmissible;
-    rowsAdmissible = tmp;
+    // Warning: nrChildRow() uses keepSameRows and rows_
+    bool tmp = keepSameCols; // can't use swap on bitfield so manual swap...
+    keepSameCols = keepSameRows;
+    keepSameRows = tmp;
     RecursionMatrix<T, HMatrix<T> >::transposeMeta();
     swap(rows_, cols_);
 }
@@ -2380,8 +2379,8 @@ HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, c
     m->isLower = (bitfield & 1 << 1 ? true : false);
     m->isTriUpper = (bitfield & 1 << 2 ? true : false);
     m->isTriLower = (bitfield & 1 << 3 ? true : false);
-    m->rowsAdmissible = (bitfield & 1 << 4 ? true : false);
-    m->colsAdmissible = (bitfield & 1 << 5 ? true : false);
+    m->keepSameRows = (bitfield & 1 << 4 ? true : false);
+    m->keepSameCols = (bitfield & 1 << 5 ? true : false);
     return m;
 }
 
