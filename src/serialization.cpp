@@ -200,7 +200,7 @@ template<typename TR> TR * MatrixStructUnmarshaller<T>::readTree(TR * tree) {
 template<typename T>
 HMatrix<T> * MatrixStructUnmarshaller<T>::read(){
     int type = readValue<int>();
-    HMAT_ASSERT_MSG(type != Types<T>::TYPE,
+    HMAT_ASSERT_MSG(type == Types<T>::TYPE,
                     "Type mismatch. Unmarshaller type is %d while data type is %d",
                     Types<T>::TYPE, type);
     factorization_ = hmat_factorization_t(readValue<int>());
