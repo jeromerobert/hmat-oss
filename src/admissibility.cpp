@@ -69,14 +69,20 @@ StandardAdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const Clu
 }
 
 bool
-StandardAdmissibilityCondition::isTooSmall(const ClusterTree& rows, const ClusterTree& cols) const
+StandardAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const
+{
+    return forceFull(rows, cols);
+}
+
+bool
+StandardAdmissibilityCondition::forceFull(const ClusterTree& rows, const ClusterTree& cols) const
 {
     // If there is less than 2 rows or cols, compression is useless
     return (rows.data.size() < 2 || cols.data.size() < 2);
 }
 
 bool
-StandardAdmissibilityCondition::isTooLarge(const ClusterTree& rows, const ClusterTree& cols) const
+StandardAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const
 {
     // If the block is too large for current algorithm compression, split it
     CompressionMethod m = HMatSettings::getInstance().compressionMethod;
@@ -87,7 +93,7 @@ StandardAdmissibilityCondition::isTooLarge(const ClusterTree& rows, const Cluste
     if(!isFullAlgo && elements > maxElementsPerBlockAca_)
         return true;
 
-    // Otherwise, compression is performed
+    // Otherwise, do not force split
     return false;
 }
 

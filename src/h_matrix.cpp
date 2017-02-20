@@ -114,11 +114,12 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   // - Block is too small to recurse and compress (for performance)
   // - Block is compressible and in-place compression is possible
   // In the other cases, we subdivide.
-  bool tooSmall = admissibilityCondition->isTooSmall(*rows_, *cols_);
-  bool lowRank = admissibilityCondition->isLowRank(*rows_, *cols_);
-  bool tooLarge = admissibilityCondition->isTooLarge(*rows_, *cols_);
-  if ((rows_->isLeaf() && cols_->isLeaf()) || tooSmall || (lowRank && !tooLarge)) {
-    if (lowRank && !tooSmall)
+  const bool lowRank = admissibilityCondition->isLowRank(*rows_, *cols_);
+  const bool stopRecursion = admissibilityCondition->stopRecursion(*rows_, *cols_);
+  const bool forceRecursion = admissibilityCondition->forceRecursion(*rows_, *cols_);
+  const bool forceFull = admissibilityCondition->forceFull(*rows_, *cols_);
+  if ((rows_->isLeaf() && cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion)) {
+    if (lowRank && !forceFull)
       rk(NULL);
   } else {
     pair<bool, bool> split = admissibilityCondition->splitRowsCols(*rows_, *cols_);

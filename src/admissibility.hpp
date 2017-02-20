@@ -46,11 +46,11 @@ public:
    */
   virtual bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const = 0;
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
-      is too small to recurse; in this case, block will be stored full.
+      is too small to recurse.
 
     \return true  if the block is too small to recurse
    */
-  virtual bool isTooSmall(const ClusterTree& rows, const ClusterTree& cols) const {
+  virtual bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
       (void)rows, (void)cols; // unused
       return false;
   }
@@ -60,7 +60,16 @@ public:
 
     \return true  if the block is too large to perform compression
    */
-  virtual bool isTooLarge(const ClusterTree& rows, const ClusterTree& cols) const {
+  virtual bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
+  /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
+      must not be compressed, even if admissible.
+
+    \return true  if the admissible block must not be compressed
+   */
+  virtual bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const {
       (void)rows, (void)cols; // unused
       return false;
   }
@@ -104,8 +113,9 @@ public:
   StandardAdmissibilityCondition(double eta, double ratio = 0, size_t maxElementsPerBlock = 20000000,
                                  size_t maxElementsPerBlockAca = 0);
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
-  bool isTooSmall(const ClusterTree& rows, const ClusterTree& cols) const;
-  bool isTooLarge(const ClusterTree& rows, const ClusterTree& cols) const;
+  bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+  bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+  bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
   std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
   void clean(const ClusterTree& current) const;
   std::string str() const;
