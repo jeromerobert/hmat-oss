@@ -50,14 +50,20 @@ public:
 
     \return true  if the block is too small to recurse
    */
-  virtual bool isTooSmall(const ClusterTree& rows, const ClusterTree& cols) const = 0;
+  virtual bool isTooSmall(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
       is too large to perform compression, if it is low rank; in this case, recursion
       is performed.
 
     \return true  if the block is too large to perform compression
    */
-  virtual bool isTooLarge(const ClusterTree& rows, const ClusterTree& cols) const = 0;
+  virtual bool isTooLarge(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
   /*! \brief Returns a pair of boolean telling if the block of interaction between 2 nodes
    is computed on this block (both values are false), or if block can be split along row- or
    col-axis.
@@ -65,7 +71,8 @@ public:
     \return a pair of boolean.
 
    */
-  virtual std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const = 0;
+  virtual std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
+
   /**
    * Return true if the block is always null,
    * (i.e. we know that is will not even be filled during the factorization).

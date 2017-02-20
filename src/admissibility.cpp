@@ -32,6 +32,12 @@
 
 namespace hmat {
 
+std::pair<bool, bool>
+AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
+{
+  return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
+}
+
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(
     double eta, double ratio, size_t maxElementsPerBlock, size_t maxElementsPerBlockRows):
     eta_(eta), ratio_(ratio), maxElementsPerBlock(maxElementsPerBlock),
