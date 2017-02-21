@@ -131,10 +131,10 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     isLower = (symFlag == kLowerSymmetric ? true : false);
     for (int i = 0; i < nrChildRow(); ++i) {
       // Don't recurse on rows if splitRowsCols() told us not to.
-      ClusterTree* rowChild = (keepSameRows ? _rows : const_cast<ClusterTree*>(rows_->getChild(i)));
+      ClusterTree* rowChild = const_cast<ClusterTree*>((keepSameRows ? rows_ : rows_->getChild(i)));
       for (int j = 0; j < nrChildCol(); ++j) {
         // Don't recurse on cols if splitRowsCols() told us not to.
-        ClusterTree* colChild = (keepSameCols ? _cols : const_cast<ClusterTree*>(cols_->getChild(j)));
+        ClusterTree* colChild = const_cast<ClusterTree*>((keepSameCols ? cols_ : cols_->getChild(j)));
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
             // Create child only if not 'inert' (inert = will always be null)
