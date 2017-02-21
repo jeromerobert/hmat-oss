@@ -73,6 +73,15 @@ public:
       (void)rows, (void)cols; // unused
       return false;
   }
+  /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
+      must be compressed, even if not admissible.
+
+    \return true  if the block must be compressed
+   */
+  virtual bool forceRk(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
   /*! \brief Returns a pair of boolean telling if the block of interaction between 2 nodes
    is computed on this block (both values are false), or if block can be split along row- or
    col-axis.
