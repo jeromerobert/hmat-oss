@@ -117,9 +117,11 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   const bool lowRank = admissibilityCondition->isLowRank(*rows_, *cols_);
   const bool stopRecursion = admissibilityCondition->stopRecursion(*rows_, *cols_);
   const bool forceRecursion = admissibilityCondition->forceRecursion(*rows_, *cols_);
+  assert(!(forceRecursion && stopRecursion));
   if ((rows_->isLeaf() && cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion)) {
     const bool forceFull = admissibilityCondition->forceFull(*rows_, *cols_);
     const bool forceRk   = admissibilityCondition->forceRk(*rows_, *cols_);
+    assert(!(forceFull && forceRk));
     if (forceRk || (lowRank && !forceFull))
       rk(NULL);
   } else {

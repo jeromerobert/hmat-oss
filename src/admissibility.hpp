@@ -47,6 +47,7 @@ public:
   virtual bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const = 0;
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
       is too small to recurse.
+      Note: stopRecursion and forceRecursion must not both return true.
 
     \return true  if the block is too small to recurse
    */
@@ -57,6 +58,7 @@ public:
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
       is too large to perform compression, if it is low rank; in this case, recursion
       is performed.
+      Note: stopRecursion and forceRecursion must not both return true.
 
     \return true  if the block is too large to perform compression
    */
@@ -66,6 +68,7 @@ public:
   }
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
       must not be compressed, even if admissible.
+      Note: forceFull and forceRk must not both return true.
 
     \return true  if the admissible block must not be compressed
    */
@@ -75,6 +78,7 @@ public:
   }
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
       must be compressed, even if not admissible.
+      Note: forceFull and forceRk must not both return true.
 
     \return true  if the block must be compressed
    */
