@@ -133,6 +133,7 @@ public:
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
+  double getEta() const;
   void setRatio(double ratio);
   static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;
 private:

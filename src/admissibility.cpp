@@ -139,6 +139,10 @@ void StandardAdmissibilityCondition::setEta(double eta) {
     eta_ = eta;
 }
 
+double StandardAdmissibilityCondition::getEta() const {
+    return eta_;
+}
+
 void StandardAdmissibilityCondition::setRatio(double ratio) {
     ratio_ = ratio;
 }
