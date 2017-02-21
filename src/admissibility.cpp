@@ -71,7 +71,8 @@ StandardAdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const Clu
 bool
 StandardAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const
 {
-    return forceFull(rows, cols);
+    // If there is less than 2 rows or cols, recursion is useless
+    return (rows.data.size() < 2 || cols.data.size() < 2);
 }
 
 bool
@@ -84,6 +85,8 @@ StandardAdmissibilityCondition::forceFull(const ClusterTree& rows, const Cluster
 bool
 StandardAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const
 {
+    if (stopRecursion(rows, cols))
+        return false;
     // If the block is too large for current algorithm compression, split it
     CompressionMethod m = HMatSettings::getInstance().compressionMethod;
     bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
