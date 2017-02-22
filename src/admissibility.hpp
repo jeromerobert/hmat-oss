@@ -114,7 +114,7 @@ public:
 /**
  * @brief Combine Hackbusch admissibility with block size
  * @param eta    a parameter used in the evaluation of the admissibility.
- * @param ratio  llows to cut tall and skinny matrices along only one direction:
+ * @param ratio  allows to cut tall and skinny matrices along only one direction:
       if size(rows) < ratio*size(cols), rows is not subdivided.
       if size(cols) < ratio*size(rows), cols is not subdivided.
  * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression
@@ -125,9 +125,15 @@ class StandardAdmissibilityCondition : public AdmissibilityCondition
 public:
   StandardAdmissibilityCondition(double eta, double ratio = 0, size_t maxElementsPerBlock = 20000000,
                                  size_t maxElementsPerBlockAca = 0);
+  // Returns true if block is admissible (Hackbusch condition)
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
+  // Returns true when there is less than 2 rows or cols
   bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+  // If compression algorithm is ACA+ or ACA partial, returns true when block size > maxElementsPerBlockAca_
+  // For other compression algorithms, returns true when block size > maxElementsPerBlock.
+  // Note that forceRecursion() calls stopRecursion() to ensure that both do not return true.
   bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+  // Returns true when there is less than 2 rows or cols
   bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
   std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
   void clean(const ClusterTree& current) const;
