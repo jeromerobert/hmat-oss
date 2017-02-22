@@ -523,14 +523,14 @@ public:
     */
   inline int nrChildRow() const {
     // if rows admissible, only one child = itself
-    return rowsAdmissible ? 1 : rows_->nrChild() ;
+    return keepSameRows ? 1 : rows_->nrChild() ;
   }
 
   /*! \brief Return the number of children in the column dimension.
     */
   inline int nrChildCol() const {
     // if cols admissible, only one child = itself
-    return colsAdmissible ? 1 : cols_->nrChild() ;
+    return keepSameCols ? 1 : cols_->nrChild() ;
   }
   /*! \brief Destroy the HMatrix.
     */
@@ -599,7 +599,7 @@ public:
   static double validationErrorThreshold;
   char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
-       rowsAdmissible:1, colsAdmissible:1,
+       keepSameRows:1, keepSameCols:1,
        temporary:1, ownClusterTree_:1;
   LocalSettings localSettings;
 

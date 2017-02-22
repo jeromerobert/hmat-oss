@@ -39,31 +39,62 @@ class AdmissibilityCondition
 {
 public:
   virtual ~AdmissibilityCondition() {}
-  /*! \brief Returns true if 2 nodes are admissible together.
-
-    This is used for the tree construction on which we develop the HMatrix.
-    Two leaves are admissible if they satisfy the criterion allowing the
-    compression of the resulting matrix block. In that case, the corresponding
-    block of matrix is kept in the h-matrix. Otherwise, it is subdivided (if possible).
-
-    \return true  if 2 nodes are admissible.
-
-   */
-  virtual bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols) = 0;
-  /*! \brief Returns true if the block of interaction between 2 nodes should be compressed.
+  /*! \brief Returns true if the block of interaction between 2 nodes has a
+      low-rank representation.
 
     \return true  if the block should be Rk.
    */
-  virtual bool isCompressible(const ClusterTree& rows, const ClusterTree& cols);
-  /*! \brief Returns a pair of boolean telling if 2 nodes are row- or col- admissible together.
+  virtual bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const = 0;
+  /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
+      is too small to recurse.
+      Note: stopRecursion and forceRecursion must not both return true.
 
-    If a pair of nodes is row-admissible (resp col-admissible), then we dont subdivide the
-    corresponding block of matrix along the rows (resp. columns). If it is both row- and col-admissible,
-    then it is admissible as in isAdmissible().
+    \return true  if the block is too small to recurse
+   */
+  virtual bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
+  /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
+      is too large to perform compression, if it is low rank; in this case, recursion
+      is performed.
+      Note: stopRecursion and forceRecursion must not both return true.
+
+    \return true  if the block is too large to perform compression
+   */
+  virtual bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
+  /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
+      must not be compressed, even if admissible.
+      Note: forceFull and forceRk must not both return true.
+
+    \return true  if the admissible block must not be compressed
+   */
+  virtual bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
+  /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
+      must be compressed, even if not admissible.
+      Note: forceFull and forceRk must not both return true.
+
+    \return true  if the block must be compressed
+   */
+  virtual bool forceRk(const ClusterTree& rows, const ClusterTree& cols) const {
+      (void)rows, (void)cols; // unused
+      return false;
+  }
+  /*! \brief Returns a pair of boolean telling if the block of interaction between 2 nodes
+   is computed on this block (both values are false), or if block can be split along row- or
+   col-axis.
 
     \return a pair of boolean.
+
    */
-  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  virtual std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
+
   /**
    * Return true if the block is always null,
    * (i.e. we know that is will not even be filled during the factorization).
@@ -74,56 +105,48 @@ public:
       (void)rows, (void)cols; // unused
       return false;
   }
-  /*! \brief Clean up data which may be allocated by isAdmissible  */
+  /*! \brief Clean up data which may be allocated by isCompressible  */
   virtual void clean(const ClusterTree&) const {}
 
   virtual std::string str() const = 0;
 };
 
 /**
- * @brief Admissibility criteria that returns two booleans, one for rows and one for cols.
- * For each ClusterTree:
- * true if its size is x times smaller than the other.
- * It allows then to handle Tall & Skinny blocks in H-Matrices
- * @param ratio the ratio between the two sizes
- */
-class TallSkinnyAdmissibilityCondition : public AdmissibilityCondition
-{
-public:
-  TallSkinnyAdmissibilityCondition(double ratio_ = 1.41421356237309504880) : ratio(ratio_) {}
-  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
-private:
-  double ratio;
-};
-
-/**
- * @brief Hackbusch formula based admissibility
- *  is Hackbusch formula :
- *     min (diameter (), other-> diameter ()) <= eta * distanceTo (other);
+ * @brief Combine Hackbusch admissibility with block size
  * @param eta    a parameter used in the evaluation of the admissibility.
+ * @param ratio  allows to cut tall and skinny matrices along only one direction:
+      if size(rows) < ratio*size(cols), rows is not subdivided.
+      if size(cols) < ratio*size(rows), cols is not subdivided.
  * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression
+ * @param maxElementsPerAca limit memory size of a bloc with AcaPlus and AcaPartial compression
  */
-class StandardAdmissibilityCondition : public TallSkinnyAdmissibilityCondition
+class StandardAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  StandardAdmissibilityCondition(double eta, size_t maxElementsPerBlock = 20000000,
+  StandardAdmissibilityCondition(double eta, double ratio = 0, size_t maxElementsPerBlock = 20000000,
                                  size_t maxElementsPerBlockAca = 0);
-  bool isAdmissible(const ClusterTree& rows, const ClusterTree& cols);
-  virtual std::pair<bool, bool> isRowsColsAdmissible(const ClusterTree& rows, const ClusterTree& cols);
+  // Returns true if block is admissible (Hackbusch condition)
+  bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
+  // Returns true when there is less than 2 rows or cols
+  bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+  // If compression algorithm is ACA+ or ACA partial, returns true when block size > maxElementsPerBlockAca_
+  // For other compression algorithms, returns true when block size > maxElementsPerBlock.
+  // Note that forceRecursion() calls stopRecursion() to ensure that both do not return true.
+  bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+  // Returns true when there is less than 2 rows or cols
+  bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
+  std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
-  /**
-   * Force to ignore the eta parameter and concider all small
-   * enough blocks as admissible
-   */
-  void setAlways(bool);
+  double getEta() const;
+  void setRatio(double ratio);
   static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;
 private:
   double eta_;
+  double ratio_;
   size_t maxElementsPerBlock;
   size_t maxElementsPerBlockAca_;
-  bool always_;
 };
 
 } //  end namespace hmat

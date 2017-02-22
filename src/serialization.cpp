@@ -76,8 +76,8 @@ void MatrixStructMarshaller<T>::writeTreeNode(const HMatrix<T> * m) {
     bitfield |= m->isLower        ? 1 << 1 : 0;
     bitfield |= m->isTriUpper     ? 1 << 2 : 0;
     bitfield |= m->isTriLower     ? 1 << 3 : 0;
-    bitfield |= m->rowsAdmissible ? 1 << 4 : 0;
-    bitfield |= m->colsAdmissible ? 1 << 5 : 0;
+    bitfield |= m->keepSameRows   ? 1 << 4 : 0;
+    bitfield |= m->keepSameCols   ? 1 << 5 : 0;
     writeValue(bitfield);
     if(m->isAssembled()) {
         if(m->isLeaf()) {
