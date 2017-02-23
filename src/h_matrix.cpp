@@ -109,16 +109,19 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
 {
   if (isVoid())
     return;
-  // We create a block of matrix in one of the following case:
+  // We would like to create a block of matrix in one of the following case:
   // - rows_->isLeaf() && cols_->isLeaf() : both rows and cols are leaves.
   // - Block is too small to recurse and compress (for performance)
   // - Block is compressible and in-place compression is possible
   // In the other cases, we subdivide.
+  //
+  // FIXME: But in practice this does not work yet, so we stop recursion as soon as either rows
+  // or cols is a leaf.
   const bool lowRank = admissibilityCondition->isLowRank(*rows_, *cols_);
   const bool stopRecursion = admissibilityCondition->stopRecursion(*rows_, *cols_);
   const bool forceRecursion = admissibilityCondition->forceRecursion(*rows_, *cols_);
   assert(!(forceRecursion && stopRecursion));
-  if ((rows_->isLeaf() && cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion)) {
+  if ((rows_->isLeaf() || cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion)) {
     const bool forceFull = admissibilityCondition->forceFull(*rows_, *cols_);
     const bool forceRk   = admissibilityCondition->forceRk(*rows_, *cols_);
     assert(!(forceFull && forceRk));
