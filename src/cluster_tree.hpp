@@ -174,12 +174,6 @@ public:
    */
   ClusterTree* copy(const ClusterTree* copyFather=NULL) const;
 
-  /**
-   * Transform this cluster tree so it has the same or greater depth
-   * as the other one.
-   */
-  void sameDepth(const ClusterTree * other);
-
   /*! \brief Return a short string describing the content of this ClusterTree for debug (like: "[320, 452]")
     */
   std::string description() const {

@@ -209,15 +209,6 @@ hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
  */
 int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
 
-/**
- * @brief Add void nodes (i.e. without DOF) in a cluster tree so it
- * has the same or greater depth as a reference a cluster tree.
- * This should be used when cluster tree are too different and would
- * create very stretch blocks.
- */
-void hmat_cluster_tree_same_depth(const hmat_cluster_tree_t * reference,
-                                  hmat_cluster_tree_t * to_modify);
-
 /** Information on a cluster tree */
 typedef struct
 {
@@ -246,12 +237,6 @@ typedef struct {
      * only assembling rows or cols is needed
      */
     size_t max_aca_elements;
-
-    /**
-     * Let the admissibility condition ignore eta
-     * and always return true for small enough blocks
-     */
-    int always;
 } hmat_admissibility_param_t;
 
 /** Init an hmat_admissibility_param structure with default values */
@@ -265,6 +250,16 @@ hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t *);
 
 /* Create a standard (Hackbusch) admissibility condition, with a given eta */
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
+
+/**
+ * @brief Create an admissibility condiction which set all blocks as admissible
+ * @param max_block_size The maximum acceptable block size in number of values (rows * cols)
+ * @param min_nr_block The minimum acceptable number of blocks created with this condition
+ * @param split_rows Tel whether or not to split rows
+ * @param split_cols Tel whether or not to split cols
+ */
+hmat_admissibility_t* hmat_create_admissibility_always(
+        size_t max_size, unsigned int min_block, int split_rows, int split_cols);
 
 /* Delete admissibility condition */
 void hmat_delete_admissibility(hmat_admissibility_t * cond);

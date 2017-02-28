@@ -149,4 +149,34 @@ void StandardAdmissibilityCondition::setRatio(double ratio) {
 
 StandardAdmissibilityCondition StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY = StandardAdmissibilityCondition(2.0);
 
+AlwaysAdmissibilityCondition::AlwaysAdmissibilityCondition(size_t max_block_size, unsigned int min_block,
+                                                           bool row_split, bool col_split):
+    max_block_size_(max_block_size), min_nr_block_(min_block), split_rows_cols_(row_split, col_split) {
+    HMAT_ASSERT(row_split || col_split);
+}
+
+std::string AlwaysAdmissibilityCondition::str() const {
+    std::ostringstream oss;
+    oss << "Always admissible with max_block_size=" << max_block_size_
+        << " min_nr_block=" << min_nr_block_
+        << " split(rows,cols)="  << split_rows_cols_.first << "," << split_rows_cols_.second;
+    return oss.str();
+}
+
+bool AlwaysAdmissibilityCondition::isLowRank(const ClusterTree&, const ClusterTree&) const {
+    return true;
+}
+
+std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterTree&, const ClusterTree&) const {
+    return split_rows_cols_;
+}
+
+bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
+    size_t block_size = ((size_t)rows.data.size()) * cols.data.size();
+    if(rows.father == NULL) {
+        assert(cols.father == NULL);
+        max_block_size_impl_ = std::min(block_size / min_nr_block_, max_block_size_);
+    }
+    return block_size > max_block_size_impl_;
+}
 }  // end namespace hmat

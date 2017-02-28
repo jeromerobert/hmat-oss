@@ -173,22 +173,6 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   return result;
 }
 
-void ClusterTree::sameDepth(const ClusterTree * other) {
-    if(other->isLeaf() || data.size() == 0)
-        return;
-
-    if(isLeaf()) {
-        insertChild(0, new ClusterTree(*this));
-        insertChild(1, slice(data.offset() + data.size(), 0));
-    }
-
-    for(int i = 0; i < other->nrChild(); i++) {
-        for(int j = 0; j < nrChild(); j++) {
-            getChild(j)->sameDepth(other->getChild(i));
-        }
-    }
-}
-
 AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
   : dimension_(data.coordinates()->dimension())
   , bbMin(new double[dimension_])

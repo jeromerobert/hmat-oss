@@ -154,5 +154,26 @@ private:
   size_t maxElementsPerBlockAca_;
 };
 
+class AlwaysAdmissibilityCondition : public AdmissibilityCondition {
+    size_t max_block_size_;
+    unsigned int min_nr_block_;
+    std::pair<bool, bool> split_rows_cols_;
+    mutable size_t max_block_size_impl_;
+public:
+    /**
+     * @brief AlwaysAdmissibilityCondition
+     * Create an admissibility condiction which set all blocks as admissible
+     * @param max_block_size The maximum acceptable block size in number of values (rows * cols)
+     * @param min_nr_block The minimum acceptable number of blocks created with this condition
+     * @param split_rows Tel whether or not to split rows (see splitRowsCols)
+     * @param split_cols Tel whether or not to split cols (see splitRowsCols)
+     */
+    AlwaysAdmissibilityCondition(size_t max_block_size, unsigned int min_nr_block,
+                                 bool split_rows = true, bool split_cols = false);
+    std::string str() const;
+    bool isLowRank(const ClusterTree&, const ClusterTree&) const;
+    std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree&) const;
+    bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+};
 } //  end namespace hmat
 #endif

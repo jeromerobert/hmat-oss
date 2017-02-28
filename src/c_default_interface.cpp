@@ -133,17 +133,10 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
     return 0;
 }
 
-void hmat_cluster_tree_same_depth(const hmat_cluster_tree_t *reference, hmat_cluster_tree_t *to_modify) {
-    ClusterTree* toModify = reinterpret_cast<ClusterTree*>(to_modify);
-    const ClusterTree* ref = reinterpret_cast<const ClusterTree*>(reference);
-    toModify->sameDepth(ref);
-}
-
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->max_svd_elements = 5000000;
     p->max_aca_elements = 0;
-    p->always = 0;
 }
 
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {
@@ -155,6 +148,12 @@ hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) 
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
 {
     return static_cast<hmat_admissibility_t*>((void*) new hmat::StandardAdmissibilityCondition(eta));
+}
+
+hmat_admissibility_t* hmat_create_admissibility_always(
+        size_t max_size, unsigned int min_block, int split_rows, int split_cols) {
+    return reinterpret_cast<hmat_admissibility_t*>(
+        new hmat::AlwaysAdmissibilityCondition(max_size, min_block, split_rows, split_cols));
 }
 
 void hmat_delete_admissibility(hmat_admissibility_t * cond) {
