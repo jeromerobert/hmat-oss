@@ -132,6 +132,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
   } else {
     pair<bool, bool> split = admissibilityCondition->splitRowsCols(*rows_, *cols_);
+    assert(split.first || split.second);
     keepSameRows = !split.first;
     keepSameCols = !split.second;
     isLower = (symFlag == kLowerSymmetric ? true : false);

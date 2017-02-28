@@ -86,10 +86,8 @@ public:
       (void)rows, (void)cols; // unused
       return false;
   }
-  /*! \brief Returns a pair of boolean telling if the block of interaction between 2 nodes
-   is computed on this block (both values are false), or if block can be split along row- or
-   col-axis.
-
+  /*! \brief Tell whether a block must be splitted along rows, cols or both.
+      Note: This method must not return {false, false}
     \return a pair of boolean.
 
    */
