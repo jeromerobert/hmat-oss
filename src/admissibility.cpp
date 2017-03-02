@@ -58,21 +58,26 @@ StandardAdmissibilityCondition::StandardAdmissibilityCondition(
 std::pair<bool, bool>
 StandardAdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
 {
-  if (cols.data.size() < ratio_ * rows.data.size()  && cols.isLeaf()) {
+  if (cols.data.size() <= ratio_ * rows.data.size()  && cols.isLeaf() ) {
     // rows are two times larger than cols so we won't subdivide cols
     return std::pair<bool, bool>(!rows.isLeaf(), false);
-  } else if (rows.data.size() < ratio_ * cols.data.size()  && rows.isLeaf()) {
+  } else if (rows.data.size() <= ratio_ * cols.data.size()  && rows.isLeaf()) {
     // cols are two times larger than rows so we won't subdivide rows
     return std::pair<bool, bool>(false, !cols.isLeaf());
+  } else if (rows.isLeaf() || cols.isLeaf()) {
+    // approximately the same size, but one is a leaf so we forbid subdivision for both
+    return std::pair<bool, bool>(false, false);
   } else // approximately the same size, we can subdivide both
-  return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
+    return std::pair<bool, bool>(true, true);
 }
 
 bool
 StandardAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const
 {
+    // If we do not want to split rows nor cols, we must stop recursion (to allow Rk)
+    std::pair<bool, bool> split = splitRowsCols(rows, cols);
     // If there is less than 2 rows or cols, recursion is useless
-    return (rows.data.size() < 2 || cols.data.size() < 2);
+    return (rows.data.size() < 2 || cols.data.size() < 2 || (!split.first && !split.second));
 }
 
 bool
