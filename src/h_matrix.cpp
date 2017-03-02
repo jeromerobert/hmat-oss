@@ -1576,10 +1576,11 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
 
 template<typename T>
 void HMatrix<T>::clear() {
-  if (isVoid() || !isAssembled())
-      return;
-  if (this->isLeaf()) {
-    if(isNull()) {
+  if (isVoid()) {
+    // nothing to do
+  } else if (this->isLeaf()) {
+    if(!isAssembled() || isNull()) {
+      // nothing to do
     } else if(isRkMatrix()) {
       rk()->clear();
     } else {
