@@ -186,7 +186,7 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
 
     if (m->isLeaf()) {
         if (m->isRkMatrix() && !m->isNull()) {
-            double ratio = m->rk()->compressedSize() / m->rk()->uncompressedSize();
+            double ratio = m->rk()->compressedSize() / (double) m->rk()->uncompressedSize();
             double color = 0;
             if (ratio < .20) {
                 color = 1 - 5 * ratio;
@@ -224,7 +224,17 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
             double size= (value>=100?.5:0.7) * min(-lengthY,lengthX);
             f << startX + 10 - depth << " " << startY + (lengthY * .75) << " " << size
             << " (" << value << ") showrank" << endl;
-        }
+        } else {
+           f << 0 << " "<< -lengthY << " "
+             << -lengthX << " " << 0 << " "
+             << 0 << " " << lengthY << " "
+             << lengthX << " " << 0 << " "
+             << startX << " " << startY;
+           f << " 1 1 1 "
+             << " greenrectangle" << endl;
+           f << startX << " " << startY + (lengthY * .95) << " " << .7 * std::min(lengthX, - lengthY)
+             << " (" << 0 << ") showrank" << endl;
+       }
     } else if(cross){ /* true pour une hmat, !(handle->position == kAboveL0) pour une HMatrixHandle */
         int n = m->rows()->coordinates()->size();
         int startX = m->cols()->offset();

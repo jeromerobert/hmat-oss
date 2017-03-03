@@ -206,7 +206,9 @@ AxisAlignedBoundingBox::AxisAlignedBoundingBox(int dim, const double *bboxMin, c
 AxisAlignedBoundingBox::~AxisAlignedBoundingBox()
 {
   delete [] bbMin;
+  bbMin = NULL;
   delete [] bbMax;
+  bbMax = NULL;
 }
 
 double

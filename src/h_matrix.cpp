@@ -172,7 +172,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     r->cols_ = cols_;
     r->temporary = temporary;
     if(withChildren) {
-      // Here, we come from HMatrixHandle<T>::createGemmTemporyRk()
+      // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
       // we want to go 1 level below data (which is an Rk)
       // so we don't use get(i,j) since data has no children
       // we dont use this->nrChildRow and this->nrChildCol either, they would return 1
@@ -524,6 +524,7 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
   size_t childrenElements = 0;
   for (int i = 0; i < this->nrChild(); i++) {
     HMatrix<T> *child = this->getChild(i);
+    if (!child) continue;
     if (!child->isRkMatrix()) {
       allRkLeaves = false;
       break;
@@ -739,6 +740,7 @@ template<typename T>
 void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   DECLARE_CONTEXT;
   // this += alpha * b
+  assert(b);
   assert(b->rows->isSuperSet(*rows()));
   assert(b->cols->isSuperSet(*cols()));
 
@@ -1530,6 +1532,8 @@ template<typename T> HMatrix<T>* HMatrix<T>::copy() const {
   return M;
 }
 
+// Copy the data of 'o' into 'this'
+// The structure of both H-matrix is supposed to be allready similar
 template<typename T>
 void HMatrix<T>::copy(const HMatrix<T>* o) {
   DECLARE_CONTEXT;
@@ -1547,7 +1551,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
     if (isAssembled() && isNull() && o->isNull()) {
       return;
     }
-    // When the matrix has not allocated but only the structure
+    // When the matrix was not allocated but only the structure
     if (o->isFullMatrix() && isFullMatrix()) {
       o->full()->copy(full());
     } else if(o->isFullMatrix()) {
@@ -1563,6 +1567,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
       rank_ = rk()->rank();
     }
   } else {
+    assert(o->rank_==NONLEAF_BLOCK);
     rank_ = o->rank_;
     for (int i = 0; i < o->nrChild(); i++) {
         if (o->getChild(i)) {

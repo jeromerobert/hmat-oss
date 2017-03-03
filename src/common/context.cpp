@@ -178,12 +178,13 @@ namespace trace {
     UM_NS::unordered_map<void*, Node*>::iterator it = currentNodes[index].find(enclosing);
     Node* current;
     if (it == currentNodes[index].end()) {
-      // TODO : avec runtime, les threads N+1 et N+2 ne sont pas des workers, ce sont les threads MPI et IO
+      // TODO : avec toyrt, les threads 1 et 2 ne sont pas des workers, ce sont les threads IO & MPI
+      // Il faudrait que le code appelant donne le nom du noeud plutot qu'un index
       char *name = const_cast<char*>("root");
       if (index != 0) {
         name = strdup("Worker #XXX - 0xXXXXXXXXXXXXXXXX"); // Worker ID - enclosing
         assert(name);
-        sprintf(name, "Worker #%03d - %p", index, enclosing);
+        sprintf(name, "Worker #%03d - %p", index, enclosing); // Recuperer le nom de cet enclosing !
       }
       current = new Node(name, NULL);
       currentNodes[index][enclosing] = current;
