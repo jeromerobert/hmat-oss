@@ -172,42 +172,42 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   // Loop on 'divider_' = the number of children created
   for (int i=1 ; i<divider_ ; i++) {
     int middleIndex = previousIndex;
-  double middlePosition = bbox->bbMin[dim] + (i / (double)divider_) * (bbox->bbMax[dim] - bbox->bbMin[dim]);
-  int* myIndices = current.data.indices() + current.data.offset();
-  const double* coord = &current.data.coordinates()->get(0,0);
-  while (middleIndex < current.data.size() && coord[myIndices[middleIndex]*spatialDimension_+dim] < middlePosition) {
-    middleIndex++;
-  }
-  if (NULL != current.data.group_index())
-  {
-    // Ensure that we do not split inside a group
-    const int* group_index = current.data.group_index() + current.data.offset();
-    const int group(group_index[middleIndex]);
-    if (group_index[middleIndex-1] == group)
-    {
-      int upper = middleIndex;
-      int lower = middleIndex-1;
-      while (upper < current.data.size() && group_index[upper] == group)
-        ++upper;
-      while (lower >= 0 && group_index[lower] == group)
-        --lower;
-      if (lower < 0 && upper == current.data.size())
-      {
-        // All degrees of freedom belong to the same group, this is fine
-      }
-      else if (lower < 0)
-        middleIndex = upper;
-      else if (upper == current.data.size())
-        middleIndex = lower + 1;
-      else if (coord[myIndices[upper]*spatialDimension_+dim] + coord[myIndices[lower]*spatialDimension_+dim] < 2.0 * middlePosition)
-        middleIndex = upper;
-      else
-        middleIndex = lower + 1;
+    double middlePosition = bbox->bbMin[dim] + (i / (double)divider_) * (bbox->bbMax[dim] - bbox->bbMin[dim]);
+    int* myIndices = current.data.indices() + current.data.offset();
+    const double* coord = &current.data.coordinates()->get(0,0);
+    while (middleIndex < current.data.size() && coord[myIndices[middleIndex]*spatialDimension_+dim] < middlePosition) {
+      middleIndex++;
     }
-  }
-  if (middleIndex > previousIndex)
-    children.push_back(current.slice(current.data.offset()+previousIndex, middleIndex-previousIndex));
-  previousIndex = middleIndex;
+    if (NULL != current.data.group_index())
+    {
+      // Ensure that we do not split inside a group
+      const int* group_index = current.data.group_index() + current.data.offset();
+      const int group(group_index[middleIndex]);
+      if (group_index[middleIndex-1] == group)
+      {
+        int upper = middleIndex;
+        int lower = middleIndex-1;
+        while (upper < current.data.size() && group_index[upper] == group)
+          ++upper;
+        while (lower >= 0 && group_index[lower] == group)
+          --lower;
+        if (lower < 0 && upper == current.data.size())
+        {
+          // All degrees of freedom belong to the same group, this is fine
+        }
+        else if (lower < 0)
+          middleIndex = upper;
+        else if (upper == current.data.size())
+          middleIndex = lower + 1;
+        else if (coord[myIndices[upper]*spatialDimension_+dim] + coord[myIndices[lower]*spatialDimension_+dim] < 2.0 * middlePosition)
+          middleIndex = upper;
+        else
+          middleIndex = lower + 1;
+      }
+    }
+    if (middleIndex > previousIndex)
+      children.push_back(current.slice(current.data.offset()+previousIndex, middleIndex-previousIndex));
+    previousIndex = middleIndex;
   }
   // Add the last child
   children.push_back(current.slice(current.data.offset()+ previousIndex, current.data.size() - previousIndex));
@@ -228,38 +228,38 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   // Loop on 'divider_' = the number of children created
   for (int i=1 ; i<divider_ ; i++) {
     int middleIndex = current.data.size() * i / divider_;
-  if (NULL != current.data.group_index())
-  {
-    // Ensure that we do not split inside a group
-    const int* group_index = current.data.group_index() + current.data.offset();
-    const int group(group_index[middleIndex]);
-    if (group_index[middleIndex-1] == group)
+    if (NULL != current.data.group_index())
     {
-      int upper = middleIndex;
-      int lower = middleIndex-1;
-      while (upper < current.data.size() && group_index[upper] == group)
-        ++upper;
-      while (lower >= 0 && group_index[lower] == group)
-        --lower;
-      if (lower < 0 && upper == current.data.size())
+      // Ensure that we do not split inside a group
+      const int* group_index = current.data.group_index() + current.data.offset();
+      const int group(group_index[middleIndex]);
+      if (group_index[middleIndex-1] == group)
       {
-        // All degrees of freedom belong to the same group, this is fine
+        int upper = middleIndex;
+        int lower = middleIndex-1;
+        while (upper < current.data.size() && group_index[upper] == group)
+          ++upper;
+        while (lower >= 0 && group_index[lower] == group)
+          --lower;
+        if (lower < 0 && upper == current.data.size())
+        {
+          // All degrees of freedom belong to the same group, this is fine
+        }
+        else if (lower < 0)
+          middleIndex = upper;
+        else if (upper == current.data.size())
+          middleIndex = lower + 1;
+        else if (upper + lower < 2 * middleIndex)
+          middleIndex = upper;
+        else
+          middleIndex = lower + 1;
       }
-      else if (lower < 0)
-        middleIndex = upper;
-      else if (upper == current.data.size())
-        middleIndex = lower + 1;
-      else if (upper + lower < 2 * middleIndex)
-        middleIndex = upper;
-      else
-        middleIndex = lower + 1;
     }
-  }
     if (middleIndex > previousIndex)
       children.push_back(current.slice(current.data.offset()+previousIndex, middleIndex-previousIndex));
     previousIndex = middleIndex;
   }
-  // Add the last child :
+  // Add the last child
   children.push_back(current.slice(current.data.offset()+ previousIndex, current.data.size() - previousIndex));
 }
 
