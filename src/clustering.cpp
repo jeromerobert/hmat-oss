@@ -168,11 +168,14 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(current);
   current.clusteringAlgoData_ = bbox;
 
-  double middle = .5 * (bbox->bbMin[dim] + bbox->bbMax[dim]);
-  int middleIndex = 0;
+  int previousIndex = 0;
+  // Loop on 'divider_' = the number of children created
+  for (int i=1 ; i<divider_ ; i++) {
+    int middleIndex = previousIndex;
+  double middlePosition = bbox->bbMin[dim] + (i / (double)divider_) * (bbox->bbMax[dim] - bbox->bbMin[dim]);
   int* myIndices = current.data.indices() + current.data.offset();
   const double* coord = &current.data.coordinates()->get(0,0);
-  while (coord[myIndices[middleIndex]*spatialDimension_+dim] < middle) {
+  while (middleIndex < current.data.size() && coord[myIndices[middleIndex]*spatialDimension_+dim] < middlePosition) {
     middleIndex++;
   }
   if (NULL != current.data.group_index())
@@ -196,14 +199,18 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
         middleIndex = upper;
       else if (upper == current.data.size())
         middleIndex = lower + 1;
-      else if (coord[myIndices[upper]*spatialDimension_+dim] + coord[myIndices[lower]*spatialDimension_+dim] < 2.0 * middle)
+      else if (coord[myIndices[upper]*spatialDimension_+dim] + coord[myIndices[lower]*spatialDimension_+dim] < 2.0 * middlePosition)
         middleIndex = upper;
       else
         middleIndex = lower + 1;
     }
   }
-  children.push_back(current.slice(current.data.offset(), middleIndex));
-  children.push_back(current.slice(current.data.offset()+ middleIndex, current.data.size() - middleIndex));
+  if (middleIndex > previousIndex)
+    children.push_back(current.slice(current.data.offset()+previousIndex, middleIndex-previousIndex));
+  previousIndex = middleIndex;
+  }
+  // Add the last child
+  children.push_back(current.slice(current.data.offset()+ previousIndex, current.data.size() - previousIndex));
 }
 
 void
@@ -248,7 +255,8 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
         middleIndex = lower + 1;
     }
   }
-    children.push_back(current.slice(current.data.offset()+previousIndex, middleIndex-previousIndex));
+    if (middleIndex > previousIndex)
+      children.push_back(current.slice(current.data.offset()+previousIndex, middleIndex-previousIndex));
     previousIndex = middleIndex;
   }
   // Add the last child :
@@ -270,12 +278,15 @@ HybridBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   // is larger than a given threshold, this splitting is discarded and replaced by
   // a GeometricBisectionAlgorithm instead.
   medianAlgorithm_.partition(current, children);
-  if (children.size() != 2)
+  if (children.size() < 2)
     return;
   double currentVolume = volume(current);
-  double leftVolume    = volume(*children[0]);
-  double rightVolume   = volume(*children[1]);
-  double maxVolume     = std::max(rightVolume, leftVolume);
+  double maxVolume = 0.0;
+  for (std::vector<ClusterTree*>::const_iterator cit = children.begin(); cit != children.end(); ++cit)
+  {
+    if (*cit != NULL)
+      maxVolume = std::max(maxVolume, volume(**cit));
+  }
   if (maxVolume > thresholdRatio_*currentVolume)
   {
     children.clear();
@@ -298,7 +309,8 @@ VoidClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree
     algo_->partition(current, children);
   } else {
     children.push_back(current.slice(current.data.offset(), current.data.size()));
-    children.push_back(current.slice(current.data.offset() + current.data.size(), 0));
+    for (int i=1 ; i<divider_ ; i++)
+      children.push_back(current.slice(current.data.offset() + current.data.size(), 0));
   }
 }
 
