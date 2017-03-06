@@ -187,8 +187,10 @@ template<typename VT> VT MatrixStructUnmarshaller<T>::readValue() {
  */
 template<typename T>
 template<typename TR> TR * MatrixStructUnmarshaller<T>::readTree(TR * tree) {
+    const int depth = (tree == NULL ? 0 : tree->depth + 1);
     tree = readTreeNode(tree);
     if(tree != NULL) {
+        tree->depth = depth;
         char nrChild = readValue<char>();
         for(int i = 0; i < nrChild; i++) {
             tree->insertChild(i, readTree(tree));
