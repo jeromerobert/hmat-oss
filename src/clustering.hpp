@@ -203,6 +203,7 @@ public:
     : AxisAlignClusteringAlgorithm(), algo_(algo.clone()) {}
 
   ClusteringAlgorithm* clone() const { return new VoidClusteringAlgorithm(*this); }
+  virtual ~VoidClusteringAlgorithm() { delete algo_; }
   std::string str() const { return "VoidClusteringAlgorithm"; }
 
   void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
@@ -218,7 +219,8 @@ public:
   ShuffleClusteringAlgorithm(const ClusteringAlgorithm &algo, int fromDivider, int toDivider)
     : AxisAlignClusteringAlgorithm(), algo_(algo.clone()), fromDivider_(fromDivider), toDivider_(toDivider) {}
 
-  ClusteringAlgorithm* clone() const { return new ShuffleClusteringAlgorithm(*this); }
+  ClusteringAlgorithm* clone() const { return new ShuffleClusteringAlgorithm(*algo_, fromDivider_, toDivider_); }
+  virtual ~ShuffleClusteringAlgorithm() { delete algo_; }
   std::string str() const { return "ShuffleClusteringAlgorithm"; }
 
   void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
