@@ -912,7 +912,8 @@ makeCompatible(bool row_a, bool row_b,
  */
 template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB, T alpha,
                                                   const HMatrix<T>* a, const HMatrix<T>* b) {
-    if(a->isVoid())
+    // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
+    if(isVoid() || a->isVoid())
         return;
     HMatrix<T> * va = NULL;
     HMatrix<T> * vb = NULL;
@@ -961,7 +962,7 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
 template<typename T> void
 HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b) {
     // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
-    if(a->isVoid())
+    if(isVoid() || a->isVoid())
         return;
 
     // None of the matrices is a leaf
@@ -1097,7 +1098,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, bool) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
-  if(isVoid())
+  if(isVoid() || a->isVoid())
       return;
 
   if ((transA == 'T') && (transB == 'T')) {
