@@ -1986,7 +1986,7 @@ void HMatrix<T>::mdntProduct(const HMatrix<T>* m, const HMatrix<T>* d, const HMa
 template<typename T>
 void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   DECLARE_CONTEXT;
-  if (rows()->size() == 0 || cols()->size() == 0) return;
+  if (isVoid() || d->isVoid() || m->isVoid()) return;
   // this <- this - M * D * M^T
   //
   // D is stored separately in full matrix of diagonal leaves (see full_matrix.hpp).
@@ -1998,7 +1998,6 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   assert(*m->cols() == *d->rows());       // Check if we can have the produit M*D and D*M^T
   assert(*this->rows() == *m->rows());
 
-  if (m->rows()->size() == 0 || m->cols()->size() == 0) return;
   if(!this->isLeaf()) {
     if (!m->isLeaf()) {
       this->recursiveMdmtProduct(m, d);
@@ -2029,8 +2028,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
     }
   } else {
     assert(isFullMatrix());
-
-    if (m->isRkMatrix() && !m->isNull()) {
+    if (m->isRkMatrix()) {
       // this : full
       // m    : rk
       // Strategy: compute mdm^T as FullMatrix and then do this<-this - mdm^T
@@ -2040,15 +2038,17 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       // 3) rkMat <- multiplyRkRk ( m_copy , m^T)
       // 4) fullMat <- evaluation as a FullMatrix of the product rkMat = (A*(D*B)^T) * (A*B^T)^T
       // 5) this <- this - fullMat
-      HMatrix<T>* m_copy = m->copy();
-      m_copy->multiplyWithDiag(d);
+      if (!m->isNull()) {
+        HMatrix<T>* m_copy = m->copy();
+        m_copy->multiplyWithDiag(d);
 
-      RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
-      FullMatrix<T>* fullMat = rkMat->eval();
-      delete m_copy;
-      delete rkMat;
-      full()->axpy(Constants<T>::mone, fullMat);
-      delete fullMat;
+        RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
+        FullMatrix<T>* fullMat = rkMat->eval();
+        delete m_copy;
+        delete rkMat;
+        full()->axpy(Constants<T>::mone, fullMat);
+        delete fullMat;
+      }
     } else if (m->isFullMatrix()) {
       // S <- S - M*D*M^T
       assert(!full()->isTriUpper());
@@ -2065,6 +2065,20 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, m->full(), Constants<T>::pone);
+    } else {
+      assert(!m->isLeaf());
+      FullMatrix<T> mTmp(m->rows(), m->cols());
+      m->evalPart(&mTmp, m->rows(), m->cols());
+      FullMatrix<T> mTmpCopy(m->rows(), m->cols());
+      mTmpCopy.copyMatrixAtOffset(&mTmp, 0, 0);
+      if (d->isFullMatrix()) {
+        mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
+      } else {
+        Vector<T> diag(d->cols()->size());
+        d->extractDiagonal(diag.m);
+        mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
+      }
+      full()->gemm('N', 'T', Constants<T>::mone, &mTmp, &mTmpCopy, Constants<T>::pone);
     }
   }
 }
