@@ -339,7 +339,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           if ((*rows() == *cols()) && (j > i)) {
             continue;
           }
-          get(i,j)->assembleSymmetric(f, NULL, true, ao);
+          if (get(i,j))
+            get(i,j)->assembleSymmetric(f, NULL, true, ao);
         }
       }
     } else {
@@ -348,8 +349,9 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           for (int j = 0; j <= i; j++) {
             HMatrix<T> *child = get(i, j);
             HMatrix<T> *upperChild = get(j, i);
-            assert(child != NULL);
-            child->assembleSymmetric(f, upperChild, false, ao);
+            assert((child != NULL) == (upperChild != NULL));
+            if (child)
+              child->assembleSymmetric(f, upperChild, false, ao);
           }
         }
       } else {
@@ -357,7 +359,9 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
           for (int j = 0; j < nrChildCol(); j++) {
             HMatrix<T> *child = get(i, j);
             HMatrix<T> *upperChild = upper->get(j, i);
-            child->assembleSymmetric(f, upperChild, false, ao);
+            assert((child != NULL) == (upperChild != NULL));
+            if (child)
+              child->assembleSymmetric(f, upperChild, false, ao);
           }
         }
         upper->assembledRecurse();
