@@ -140,26 +140,29 @@ namespace hmat {
     //
     //  hij -= sum_k Mik.Dk.tMjk
 
-    // First we handle the general case, where dimensions (in terms of number of children) are compatible
-    if (me()->nrChildRow()==me()->nrChildCol() && d->nrChildRow()==d->nrChildCol() && me()->nrChildRow()==m->nrChildRow() && m->nrChildCol()==d->nrChildRow() ) {
-
-      for(int i=0 ; i<me()->nrChildRow() ; i++)
-        for (int j=0 ; j<=i ; j++)
+    // First we handle the general case, where dimensions (in terms of number of children) are compatible.
+    // recursiveMdmtProduct is called when neither this and m are leaves, but d may be a leaf.
+    const int block_row_d = d->isLeaf() ? 1 : d->nrChildRow();
+    const int block_col_d = d->isLeaf() ? 1 : d->nrChildCol();
+    if (me()->nrChildRow()==me()->nrChildCol() && block_row_d==block_col_d && me()->nrChildRow()==m->nrChildRow() && m->nrChildCol()==block_row_d) {
+      if (d->isLeaf()) {
+        //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
+        for(int i=0 ; i<me()->nrChildRow() ; i++) {
+          for (int j=0 ; j<i ; j++)
+            me()->get(i,j)->mdntProduct(m->get(i,0), d, m->get(j,0)); // hij -= Mi0.D.tMj0
+          me()->get(i,i)->mdmtProduct(m->get(i,0),  d);               // hii -= Mi0.D.tMi0
+        }
+      } else {
+        //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
+        for(int i=0 ; i<me()->nrChildRow() ; i++)
           for(int k=0 ; k<m->nrChildCol() ; k++) {
-            //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
-            if (i==j)
-              if (d->isLeaf())
-                me()->get(i,i)->mdmtProduct(m->get(i,0),  d); //  hii -= Mi0.D.tMj0
-              else
-                me()->get(i,i)->mdmtProduct(m->get(i,k), d->get(k,k)); //  hii -= Mik.Dk.tMik
-            else {
-              if (d->isLeaf())
-                me()->get(i,j)->mdntProduct(m->get(i,0), d, m->get(j,0)); // hij -= Mi0.D.tMj0
-              else
-                me()->get(i,j)->mdntProduct(m->get(i,k), d->get(k,k), m->get(j,k)); // hij -= Mik.Dk.tMjk
-            }
+            const Mat* m_ik = m->get(i,k);
+            const Mat* d_k = d->get(k,k);
+            for (int j=0 ; j<i ; j++)
+              me()->get(i,j)->mdntProduct(m_ik, d_k, m->get(j,k)); // hij -= Mik.Dk.tMjk
+            me()->get(i,i)->mdmtProduct(m_ik, d_k); //  hii -= Mik.Dk.tMik
           }
-
+      }
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveMdmtProduct: case not yet handled "
                              "Nr Child this[%d, %d] m[%d, %d] d[%d, %d]"
