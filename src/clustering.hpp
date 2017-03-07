@@ -202,7 +202,7 @@ public:
   explicit VoidClusteringAlgorithm(const ClusteringAlgorithm &algo)
     : AxisAlignClusteringAlgorithm(), algo_(algo.clone()) {}
 
-  ClusteringAlgorithm* clone() const { return new VoidClusteringAlgorithm(*this); }
+  ClusteringAlgorithm* clone() const { return new VoidClusteringAlgorithm(*algo_); }
   virtual ~VoidClusteringAlgorithm() { delete algo_; }
   std::string str() const { return "VoidClusteringAlgorithm"; }
 
