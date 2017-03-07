@@ -421,13 +421,13 @@ void HMatrix<T>::eval(FullMatrix<T>* result, bool renumber) const {
     int rowCount = rows()->size();
     int *colIndices = cols()->indices() + cols()->offset();
     int colCount = cols()->size();
-    for (int i = 0; i < rowCount; i++) {
-      for (int j = 0; j < colCount; j++) {
-        if(renumber)
+    if(renumber) {
+      for (int j = 0; j < colCount; j++)
+        for (int i = 0; i < rowCount; i++)
           result->get(rowIndices[i], colIndices[j]) = mat->get(i, j);
-        else
-          result->get(rows()->offset() + i, cols()->offset() + j) = mat->get(i, j);
-      }
+    } else {
+      for (int j = 0; j < colCount; j++)
+        memcpy(&result->get(rows()->offset(), cols()->offset() + j), &mat->get(0, j), rowCount * sizeof(T));
     }
     if (isRkMatrix()) {
       delete mat;
@@ -447,14 +447,12 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
   if (this->isLeaf()) {
     if (this->isNull()) return;
     FullMatrix<T> *mat = isRkMatrix() ? rk()->eval() : full();
-    int rowOffset = rows()->offset() - _rows->offset();
-    int rowCount = rows()->size();
-    int colOffset = cols()->offset() - _cols->offset();
-    int colCount = cols()->size();
-    for (int i = 0; i < rowCount; i++) {
-      for (int j = 0; j < colCount; j++) {
-        result->get(i + rowOffset, j + colOffset) = mat->get(i, j);
-      }
+    const int rowOffset = rows()->offset() - _rows->offset();
+    const int rowCount = rows()->size();
+    const int colOffset = cols()->offset() - _cols->offset();
+    const int colCount = cols()->size();
+    for (int j = 0; j < colCount; j++) {
+      memcpy(&result->get(rowOffset, j + colOffset), &mat->get(0, j), rowCount * sizeof(T));
     }
     if (isRkMatrix()) {
       delete mat;
