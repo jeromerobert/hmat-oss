@@ -1290,7 +1290,8 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
   if (!this->isLeaf()) {
     if (d->isLeaf()) {
       for (int i=0 ; i<std::min(nrChildRow(), nrChildCol()) ; i++)
-        get(i,i)->multiplyWithDiag(d, left, inverse);
+        if(get(i,i))
+          get(i,i)->multiplyWithDiag(d, left, inverse);
       for (int i=0 ; i<nrChildRow() ; i++)
         for (int j=0 ; j<nrChildCol() ; j++)
           if (i!=j && get(i,j)) {
@@ -1301,7 +1302,8 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
 
     // First the diagonal, then the rest...
     for (int i=0 ; i<std::min(nrChildRow(), nrChildCol()) ; i++)
-      get(i,i)->multiplyWithDiag(d->get(i,i), left, inverse);
+      if(get(i,i))
+        get(i,i)->multiplyWithDiag(d->get(i,i), left, inverse);
     for (int i=0 ; i<nrChildRow() ; i++)
       for (int j=0 ; j<nrChildCol() ; j++)
         if (i!=j && get(i,j)) {
@@ -2129,8 +2131,6 @@ template<typename T> void assertUpper(const HMatrix<T> * me) {
         assert(me->isUpper);
         for (int i=0 ; i<me->nrChildRow() ; i++)
           for (int j=0 ; j<me->nrChildCol() ; j++) {
-            if (i>j) /* NULL below diag */
-              assert(!me->get(i,j));
             if (i==j) /* Upper on diag */
               assertUpper(me->get(i,i));
           }
