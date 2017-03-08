@@ -62,19 +62,22 @@ namespace hmat {
       me()->get(k,k)->ldltDecomposition();
       // Solve the rest of column k: solve Lik Dk tLkk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
+        if (!me()->get(i,k))
+          continue;
         me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, true);
         me()->get(i,k)->multiplyWithDiag(me()->get(k,k), false, true);
       }
       // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
-      for (int i=k+1 ; i<me()->nrChildRow() ; i++)
-        for (int j=k+1 ; j<=i ; j++)
-          // Hij <- Hij - Lik Dk tLjk
-          // if i=j, we can use mdmtProduct, otherwise we use mdntProduct
-          if (i==j)
-            me()->get(i,i)->mdmtProduct(me()->get(i,k), me()->get(k,k)); //  hii -= Lik.Dk.tLik
-          else {
+      for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
+        if (!me()->get(i,k))
+          continue;
+        // Hij <- Hij - Lik Dk tLjk
+        // if i=j, we can use mdmtProduct, otherwise we use mdntProduct
+        for (int j=k+1 ; j<i ; j++)
+          if (me()->get(i,j) && me()->get(j,k))
             me()->get(i,j)->mdntProduct(me()->get(i,k), me()->get(k,k), me()->get(j,k)); // hij -= Lik.Dk.tLjk
-          }
+        me()->get(i,i)->mdmtProduct(me()->get(i,k), me()->get(k,k)); //  hii -= Lik.Dk.tLik
+      }
     }
 
   }
@@ -148,8 +151,11 @@ namespace hmat {
       if (d->isLeaf()) {
         //  hij -= Mik.Dk.tMjk : if i=j, we use mdmtProduct. Otherwise, mdntProduct
         for(int i=0 ; i<me()->nrChildRow() ; i++) {
+          if (!m->get(i,0))
+            continue;
           for (int j=0 ; j<i ; j++)
-            me()->get(i,j)->mdntProduct(m->get(i,0), d, m->get(j,0)); // hij -= Mi0.D.tMj0
+            if (me()->get(i,j) && m->get(j,0))
+              me()->get(i,j)->mdntProduct(m->get(i,0), d, m->get(j,0)); // hij -= Mi0.D.tMj0
           me()->get(i,i)->mdmtProduct(m->get(i,0),  d);               // hii -= Mi0.D.tMi0
         }
       } else {
@@ -157,9 +163,12 @@ namespace hmat {
         for(int i=0 ; i<me()->nrChildRow() ; i++)
           for(int k=0 ; k<m->nrChildCol() ; k++) {
             const Mat* m_ik = m->get(i,k);
+            if (!m_ik)
+              continue;
             const Mat* d_k = d->get(k,k);
             for (int j=0 ; j<i ; j++)
-              me()->get(i,j)->mdntProduct(m_ik, d_k, m->get(j,k)); // hij -= Mik.Dk.tMjk
+              if (me()->get(i,j) && m->get(j,k))
+                me()->get(i,j)->mdntProduct(m_ik, d_k, m->get(j,k)); // hij -= Mik.Dk.tMjk
             me()->get(i,i)->mdmtProduct(m_ik, d_k); //  hii -= Mik.Dk.tMik
           }
       }
