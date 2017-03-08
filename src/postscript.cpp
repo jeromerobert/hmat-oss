@@ -188,9 +188,12 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
         if (m->isRkMatrix() && !m->isNull() && m->rk() != NULL) {
             double ratio = m->rk()->compressedSize() / (double) m->rk()->uncompressedSize();
             double color = 0;
-            if (ratio < .20) {
-                color = 1 - 5 * ratio;
-            }
+            double ratioMax = .8;
+            double colorMin = .5;
+            if (ratio >= 1) colorMin = 0;
+            else if (ratio < ratioMax) {
+                color = 1 - (1-colorMin)/ratioMax * ratio;
+            } else color = colorMin;
             f << 0 << " "<< -lengthY << " "
               << -lengthX << " " << 0 << " "
               << 0 << " " << lengthY << " "
