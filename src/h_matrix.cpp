@@ -166,28 +166,30 @@ HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     localSettings(settings)
     {}
 
-template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withChildren) const {
+template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withRowChild, bool withColChild) const {
     HMatrix<T> * r = new HMatrix<T>(localSettings.global);
     r->rows_ = rows_;
     r->cols_ = cols_;
     r->temporary = temporary;
-    if(withChildren) {
-      // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
-      // we want to go 1 level below data (which is an Rk)
-      // so we don't use get(i,j) since data has no children
-      // we dont use this->nrChildRow and this->nrChildCol either, they would return 1
-      // (since 'this' is rows- and cols-admissible, unlike 'r')
+    if(withRowChild || withColChild) {
+        // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
+        // we want to go 1 level below data (which is an Rk)
+        // so we don't use get(i,j) since data has no children
+        // we dont use this->nrChildRow and this->nrChildCol either, they would return 1
+        // (since 'this' is rows- and cols-admissible, unlike 'r')
+        r->keepSameRows = !withRowChild;
+        r->keepSameCols = !withColChild;
         for(int i = 0; i < r->nrChildRow(); i++) {
             for(int j = 0; j < r->nrChildCol(); j++) {
                 HMatrix<T>* child = new HMatrix<T>(localSettings.global);
                 child->temporary = temporary;
-                assert(rows_->getChild(i) != NULL);
-                assert(cols_->getChild(j) != NULL);
-                child->rows_ = rows_->me()->getChild(i);
-                child->cols_ = cols_->me()->getChild(j);
+                child->rows_ = withRowChild ? rows_->getChild(i) : rows_;
+                child->cols_ = withColChild ? cols_->getChild(j) : cols_;
+                assert(child->rows_ != NULL);
+                assert(child->cols_ != NULL);
                 child->rk(new RkMatrix<T>(NULL, &child->rows_->data,
-                                                 NULL, &child->cols_->data,
-                                                 NoCompression));
+                                          NULL, &child->cols_->data,
+                                          NoCompression));
                 r->insertChild(i, j, child);
             }
         }

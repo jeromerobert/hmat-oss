@@ -164,7 +164,7 @@ public:
    * Only copy this node, not the whole tree. The created matrix
    * is an uninitialized leaf with same rows and cols as this.
    */
-  HMatrix<T> * internalCopy(bool temporary = false, bool withChildren = false) const;
+  HMatrix<T> * internalCopy(bool temporary = false, bool withRowChild=false, bool withColChild=false) const;
   ~HMatrix();
 
   /*! \brief HMatrix coarsening.
