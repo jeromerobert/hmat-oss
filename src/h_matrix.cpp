@@ -106,7 +106,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     rows_(_rows), cols_(_cols), rk_(NULL),
     rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), keepSameRows(false), keepSameCols(false), temporary(false), ownClusterTree_(false),
+    isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary(false), ownClusterTree_(false),
     localSettings(settings)
 {
   if (isVoid())
@@ -162,7 +162,7 @@ HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    keepSameRows(false), keepSameCols(false), temporary(false), ownClusterTree_(false),
+    keepSameRows(true), keepSameCols(true), temporary(false), ownClusterTree_(false),
     localSettings(settings)
     {}
 
