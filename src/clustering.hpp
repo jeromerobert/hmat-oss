@@ -196,11 +196,11 @@ private:
   const double thresholdRatio_;
 };
 
-class VoidClusteringAlgorithm : public AxisAlignClusteringAlgorithm
+class VoidClusteringAlgorithm : public ClusteringAlgorithm
 {
 public:
   explicit VoidClusteringAlgorithm(const ClusteringAlgorithm &algo)
-    : AxisAlignClusteringAlgorithm(), algo_(algo.clone()) {}
+    : ClusteringAlgorithm(algo), algo_(algo.clone()) {}
 
   ClusteringAlgorithm* clone() const { return new VoidClusteringAlgorithm(*algo_); }
   virtual ~VoidClusteringAlgorithm() { delete algo_; }
