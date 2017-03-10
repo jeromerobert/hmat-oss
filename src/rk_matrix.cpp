@@ -358,6 +358,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   int kTotal = rank();
   CompressionMethod minMethod = method;
   for (int i = 0; i < n; i++) {
+    if (!parts[i])
+      continue;
     // Check that partial RkMatrix indices are subsets of their global indices set.
     // According to the indices organization, it is necessary to check that the indices
     // of the matrix are such that:
@@ -381,6 +383,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     const IndexSet** rowsParts = new const IndexSet*[n];
     const IndexSet** colsParts = new const IndexSet*[n];
     for (int i = 0; i < n; i++) {
+      if (!parts[i])
+        continue;
       fullParts[i] = parts[i]->eval();
       rowsParts[i] = parts[i]->rows;
       colsParts[i] = parts[i]->cols;
@@ -414,6 +418,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
   // Same for columns.
   int kOffset = rank();
   for (int i = 0; i < n; i++) {
+    if (!parts[i])
+      continue;
     int rowOffset = parts[i]->rows->offset() - rows->offset();
     int rowCount = parts[i]->rows->size();
     int colCount = parts[i]->rank();
@@ -448,6 +454,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** part
   // TODO: here, we convert Rk->Full, Update the Full with parts[], and Full->Rk. We could also
   // create a new empty Full, update, convert to Rk and add it to 'this'.
   for (int i = 0; i < n; i++) {
+    if (!parts[i])
+      continue;
     assert(rowsList[i]->isSubset(*rows));
     assert(colsList[i]->isSubset(*cols));
     int rowOffset = rowsList[i]->offset() - rows->offset();

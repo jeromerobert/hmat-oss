@@ -660,7 +660,7 @@ template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<
         return false;
     else {
         for(int i = 0; i < m->nrChild(); i++) {
-            if(!listAllRk(m->getChild(i), result))
+            if(m->getChild(i) && !listAllRk(m->getChild(i), result))
                 return false;
         }
     }
