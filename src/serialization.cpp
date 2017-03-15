@@ -79,6 +79,7 @@ void MatrixStructMarshaller<T>::writeTreeNode(const HMatrix<T> * m) {
     bitfield |= m->keepSameRows   ? 1 << 4 : 0;
     bitfield |= m->keepSameCols   ? 1 << 5 : 0;
     writeValue(bitfield);
+    writeValue(m->approximateRank());
     if(m->isAssembled()) {
         if(m->isLeaf()) {
             if(m->isRkMatrix())
@@ -167,8 +168,9 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::readTreeNode(HMatrix<T> *) {
     char bitfield = readValue<char>();
     if(bitfield & (1 << 7))
         return NULL;
+    int rankApprox = readValue<int>();
     int rank = readValue<int>();
-    return HMatrix<T>::unmarshall(settings_, rank, bitfield);
+    return HMatrix<T>::unmarshall(settings_, rank, rankApprox, bitfield);
 }
 
 /** Read a scalar value */

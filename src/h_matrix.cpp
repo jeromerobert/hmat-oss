@@ -2412,7 +2412,7 @@ void EpsilonTruncate<T>::visit(HMatrix<T>* node, const Visit order) const {
 }
 
 template<typename T>
-HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, char bitfield) {
+HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, int appoxRank, char bitfield) {
     HMatrix<T> * m = new HMatrix<T>(settings);
     m->rank_ = rank;
     m->isUpper = (bitfield & 1 << 0 ? true : false);
@@ -2421,6 +2421,7 @@ HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, c
     m->isTriLower = (bitfield & 1 << 3 ? true : false);
     m->keepSameRows = (bitfield & 1 << 4 ? true : false);
     m->keepSameCols = (bitfield & 1 << 5 ? true : false);
+    m->approximateRank_ = appoxRank;
     return m;
 }
 

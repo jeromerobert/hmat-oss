@@ -298,7 +298,7 @@ public:
    * Used internally for deserialization
    * @see serialization.hpp
    */
-  static HMatrix<T> * unmarshall(const MatrixSettings * settings, int rank, char bitfield);
+  static HMatrix<T> * unmarshall(const MatrixSettings * settings, int rank, int rankApprox, char bitfield);
 
   /** Returns a copy of this (with all the structure and data)
        */
