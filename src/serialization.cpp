@@ -299,7 +299,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         bool pivot = header & 2;
         bool diagonal = header & 4;
         // leak check
-        assert(matrix->full() == NULL);
+        assert(!matrix->isAssembled() || matrix->full() == NULL);
         matrix->full(new FullMatrix<T>(readScalarArray(r->size(), c->size()), r, c));
         if(pivot) {
             matrix->full()->pivots = (int*) calloc(r->size(), sizeof(int));
