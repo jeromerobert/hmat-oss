@@ -33,6 +33,12 @@
 #include "full_matrix.hpp"
 #include "cluster_tree.hpp"
 #include "admissibility.hpp"
+
+namespace hmat {
+    /** Identify the current user level operation */
+    enum MainOp {MainOp_Other, MainOp_SolveLower, MainOp_SolveUpper};
+}
+
 #include "recursion.hpp"
 #include <cassert>
 #include <fstream>
@@ -236,7 +242,7 @@ public:
     \param b the matrix B
     \param beta beta
    */
-  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, bool mainSolve = false);
+  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, MainOp=MainOp_Other);
   /*! \brief this <- this - M * D * M^T, where 'this' is symmetric (Lower stored),
       D diagonal
 
@@ -447,7 +453,7 @@ public:
 
     \param b la matrice B en entree, et X en sortie.
    */
-  void solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, bool mainSolve = false) const;
+  void solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, MainOp=MainOp_Other) const;
   /*! \brief Resolution du systeme L x = x, avec this = L, et x = b vecteur.
 
     B est un vecteur a plusieurs colonnes, donc une FullMatrix.
@@ -465,7 +471,7 @@ public:
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, bool mainSolve = false) const;
+  void solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, MainOp=MainOp_Other) const;
   /*! Resolution de x U = b, avec U = this, et x = b.
 
     \warning b est un vecteur ligne et non colonne.

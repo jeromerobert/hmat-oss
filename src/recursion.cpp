@@ -184,7 +184,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular, bool mainSolve) const {
+  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular, MainOp mainOp) const {
 
     //  Forward substitution:
     //  [ L11 |  0  ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -207,9 +207,9 @@ namespace hmat {
           for (int j=0 ; j<i ; j++)
             if (me()->get(i,j) && b->get(j,k))
               b->get(i, k)->gemm('N', 'N', Constants<T>::mone, me()->get(i, j), b->get(j,k),
-		Constants<T>::pone, mainSolve);
+                                 Constants<T>::pone, mainOp);
           // Solve the i-th diagonal system
-          me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), unitriangular, mainSolve);
+          me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), unitriangular, mainOp);
         }
 
     } else if (me()->nrChildCol()>1 && b->nrChildRow()==1 && b->nrChildCol()>1) {
@@ -218,7 +218,7 @@ namespace hmat {
       //  [ ----+---- ] *  [ X11 | X12 ] = [ b11 | b12 ]
       //  [ L21 | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
-        me()->recursiveSolveLowerTriangularLeft(b->get(0,k), unitriangular, mainSolve);
+        me()->recursiveSolveLowerTriangularLeft(b->get(0,k), unitriangular, mainOp);
 
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft: case not yet handled "
@@ -371,7 +371,7 @@ namespace hmat {
 
   template<typename T, typename Mat>
   void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft(Mat* b,
-     bool unitriangular, bool lowerStored, bool mainSolve) const {
+     bool unitriangular, bool lowerStored, MainOp mainOp) const {
 
     //  Backward substitution:
     //  [ U11 | U12 ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -390,12 +390,12 @@ namespace hmat {
       for (int k=0 ; k<b->nrChildCol() ; k++) { // Loop on the column of the RHS
         for (int i=me()->nrChildRow()-1 ; i>=0 ; i--) {
           // Solve the i-th diagonal system
-          me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored, mainSolve);
+          me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored, mainOp);
           // Update b[j,k] j<i with the contribution of the solutions just computed b[i,k]
           for (int j=0 ; j<i ; j++) {
             const Mat* u_ji = (lowerStored ? me()->get(i, j) : me()->get(j, i));
             b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji, b->get(i,k),
-			      Constants<T>::pone, mainSolve);
+                              Constants<T>::pone, mainOp);
           }
         }
       }

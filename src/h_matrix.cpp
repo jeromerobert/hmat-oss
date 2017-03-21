@@ -1100,7 +1100,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 }
 
 template<typename T>
-void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, bool) {
+void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, MainOp) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
   if(isVoid() || a->isVoid())
       return;
@@ -1689,7 +1689,7 @@ void HMatrix<T>::inverse() {
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, bool) const {
+void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, MainOp) const {
   DECLARE_CONTEXT;
   if (isVoid()) return;
   // At first, the recursion one (simple case)
@@ -1832,7 +1832,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
    Only called by luDecomposition
  */
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, bool) const {
+void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, MainOp) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)
