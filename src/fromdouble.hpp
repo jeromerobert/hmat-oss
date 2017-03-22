@@ -19,6 +19,7 @@
 
   http://github.com/jeromerobert/hmat-oss
 */
+#pragma once
 
 #include "full_matrix.hpp"
 #include "rk_matrix.hpp"

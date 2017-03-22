@@ -29,6 +29,7 @@
   DISABLE_THREADING_IN_BLOCK macro to disable threading in a block, and restore
   it to its original setting at the end.
  */
+#pragma once
 
 namespace hmat {
 

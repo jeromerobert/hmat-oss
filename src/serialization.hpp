@@ -19,6 +19,7 @@
 
   http://github.com/jeromerobert/hmat-oss
 */
+#pragma once
 
 #include <h_matrix.hpp>
 

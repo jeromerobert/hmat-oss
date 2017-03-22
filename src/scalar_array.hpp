@@ -25,6 +25,8 @@
   \ingroup HMatrix
   \brief Scalar Array type used by the HMatrix library.
 */
+#pragma once
+
 #include <cstddef>
 
 #include "data_types.hpp"
