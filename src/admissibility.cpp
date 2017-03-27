@@ -179,4 +179,9 @@ bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const
     }
     return block_size > max_block_size_impl_;
 }
+
+bool AlwaysAdmissibilityCondition::forceFull(const ClusterTree& rows, const ClusterTree& cols) const {
+    return (rows.data.size() <= 2 || cols.data.size() <= 2);
+}
+
 }  // end namespace hmat

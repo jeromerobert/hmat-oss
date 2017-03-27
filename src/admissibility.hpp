@@ -174,6 +174,7 @@ public:
     bool isLowRank(const ClusterTree&, const ClusterTree&) const;
     std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree&) const;
     bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
-};
+    bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
+  };
 } //  end namespace hmat
 #endif
