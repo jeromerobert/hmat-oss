@@ -31,6 +31,7 @@ namespace hmat {
 class NullSettings {};
 template<typename T> class DefaultEngine
 {
+  hmat_progress_t * progress_;
 public:
   typedef hmat::UncompressedBlock<T> UncompressedBlock;
   typedef hmat::UncompressedValues<T> UncompressedValues;
@@ -56,7 +57,7 @@ public:
   void createPostcriptFile(const std::string& filename) const;
   void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;
   double norm() const;
-  void progress(const hmat_progress_t *){}
+  void progress(hmat_progress_t * p){ progress_ = p; }
   HMatrix<T> * data() const { return hmat; }
 };
 

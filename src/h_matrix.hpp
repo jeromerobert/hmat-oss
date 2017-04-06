@@ -370,13 +370,13 @@ public:
 
     \warning Do not use. Doesn't work
    */
-  void luDecomposition();
+  void luDecomposition(hmat_progress_t * progress);
   /* \brief LDL^t decomposition in place
      \warning this has to be created with the flag lower
      \warning this has to be assembled with assembleSymmetric with onlyLower = true
    */
-  void ldltDecomposition();
-  void lltDecomposition();
+  void ldltDecomposition(hmat_progress_t * progress);
+  void lltDecomposition(hmat_progress_t * progress);
 
   /** This <- This + alpha * b
 
@@ -706,7 +706,6 @@ public:
       convert << "uninitialized";
     return convert.str();
   }
-
 };
 
 }  // end namespace hmat

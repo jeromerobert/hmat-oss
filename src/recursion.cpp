@@ -34,7 +34,7 @@
 namespace hmat {
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveLdltDecomposition() {
+  void RecursionMatrix<T, Mat>::recursiveLdltDecomposition(hmat_progress_t * progress) {
 
     //  Recursive LDLT factorization:
     //
@@ -59,7 +59,7 @@ namespace hmat {
 
     for (int k=0 ; k<me()->nrChildRow() ; k++) {
       // Hkk <- Lkk * Dk * tLkk
-      me()->get(k,k)->ldltDecomposition();
+      me()->get(k,k)->ldltDecomposition(progress);
       // Solve the rest of column k: solve Lik Dk tLkk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
         if (!me()->get(i,k))
@@ -231,7 +231,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveLuDecomposition() {
+  void RecursionMatrix<T, Mat>::recursiveLuDecomposition(hmat_progress_t * progress) {
 
     // |     |     |    |     |     |   |     |     |
     // | h11 | h12 |    | L11 |     |   | U11 | U12 |
@@ -257,7 +257,7 @@ namespace hmat {
 
     for (int k=0 ; k<me()->nrChildRow() ; k++) {
       // Hkk <- Lkk * Ukk
-      me()->get(k,k)->luDecomposition();
+      me()->get(k,k)->luDecomposition(progress);
       // Solve the rest of line k: solve Lkk Uki = Hki and get Uki
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         if (me()->get(k,k) && me()->get(k,i))
@@ -331,7 +331,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveLltDecomposition() {
+  void RecursionMatrix<T, Mat>::recursiveLltDecomposition(hmat_progress_t * progress) {
 
     // |     |     |    |     |     |   |     |     |
     // | h11 | h21 |    | L1  |     |   | L1t | Lt  |
@@ -357,7 +357,7 @@ namespace hmat {
 
     for (int k=0 ; k<me()->nrChildRow() ; k++) {
       // Hkk <- Lkk * tLkk
-      me()->get(k,k)->lltDecomposition();
+      me()->get(k,k)->lltDecomposition(progress);
       // Solve the rest of column k: solve Lik tLkk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, true);

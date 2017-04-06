@@ -128,13 +128,13 @@ void DefaultEngine<T>::factorization(hmat_factorization_t t) {
   switch(t)
   {
   case hmat_factorization_lu:
-      hmat->luDecomposition();
+      hmat->luDecomposition(progress_);
       break;
   case hmat_factorization_ldlt:
-      hmat->ldltDecomposition();
+      hmat->ldltDecomposition(progress_);
       break;
   case hmat_factorization_llt:
-      hmat->lltDecomposition();
+      hmat->lltDecomposition(progress_);
       break;
   default:
       HMAT_ASSERT(false);

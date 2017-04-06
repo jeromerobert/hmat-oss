@@ -1950,23 +1950,27 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, 
   solveUpperTriangularLeft(&b->data, unitriangular, lowerStored);
 }
 
-template<typename T> void HMatrix<T>::lltDecomposition() {
+template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progress) {
 
     assertLower(this);
     if (isVoid()) {
         // nothing to do
     } else if(this->isLeaf()) {
         full()->lltDecomposition();
+        if(progress != NULL) {
+            progress->current= rows()->offset() + rows()->size();
+            progress->update(progress);
+        }
     } else {
         HMAT_ASSERT(isLower);
-      this->recursiveLltDecomposition();
+      this->recursiveLltDecomposition(progress);
     }
     isTriLower = true;
     isLower = false;
 }
 
 template<typename T>
-void HMatrix<T>::luDecomposition() {
+void HMatrix<T>::luDecomposition(hmat_progress_t * progress) {
   DECLARE_CONTEXT;
 
   if (rows()->size() == 0 || cols()->size() == 0) return;
@@ -1974,8 +1978,12 @@ void HMatrix<T>::luDecomposition() {
     assert(isFullMatrix());
     full()->luDecomposition();
     full()->checkNan();
+    if(progress != NULL) {
+      progress->current= rows()->offset() + rows()->size();
+      progress->update(progress);
+    }
   } else {
-    this->recursiveLuDecomposition();
+    this->recursiveLuDecomposition(progress);
   }
 }
 
@@ -2143,7 +2151,7 @@ template<typename T> void assertUpper(const HMatrix<T> * me) {
 }
 
 template<typename T>
-void HMatrix<T>::ldltDecomposition() {
+void HMatrix<T>::ldltDecomposition(hmat_progress_t * progress) {
   DECLARE_CONTEXT;
   assertLower(this);
 
@@ -2155,9 +2163,13 @@ void HMatrix<T>::ldltDecomposition() {
 
     assert(isFullMatrix());
     full()->ldltDecomposition();
+    if(progress != NULL) {
+        progress->current= rows()->offset() + rows()->size();
+        progress->update(progress);
+    }
     assert(full()->diagonal);
   } else {
-    this->recursiveLdltDecomposition();
+    this->recursiveLdltDecomposition(progress);
   }
   isTriLower = true;
   isLower = false;

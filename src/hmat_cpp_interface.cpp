@@ -84,6 +84,8 @@ void HMatInterface<T, E>::factorize(hmat_factorization_t t, hmat_progress_t * pr
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   engine_.progress(progress);
+  if(progress != NULL)
+    progress->max = engine_.hmat->rows()->size();
   engine_.factorization(t);
   factorizationType = t;
   engine_.hmat->checkStructure();

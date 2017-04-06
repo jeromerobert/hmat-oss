@@ -40,13 +40,13 @@ namespace hmat {
   public:
     RecursionMatrix() {}
     ~RecursionMatrix() {}
-    void recursiveLdltDecomposition() ;
+    void recursiveLdltDecomposition(hmat_progress_t * progress) ;
     void recursiveSolveUpperTriangularRight(Mat* b, bool unitriangular, bool lowerStored) const;
     void recursiveMdmtProduct(const Mat* m, const Mat* d);
     void recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular, MainOp=MainOp_Other) const;
-    void recursiveLuDecomposition() ;
+    void recursiveLuDecomposition(hmat_progress_t * progress) ;
     void recursiveInverseNosym() ;
-    void recursiveLltDecomposition() ;
+    void recursiveLltDecomposition(hmat_progress_t * progress) ;
     void recursiveSolveUpperTriangularLeft(Mat* b, bool unitriangular, bool lowerStored, MainOp=MainOp_Other) const;
     void transposeMeta();
 
