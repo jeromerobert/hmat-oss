@@ -30,12 +30,12 @@ namespace hmat {
 
 static void default_progress_update(hmat_progress_t * ctx) {
     double progress = (100. * ctx->current) / ctx->max;
-    std::cout << '\r' << "Progress: " << progress << "% ("
+    std::cerr << '\r' << "Progress: " << progress << "% ("
               << ctx->current << " / " << ctx->max << ")      ";
     if(ctx->current == ctx->max) {
-        std::cout << std::endl;
+        std::cerr << std::endl;
     }
-    std::cout.flush();
+    std::cerr.flush();
 }
 
 DefaultProgress::DefaultProgress() {
