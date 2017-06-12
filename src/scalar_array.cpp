@@ -89,7 +89,6 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
     lda = rows;
   }
   assert(lda >= rows);
-  assert(m);
 }
 
 template<typename T>
