@@ -591,22 +591,20 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
       j_star = bVec->absoluteMaxIndex();
       dp_t pivot = bVec->m[j_star];
-      HMAT_ASSERT(pivot != Constants<dp_t>::zero);
       // Calculate a
       block.getCol(j_star, *aVec);
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
-      aVec->scale(Constants<dp_t>::pone / pivot);
+      if(pivot != Constants<dp_t>::zero) aVec->scale(Constants<dp_t>::pone / pivot);
     } else {
       // j_star is fixed, we look for i_star
       block.getCol(j_star, *aVec);
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
       i_star = aVec->absoluteMaxIndex();
       dp_t pivot = aVec->m[i_star];
-      HMAT_ASSERT(pivot != Constants<dp_t>::zero);
       // Calculate b
       block.getRow(i_star, *bVec);
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
-      bVec->scale(Constants<dp_t>::pone / pivot);
+      if(pivot != Constants<dp_t>::zero) bVec->scale(Constants<dp_t>::pone / pivot);
     }
 
     rowFree[i_star] = false;
