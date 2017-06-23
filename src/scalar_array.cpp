@@ -262,6 +262,7 @@ template<typename T>
 void ScalarArray<T>::gemm(char transA, char transB, T alpha,
                          const ScalarArray<T>* a, const ScalarArray<T>* b,
                          T beta) {
+DECLARE_CONTEXT;
   int aRows  = (transA == 'N' ? a->rows : a->cols);
   int n  = (transB == 'N' ? b->cols : b->rows);
   int k  = (transA == 'N' ? a->cols : a->rows);
