@@ -958,6 +958,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
     int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
     RkMatrix<T>* subRks[nbRows * nbCols];
+    bool subRksNull = true;
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
         subRks[i + j * nbRows]=(RkMatrix<T>*)NULL;
@@ -972,10 +973,14 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
               subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
             }
             subRks[i + j * nbRows]->gemmRk(transHA, transHB, alpha, a_ik, b_kj, beta);
+            subRksNull = false;
           }
         } // k loop
       } // j loop
     } // i loop
+    // if ha and hb have no 'compatible' children, subRks is null
+    if (subRksNull)
+      return;
     // Reconstruction of C by adding the parts
     std::vector<T> alphaV(nbRows * nbCols, Constants<T>::pone);
     RkMatrix<T>* rk = formattedAddParts(&alphaV[0], (const RkMatrix<T>**) subRks, nbRows * nbCols);
