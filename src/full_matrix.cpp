@@ -525,6 +525,13 @@ template<typename T> void FullMatrix<T>::checkNan() const {
     diagonal->checkNan();
 }
 
+template<typename T> std::string FullMatrix<T>::description() const {
+    std::ostringstream convert;
+    convert << "FullMatrix " << this->rows_->description() << "x" << this->cols_->description() ;
+    convert << "norm=" << norm();
+    return convert.str();
+}
+
 // the classes declaration
 template class FullMatrix<S_t>;
 template class FullMatrix<D_t>;

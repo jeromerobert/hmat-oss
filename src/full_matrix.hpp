@@ -276,12 +276,7 @@ public:
 
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320, 452]x[760, 890] norm=22.34758")
     */
-  std::string description() const {
-    std::ostringstream convert;
-    convert << "FullMatrix " << this->rows_->description() << "x" << this->cols_->description() ;
-    convert << "norm=" << norm();
-    return convert.str();
-  }
+  std::string description() const;
 };
 
 }  // end namespace hmat
