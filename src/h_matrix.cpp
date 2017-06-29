@@ -101,12 +101,12 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
 
 template<typename T>
 HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSettings * settings,
-                    int depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
-  : Tree<HMatrix<T> >(NULL, depth), RecursionMatrix<T, HMatrix<T> >(),
+                    int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
+  : Tree<HMatrix<T> >(NULL, _depth), RecursionMatrix<T, HMatrix<T> >(),
     rows_(_rows), cols_(_cols), rk_(NULL),
     rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary(false), ownClusterTree_(false),
+    isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary_(false), ownClusterTree_(false),
     localSettings(settings)
 {
   if (isVoid())
@@ -145,7 +145,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
         if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
           if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
             // Create child only if not 'inert' (inert = will always be null)
-            this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, depth+1, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
+            this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, _depth+1, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
           } else
             // If 'inert', the child is NULL
             this->insertChild(i, j, NULL);
@@ -162,7 +162,7 @@ HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    keepSameRows(true), keepSameCols(true), temporary(false), ownClusterTree_(false),
+    keepSameRows(true), keepSameCols(true), temporary_(false), ownClusterTree_(false),
     localSettings(settings)
     {}
 
@@ -170,7 +170,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     HMatrix<T> * r = new HMatrix<T>(localSettings.global);
     r->rows_ = rows_;
     r->cols_ = cols_;
-    r->temporary = temporary;
+    r->temporary_ = temporary;
     if(withRowChild || withColChild) {
         // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
         // we want to go 1 level below data (which is an Rk)
@@ -182,7 +182,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
         for(int i = 0; i < r->nrChildRow(); i++) {
             for(int j = 0; j < r->nrChildCol(); j++) {
                 HMatrix<T>* child = new HMatrix<T>(localSettings.global);
-                child->temporary = temporary;
+                child->temporary_ = temporary;
                 child->rows_ = withRowChild ? rows_->getChild(i) : rows_;
                 child->cols_ = withColChild ? cols_->getChild(j) : cols_;
                 assert(child->rows_ != NULL);
@@ -845,7 +845,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
 
     if(this->isLeaf()) {
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
-        tmpMatrix->temporary=true;
+        tmpMatrix->temporary_=true;
         ClusterTree * r = rows_->slice(rows->offset(), rows->size());
         ClusterTree * c = cols_->slice(cols->offset(), cols->size());
 
@@ -1468,9 +1468,9 @@ void HMatrix<T>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDu
 }
 
 template<typename T>
-void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>& nodeDumper) const {
+void HMatrix<T>::dumpSubTree(ofstream& f, int _depth, const HMatrixNodeDumper<T>& nodeDumper) const {
   string prefix("    ");
-  for (int i = 0; i < depth; i++) {
+  for (int i = 0; i < _depth; i++) {
     prefix += "  ";
   }
   AxisAlignedBoundingBox rows_bbox(rows_->data);
@@ -1479,7 +1479,7 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>&
   const int cols_dimension(cols_->data.coordinates()->dimension());
 
   f << prefix << "{\"isLeaf\": " << (this->isLeaf() ? "true" : "false") << "," << endl
-    << prefix << " \"depth\": " << depth << "," << endl
+    << prefix << " \"depth\": " << _depth << "," << endl
     << prefix << " \"rows\": " << "{\"offset\": " << rows()->offset() << ", \"n\": " << rows()->size() << ", "
     << "\"boundingBox\": [[" << rows_bbox.bbMin[0];
   for (int dim = 1; dim < rows_dimension; ++dim) {
@@ -1513,7 +1513,7 @@ void HMatrix<T>::dumpSubTree(ofstream& f, int depth, const HMatrixNodeDumper<T>&
       if (!child)
         f << prefix << "{ }";
       else
-        child->dumpSubTree(f, depth + 1, nodeDumper);
+        child->dumpSubTree(f, _depth + 1, nodeDumper);
       f << endl;
       delimiter = ",";
     }

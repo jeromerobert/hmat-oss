@@ -236,9 +236,9 @@ void PostscriptDumper<T>::drawMatrix(const void *tree, ofstream& f, int depth, b
              << " (" << 0 << ") showrank" << endl;
        }
     } else if(cross){ /* true pour une hmat, !(handle->position == kAboveL0) pour une HMatrixHandle */
-        int n = m->rows()->coordinates()->size();
-        int startX = m->cols()->offset();
-        int startY = m->rows()->offset();
+        n = m->rows()->coordinates()->size();
+        startX = m->cols()->offset();
+        startY = m->rows()->offset();
         int rowsCount = m->rows()->size();
         int colsCount = m->cols()->size();
         /* On dessine la croix qui separe les sous-blocs dans la h-matrice.

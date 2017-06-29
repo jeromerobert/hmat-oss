@@ -244,21 +244,21 @@ template<typename T>
 void ScalarArray<T>::gemm(char transA, char transB, T alpha,
                          const ScalarArray<T>* a, const ScalarArray<T>* b,
                          T beta) {
-  int m  = (transA == 'N' ? a->rows : a->cols);
+  int aRows  = (transA == 'N' ? a->rows : a->cols);
   int n  = (transB == 'N' ? b->cols : b->rows);
   int k  = (transA == 'N' ? a->cols : a->rows);
-  assert(a->lda >= (transA == 'N' ? m : k));
+  assert(a->lda >= (transA == 'N' ? aRows : k));
   assert(b->lda >= (transB == 'N' ? k : n));
-  assert(rows == m);
+  assert(rows == aRows);
   assert(cols == n);
   assert(k == (transB == 'N' ? b->rows : b->cols));
   {
-    const size_t _m = m, _n = n, _k = k;
+    const size_t _m = aRows, _n = n, _k = k;
     const size_t adds = _m * _n * _k;
     const size_t muls = _m * _n * _k;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::gemm(transA, transB, m, n, k, alpha, a->m, a->lda, b->m, b->lda,
+  proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->m, a->lda, b->m, b->lda,
                     beta, this->m, this->lda);
 }
 
@@ -436,7 +436,7 @@ void Vector<T>::gemv(char trans, T alpha,
   assert(x->cols==1);
   int matRows = a->rows;
   int matCols = a->cols;
-  int lda = a->lda;
+  int aLda = a->lda;
   int64_t ops = (Multipliers<T>::add + Multipliers<T>::mul) * ((int64_t) matRows) * matCols;
   increment_flops(ops);
 
@@ -447,7 +447,7 @@ void Vector<T>::gemv(char trans, T alpha,
     assert(this->rows == a->cols);
     assert(x->rows == a->rows);
   }
-  proxy_cblas::gemv(trans, matRows, matCols, alpha, a->m, lda, x->m, 1, beta, this->m, 1);
+  proxy_cblas::gemv(trans, matRows, matCols, alpha, a->m, aLda, x->m, 1, beta, this->m, 1);
 }
 
 template<typename T>

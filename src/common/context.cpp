@@ -56,7 +56,7 @@ namespace trace {
   void* Node::enclosingContext[MAX_ROOTS] = {};
 
   Node::Node(const char* _name, Node* _parent)
-    : name(_name), data(), parent(_parent), children() {}
+    : name_(_name), data(), parent(_parent), children() {}
 
   Node::~Node() {
     for (std::vector<Node*>::iterator it = children.begin(); it != children.end(); ++it) {
@@ -124,7 +124,7 @@ namespace trace {
       // On cherche la correspondance avec le pointeur. Puisqu'on demande que
       // tous les noms soient des pointeurs qui existent tout le long de
       // l'execution, on peut forcer l'unicite.
-      if ((*it)->name == name) {
+      if ((*it)->name_ == name) {
 	return *it;
       }
     }
@@ -133,7 +133,7 @@ namespace trace {
 
   void Node::jsonDump(std::ofstream& f) const {
     f << "{"
-      << "\"name\": \"" << name << "\", "
+      << "\"name\": \"" << name_ << "\", "
       << "\"id\": \"" << this << "\", "
       << "\"n\": " << data.n << ", "
       << "\"totalTime\": " << data.totalTime / 1e9 << ", "

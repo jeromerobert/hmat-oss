@@ -170,7 +170,7 @@ public:
    * Only copy this node, not the whole tree. The created matrix
    * is an uninitialized leaf with same rows and cols as this.
    */
-  HMatrix<T> * internalCopy(bool temporary = false, bool withRowChild=false, bool withColChild=false) const;
+  HMatrix<T> * internalCopy(bool temporary_ = false, bool withRowChild=false, bool withColChild=false) const;
   ~HMatrix();
 
   /*! \brief HMatrix coarsening.
@@ -615,7 +615,7 @@ public:
   char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
        keepSameRows:1, keepSameCols:1,
-       temporary:1, ownClusterTree_:1;
+       temporary_:1, ownClusterTree_:1;
   LocalSettings localSettings;
 
   int rank() const {

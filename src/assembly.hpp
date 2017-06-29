@@ -200,7 +200,7 @@ template<typename T> class BlockFunction : public Function<T> {
 private:
   hmat_prepare_func_t prepare;
   hmat_compute_func_t compute;
-  void* matrixUserData;
+  void* matrixUserData_;
   int* rowMapping;
   int* rowReverseMapping;
   int* colMapping;
@@ -209,7 +209,7 @@ private:
                    hmat_block_info_t * block_info) const;
 public:
   BlockFunction(const ClusterData* _rowData, const ClusterData* _colData,
-                         void* matrixUserData,
+                         void* matrixUserData_,
                          hmat_prepare_func_t _prepare, hmat_compute_func_t _compute);
   ~BlockFunction();
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,

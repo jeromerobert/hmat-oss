@@ -85,7 +85,7 @@ namespace trace {
     static bool enabled;
   private:
     /// Unique name for the context.
-    const char* name;
+    const char* name_;
     /// Tracing data associated with this node.
     NodeData data;
     /// Parent node. NULL for a root.
@@ -99,7 +99,7 @@ namespace trace {
   public:
     /** Enter a context noted by a name.
      */
-    static void enterContext(const char* name);
+    static void enterContext(const char* name_);
     /** Leave the current context.
      */
     static void leaveContext();

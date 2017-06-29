@@ -206,8 +206,8 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
     }
   } else {
     for (int j = 0; j < cols(); j++) {
-      T d = inverse ? Constants<T>::pone / diag[j] : diag[j];
-      proxy_cblas::scal(rows(), d, data.m + j * ((size_t) data.lda), 1);
+      T diag_val = inverse ? Constants<T>::pone / diag[j] : diag[j];
+      proxy_cblas::scal(rows(), diag_val, data.m + j * ((size_t) data.lda), 1);
     }
   }
 }

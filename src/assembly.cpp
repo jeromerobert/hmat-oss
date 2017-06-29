@@ -108,7 +108,7 @@ BlockFunction<T>::BlockFunction(const ClusterData* rowData,
                                                   void* matrixUserData,
                                                   hmat_prepare_func_t _prepare,
                                                   hmat_compute_func_t _compute)
-  : prepare(_prepare), compute(_compute), matrixUserData(matrixUserData) {
+  : prepare(_prepare), compute(_compute), matrixUserData_(matrixUserData) {
   rowMapping = rowData->indices();
   colMapping = colData->indices();
   rowReverseMapping = rowData->indices_rev();
@@ -170,7 +170,7 @@ template<typename T>
 void BlockFunction<T>::prepareImpl(const ClusterData* rows, const ClusterData* cols,
     hmat_block_info_t * block_info) const {
   prepare(rows->offset(), rows->size(), cols->offset(), cols->size(), rowMapping, rowReverseMapping,
-          colMapping, colReverseMapping, matrixUserData, block_info);
+          colMapping, colReverseMapping, matrixUserData_, block_info);
 }
 
 template<typename T>

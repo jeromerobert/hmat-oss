@@ -40,7 +40,7 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(
     double eta, double ratio, size_t maxElementsPerBlock, size_t maxElementsPerBlockRows):
-    eta_(eta), ratio_(ratio), maxElementsPerBlock(maxElementsPerBlock),
+    eta_(eta), ratio_(ratio), maxElementsPerBlock_(maxElementsPerBlock),
     maxElementsPerBlockAca_(maxElementsPerBlockRows)
 {
     if(maxElementsPerBlockAca_ == 0) {
@@ -91,7 +91,7 @@ StandardAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const Cl
     CompressionMethod m = HMatSettings::getInstance().compressionMethod;
     bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
     size_t elements = ((size_t) rows.data.size()) * cols.data.size();
-    if(isFullAlgo && elements > maxElementsPerBlock)
+    if(isFullAlgo && elements > maxElementsPerBlock_)
         return true;
     if(!isFullAlgo && elements > maxElementsPerBlockAca_)
         return true;

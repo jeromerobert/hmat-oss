@@ -128,7 +128,7 @@ public:
 class StandardAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  StandardAdmissibilityCondition(double eta, double ratio = 0, size_t maxElementsPerBlock = 20000000,
+  StandardAdmissibilityCondition(double eta, double ratio = 0, size_t maxElementsPerBlock_ = 20000000,
                                  size_t maxElementsPerBlockAca = 0);
   // Returns true if block is admissible (Hackbusch condition)
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
@@ -150,7 +150,7 @@ public:
 private:
   double eta_;
   double ratio_;
-  size_t maxElementsPerBlock;
+  size_t maxElementsPerBlock_;
   size_t maxElementsPerBlockAca_;
 };
 
