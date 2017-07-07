@@ -238,7 +238,7 @@ typedef struct
   size_t nr_tree_nodes;
 } hmat_cluster_info_t;
 
-int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);
+HMAT_API int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);
 
 typedef struct {
     /** eta for Hackbusch condition */
