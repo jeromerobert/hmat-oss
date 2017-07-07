@@ -79,7 +79,7 @@ typedef enum {
     hmat_factorization_llt
 } hmat_factorization_t;
 
-// -1 seems to be a good portable alternative to SIZE_T_MAX (=18446744073709551615 on linux 64 bits)
+/* -1 seems to be a good portable alternative to SIZE_T_MAX (=18446744073709551615 on linux 64 bits) */
 /** The value of hmat_block_info_t.needed_memory when unset */
 #define HMAT_NEEDED_MEMORY_UNSET ((size_t)-1)
 
