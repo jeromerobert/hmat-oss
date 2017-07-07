@@ -269,10 +269,11 @@ if (MSVC)
 endif ()
 
 # lib HMAT
+set(hmat_extra_compile_flags)
 if(HMAT_OSS_STATIC AND BUILD_SHARED_LIBS)
     add_library(${PROJECT_NAME} STATIC ${HMAT_SOURCES})
-    if(BUILD_SHARED_LIBS AND NOT WIN32)
-        set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS -fPIC)
+    if(NOT WIN32)
+        set(hmat_extra_compile_flags -fPIC)
     endif()
 else()
     add_library(${PROJECT_NAME} ${HMAT_SOURCES})
@@ -282,6 +283,11 @@ else()
         LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}" COMPONENT Runtime
         ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}" COMPONENT Development
     )
+endif()
+if(BUILD_SHARED_LIBS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-DHMAT_DLL_EXPORTS ${hmat_extra_compile_flags}")
+else()
+    set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-DHMAT_STATIC ${hmat_extra_compile_flags}")
 endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "${LAPACK_LINKER_FLAGS} ${BLAS_LINKER_FLAGS} ${MPI_LINK_FLAGS}")
 
