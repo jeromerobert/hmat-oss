@@ -133,6 +133,10 @@ void HMatInterface<T>::gemm(ScalarArray<T>& c, char transA, char transB, T alpha
 
 template<typename T>
 void HMatInterface<T>::solve(ScalarArray<T>& b) const {
+  const_cast<HMatInterface<T, E> *>(this)->engine_.destroy();
+  delete engine_.hmat;
+  finalize();
+  exit(0);
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   reorderVector<T>(&b, engine_->hmat->cols()->indices());
@@ -142,6 +146,10 @@ void HMatInterface<T>::solve(ScalarArray<T>& b) const {
 
 template<typename T>
 void HMatInterface<T>::solve(HMatInterface<T>& b) const {
+  const_cast<HMatInterface<T, E> *>(this)->engine_.destroy();
+  delete engine_.hmat;
+  finalize();
+  exit(0);
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   engine_->solve(*b.engine_, factorizationType);
