@@ -2437,6 +2437,18 @@ HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, i
     return m;
 }
 
+/** Create a temporary block from a list of children */
+template<typename T>
+HMatrix<T>::HMatrix(const ClusterTree * rows, const ClusterTree * cols,
+                    std::vector<HMatrix*> & _children):
+    Tree<HMatrix<T> >(NULL, 0), rows_(rows), cols_(cols),
+    rk_(NULL), rank_(UNINITIALIZED_BLOCK),
+    approximateRank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
+    keepSameRows(false), keepSameCols(false), temporary_(true), ownClusterTree_(false),
+    localSettings(_children[0]->localSettings.global) {
+    this->children = _children;
+}
+
 // Templates declaration
 template class HMatrix<S_t>;
 template class HMatrix<D_t>;

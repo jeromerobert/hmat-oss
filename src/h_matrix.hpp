@@ -173,6 +173,13 @@ public:
   HMatrix<T> * internalCopy(bool temporary_ = false, bool withRowChild=false, bool withColChild=false) const;
   ~HMatrix();
 
+  /**
+   * Create a temporary block from a list of children.
+   * @param children The list of children ordered as insertChild and get
+   * methods expect.
+   */
+  HMatrix(const ClusterTree * rows, const ClusterTree * cols, std::vector<HMatrix*> & children);
+
   /*! \brief HMatrix coarsening.
 
      If all children are Rk leaves, then we try to merge them into a single Rk-leaf.

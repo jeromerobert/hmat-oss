@@ -114,6 +114,11 @@ public:
     children[index] = (TreeNode*)NULL;
   }
 
+  /** Remove all children without freeing them */
+  void detachChildren() {
+      children.clear();
+  }
+
   /*! \brief Return the number of nodes in the tree.
    */
   int nodesCount() const {
