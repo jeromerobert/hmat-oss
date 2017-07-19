@@ -59,6 +59,7 @@ public:
   double norm() const;
   void progress(hmat_progress_t * p){ progress_ = p; }
   HMatrix<T> * data() const { return hmat; }
+  void info(hmat_info_t & i) const { hmat->info(i); }
 };
 
 }  // end namespace hmat

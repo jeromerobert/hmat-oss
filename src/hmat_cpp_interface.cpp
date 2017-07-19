@@ -216,7 +216,7 @@ template<typename T, template <typename> class E>
 void HMatInterface<T, E>::info(hmat_info_t & result) const {
   DECLARE_CONTEXT;
     memset(&result, 0, sizeof(hmat_info_t));
-    engine_.hmat->info(result);
+    engine_.info(result);
 }
 
 template<typename T, template <typename> class E>
