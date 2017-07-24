@@ -362,6 +362,7 @@ typedef struct {
     hmat_progress_t * progress;
     /** The assembly scenario */
     void * assembly;
+    void * distribution;
 } hmat_assemble_context_t;
 
 /** Init a hmat_assemble_context_t with default values */

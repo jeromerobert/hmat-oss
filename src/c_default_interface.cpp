@@ -279,6 +279,7 @@ void hmat_assemble_context_init(hmat_assemble_context_t * context) {
     context->simple_compute = NULL;
     context->user_context = NULL;
     context->progress = DefaultProgress::getInstance();
+    context->distribution = NULL;
 }
 
 void hmat_factorization_context_init(hmat_factorization_context_t *context) {
