@@ -271,9 +271,7 @@ endif ()
 # lib HMAT
 if(HMAT_OSS_STATIC AND BUILD_SHARED_LIBS)
     add_library(${PROJECT_NAME} STATIC ${HMAT_SOURCES})
-    if(BUILD_SHARED_LIBS AND NOT WIN32)
-        set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS -fPIC)
-    endif()
+    set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()
     add_library(${PROJECT_NAME} ${HMAT_SOURCES})
     install(TARGETS ${PROJECT_NAME}
@@ -282,6 +280,11 @@ else()
         LIBRARY DESTINATION "${RELATIVE_INSTALL_LIB_DIR}" COMPONENT Runtime
         ARCHIVE DESTINATION "${RELATIVE_INSTALL_LIB_DIR}" COMPONENT Development
     )
+endif()
+if(BUILD_SHARED_LIBS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS "HMAT_DLL_EXPORTS")
+else()
+    set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS "HMAT_STATIC")
 endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "${LAPACK_LINKER_FLAGS} ${BLAS_LINKER_FLAGS} ${MPI_LINK_FLAGS}")
 
@@ -339,7 +342,7 @@ option(INSTALL_EXAMPLES "install examples" OFF)
 macro(hmat_add_example name source)
   if (BUILD_EXAMPLES)
     if (MSVC OR WINTEL)
-      set_source_files_properties("examples/${source}" PROPERTIES COMPILE_FLAGS "-D_USE_MATH_DEFINES")
+      set_source_files_properties("examples/${source}" PROPERTIES COMPILE_DEFINITIONS "_USE_MATH_DEFINES")
     endif ()
     if (MSVC)
       #  No complex.h on MSVC, compile with C++

@@ -30,6 +30,22 @@
 #include <stdlib.h>
 #include "hmat/config.h"
 
+#if defined _WIN32
+# define HMAT_HELPER_DLL_IMPORT __declspec(dllimport)
+# define HMAT_HELPER_DLL_EXPORT __declspec(dllexport)
+#else
+# define HMAT_HELPER_DLL_IMPORT
+# define HMAT_HELPER_DLL_EXPORT
+#endif
+
+#ifdef HMAT_STATIC /* We are building hmat as a static library */
+# define HMAT_API
+#elif defined HMAT_DLL_EXPORTS /* We are building hmat as a shared library */
+# define HMAT_API HMAT_HELPER_DLL_EXPORT
+#else              /* We are using hmat library */
+# define HMAT_API HMAT_HELPER_DLL_IMPORT
+#endif /* !HMAT_STATIC */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -63,7 +79,7 @@ typedef enum {
     hmat_factorization_llt
 } hmat_factorization_t;
 
-// -1 seems to be a good portable alternative to SIZE_T_MAX (=18446744073709551615 on linux 64 bits)
+/* -1 seems to be a good portable alternative to SIZE_T_MAX (=18446744073709551615 on linux 64 bits) */
 /** The value of hmat_block_info_t.needed_memory when unset */
 #define HMAT_NEEDED_MEMORY_UNSET ((size_t)-1)
 
@@ -154,21 +170,21 @@ typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
 typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
 
 /* Median clustering */
-hmat_clustering_algorithm_t* hmat_create_clustering_median();
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_median();
 /* Geometric clustering */
-hmat_clustering_algorithm_t* hmat_create_clustering_geometric();
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_geometric();
 /* Hybrid clustering */
-hmat_clustering_algorithm_t* hmat_create_clustering_hybrid();
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_hybrid();
 /* Create a new clustering algorithm by setting the maximum number of degrees of freedom in a leaf */
-hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
 /* Create a new clustering algorithm (for tests purpose only) */
-hmat_clustering_algorithm_t* hmat_create_void_clustering(const hmat_clustering_algorithm_t* algo);
+HMAT_API hmat_clustering_algorithm_t* hmat_create_void_clustering(const hmat_clustering_algorithm_t* algo);
 /* Create a new clustering algorithm (for tests purpose only) */
-hmat_clustering_algorithm_t* hmat_create_shuffle_clustering(const hmat_clustering_algorithm_t* algo, int from_divider, int to_divider);
+HMAT_API hmat_clustering_algorithm_t* hmat_create_shuffle_clustering(const hmat_clustering_algorithm_t* algo, int from_divider, int to_divider);
 /* Delete clustering algorithm */
-void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
+HMAT_API void hmat_delete_clustering(hmat_clustering_algorithm_t *algo);
 /* Set the clustering divider parameter */
-void hmat_set_clustering_divider(hmat_clustering_algorithm_t* algo, int divider);
+HMAT_API void hmat_set_clustering_divider(hmat_clustering_algorithm_t* algo, int divider);
 
 /*! \brief Create a ClusterTree from the DoFs coordinates.
 
@@ -178,17 +194,17 @@ void hmat_set_clustering_divider(hmat_clustering_algorithm_t* algo, int divider)
   \param algo pointer to clustering algorithm
   \return an opaque pointer to a ClusterTree, or NULL in case of error.
 */
-hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo);
+HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo);
 
 /* Opaque pointer */
 typedef struct hmat_cluster_tree_builder hmat_cluster_tree_builder_t;
 
-hmat_cluster_tree_builder_t* hmat_create_cluster_tree_builder(const hmat_clustering_algorithm_t* algo);
+HMAT_API hmat_cluster_tree_builder_t* hmat_create_cluster_tree_builder(const hmat_clustering_algorithm_t* algo);
 
 /* Specify an algorithm for nodes at given depth and below */
-void hmat_cluster_tree_builder_add_algorithm(hmat_cluster_tree_builder_t* ctb, int level, const hmat_clustering_algorithm_t* algo);
+HMAT_API void hmat_cluster_tree_builder_add_algorithm(hmat_cluster_tree_builder_t* ctb, int level, const hmat_clustering_algorithm_t* algo);
 
-void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb);
+HMAT_API void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb);
 
 /*! \brief Create a ClusterTree from the DoFs coordinates.
 
@@ -198,16 +214,16 @@ void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb);
   \param ctb pointer to an opaque ClusterTreeBuilder
   \return an opaque pointer to a ClusterTree, or NULL in case of error.
 */
-hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int dimension, int size, const hmat_cluster_tree_builder_t* ctb);
+HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int dimension, int size, const hmat_cluster_tree_builder_t* ctb);
 
-void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
+HMAT_API void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
 
-hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
+HMAT_API hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
 
 /*!
  * Return the number of nodes in a cluster tree
  */
-int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
+HMAT_API int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
 
 /** Information on a cluster tree */
 typedef struct
@@ -222,7 +238,7 @@ typedef struct
   size_t nr_tree_nodes;
 } hmat_cluster_info_t;
 
-int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);
+HMAT_API int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);
 
 typedef struct {
     /** eta for Hackbusch condition */
@@ -240,16 +256,16 @@ typedef struct {
 } hmat_admissibility_param_t;
 
 /** Init an hmat_admissibility_param structure with default values */
-void hmat_init_admissibility_param(hmat_admissibility_param_t *);
+HMAT_API void hmat_init_admissibility_param(hmat_admissibility_param_t *);
 
 /* Opaque pointer */
 typedef struct hmat_admissibility_condition hmat_admissibility_t;
 
 /** Create an admissibility condition from parameters */
-hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t *);
+HMAT_API hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t *);
 
 /* Create a standard (Hackbusch) admissibility condition, with a given eta */
-hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
+HMAT_API hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
 
 /**
  * @brief Create an admissibility condiction which set all blocks as admissible
@@ -258,11 +274,11 @@ hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
  * @param split_rows Tel whether or not to split rows
  * @param split_cols Tel whether or not to split cols
  */
-hmat_admissibility_t* hmat_create_admissibility_always(
+HMAT_API hmat_admissibility_t* hmat_create_admissibility_always(
         size_t max_size, unsigned int min_block, int split_rows, int split_cols);
 
 /* Delete admissibility condition */
-void hmat_delete_admissibility(hmat_admissibility_t * cond);
+HMAT_API void hmat_delete_admissibility(hmat_admissibility_t * cond);
 
 /** Information on the HMatrix */
 typedef struct
@@ -349,7 +365,7 @@ typedef struct {
 } hmat_assemble_context_t;
 
 /** Init a hmat_assemble_context_t with default values */
-void hmat_assemble_context_init(hmat_assemble_context_t * context);
+HMAT_API void hmat_assemble_context_init(hmat_assemble_context_t * context);
 
 typedef struct {
     /** The type of factorization to do after this assembling. The default is hmat_factorization_lu. */
@@ -359,7 +375,7 @@ typedef struct {
 } hmat_factorization_context_t;
 
 /** Init a hmat_factorization_context_t with default values */
-void hmat_factorization_context_init(hmat_factorization_context_t * context);
+HMAT_API void hmat_factorization_context_init(hmat_factorization_context_t * context);
 
 /** Context for the get_values and get_block function */
 struct hmat_get_values_context_t {
@@ -393,10 +409,10 @@ typedef struct
 } hmat_procedure_t;
 
 /* Delete a procedure */
-void hmat_delete_procedure(hmat_procedure_t* proc);
+HMAT_API void hmat_delete_procedure(hmat_procedure_t* proc);
 
 /* Create a procedure to truncate Rk matrices */
-hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, double epsilon);
+HMAT_API hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, double epsilon);
 
 typedef struct
 {
@@ -665,7 +681,7 @@ hmat
     void (*write_data)(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data);
 }  hmat_interface_t;
 
-void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);
+HMAT_API void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);
 
 typedef struct
 {
@@ -701,30 +717,30 @@ typedef struct
 /*! \brief Get current settings
     \param settings A structure to fill with current settings
  */
-void hmat_get_parameters(hmat_settings_t * settings);
+HMAT_API void hmat_get_parameters(hmat_settings_t * settings);
 /*! \brief Set current settings
 
 \param structure containing parameters
 \return 1 on failure, 0 otherwise.
 */
-int hmat_set_parameters(hmat_settings_t*);
+HMAT_API int hmat_set_parameters(hmat_settings_t*);
 
 /*! \brief Print current settings
 
 \param structure containing parameters
 */
-void hmat_print_parameters(hmat_settings_t*);
+HMAT_API void hmat_print_parameters(hmat_settings_t*);
 
 /*!
  * \brief hmat_get_version
  * \return The version of this library
  */
-const char * hmat_get_version();
+HMAT_API const char * hmat_get_version();
 /*!
  * \brief hmat_get_build_date
  * \return The build date and time of this library
  */
-void hmat_get_build_date(const char**, const char**);
+HMAT_API void hmat_get_build_date(const char**, const char**);
 
 /*!
  \brief hmat_tracing_dump Dumps the trace info in the given filename
@@ -732,7 +748,7 @@ void hmat_get_build_date(const char**, const char**);
  The file is in json format. Hmat library must be compiled with -DHAVE_CONTEXT for this to work.
 \param filename the name of the output json file
 */
-void hmat_tracing_dump(char *filename) ;
+HMAT_API void hmat_tracing_dump(char *filename) ;
 
 #ifdef __cplusplus
 }
