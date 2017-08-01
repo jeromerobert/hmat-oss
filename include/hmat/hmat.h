@@ -331,6 +331,12 @@ typedef struct hmat_progress_struct {
 } hmat_progress_t;
 
 /**
+ * Return the default progress bar.
+ * This is a singleton which must/can not be freed.
+ */
+hmat_progress_t * hmat_default_progress();
+
+/**
  * Function representing a generic stream.
  * It could be implemented as FILE*, unix fd, C++ iostream while using a C API.
  * @param buffer the buffer to read or write

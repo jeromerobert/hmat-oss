@@ -315,3 +315,6 @@ void hmat_tracing_dump(char *filename) {
   tracing_dump(filename);
 }
 
+hmat_progress_t * hmat_default_progress() {
+    return DefaultProgress::getInstance();
+}
