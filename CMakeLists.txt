@@ -243,6 +243,9 @@ endif()
 # ========================
 # Configuration file
 # ========================
+if(NOT BUILD_SHARED_LIBS)
+    set(HMAT_STATIC ON)
+endif()
 configure_file("${PROJECT_SOURCE_DIR}/CMake/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 configure_file("${PROJECT_SOURCE_DIR}/CMake/hmat-config-oss.h.in" "${CMAKE_CURRENT_BINARY_DIR}/hmat/config-oss.h")
 if(NOT HMAT_SKIP_CONFIG)
@@ -283,8 +286,6 @@ else()
 endif()
 if(BUILD_SHARED_LIBS)
     set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS "HMAT_DLL_EXPORTS")
-else()
-    set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS "HMAT_STATIC")
 endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "${LAPACK_LINKER_FLAGS} ${BLAS_LINKER_FLAGS} ${MPI_LINK_FLAGS}")
 

@@ -22,3 +22,4 @@
 
 #pragma once
 #define HMAT_VERSION "@HMAT_VERSION@"
+#cmakedefine HMAT_STATIC
