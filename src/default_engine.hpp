@@ -52,7 +52,7 @@ public:
   void solve(ScalarArray<T>& b, hmat_factorization_t) const;
   void solve(DefaultEngine<T>& b, hmat_factorization_t) const;
   void solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose=false) const;
-  void copy(DefaultEngine<T> & result) const;
+  void copy(DefaultEngine<T> & result, bool structOnly) const;
   void transpose();
   void createPostcriptFile(const std::string& filename) const;
   void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;

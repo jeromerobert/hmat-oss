@@ -501,6 +501,10 @@ typedef struct
       \return a copy of the matrix, or NULL
     */
     hmat_matrix_t* (*copy)(hmat_matrix_t* hmatrix);
+
+    /** Return a null matrix with the same structure */
+    hmat_matrix_t* (*copy_struct)(hmat_matrix_t* hmatrix);
+
     /*! \brief Compute the norm of a HMatrix.
 
       \param hmatrix the matrix of which to compute the norm

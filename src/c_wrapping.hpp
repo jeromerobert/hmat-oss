@@ -169,6 +169,12 @@ hmat_matrix_t* copy(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
+hmat_matrix_t* copy_struct(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT;
+  return (hmat_matrix_t*) ((hmat::HMatInterface<T, E>*) holder)->copy(true);
+}
+
+template<typename T, template <typename> class E>
 int destroy(hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
   delete (hmat::HMatInterface<T, E>*)(holder);
@@ -440,6 +446,7 @@ static void createCInterface(hmat_interface_t * i)
     i->assemble_factorize = assemble_factor<T, E>;
     i->assemble_simple_interaction = assemble_simple_interaction<T, E>;
     i->copy = copy<T, E>;
+    i->copy_struct = copy_struct<T, E>;
     i->create_empty_hmatrix = create_empty_hmatrix<T, E>;
     i->create_empty_hmatrix_admissibility = create_empty_hmatrix_admissibility<T, E>;
     i->destroy = destroy<T, E>;

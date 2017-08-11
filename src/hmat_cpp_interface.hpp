@@ -254,7 +254,7 @@ public:
   static void gemm(ScalarArray<T>& c, char transA, char transB, T alpha, ScalarArray<T>& a, const HMatInterface<T, E>& b, T beta);
   /** Return a new copy of this.
    */
-  HMatInterface<T, E>* copy() const;
+  HMatInterface<T, E>* copy(bool structOnly = false) const;
   /** Transpose this in place.
    */
   void transpose();

@@ -210,9 +210,10 @@ template<typename T> double DefaultEngine<T>::norm() const {
     return sqrt(hmat->normSqr());
 }
 
-template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result) const {
+template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result, bool structOnly) const {
     result.hmat = hmat->copyStructure();
-    result.hmat->copy(hmat);
+    if(!structOnly)
+        result.hmat->copy(hmat);
 }
 
 template<typename T> void DefaultEngine<T>::transpose() {

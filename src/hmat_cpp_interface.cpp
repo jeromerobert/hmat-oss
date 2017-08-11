@@ -174,10 +174,10 @@ void HMatInterface<T, E>::solveLower(ScalarArray<T>& b, bool transpose) const {
 }
 
 template<typename T, template <typename> class E>
-HMatInterface<T, E>* HMatInterface<T, E>::copy() const {
+HMatInterface<T, E>* HMatInterface<T, E>::copy(bool structOnly) const {
   DECLARE_CONTEXT;
   HMatInterface<T, E>* result = new HMatInterface<T, E>(NULL);
-  engine_.copy(result->engine_);
+  engine_.copy(result->engine_, structOnly);
   assert(result->engine_.hmat);
   result->engine_.hmat->checkStructure();
   return result;
