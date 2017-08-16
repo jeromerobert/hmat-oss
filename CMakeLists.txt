@@ -18,7 +18,7 @@
 #
 #  http://github.com/jeromerobert/hmat-oss
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.9)
 
 # Set CMAKE_BUILD_TYPE to Release by default.
 # Must be done before calling project()
