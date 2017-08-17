@@ -10,6 +10,7 @@ addons:
       - g++-mingw-w64-i686
       - binutils-mingw-w64-i686
       - libblas-dev
+      - liblapack-dev
     sources: &sources
       - ubuntu-toolchain-r-test
 
