@@ -93,22 +93,6 @@ template<typename T> void reorderVector(ScalarArray<T>* v, int* indices);
 template<typename T> void restoreVectorOrder(ScalarArray<T>* v, int *indices);
 
 template<typename T> class HMatrix;
-/** Class to write user defined data when dumping matrix onto disk.
-
-    This class is used by dumpTreeToFile to write extra information into
-    json file; the returned string must thus be a valid json fragment text.
- */
-template<typename T> class HMatrixNodeDumper {
-public:
-  HMatrixNodeDumper() {}
-  virtual std::string dumpExtraInfo(const HMatrix<T>& node, const std::string& prefix) const = 0;
-};
-
-template<typename T>
-class HMatrixVoidNodeDumper : public HMatrixNodeDumper<T> {
-public:
-  virtual std::string dumpExtraInfo(const HMatrix<T>&, const std::string&) const { return ""; }
-};
 
 /** Class to truncate Rk matrices.
  */
@@ -151,9 +135,7 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
-  /*! \brief Auxiliary function used by HMatrix::dumpTreeToFile().
-   */
-  void dumpSubTree(std::ofstream& f, int depth, const HMatrixNodeDumper<T>& nodeDumper) const;
+
   /** Only used by internalCopy */
   HMatrix(const MatrixSettings * settings);
 public:
@@ -287,25 +269,6 @@ public:
     \param filename output filename.
    */
   void createPostcriptFile(const std::string& filename) const;
-  /*! \brief Dump some HMatrix metadata to a Python-readable file.
-
-    This function create a file that is readable by Python's eval()
-    function, which contains a dictionnary with the following data:
-
-    {'points': [(x1, y1, z1), ...],
-     'mapping': [indices[0], indices[1], ...],
-     'tree': {
-       'isLeaf': False,
-       'depth': 0,
-       'rows': {'offset': 0, 'n': 15243, 'boundingBox': [(-0.0249617, -0.0249652, -0.0249586), (0.0962927, 0.0249652, 0.0249688)]},
-       'cols': {'offset': 0, 'n': 15243, 'boundingBox': [(-0.0249617, -0.0249652, -0.0249586), (0.0962927, 0.0249652, 0.0249688)]},
-       'children': [child1, child2, child3, child4]
-     }
-    }
-
-    \param filename path to the output file.
-   */
-  void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& nodeDumper) const;
 
   /**
    * Used internally for deserialization

@@ -201,11 +201,6 @@ void DefaultEngine<T>::createPostcriptFile(const std::string& filename) const {
     hmat->createPostcriptFile(filename);
 }
 
-template<typename T>
-void DefaultEngine<T>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const {
-    hmat->dumpTreeToFile(filename, dumper_extra);
-}
-
 template<typename T> double DefaultEngine<T>::norm() const {
     return sqrt(hmat->normSqr());
 }

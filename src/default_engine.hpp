@@ -55,7 +55,6 @@ public:
   void copy(DefaultEngine<T> & result, bool structOnly) const;
   void transpose();
   void createPostcriptFile(const std::string& filename) const;
-  void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;
   double norm() const;
   void progress(hmat_progress_t * p){ progress_ = p; }
   HMatrix<T> * data() const { return hmat; }

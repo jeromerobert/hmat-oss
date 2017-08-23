@@ -320,7 +320,7 @@ public:
     \param filename path to the output file.
    */
   void dumpTreeToFile(const std::string& filename) const;
-  void dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const;
+
   /** Return the number of block cluster tree nodes.
    */
   int nodesCount() const;

@@ -40,6 +40,7 @@
 #include "recursion.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
+#include "json.hpp"
 
 using namespace std;
 
@@ -1428,110 +1429,6 @@ void HMatrix<T>::createPostcriptFile(const std::string& filename) const {
     dumper.write(this, filename);
 }
 
-template<typename T>
-void HMatrix<T>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& nodeDumper) const {
-  ofstream file;
-  const DofCoordinates* points = rows()->coordinates();
-  const double* coord = &points->get(0, 0);
-  const int* indices = rows()->indices();
-  const int dimension = points->dimension();
-  string delimiter;
-
-  file.open(filename.c_str());
-  // Points
-  file << "{" << endl
-       << "  \"points\": [" << endl;
-  delimiter = "";
-  for (int i = 0; i < points->size(); i++) {
-    file << "    " << delimiter << "[";
-    if (dimension > 0) {
-      file << coord[dimension*i];
-      for (int dim = 1; dim < dimension; ++dim) {
-        file << ", " << coord[dimension*i+dim];
-      }
-    }
-    file << "]" << endl;
-    delimiter = " ,";
-  }
-  // Mapping
-  file << "  ]," << endl
-       << "  \"mapping\": [" << endl << "    ";
-  delimiter = "";
-  for (int i = 0; i < points->size(); i++) {
-    file << delimiter << indices[i];
-    delimiter = " ,";
-  }
-  file << "]," << endl;
-  file << "  \"tree\":" << endl;
-  dumpSubTree(file, 0, nodeDumper);
-  file << "}" << endl;
-}
-
-template<typename T>
-void HMatrix<T>::dumpSubTree(ofstream& f, int _depth, const HMatrixNodeDumper<T>& nodeDumper) const {
-  string prefix("    ");
-  for (int i = 0; i < _depth; i++) {
-    prefix += "  ";
-  }
-  AxisAlignedBoundingBox rows_bbox(rows_->data);
-  AxisAlignedBoundingBox cols_bbox(cols_->data);
-  const int rows_dimension(rows_->data.coordinates()->dimension());
-  const int cols_dimension(cols_->data.coordinates()->dimension());
-
-  f << prefix << "{\"isLeaf\": " << (this->isLeaf() ? "true" : "false") << "," << endl
-    << prefix << " \"depth\": " << _depth << "," << endl
-    << prefix << " \"rows\": " << "{\"offset\": " << rows()->offset() << ", \"n\": " << rows()->size() << ", "
-    << "\"boundingBox\": [[" << rows_bbox.bbMin[0];
-  for (int dim = 1; dim < rows_dimension; ++dim) {
-    f << ", " << rows_bbox.bbMin[dim];
-  }
-  f << "], [" << rows_bbox.bbMax[0];
-  for (int dim = 1; dim < rows_dimension; ++dim) {
-    f << ", " << rows_bbox.bbMax[dim];
-  }
-  f << "]]}," << endl
-    << prefix << " \"cols\": " << "{\"offset\": " << cols()->offset() << ", \"n\": " << cols()->size() << ", "
-    << "\"boundingBox\": [[" << cols_bbox.bbMin[0];
-  for (int dim = 1; dim < cols_dimension; ++dim) {
-    f << ", " << cols_bbox.bbMin[dim];
-  }
-  f << "], [" << cols_bbox.bbMax[0];
-  for (int dim = 1; dim < cols_dimension; ++dim) {
-    f << ", " << cols_bbox.bbMax[dim];
-  }
-  f << "]]}," << endl;
-  const std::string extra_info(nodeDumper.dumpExtraInfo(*this, " "+prefix));
-  if (!extra_info.empty()) {
-    f << prefix << " " << extra_info << "," << endl;
-  }
-  if (!this->isLeaf()) {
-    f << prefix << " \"children\": [" << endl;
-    string delimiter("");
-    for (int i = 0; i < this->nrChild(); i++) {
-      const HMatrix<T>* child = this->getChild(i);
-      f << delimiter;
-      if (!child)
-        f << prefix << "{ }";
-      else
-        child->dumpSubTree(f, _depth + 1, nodeDumper);
-      f << endl;
-      delimiter = ",";
-    }
-    f << prefix << " ]";
-  } else {
-    // It's a leaf
-    if (isFullMatrix()) {
-      f << prefix << " \"leaf_type\": \"Full\"";
-    } else if (isRkMatrix() && rk()) {
-      f << prefix << " \"leaf_type\": \"Rk\", \"k\": " << rank() << ",";
-      // f << endl << prefix << " \"eta\": " << this->data.rows->getEta(this->data.cols) << ",";
-      f << prefix << " \"method\": " << rk()->method;
-    } else {
-      f << prefix << " \"leaf_type\": \"N/A\"";
-    }
-  }
-  f << "}";
-}
 
 template<typename T> HMatrix<T>* HMatrix<T>::copy() const {
   HMatrix<T>* M=Zero(this);
@@ -2454,11 +2351,6 @@ template class HMatrix<S_t>;
 template class HMatrix<D_t>;
 template class HMatrix<C_t>;
 template class HMatrix<Z_t>;
-
-template class HMatrixNodeDumper<S_t>;
-template class HMatrixNodeDumper<D_t>;
-template class HMatrixNodeDumper<C_t>;
-template class HMatrixNodeDumper<Z_t>;
 
 template void reorderVector(ScalarArray<S_t>* v, int* indices);
 template void reorderVector(ScalarArray<D_t>* v, int* indices);

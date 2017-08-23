@@ -26,6 +26,7 @@
 #include "cluster_tree.hpp"
 #include "common/context.hpp"
 #include "disable_threading.hpp"
+#include "json.hpp"
 
 #include <cstring>
 
@@ -228,14 +229,8 @@ void HMatInterface<T, E>::createPostcriptFile(const std::string& filename) const
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::dumpTreeToFile(const std::string& filename) const {
   DECLARE_CONTEXT;
-    HMatrixVoidNodeDumper<T> dumper_extra;
-    dumpTreeToFile(filename, dumper_extra);
-}
-
-template<typename T, template <typename> class E>
-void HMatInterface<T, E>::dumpTreeToFile(const std::string& filename, const HMatrixNodeDumper<T>& dumper_extra) const {
-  DECLARE_CONTEXT;
-    engine_.dumpTreeToFile(filename, dumper_extra);
+  std::ofstream out(filename);
+  HMatrixJSONDumper<T>(engine_.hmat, out).dump();
 }
 
 template<typename T, template <typename> class E>
