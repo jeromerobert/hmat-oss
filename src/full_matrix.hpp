@@ -31,10 +31,9 @@
 #include "data_types.hpp"
 #include "scalar_array.hpp"
 #include "h_matrix.hpp"
+#include "cluster_tree.hpp"
 
 namespace hmat {
-
-class IndexSet;
 
   /*! \brief Templated dense Matrix type.
 
