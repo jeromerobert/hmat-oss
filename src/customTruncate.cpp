@@ -60,6 +60,7 @@ template<typename T> void mGSTruncate(RkMatrix<T> *Rk, double prec){
     }
   }
   delete ra_tmp;
+  delete[] permA;
 
   /* Gram-Schmidt on Rk->b */
   int *permB = new int[krank];
@@ -75,6 +76,7 @@ template<typename T> void mGSTruncate(RkMatrix<T> *Rk, double prec){
     }
   }
   delete rb_tmp;
+  delete[] permB;
 
   ra->rows = kA; rb->rows = kB;
   /* gemm  because the matrices are not triangular */
