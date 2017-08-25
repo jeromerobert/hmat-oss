@@ -235,6 +235,10 @@ if(HAVE_GCC_WARNING_FLAGS)
   SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
   SET(CMAKE_C_FLAGS "-Werror -Wall -Wno-sign-compare ${CMAKE_C_FLAGS}")
 endif()
+check_cxx_compiler_flag("-Wno-undefined-var-template" DISABLE_CLANG_FALSE_POSITIVES)
+if(DISABLE_CLANG_FALSE_POSITIVES)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-undefined-var-template")
+endif()
 
 # ========================
 # Configuration file

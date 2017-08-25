@@ -68,10 +68,10 @@ void MatrixStructMarshaller<T>::writeTreeNode(const ClusterTree * clusterTree) {
 template<typename T>
 void MatrixStructMarshaller<T>::writeTreeNode(const HMatrix<T> * m) {
     if(m == NULL) {
-        writeValue<char>(1 << 7);
+        writeValue<unsigned char>(1 << 7);
         return;
     }
-    char bitfield = 0;
+    unsigned char bitfield = 0;
     bitfield |= m->isUpper;
     bitfield |= m->isLower        ? 1 << 1 : 0;
     bitfield |= m->isTriUpper     ? 1 << 2 : 0;
@@ -165,7 +165,7 @@ ClusterTree * MatrixStructUnmarshaller<T>::readTreeNode(const ClusterTree * pare
 
 template<typename T>
 HMatrix<T> * MatrixStructUnmarshaller<T>::readTreeNode(HMatrix<T> *) {
-    char bitfield = readValue<char>();
+    unsigned char bitfield = readValue<char>();
     if(bitfield & (1 << 7))
         return NULL;
     int rankApprox = readValue<int>();

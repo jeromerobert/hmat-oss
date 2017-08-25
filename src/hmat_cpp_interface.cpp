@@ -29,6 +29,7 @@
 #include "json.hpp"
 
 #include <cstring>
+#include <fstream>
 
 namespace hmat {
 
@@ -229,7 +230,7 @@ void HMatInterface<T, E>::createPostcriptFile(const std::string& filename) const
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::dumpTreeToFile(const std::string& filename) const {
   DECLARE_CONTEXT;
-  std::ofstream out(filename);
+  std::ofstream out(filename.c_str());
   HMatrixJSONDumper<T>(engine_.hmat, out).dump();
 }
 
