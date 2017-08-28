@@ -575,7 +575,7 @@ template<typename T> const HMatrix<T> * HMatrix<T>::getChildForGEMM(char & t, in
   assert(!this->isLeaf());
 
   const HMatrix<T>* res;
-  if(t == 'T')
+  if(t != 'N')
     std::swap(i,j);
   if( (isLower && j > i) ||
       (isUpper && i > j) ) {
