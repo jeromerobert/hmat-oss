@@ -31,7 +31,7 @@
 #include "lapack_overloads.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
-
+#include "customTruncate.hpp"
 namespace hmat {
 
 /** RkApproximationControl */
@@ -49,7 +49,7 @@ int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
     }
     int i = 0;
     for (i = 0; i < maxK; i++) {
-      if (sigma[i] <= epsilon * sumSingularValues) {
+      if (sigma[i] <= epsilon * sumSingularValues){
         break;
       }
     }
@@ -196,6 +196,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     delete rk;
   }
 
+  static char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
+  if (useCUSTOM){
+    mGSTruncate(this,epsilon);
+    return;
+  }
   /* To recompress an Rk-matrix to Rk-matrix, we need :
       - A = Q_a R_A (QR decomposition)
       - B = Q_b R_b (QR decomposition)
