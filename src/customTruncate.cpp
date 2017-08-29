@@ -35,7 +35,6 @@
 namespace hmat {
 template<typename T> void mGSTruncate(RkMatrix<T> *Rk, double prec){
   DECLARE_CONTEXT;
-  typedef double dp_t;
 
   int ierr;
   if (Rk->rank() == 0) {
@@ -45,75 +44,71 @@ template<typename T> void mGSTruncate(RkMatrix<T> *Rk, double prec){
 
   int krank = Rk->rank();
 
-  /* Gram-Schmidt on Rk->a */
-  ScalarArray<T> *ra = new ScalarArray<T>(krank, krank);
-  int kA = modifiedGramSchmidt( Rk->a, ra, prec );
+  // Gram-Schmidt on Rk->a
+  ScalarArray<T> ra(krank, krank);
+  int kA = modifiedGramSchmidt( Rk->a, &ra, prec );
+  // On output, Rk->a->cols = kA, ra.rows = kA
 
-  /* Gram-Schmidt on Rk->b */
-  ScalarArray<T> *rb = new ScalarArray<T>(krank, krank);
-  int kB = modifiedGramSchmidt( Rk->b, rb, prec );
+  // Gram-Schmidt on Rk->b
+  ScalarArray<T> rb(krank, krank);
+  int kB = modifiedGramSchmidt( Rk->b, &rb, prec );
+  // On output, Rk->b->cols = kb, rb.rows = kb
 
-  /* gemm  because the matrices are not triangular */
-  ScalarArray<T> *matR = new ScalarArray<T>(kA,kB);
-  matR->gemm('N','T', Constants<T>::pone, ra, rb , Constants<T>::zero);
-  delete ra; delete rb;
+  ScalarArray<T> matR(kA, kB);
+  matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
-  /* SVD */
+  // SVD
   ScalarArray<T>* ur = NULL;
-  Vector<dp_t>* sr = NULL;
+  Vector<double>* sr = NULL;
   ScalarArray<T>* vhr = NULL;
-  ierr = truncatedSvd<T>(matR, &ur, &sr, &vhr);
+  ierr = truncatedSvd<T>(&matR, &ur, &sr, &vhr);
+  // On output, ur->rows = kA, vhr->cols = kB
   HMAT_ASSERT(!ierr);
-  delete matR;
 
-  /* Remove small singular values */
+  // Remove small singular values
   int newK = 0;
-  for(int i=0; i<std::min(kA, kB); i++){
-    if(sr->m[i] > prec*sr->m[0]){
-      newK += 1;
-    }
-    else break;
+  for(int i = 0; i < std::min(kA, kB); ++i, ++newK) {
+    if(sr->m[i] <= prec * sr->m[0])
+      break;
   }
   assert(newK>0);
+  ur->cols = newK;
+  vhr->rows = newK;
 
   /* Scaling of ur and vhr */
-  for(int j=0;j<newK;j++){
-    for(int i=0;i<ur->rows;i++){
-      ur->m[i+j*ur->lda] *= sqrt(sr->m[j]);
+  for(int j = 0; j < newK; ++j) {
+    const double valJ = sqrt(sr->m[j]);
+    for(int i = 0; i < ur->rows; ++i) {
+      ur->m[i + j * ur->lda] *= valJ;
     }
   }
 
-  for(int j=0;j<vhr->cols;j++){
-    for(int i=0;i<newK;i++){
-      vhr->m[i+j*vhr->lda] *= sqrt(sr->m[i]);
+  for(int j = 0; j < vhr->cols; ++j){
+    for(int i = 0; i < newK; ++i) {
+      vhr->m[i + j * vhr->lda] *= sqrt(sr->m[i]);
     }
   }
 
   /* Multiplication by orthogonal matrix Q: no or/un-mqr as
     this comes from Gram-Schmidt procedure not Householder
   */
-  ScalarArray<T> *newA = new ScalarArray<T>(Rk->a->rows,newK);
-  Rk->a->cols = kA; ur->cols = newK;
-  newA->gemm ( 'N', 'N', Constants<T>::pone, Rk->a, ur, Constants<T>::zero);
-  Rk->a->cols = krank; ur->cols = newK;
+  ScalarArray<T> *newA = new ScalarArray<T>(Rk->a->rows, newK);
+  newA->gemm('N', 'N', Constants<T>::pone, Rk->a, ur, Constants<T>::zero);
 
-  ScalarArray<T> *newB = new ScalarArray<T>(Rk->b->rows,newK);
-  Rk->b->cols = kB; vhr->rows = newK;
+  ScalarArray<T> *newB = new ScalarArray<T>(Rk->b->rows, newK);
   newB->gemm ( 'N', 'T', Constants<T>::pone, Rk->b, vhr, Constants<T>::zero);
-  Rk->b->cols = krank; vhr->rows = std::min(kA,kB);
+
+  delete ur;
+  delete vhr;
+  delete sr;
 
   delete Rk->a;
   Rk->a = newA;
   delete Rk->b;
   Rk->b = newB;
 
-  delete ur;
-  delete vhr;
-  delete sr;
-
   if (Rk->rank() == 0) {
     assert(!(Rk->b || Rk->a));
-    return;
   }
 }
 
