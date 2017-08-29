@@ -423,103 +423,109 @@ template int productQ(char side, char trans, ScalarArray<D_t>* qr, D_t* tau, Sca
 template int productQ(char side, char trans, ScalarArray<C_t>* qr, C_t* tau, ScalarArray<C_t>* c);
 template int productQ(char side, char trans, ScalarArray<Z_t>* qr, Z_t* tau, ScalarArray<Z_t>* c);
 
-template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> *r, int *perm, double prec ){
+template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> *result, double prec ) {
   DECLARE_CONTEXT;
-{
-  size_t mm = a->rows;
-  size_t n = a->cols;
-  size_t multiplications = 2*mm*n*n;
-  size_t additions = 2*mm*n*n;
-  increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
-}
-  typedef double dp_t;
-  int rang;
-  int jj, jtemp;
-  double normax;
+  {
+    size_t mm = a->rows;
+    size_t n = a->cols;
+    size_t multiplications = 2*mm*n*n;
+    size_t additions = 2*mm*n*n;
+    increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
+  }
+  int rank;
+  double relative_epsilon;
 
-  Vector<dp_t> *norm2 = new Vector<dp_t>(a->cols);
-  double ptemp, pivmax;
-  T coef;
+  const int original_rank(result->lda);
+  assert(original_rank == result->rows);
+  assert(original_rank == result->cols);
+  assert(original_rank >= a->cols);
+  int* perm = new int[original_rank];
+  for(int k = 0; k < original_rank; ++k) {
+    perm[k] = k;
+  }
+  // Temporary arrays
+  ScalarArray<T> r(original_rank, original_rank);
+  Vector<T> buffer(std::max(original_rank, std::max(a->rows, a->cols)));
 
-  /* Lower threshold for relative precision */
-  if(prec < 1.0e-6){prec = 1.0e-6;}
-
-  /* Init.  */
-  double prec2 = prec * prec;
-  rang = 0;
-  normax = 0.0;
-
-  for(int j=0;j<a->cols;j++){
-    Vector<T> aj(a->m+j*a->lda,a->rows);
-    norm2->m[j] = aj.normSqr();
-    normax = std::max(normax,norm2->m[j]  );
+  // Lower threshold for relative precision
+  if(prec < 1.0e-6) {
+    prec = 1.0e-6;
   }
 
-  /* Modified Gram-Schmidt process with column pivoting */
-  for(int j=0;j<a->cols;j++){
+  // Init.
+  Vector<double> norm2(a->cols);
+  rank = 0;
+  relative_epsilon = 0.0;
+  for(int j=0; j < a->cols; ++j) {
+    const Vector<T> aj(a->m + j * a->lda, a->rows);
+    norm2.m[j] = aj.normSqr();
+    relative_epsilon = std::max(relative_epsilon, norm2.m[j]);
+  }
+  relative_epsilon *= prec * prec;
 
-    /* Find the largest pivot */
-    pivmax = norm2->m[j];
-    jj = j;
-    for(int k=j+1;k<a->cols;k++){
-      if (pivmax < norm2->m[k] ){
-        pivmax = norm2->m[k];
+  // Modified Gram-Schmidt process with column pivoting
+  for(int j = 0; j < a->cols; ++j) {
+
+    // Find the largest pivot
+    double pivmax = norm2.m[j];
+    int jj = j;
+    for(int k = j + 1; k < a->cols; ++k) {
+      if (pivmax < norm2.m[k] ){
+        pivmax = norm2.m[k];
         jj = k;
       }
     }
 
-    /* Stopping criterion */
-    if ( pivmax > prec2 * normax){
-      rang += 1;
+    // Stopping criterion
+    if ( pivmax > relative_epsilon) {
+      ++rank;
 
-      /* Pivoting */
-      if (j != jj){
+      // Pivoting
+      if (j != jj) {
+        std::swap(perm[j], perm[jj]);
+        std::swap(norm2.m[j], norm2.m[jj]);
 
-        jtemp = perm[j];
-        perm[j] = perm[jj];
-        perm[jj] = jtemp;
+        memcpy(buffer.m, a->m + j * a->lda, a->rows*sizeof(T));
+        memcpy(a->m + j * a->lda, a->m + jj * a->lda, a->rows*sizeof(T));
+        memcpy(a->m + jj * a->lda, buffer.m, a->rows*sizeof(T));
 
-        ptemp = norm2->m[j];
-        norm2->m[j] = norm2->m[jj];
-        norm2->m[jj] = ptemp;
-
-        Vector<T> avecTmp(a->rows);
-        memcpy(avecTmp.m,a->m+j*a->lda,a->rows*sizeof(T));
-        memcpy(a->m+j*a->lda,a->m+jj*a->lda,a->rows*sizeof(T));
-        memcpy(a->m+jj*a->lda,avecTmp.m,a->rows*sizeof(T));
-
-        Vector<T> rvecTmp(a->cols);
-        memcpy(rvecTmp.m,r->m+j*r->lda,a->cols*sizeof(T));
-        memcpy(r->m+j*r->lda,r->m+jj*r->lda,a->cols*sizeof(T));
-        memcpy(r->m+jj*r->lda,rvecTmp.m,a->cols*sizeof(T));
-
+        memcpy(buffer.m, r.m + j * r.lda, a->cols*sizeof(T));
+        memcpy(r.m +  j * r.lda, r.m + jj * r.lda, a->cols*sizeof(T));
+        memcpy(r.m + jj * r.lda, buffer.m, a->cols*sizeof(T));
       }
 
-      /* Normalisation of qj */
-      r->m[j+j*r->lda] = sqrt(norm2->m[j]);
-      Vector<T> aj(a->m+j*a->lda,a->rows);
-      coef = Constants<T>::pone / r->m[j+j*r->lda];
+      // Normalisation of qj
+      r.m[j + j * r.lda] = sqrt(norm2.m[j]);
+      Vector<T> aj(a->m + j * a->lda, a->rows);
+      T coef = Constants<T>::pone / r.m[j + j * r.lda];
       aj.scale(coef);
 
-      /* Remove the qj-component from vectors bk (k=j+1,...,n-1) */
-      for(int k=j+1;k<a->cols;k++){
-        /* Scalar product of qj and bk */
-        Vector<T> ak(a->m+k*a->lda,a->rows);
-        r->m[j+k*r->lda] = Vector<T>::dot(&aj,&ak);
-        coef = -r->m[j+k*r->lda];
+      // Remove the qj-component from vectors bk (k=j+1,...,n-1)
+      for(int k = j + 1; k < a->cols; ++k) {
+        // Scalar product of qj and bk
+        Vector<T> ak(a->m + k * a->lda, a->rows);
+        r.m[j + k * r.lda] = Vector<T>::dot(&aj, &ak);
+        coef = - r.m[j + k * r.lda];
         ak.axpy(coef, &aj);
-        norm2->m[k] -= std::abs(r->m[j+k*r->lda])*std::abs(r->m[j+k*r->lda]);
+        norm2.m[k] -= std::abs(r.m[j + k * r.lda]) * std::abs(r.m[j + k * r.lda]);
       }
-
     }
   }
-  delete norm2;
+
+  // Apply perm to result
+  for(int j = 0; j < result->cols; ++j) {
+    memcpy(result->m + perm[j] * result->lda, r.m + j * result->lda, result->lda*sizeof(T));
+  }
+  // Update rank (but lda is unchanged)
+  result->rows = rank;
+  // Clean up
+  delete[] perm;
   /* end of modified Gram-Schmidt */
-  return rang;
+  return rank;
 }
-template int modifiedGramSchmidt( ScalarArray<S_t> *a, ScalarArray<S_t> *r, int* perm, double prec );
-template int modifiedGramSchmidt( ScalarArray<D_t> *a, ScalarArray<D_t> *r, int* perm, double prec );
-template int modifiedGramSchmidt( ScalarArray<C_t> *a, ScalarArray<C_t> *r, int* perm, double prec );
-template int modifiedGramSchmidt( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, int* perm, double prec );
+template int modifiedGramSchmidt( ScalarArray<S_t> *a, ScalarArray<S_t> *r, double prec );
+template int modifiedGramSchmidt( ScalarArray<D_t> *a, ScalarArray<D_t> *r, double prec );
+template int modifiedGramSchmidt( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec );
+template int modifiedGramSchmidt( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, double prec );
 
 }  // end namespace hmat
