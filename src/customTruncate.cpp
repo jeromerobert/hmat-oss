@@ -46,43 +46,16 @@ template<typename T> void mGSTruncate(RkMatrix<T> *Rk, double prec){
   int krank = Rk->rank();
 
   /* Gram-Schmidt on Rk->a */
-  int *permA = new int[krank];
-  for(int k=0;k<krank;k++){permA[k] = k;}
-
-  ScalarArray<T> *ra_tmp = new ScalarArray<T>(krank,krank);
-  int kA = modifiedGramSchmidt( Rk->a, ra_tmp, permA, prec );
-
-  /* We have to apply permA to ra */
-  ScalarArray<T> *ra = new ScalarArray<T>(krank,krank);
-  for(int j=0;j<krank;j++){
-    for(int i=0;i<krank;i++){
-      ra->m[i+permA[j]*krank] = ra_tmp->m[i+j*krank];
-    }
-  }
-  delete ra_tmp;
-  delete[] permA;
+  ScalarArray<T> *ra = new ScalarArray<T>(krank, krank);
+  int kA = modifiedGramSchmidt( Rk->a, ra, prec );
 
   /* Gram-Schmidt on Rk->b */
-  int *permB = new int[krank];
-  for(int k=0;k<krank;k++){permB[k] = k;}
-  ScalarArray<T> *rb_tmp = new ScalarArray<T>(krank,krank);
-  int kB = modifiedGramSchmidt( Rk->b, rb_tmp, permB, prec );
+  ScalarArray<T> *rb = new ScalarArray<T>(krank, krank);
+  int kB = modifiedGramSchmidt( Rk->b, rb, prec );
 
-  /* We have to apply permB to rb */
-  ScalarArray<T> *rb = new ScalarArray<T>(krank,krank);
-  for(int j=0;j<krank;j++){
-    for(int i=0;i<krank;i++){
-      rb->m[i+permB[j]*krank] = rb_tmp->m[i+j*krank];
-    }
-  }
-  delete rb_tmp;
-  delete[] permB;
-
-  ra->rows = kA; rb->rows = kB;
   /* gemm  because the matrices are not triangular */
   ScalarArray<T> *matR = new ScalarArray<T>(kA,kB);
   matR->gemm('N','T', Constants<T>::pone, ra, rb , Constants<T>::zero);
-  ra->rows = krank; rb->rows = krank;
   delete ra; delete rb;
 
   /* SVD */
