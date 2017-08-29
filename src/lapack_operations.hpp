@@ -77,7 +77,7 @@ template<typename T> void myTrmm(ScalarArray<T>* aFull,
 
 /** modified Gram-Schmidt algorithm
 
-    Computes a QRP-decomposition of a matrix A=[a_1,...,a_n] thanks to the
+    Computes a QR-decomposition of a matrix A=[a_1,...,a_n] thanks to the
     modified Gram-Schmidt procedure with column pivoting.
 
     The matrix A is overwritten with a matrix Q=[q_1,...,q_r] whose columns are
@@ -98,18 +98,16 @@ template<typename T> void myTrmm(ScalarArray<T>* aFull,
     [a_{perm[0]},...,a_{perm[rank-1]}] = [q_1,...,q_{rank-1}] * [r]
     where [r] is an upper triangular matrix.
 
-    \param perm is the permutation array constructed during the procedure.
     \param prec is a small parameter describing a relative precision thus
     0 < prec < 1.
     WARNING: the lowest precision allowed is 1e-6.
+    \return rank
 
     NB: On exit the orthonormal matrix stored in A is 'full' and not represented
     as a product of Householder reflectors. OR/ZU-MQR from LAPACK is NOT
     the way to apply the matrix: one has to use matrix-vector product instead.
-
-
 */
-template<typename T> int modifiedGramSchmidt(ScalarArray<T> *a, ScalarArray<T> *r, int* perm, double prec );
+template<typename T> int modifiedGramSchmidt(ScalarArray<T> *a, ScalarArray<T> *r, double prec );
 }  // end namespace hmat
 
 #endif
