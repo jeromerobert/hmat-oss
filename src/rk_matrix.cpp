@@ -31,7 +31,7 @@
 #include "lapack_overloads.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
-#include "customTruncate.hpp"
+
 namespace hmat {
 
 /** RkApproximationControl */
@@ -198,7 +198,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   static char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
   if (useCUSTOM){
-    mGSTruncate(this,epsilon);
+    mGSTruncate(epsilon);
     return;
   }
   /* To recompress an Rk-matrix to Rk-matrix, we need :
@@ -314,6 +314,84 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   a = newA;
   delete b;
   b = newB;
+}
+
+template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
+  DECLARE_CONTEXT;
+
+  if (rank() == 0) {
+    assert(!(a || b));
+    return;
+  }
+
+  int krank = rank();
+
+  // Gram-Schmidt on a
+  ScalarArray<T> ra(krank, krank);
+  int kA = modifiedGramSchmidt( a, &ra, epsilon );
+  // On output, a->cols = kA, ra.rows = kA
+
+  // Gram-Schmidt on b
+  ScalarArray<T> rb(krank, krank);
+  int kB = modifiedGramSchmidt( b, &rb, epsilon );
+  // On output, b->cols = kb, rb.rows = kb
+
+  ScalarArray<T> matR(kA, kB);
+  matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+  // SVD
+  ScalarArray<T>* ur = NULL;
+  Vector<double>* sr = NULL;
+  ScalarArray<T>* vhr = NULL;
+  int ierr = truncatedSvd<T>(&matR, &ur, &sr, &vhr);
+  // On output, ur->rows = kA, vhr->cols = kB
+  HMAT_ASSERT(!ierr);
+
+  // Remove small singular values
+  int newK = 0;
+  for(int i = 0; i < std::min(kA, kB); ++i, ++newK) {
+    if(sr->m[i] <= epsilon * sr->m[0])
+      break;
+  }
+  assert(newK>0);
+  ur->cols = newK;
+  vhr->rows = newK;
+
+  /* Scaling of ur and vhr */
+  for(int j = 0; j < newK; ++j) {
+    const double valJ = sqrt(sr->m[j]);
+    for(int i = 0; i < ur->rows; ++i) {
+      ur->m[i + j * ur->lda] *= valJ;
+    }
+  }
+
+  for(int j = 0; j < vhr->cols; ++j){
+    for(int i = 0; i < newK; ++i) {
+      vhr->m[i + j * vhr->lda] *= sqrt(sr->m[i]);
+    }
+  }
+
+  /* Multiplication by orthogonal matrix Q: no or/un-mqr as
+    this comes from Gram-Schmidt procedure not Householder
+  */
+  ScalarArray<T> *newA = new ScalarArray<T>(a->rows, newK);
+  newA->gemm('N', 'N', Constants<T>::pone, a, ur, Constants<T>::zero);
+
+  ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
+  newB->gemm ( 'N', 'T', Constants<T>::pone, b, vhr, Constants<T>::zero);
+
+  delete ur;
+  delete vhr;
+  delete sr;
+
+  delete a;
+  a = newA;
+  delete b;
+  b = newB;
+
+  if (rank() == 0) {
+    assert(!(b || a));
+  }
 }
 
 // Swap members with members from another instance.
