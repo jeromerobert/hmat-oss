@@ -467,14 +467,8 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   // Modified Gram-Schmidt process with column pivoting
   for(int j = 0; j < a->cols; ++j) {
     // Find the largest pivot
-    double pivmax = norm2.m[j];
-    int pivot = j;
-    for(int k = j + 1; k < a->cols; ++k) {
-      if (pivmax < norm2.m[k] ){
-        pivmax = norm2.m[k];
-        pivot = k;
-      }
-    }
+    const int pivot = norm2.absoluteMaxIndex(j);
+    const double pivmax = norm2.m[pivot];
 
     // Stopping criterion
     if (pivmax > relative_epsilon) {
