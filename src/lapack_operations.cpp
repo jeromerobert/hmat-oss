@@ -434,6 +434,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   }
   int rank;
   double relative_epsilon;
+  static const double LOWEST_EPSILON = 1.0e-6;
 
   const int original_rank(result->lda);
   assert(original_rank == result->rows);
@@ -445,11 +446,11 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   }
   // Temporary arrays
   ScalarArray<T> r(original_rank, original_rank);
-  Vector<T> buffer(std::max(original_rank, std::max(a->rows, a->cols)));
+  Vector<T> buffer(std::max(original_rank, a->rows));
 
   // Lower threshold for relative precision
-  if(prec < 1.0e-6) {
-    prec = 1.0e-6;
+  if(prec < LOWEST_EPSILON) {
+    prec = LOWEST_EPSILON;
   }
 
   // Init.
@@ -465,33 +466,32 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
 
   // Modified Gram-Schmidt process with column pivoting
   for(int j = 0; j < a->cols; ++j) {
-
     // Find the largest pivot
     double pivmax = norm2.m[j];
-    int jj = j;
+    int pivot = j;
     for(int k = j + 1; k < a->cols; ++k) {
       if (pivmax < norm2.m[k] ){
         pivmax = norm2.m[k];
-        jj = k;
+        pivot = k;
       }
     }
 
     // Stopping criterion
-    if ( pivmax > relative_epsilon) {
+    if (pivmax > relative_epsilon) {
       ++rank;
 
       // Pivoting
-      if (j != jj) {
-        std::swap(perm[j], perm[jj]);
-        std::swap(norm2.m[j], norm2.m[jj]);
+      if (j != pivot) {
+        std::swap(perm[j], perm[pivot]);
+        std::swap(norm2.m[j], norm2.m[pivot]);
 
         memcpy(buffer.m, a->m + j * a->lda, a->rows*sizeof(T));
-        memcpy(a->m + j * a->lda, a->m + jj * a->lda, a->rows*sizeof(T));
-        memcpy(a->m + jj * a->lda, buffer.m, a->rows*sizeof(T));
+        memcpy(a->m + j * a->lda, a->m + pivot * a->lda, a->rows*sizeof(T));
+        memcpy(a->m + pivot * a->lda, buffer.m, a->rows*sizeof(T));
 
         memcpy(buffer.m, r.m + j * r.lda, a->cols*sizeof(T));
-        memcpy(r.m +  j * r.lda, r.m + jj * r.lda, a->cols*sizeof(T));
-        memcpy(r.m + jj * r.lda, buffer.m, a->cols*sizeof(T));
+        memcpy(r.m +  j * r.lda, r.m + pivot * r.lda, a->cols*sizeof(T));
+        memcpy(r.m + pivot * r.lda, buffer.m, a->cols*sizeof(T));
       }
 
       // Normalisation of qj
@@ -516,7 +516,8 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   for(int j = 0; j < result->cols; ++j) {
     memcpy(result->m + perm[j] * result->lda, r.m + j * result->lda, result->lda*sizeof(T));
   }
-  // Update rank (but lda is unchanged)
+  // Update matrix dimensions
+  a->cols = rank;
   result->rows = rank;
   // Clean up
   delete[] perm;
