@@ -470,9 +470,9 @@ T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
 }
 
 template<typename T>
-int Vector<T>::absoluteMaxIndex() const {
+int Vector<T>::absoluteMaxIndex(int startIndex) const {
   assert(this->cols == 1);
-  return proxy_cblas::i_amax(this->rows, this->m, 1);
+  return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->m + startIndex, 1);
 }
 
 // MmapedScalarArray
