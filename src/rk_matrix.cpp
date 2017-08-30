@@ -240,9 +240,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   */
   int ierr;
   // QR decomposition of A and B
-  T* tauA = qrDecomposition<T>(a); // A contient QaRa
+  T* tauA = qrDecomposition<T>(a); // A contains QaRa
   HMAT_ASSERT(tauA);
-  T* tauB = qrDecomposition<T>(b); // B contient QbRb
+  T* tauB = qrDecomposition<T>(b); // B contains QbRb
   HMAT_ASSERT(tauB);
 
   // Matrices created by the SVD
@@ -295,7 +295,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // For that we first calculated Utilde * SQRT (SigmaTilde)
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
   for (int col = 0; col < newK; col++) {
-    T alpha = sigma->m[col];
+    const T alpha = sigma->m[col];
     for (int row = 0; row < rank(); row++) {
       newA->get(row, col) = u->get(row, col) * alpha;
     }
@@ -310,7 +310,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
   // Copy with transposing
   for (int col = 0; col < newK; col++) {
-    T alpha = sigma->m[col];
+    const T alpha = sigma->m[col];
     for (int row = 0; row < rank(); row++) {
       newB->get(row, col) = vt->get(col, row) * alpha;
     }
@@ -334,52 +334,64 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     return;
   }
 
-  int krank = rank();
-
-  // Gram-Schmidt on a
-  ScalarArray<T> ra(krank, krank);
-  int kA = modifiedGramSchmidt( a, &ra, epsilon );
-  // On output, a->cols = kA, ra.rows = kA
-
-  // Gram-Schmidt on b
-  ScalarArray<T> rb(krank, krank);
-  int kB = modifiedGramSchmidt( b, &rb, epsilon );
-  // On output, b->cols = kb, rb.rows = kb
-
-  ScalarArray<T> matR(kA, kB);
-  matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
-
-  // SVD
   ScalarArray<T>* ur = NULL;
   Vector<double>* sr = NULL;
   ScalarArray<T>* vhr = NULL;
-  int ierr = truncatedSvd<T>(&matR, &ur, &sr, &vhr);
-  // On output, ur->rows = kA, vhr->cols = kB
-  HMAT_ASSERT(!ierr);
+  int kA, kB, newK;
 
-  // Remove small singular values
-  int newK = 0;
-  for(int i = 0; i < std::min(kA, kB); ++i, ++newK) {
-    if(sr->m[i] <= epsilon * sr->m[0])
-      break;
+  int krank = rank();
+
+  // Limit scope to automatically destroy ra, rb and matR
+  {
+    // Gram-Schmidt on a
+    ScalarArray<T> ra(krank, krank);
+    kA = modifiedGramSchmidt( a, &ra, epsilon );
+    // On input, a0(m,A)
+    // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
+
+    // Gram-Schmidt on b
+    ScalarArray<T> rb(krank, krank);
+    kB = modifiedGramSchmidt( b, &rb, epsilon );
+    // On input, b0(p,B)
+    // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
+
+    // M = a0*b0^T = a*(ra*rb^T)*b^T
+    // We perform an SVD on ra*rb^T:
+    //  (ra*rb^T) = U*S*S*Vt
+    // and M = (a*U*S)*(S*Vt*b^T) = (a*U*S)*(b*(S*Vt)^T)^T
+    ScalarArray<T> matR(kA, kB);
+    matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+    // SVD
+    int ierr = truncatedSvd<T>(&matR, &ur, &sr, &vhr);
+    // On output, ur->rows = kA, vhr->cols = kB
+    HMAT_ASSERT(!ierr);
   }
+
+  // Remove small singular values and compute square root of sr
+  newK = approx.findK(sr->m, std::min(kA, kB), epsilon);
   assert(newK>0);
+  for(int i = 0; i < newK; ++i) {
+    sr->m[i] = sqrt(sr->m[i]);
+  }
   ur->cols = newK;
   vhr->rows = newK;
 
   /* Scaling of ur and vhr */
   for(int j = 0; j < newK; ++j) {
-    const double valJ = sqrt(sr->m[j]);
+    const T valJ = sr->m[j];
     for(int i = 0; i < ur->rows; ++i) {
-      ur->m[i + j * ur->lda] *= valJ;
+      ur->get(i, j) *= valJ;
     }
   }
 
   for(int j = 0; j < vhr->cols; ++j){
     for(int i = 0; i < newK; ++i) {
-      vhr->m[i + j * vhr->lda] *= sqrt(sr->m[i]);
+      vhr->get(i, j) *= sr->m[i];
     }
   }
+
+  delete sr;
 
   /* Multiplication by orthogonal matrix Q: no or/un-mqr as
     this comes from Gram-Schmidt procedure not Householder
@@ -388,11 +400,10 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   newA->gemm('N', 'N', Constants<T>::pone, a, ur, Constants<T>::zero);
 
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
-  newB->gemm ( 'N', 'T', Constants<T>::pone, b, vhr, Constants<T>::zero);
+  newB->gemm('N', 'T', Constants<T>::pone, b, vhr, Constants<T>::zero);
 
   delete ur;
   delete vhr;
-  delete sr;
 
   delete a;
   a = newA;
