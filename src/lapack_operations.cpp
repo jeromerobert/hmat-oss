@@ -518,6 +518,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   /* end of modified Gram-Schmidt */
   return rank;
 }
+// Explicit instantiations
 template int modifiedGramSchmidt( ScalarArray<S_t> *a, ScalarArray<S_t> *r, double prec );
 template int modifiedGramSchmidt( ScalarArray<D_t> *a, ScalarArray<D_t> *r, double prec );
 template int modifiedGramSchmidt( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec );
