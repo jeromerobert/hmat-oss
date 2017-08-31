@@ -138,14 +138,24 @@ void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, Sca
     return;
   }
   if (trans == 'N') {
+    // Compute Y <- Y + alpha * A * B^T * X
     ScalarArray<T> z(b->cols, x->cols);
     z.gemm('T', 'N', Constants<T>::pone, b, x, Constants<T>::zero);
     y->gemm('N', 'N', alpha, a, &z, beta);
-  } else {
-    assert(trans == 'T');
+  } else if (trans == 'T') {
+    // Compute Y <- Y + alpha * (A*B^T)^T * X = Y + alpha * B * A^T * X
     ScalarArray<T> z(a->cols, x->cols);
     z.gemm('T', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
     y->gemm('N', 'N', alpha, b, &z, beta);
+  } else {
+    assert(trans == 'C');
+    // Compute Y <- Y + alpha * (A*B^T)^H * X = Y + alpha * conj(B) * A^H * X
+    ScalarArray<T> z(a->cols, x->cols);
+    z.gemm('C', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
+    ScalarArray<T> * newB = b->copy();
+    newB->conjugate();
+    y->gemm('N', 'N', alpha, newB, &z, beta);
+    delete newB;
   }
 }
 
