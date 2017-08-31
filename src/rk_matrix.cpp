@@ -561,24 +561,45 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
                                          const RkMatrix<T>* rk,
                                          const IndexSet* mRows) {
   DECLARE_CONTEXT;
-  assert((transR == 'N') || (transM == 'N')); // we do not manage the case R^T*M^T
+  // If transM is 'N' and transR is 'N', we compute
+  //  M * A * B^T  ==> newA = M * A, newB = B
+  // We can deduce all other cases from this one:
+  //   * if transR is 'T', all we have to do is to swap A and B
+  //   * if transR is 'C', we swap A and B, but they must also
+  //     be conjugate; let us look at the different cases:
+  //     + if transM is 'N', newA = M * conj(A)
+  //     + if transM is 'T', newA = M^T * conj(A) = conj(M^H * A)
+  //     + if transM is 'C', newA = M^H * conj(A) = conj(M^T * A)
+  ScalarArray<T> *newA, *newB;
   ScalarArray<T>* a = rk->a;
   ScalarArray<T>* b = rk->b;
-  if (transR == 'T') { // permutation to transpose the matrix Rk
+  if (transR != 'N') { // permutation to transpose the matrix Rk
     std::swap(a, b);
   }
   const IndexSet *rkCols = ((transR == 'N')? rk->cols : rk->rows);
 
-  /* M R = M (A B^t) = (MA) B^t */
-  assert(((transM == 'N') ? m->rows() : m->cols()) == mRows->size());
-  ScalarArray<T>* newA = new ScalarArray<T>((transM == 'N')? m->rows():m->cols(),(transR == 'N')? a->cols:b->cols);
-  if (transM == 'N') {
-    newA->gemm('N', 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
+  newA = new ScalarArray<T>(transM == 'N' ? m->rows() : m->cols(), b->cols);
+  newB = b->copy();
+  if (transR == 'C') {
+    newB->conjugate();
+    if (transM == 'N') {
+      ScalarArray<T> *conjA = a->copy();
+      conjA->conjugate();
+      newA->gemm('N', 'N', Constants<T>::pone, &m->data, conjA, Constants<T>::zero);
+      delete conjA;
+    } else if (transM == 'T') {
+      newA->gemm('C', 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
+      newA->conjugate();
+    } else {
+      assert(transM == 'C');
+      newA->gemm('T', 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
+      newA->conjugate();
+    }
   } else {
-    newA->gemm('T', 'N',Constants<T>::pone, &m->data, a, Constants<T>::zero);
+    newA->gemm(transM, 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
   }
-  ScalarArray<T>* newB = b->copy();
-  return new RkMatrix<T>(newA, mRows, newB, rkCols, rk->method);
+  RkMatrix<T>* result = new RkMatrix<T>(newA, mRows, newB, rkCols, rk->method);
+  return result;
 }
 
 template<typename T>
