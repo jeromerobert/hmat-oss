@@ -568,6 +568,19 @@ template <> inline int potrf<hmat::Z_t>(char uplo, int n, hmat::Z_t* a, int lda)
 #undef _CPOTRF_
 #undef _ZPOTRF_
 
+#define _CLACGV_ F77_FUNC(clacgv,CLACGV)
+#define _ZLACGV_ F77_FUNC(zlacgv,ZLACGV)
+extern "C" {
+void _CLACGV_(int* n, hmat::C_t* a, int* incx);
+void _ZLACGV_(int* n, hmat::Z_t* a, int* incx);
+}
+template<typename T> void lacgv(int n, T* a, int incx);
+template<> inline void lacgv<hmat::S_t>(int, hmat::S_t*, int) {}
+template<> inline void lacgv<hmat::D_t>(int, hmat::D_t*, int) {}
+template<> inline void lacgv<hmat::C_t>(int n, hmat::C_t* a, int incx) { _CLACGV_(&n, a, &incx); }
+template<> inline void lacgv<hmat::Z_t>(int n, hmat::Z_t* a, int incx) { _ZLACGV_(&n, a, &incx); }
+#undef _CLACGV_
+#undef _ZLACGV_
 
 }  // end namespace proxy_lapack
 
