@@ -593,8 +593,8 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   // The dimensions of the H-matrix and the 2 ScalarArrays must match exactly
   assert(x->cols == y->cols);
   if (rows()->size() == 0 || cols()->size() == 0) return;
-  assert((matTrans == 'T' ? cols()->size() : rows()->size()) == y->rows);
-  assert((matTrans == 'T' ? rows()->size() : cols()->size()) == x->rows);
+  assert((matTrans != 'N' ? cols()->size() : rows()->size()) == y->rows);
+  assert((matTrans != 'N' ? rows()->size() : cols()->size()) == x->rows);
   if (beta != Constants<T>::pone) {
     y->scale(beta);
   }
@@ -616,7 +616,7 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
           int rowsSize   = child->rows()->size();
 
           // swap if needed to get the info for trans(child)
-          if (trans=='T') {
+          if (trans != 'N') {
             std::swap(colsOffset, rowsOffset);
             std::swap(colsSize,   rowsSize);
           }
@@ -1106,7 +1106,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isVoid() || a->isVoid())
       return;
 
-  if ((transA == 'T') && (transB == 'T')) {
+  if ((transA != 'N') && (transB != 'N')) {
     // This code has *not* been tested because it's currently not used.
     HMAT_ASSERT(false);
     //    this->transpose();
@@ -1206,9 +1206,9 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
   // Matrices range compatibility
   if((transA == 'N') && (transB == 'N'))
     assert(a->cols()->size() == b->rows()->size());
-  if((transA == 'T') && (transB == 'N'))
+  if((transA != 'N') && (transB == 'N'))
     assert(a->rows()->size() == b->rows()->size());
-  if((transA == 'N') && (transB == 'T'))
+  if((transA == 'N') && (transB != 'N'))
     assert(a->cols()->size() == b->cols()->size());
 
   // The cases are:
