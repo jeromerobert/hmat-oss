@@ -217,19 +217,19 @@ void gemv(const char trans, const int m, const int n, const T& alpha, const T* a
 inline
 void gemv(const char trans, const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
           const hmat::S_t* x, const int incx, const hmat::S_t& beta, hmat::S_t* y, const int incy) {
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   cblas_sgemv(CblasColMajor, t, m, n, alpha, a, lda, x, incx, beta, y, incy);
 }
 inline
 void gemv(const char trans, const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
           const hmat::D_t* x, const int incx, const hmat::D_t& beta, hmat::D_t* y, const int incy) {
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   cblas_dgemv(CblasColMajor, t, m, n, alpha, a, lda, x, incx, beta, y, incy);
 }
 inline
 void gemv(const char trans, const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
           const hmat::C_t* x, const int incx, const hmat::C_t& beta, hmat::C_t* y, const int incy) {
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
   #define _C_T hmat::C_t
   cblas_cgemv(CblasColMajor, t, m, n, _C(&alpha), _C(a), lda, _C(x), incx, _C(&beta), _C(y), incy);
@@ -238,7 +238,7 @@ void gemv(const char trans, const int m, const int n, const hmat::C_t& alpha, co
 inline
 void gemv(const char trans, const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
           const hmat::Z_t* x, const int incx, const hmat::Z_t& beta, hmat::Z_t* y, const int incy) {
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
   #define _C_T hmat::Z_t
   cblas_zgemv(CblasColMajor, t, m, n, _C(&alpha), _C(a), lda, _C(x), incx, _C(&beta), _C(y), incy);
@@ -286,24 +286,24 @@ inline
 void gemm(const char transA, const char transB, const int m, const int n, const int k,
           const hmat::S_t& alpha, const hmat::S_t* a, const int lda, const hmat::S_t* b, const int ldb,
           const hmat::S_t& beta, hmat::S_t* c, const int ldc) {
-  const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
-  const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE tA = (transA == 'C' ? CblasConjTrans : (transA == 'T' ? CblasTrans : CblasNoTrans));
+  const CBLAS_TRANSPOSE tB = (transB == 'C' ? CblasConjTrans : (transB == 'T' ? CblasTrans : CblasNoTrans));
   cblas_sgemm(CblasColMajor, tA, tB, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 }
 inline
 void gemm(const char transA, const char transB, const int m, const int n, const int k,
           const hmat::D_t& alpha, const hmat::D_t* a, const int lda, const hmat::D_t* b, const int ldb,
           const hmat::D_t& beta, hmat::D_t* c, const int ldc) {
-  const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
-  const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE tA = (transA == 'C' ? CblasConjTrans : (transA == 'T' ? CblasTrans : CblasNoTrans));
+  const CBLAS_TRANSPOSE tB = (transB == 'C' ? CblasConjTrans : (transB == 'T' ? CblasTrans : CblasNoTrans));
   cblas_dgemm(CblasColMajor, tA, tB, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 }
 inline
 void gemm(const char transA, const char transB, const int m, const int n, const int k,
           const hmat::C_t& alpha, const hmat::C_t* a, const int lda, const hmat::C_t* b, const int ldb,
           const hmat::C_t& beta, hmat::C_t* c, const int ldc) {
-  const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
-  const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE tA = (transA == 'C' ? CblasConjTrans : (transA == 'T' ? CblasTrans : CblasNoTrans));
+  const CBLAS_TRANSPOSE tB = (transB == 'C' ? CblasConjTrans : (transB == 'T' ? CblasTrans : CblasNoTrans));
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
 #define _C_T hmat::C_t
 #ifdef HAVE_ZGEMM3M
@@ -317,8 +317,8 @@ inline
 void gemm(const char transA, const char transB, const int m, const int n, int k,
           const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda, const hmat::Z_t* b, const int ldb,
           const hmat::Z_t& beta, hmat::Z_t* c, const int ldc) {
-  const CBLAS_TRANSPOSE tA = (transA == 'N' ? CblasNoTrans : CblasTrans);
-  const CBLAS_TRANSPOSE tB = (transB == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE tA = (transA == 'C' ? CblasConjTrans : (transA == 'T' ? CblasTrans : CblasNoTrans));
+  const CBLAS_TRANSPOSE tB = (transB == 'C' ? CblasConjTrans : (transB == 'T' ? CblasTrans : CblasNoTrans));
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
 #define _C_T hmat::Z_t
 #ifdef HAVE_ZGEMM3M
@@ -340,7 +340,7 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
           hmat::S_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   cblas_strmm(CblasColMajor, s, u, t, d, m, n, alpha, a, lda, b, ldb);
 }
@@ -350,7 +350,7 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
           hmat::D_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   cblas_dtrmm(CblasColMajor, s, u, t, d, m, n, alpha, a, lda, b, ldb);
 }
@@ -360,7 +360,7 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
           hmat::C_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
 #define _C_T hmat::C_t
@@ -373,7 +373,7 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
           hmat::Z_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
 #define _C_T hmat::Z_t
@@ -393,7 +393,7 @@ void trsm(const char side, const char uplo, const char trans, const char diag,
   assert(lda >= m || side != 'L');
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   cblas_strsm(CblasColMajor, s, u, t, d, m, n, alpha, a, lda, b, ldb);
 }
@@ -403,7 +403,7 @@ void trsm(const char side, const char uplo, const char trans, const char diag,
           hmat::D_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   cblas_dtrsm(CblasColMajor, s, u, t, d, m, n, alpha, a, lda, b, ldb);
 }
@@ -413,7 +413,7 @@ void trsm(const char side, const char uplo, const char trans, const char diag,
           hmat::C_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
 #define _C_T hmat::C_t
@@ -426,7 +426,7 @@ void trsm(const char side, const char uplo, const char trans, const char diag,
           hmat::Z_t* b, const int ldb) {
   const CBLAS_SIDE s = (side == 'L' ? CblasLeft : CblasRight);
   const CBLAS_UPLO u = (uplo == 'U' ? CblasUpper : CblasLower);
-  const CBLAS_TRANSPOSE t = (trans == 'N' ? CblasNoTrans : CblasTrans);
+  const CBLAS_TRANSPOSE t = (trans == 'C' ? CblasConjTrans : (trans == 'T' ? CblasTrans : CblasNoTrans));
   const CBLAS_DIAG d = (diag == 'N' ?  CblasNonUnit : CblasUnit );
   // WARNING: &alpha instead of alpha for complex values
 #define _C_T hmat::Z_t
