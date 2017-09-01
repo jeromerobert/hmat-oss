@@ -721,55 +721,55 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
 }
 
 template<typename T>
-RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char transA, char transB,
-                                       const RkMatrix<T>* a, const RkMatrix<T>* b) {
+RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
+                                       const RkMatrix<T>* r1, const RkMatrix<T>* r2) {
   DECLARE_CONTEXT;
-  assert(((transA == 'N') ? *a->cols : *a->rows) == ((transB == 'N') ? *b->rows : *b->cols));
+  assert(((trans1 == 'N') ? *r1->cols : *r1->rows) == ((trans2 == 'N') ? *r2->rows : *r2->cols));
   // It is possible to do the computation differently, yielding a
   // different rank and a different amount of computation.
   // TODO: choose the best order.
-  ScalarArray<T>* Aa = (transA == 'N' ? a->a : a->b);
-  ScalarArray<T>* Ab = (transA == 'N' ? a->b : a->a);
-  ScalarArray<T>* Ba = (transB == 'N' ? b->a : b->b);
-  ScalarArray<T>* Bb = (transB == 'N' ? b->b : b->a);
+  ScalarArray<T>* a1 = (trans1 == 'N' ? r1->a : r1->b);
+  ScalarArray<T>* b1 = (trans1 == 'N' ? r1->b : r1->a);
+  ScalarArray<T>* a2 = (trans2 == 'N' ? r2->a : r2->b);
+  ScalarArray<T>* b2 = (trans2 == 'N' ? r2->b : r2->a);
 
-  assert(Ab->rows == Ba->rows); // compatibility of the multiplication
+  assert(b1->rows == a2->rows); // compatibility of the multiplication
 
-  // We want to compute the matrix Aa.t^Ab.Ba.t^Bb and return an Rk matrix
-  // Usually, the best way is to start with tmp=t^Ab.Ba which produces a 'small' matrix rank_a x rank_b
+  // We want to compute the matrix a1.t^b1.a2.t^b2 and return an Rk matrix
+  // Usually, the best way is to start with tmp=t^b1.a2 which produces a 'small' matrix rank1 x rank2
   // Then we can either :
-  // - compute Aa.tmp : the cost is rank_a.rank_b.row_a, the resulting Rk has rank rank_b
-  // - compute tmp.Bb : the cost is rank_a.rank_b.col_b, the resulting Rk has rank rank_a
+  // - compute a1.tmp : the cost is rank1.rank2.row_a, the resulting Rk has rank rank2
+  // - compute tmp.b2 : the cost is rank1.rank2.col_b, the resulting Rk has rank rank1
   // the best choice depends on the ranks & dimensions, and also on our priority (flops or resulting rank)
   // Here we use always the 1st solution
 
-  // TODO also, once we have the small matrix tmp=t^Ab.Ba, we could do a recompression on it for low cost
+  // TODO also, once we have the small matrix tmp=t^b1.a2, we could do a recompression on it for low cost
   // using SVD + truncation. This also removes the choice above, since tmp=U.S.V is then applied on both sides
 
-  ScalarArray<T>* tmp = new ScalarArray<T>(a->rank(), b->rank());
-  ScalarArray<T>* newA = new ScalarArray<T>(Aa->rows, b->rank());
+  ScalarArray<T>* tmp = new ScalarArray<T>(r1->rank(), r2->rank());
+  ScalarArray<T>* newA = new ScalarArray<T>(a1->rows, r2->rank());
 
-  assert(tmp->rows == Ab->cols); // Aren't these tests done in the gemm ?
-  assert(tmp->cols == Ba->cols);
-  assert(Ab->rows == Ba->rows);
-  tmp->gemm('T', 'N', Constants<T>::pone, Ab, Ba, Constants<T>::zero);
-  assert(Ab->cols == tmp->rows);
-  newA->gemm('N', 'N', Constants<T>::pone, Aa, tmp, Constants<T>::zero);
+  assert(tmp->rows == b1->cols); // Aren't these tests done in the gemm ?
+  assert(tmp->cols == a2->cols);
+  assert(b1->rows == a2->rows);
+  tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+  assert(b1->cols == tmp->rows);
+  newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
   delete tmp;
-  ScalarArray<T>* newB = Bb->copy();
+  ScalarArray<T>* newB = b2->copy();
 
-  CompressionMethod combined = std::min(a->method, b->method);
-  return new RkMatrix<T>(newA, ((transA == 'N') ? a->rows : a->cols), newB, ((transB == 'N') ? b->cols : b->rows), combined);
+  CompressionMethod combined = std::min(r1->method, r2->method);
+  return new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows), combined);
 }
 
 template<typename T>
-size_t RkMatrix<T>::computeRkRkMemorySize(char transA, char transB,
-                                                const RkMatrix<T>* a, const RkMatrix<T>* b)
+size_t RkMatrix<T>::computeRkRkMemorySize(char trans1, char trans2,
+                                                const RkMatrix<T>* r1, const RkMatrix<T>* r2)
 {
-    ScalarArray<T>* Bb = (transB == 'N' ? b->b : b->a);
-    ScalarArray<T>* Aa = (transA == 'N' ? a->a : a->b);
-    return Bb == NULL ? 0 : Bb->memorySize() +
-           Aa == NULL ? 0 : Aa->rows * b->rank() * sizeof(T);
+    ScalarArray<T>* b2 = (trans2 == 'N' ? r2->b : r2->a);
+    ScalarArray<T>* a1 = (trans1 == 'N' ? r1->a : r1->b);
+    return b2 == NULL ? 0 : b2->memorySize() +
+           a1 == NULL ? 0 : a1->rows * r2->rank() * sizeof(T);
 }
 
 template<typename T>
