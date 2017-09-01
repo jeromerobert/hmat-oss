@@ -740,8 +740,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   // Then we can either :
   // - compute a1.tmp : the cost is rank1.rank2.row_a, the resulting Rk has rank rank2
   // - compute tmp.b2 : the cost is rank1.rank2.col_b, the resulting Rk has rank rank1
-  // the best choice depends on the ranks & dimensions, and also on our priority (flops or resulting rank)
-  // Here we use always the 1st solution
+  // We use the solution which gives the lowest rank.
 
   // TODO also, once we have the small matrix tmp=t^b1.a2, we could do a recompression on it for low cost
   // using SVD + truncation. This also removes the choice above, since tmp=U.S.V is then applied on both sides
@@ -764,20 +763,37 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   }
 
-  ScalarArray<T>* newA = new ScalarArray<T>(a1->rows, r2->rank());
-  if (trans1 == 'C') {
-    ScalarArray<T> *conj_a1 = a1->copy();
-    conj_a1->conjugate();
-    newA->gemm('N', 'N', Constants<T>::pone, conj_a1, tmp, Constants<T>::zero);
-    delete conj_a1;
+  ScalarArray<T> *newA, *newB;
+  if (r1->rank() < r2->rank()) {
+    newA = a1->copy();
+    if (trans1 == 'C') {
+      newA->conjugate();
+    }
+    newB = new ScalarArray<T>(b2->rows, r1->rank());
+    if (trans2 == 'C') {
+      ScalarArray<T> *conj_b2 = b2->copy();
+      conj_b2->conjugate();
+      newB->gemm('N', 'T', Constants<T>::pone, conj_b2, tmp, Constants<T>::zero);
+      delete conj_b2;
+    } else {
+      newB->gemm('N', 'T', Constants<T>::pone, b2, tmp, Constants<T>::zero);
+    }
   } else {
-    newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
+    newA = new ScalarArray<T>(a1->rows, r2->rank());
+    if (trans1 == 'C') {
+      ScalarArray<T> *conj_a1 = a1->copy();
+      conj_a1->conjugate();
+      newA->gemm('N', 'N', Constants<T>::pone, conj_a1, tmp, Constants<T>::zero);
+      delete conj_a1;
+    } else {
+      newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
+    }
+    newB = b2->copy();
+    if (trans2 == 'C') {
+      newB->conjugate();
+    }
   }
   delete tmp;
-  ScalarArray<T>* newB = b2->copy();
-  if (trans2 == 'C') {
-    newB->conjugate();
-  }
 
   CompressionMethod combined = std::min(r1->method, r2->method);
   return new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows), combined);
