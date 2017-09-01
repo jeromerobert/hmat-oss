@@ -747,16 +747,37 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   // using SVD + truncation. This also removes the choice above, since tmp=U.S.V is then applied on both sides
 
   ScalarArray<T>* tmp = new ScalarArray<T>(r1->rank(), r2->rank());
-  ScalarArray<T>* newA = new ScalarArray<T>(a1->rows, r2->rank());
+  if (trans1 == 'C' && trans2 == 'C') {
+    tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp->conjugate();
+  } else if (trans1 == 'C') {
+    ScalarArray<T> *conj_b1 = b1->copy();
+    conj_b1->conjugate();
+    tmp->gemm('T', 'N', Constants<T>::pone, conj_b1, a2, Constants<T>::zero);
+    delete conj_b1;
+  } else if (trans2 == 'C') {
+    ScalarArray<T> *conj_a2 = a2->copy();
+    conj_a2->conjugate();
+    tmp->gemm('T', 'N', Constants<T>::pone, b1, conj_a2, Constants<T>::zero);
+    delete conj_a2;
+  } else {
+    tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+  }
 
-  assert(tmp->rows == b1->cols); // Aren't these tests done in the gemm ?
-  assert(tmp->cols == a2->cols);
-  assert(b1->rows == a2->rows);
-  tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
-  assert(b1->cols == tmp->rows);
-  newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
+  ScalarArray<T>* newA = new ScalarArray<T>(a1->rows, r2->rank());
+  if (trans1 == 'C') {
+    ScalarArray<T> *conj_a1 = a1->copy();
+    conj_a1->conjugate();
+    newA->gemm('N', 'N', Constants<T>::pone, conj_a1, tmp, Constants<T>::zero);
+    delete conj_a1;
+  } else {
+    newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
+  }
   delete tmp;
   ScalarArray<T>* newB = b2->copy();
+  if (trans2 == 'C') {
+    newB->conjugate();
+  }
 
   CompressionMethod combined = std::min(r1->method, r2->method);
   return new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows), combined);
