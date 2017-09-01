@@ -811,7 +811,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
       rk()->axpy(alpha, subMat);
       rank_ = rk()->rank();
     } else {
-       if (!full())
+       if (!isAssembled() || !full())
          full(new FullMatrix<T>(rows(), cols()));
        full()->axpy(alpha, subMat);
     }
