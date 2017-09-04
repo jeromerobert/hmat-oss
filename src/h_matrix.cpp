@@ -1106,15 +1106,6 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isVoid() || a->isVoid())
       return;
 
-  if ((transA != 'N') && (transB != 'N')) {
-    // This code has *not* been tested because it's currently not used.
-    HMAT_ASSERT(false);
-    //    this->transpose();
-    //    this->gemm('N', 'N', alpha, b, a, beta);
-    //    this->transpose();
-    //    return;
-  }
-
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
     // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
@@ -1203,7 +1194,6 @@ FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
 template<typename T>
 RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b){
   // We know that one of the matrices is a RkMatrix
-  assert((transA == 'N') || (transB == 'N')); // Exclusion of the case At * Bt
   assert(a->isRkMatrix() || b->isRkMatrix());
   RkMatrix<T> *rk = NULL;
   // Matrices range compatibility
@@ -1254,7 +1244,6 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
                                               const HMatrix<T>* a,
                                               const HMatrix<T>* b) {
   // At least one full matrix, and not RkMatrix.
-  assert((transA == 'N') || (transB == 'N'));// Not for the products At*Bt
   assert(a->isFullMatrix() || b->isFullMatrix());
   assert(!(a->isRkMatrix() || b->isRkMatrix()));
   FullMatrix<T> *result = NULL;
