@@ -350,7 +350,7 @@ macro(hmat_add_example name source)
       set_source_files_properties("examples/${source}" PROPERTIES LANGUAGE CXX)
     endif ()
     add_executable(${HMAT_PREFIX_EXAMPLE}${name} ${PROJECT_SOURCE_DIR}/examples/${source})
-    target_link_libraries(${HMAT_PREFIX_EXAMPLE}${name} ${PROJECT_NAME})
+    target_link_libraries(${HMAT_PREFIX_EXAMPLE}${name} ${PROJECT_NAME} m)
     if (INSTALL_EXAMPLES)
       install(TARGETS ${HMAT_PREFIX_EXAMPLE}${name} DESTINATION "${RELATIVE_INSTALL_BIN_DIR}/examples" COMPONENT Runtime)
     endif ()
@@ -363,6 +363,12 @@ hmat_add_example(c-cylinder c-cylinder.c)
 hmat_add_example(c-simple-cylinder c-simple-cylinder.c)
 hmat_add_example(c-simple-kriging c-simple-kriging.c)
 hmat_add_example(c-cholesky c-cholesky.c)
+hmat_add_example(c-test-gemm c-test-gemm.c)
+target_link_libraries(c-test-gemm
+            ${CBLAS_LIBRARIES}
+            ${BLAS_LIBRARIES}
+            ${LAPACK_LIBRARIES}
+            ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES})
 
 if (BUILD_EXAMPLES)
   enable_testing ()
