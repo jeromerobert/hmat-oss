@@ -494,6 +494,51 @@ template<typename T> double HMatrix<T>::normSqr() const {
   return result;
 }
 
+// Return an approximation of the largest eigenvalue via the power method.
+// If needed, we could also return the corresponding eigenvector.
+template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, double epsilon) const {
+  if (max_iter <= 0) return 0.0;
+  if (rows()->size() == 0 || cols()->size() == 0) {
+    return 0.0;
+  }
+  const int nrow = rows()->size();
+  Vector<T>  xv(nrow);
+  Vector<T>  xv1(nrow);
+  Vector<T>* x  = &xv;
+  Vector<T>* x1 = &xv1;
+  T ev = Constants<T>::zero;
+  for (int i = 0; i < nrow; i++)
+    x->m[i] = static_cast<T>(rand()/(double)RAND_MAX);
+  double normx = x->norm();
+  if (normx == 0.0)
+    return approximateLargestEigenvalue(max_iter - 1, epsilon);
+  x->scale(static_cast<T>(1.0/normx));
+  int iter = 0;
+  double aev = 0.0;
+  double aev_p = 0.0;
+  do {
+    // old eigenvalue
+    aev_p = aev;
+    // Compute x(k+1) = A x(k)
+    //        ev(k+1) = <x(k+1),x(k)>
+    //         x(k+1) = x(k+1) / ||x(k+1)||
+    gemv('N', Constants<T>::pone, x, Constants<T>::zero, x1);
+    ev = x->dot(x,x1);
+    // new abs(ev)
+    aev = std::abs(ev);
+    normx = x1->norm();
+    // If x1 is null, restart so that starting point is different.
+    // Decrease max_iter to prevent infinite recursion.
+    if (normx == 0.0)
+      return approximateLargestEigenvalue(max_iter - 1, epsilon);
+    x1->scale(static_cast<T>(1.0/normx));
+    std::swap(x,x1);
+    iter++;
+  } while(iter < max_iter && std::abs(aev - aev_p) > epsilon * aev);
+  return ev;
+}
+
+
 template<typename T>
 void HMatrix<T>::scale(T alpha) {
   if(alpha == Constants<T>::zero) {

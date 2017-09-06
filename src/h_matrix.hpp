@@ -299,6 +299,10 @@ public:
     return sqrt(normSqr());
   }
 
+  /*! \brief Return an approximation of the largest eigenvalue via the power method.
+   */
+  T approximateLargestEigenvalue(int max_iter, double epsilon) const;
+
   /*! \brief Return the approximated rank.
    */
   int approximateRank() const {
