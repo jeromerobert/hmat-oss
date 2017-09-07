@@ -1191,6 +1191,9 @@ FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
     h->gemv(transH, Constants<T>::pone, mat, Constants<T>::zero, result);
   } else {
     FullMatrix<T>* matT = mat->copyAndTranspose();
+    if (transM == 'C') {
+      matT->data.conjugate();
+    }
     h->gemv(transH, Constants<T>::pone, matT, Constants<T>::zero, result);
     delete matT;
   }
