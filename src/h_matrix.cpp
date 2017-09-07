@@ -598,12 +598,11 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   if (beta != Constants<T>::pone) {
     y->scale(beta);
   }
-  beta = Constants<T>::pone;
 
   if (!this->isLeaf()) {
     ScalarArray<T> *subX, *subY;
-    for (int i = 0; i < (matTrans=='N' ? nrChildRow() : nrChildCol()); i++)
-      for (int j = 0; j < (matTrans=='N' ? nrChildCol() : nrChildRow()); j++) {
+    for (int i = 0, iend = (matTrans=='N' ? nrChildRow() : nrChildCol()); i < iend; i++)
+      for (int j = 0, jend = (matTrans=='N' ? nrChildCol() : nrChildRow()); j < jend; j++) {
         char trans = matTrans;
         // trans(child) = the child (i,j) of matTrans(this)
         const HMatrix<T>* child = getChildForGEMM(trans, i, j);
@@ -625,7 +624,7 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
           subX = x->rowsSubset(colsOffset, colsSize);
           subY = y->rowsSubset(rowsOffset, rowsSize);
 
-          child->gemv(trans, alpha, subX, beta, subY);
+          child->gemv(trans, alpha, subX, Constants<T>::pone, subY);
           delete subX;
           delete subY;
         }
@@ -635,11 +634,9 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   } else {
     // We are on a leaf of the matrix 'this'
     if (isFullMatrix()) {
-      y->gemm(matTrans, 'N', alpha, &full()->data, x, beta);
+      y->gemm(matTrans, 'N', alpha, &full()->data, x, Constants<T>::pone);
     } else if(!isNull()){
-      rk()->gemv(matTrans, alpha, x, beta, y);
-    } else if(beta != Constants<T>::pone){
-      y->scale(beta);
+      rk()->gemv(matTrans, alpha, x, Constants<T>::pone, y);
     }
   }
 }
