@@ -96,6 +96,9 @@ public:
   /** \brief Transpose in place.
    */
   void transpose();
+  /** \brief Conjugate in place.
+   */
+  void conjugate();
   /** Return a copy of this.
    */
   ScalarArray<T>* copy(ScalarArray<T>* result = NULL) const;

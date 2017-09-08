@@ -598,12 +598,11 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   if (beta != Constants<T>::pone) {
     y->scale(beta);
   }
-  beta = Constants<T>::pone;
 
   if (!this->isLeaf()) {
     ScalarArray<T> *subX, *subY;
-    for (int i = 0; i < (matTrans=='N' ? nrChildRow() : nrChildCol()); i++)
-      for (int j = 0; j < (matTrans=='N' ? nrChildCol() : nrChildRow()); j++) {
+    for (int i = 0, iend = (matTrans=='N' ? nrChildRow() : nrChildCol()); i < iend; i++)
+      for (int j = 0, jend = (matTrans=='N' ? nrChildCol() : nrChildRow()); j < jend; j++) {
         char trans = matTrans;
         // trans(child) = the child (i,j) of matTrans(this)
         const HMatrix<T>* child = getChildForGEMM(trans, i, j);
@@ -625,7 +624,7 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
           subX = x->rowsSubset(colsOffset, colsSize);
           subY = y->rowsSubset(rowsOffset, rowsSize);
 
-          child->gemv(trans, alpha, subX, beta, subY);
+          child->gemv(trans, alpha, subX, Constants<T>::pone, subY);
           delete subX;
           delete subY;
         }
@@ -635,11 +634,9 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   } else {
     // We are on a leaf of the matrix 'this'
     if (isFullMatrix()) {
-      y->gemm(matTrans, 'N', alpha, &full()->data, x, beta);
+      y->gemm(matTrans, 'N', alpha, &full()->data, x, Constants<T>::pone);
     } else if(!isNull()){
-      rk()->gemv(matTrans, alpha, x, beta, y);
-    } else if(beta != Constants<T>::pone){
-      y->scale(beta);
+      rk()->gemv(matTrans, alpha, x, Constants<T>::pone, y);
     }
   }
 }
@@ -811,7 +808,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
       rk()->axpy(alpha, subMat);
       rank_ = rk()->rank();
     } else {
-       if (!full())
+       if (!isAssembled() || !full())
          full(new FullMatrix<T>(rows(), cols()));
        full()->axpy(alpha, subMat);
     }
@@ -1106,15 +1103,6 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isVoid() || a->isVoid())
       return;
 
-  if ((transA != 'N') && (transB != 'N')) {
-    // This code has *not* been tested because it's currently not used.
-    HMAT_ASSERT(false);
-    //    this->transpose();
-    //    this->gemm('N', 'N', alpha, b, a, beta);
-    //    this->transpose();
-    //    return;
-  }
-
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
     // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
@@ -1191,6 +1179,9 @@ FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
     h->gemv(transH, Constants<T>::pone, mat, Constants<T>::zero, result);
   } else {
     FullMatrix<T>* matT = mat->copyAndTranspose();
+    if (transM == 'C') {
+      matT->data.conjugate();
+    }
     h->gemv(transH, Constants<T>::pone, matT, Constants<T>::zero, result);
     delete matT;
   }
@@ -1200,7 +1191,6 @@ FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
 template<typename T>
 RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b){
   // We know that one of the matrices is a RkMatrix
-  assert((transA == 'N') || (transB == 'N')); // Exclusion of the case At * Bt
   assert(a->isRkMatrix() || b->isRkMatrix());
   RkMatrix<T> *rk = NULL;
   // Matrices range compatibility
@@ -1251,7 +1241,6 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
                                               const HMatrix<T>* a,
                                               const HMatrix<T>* b) {
   // At least one full matrix, and not RkMatrix.
-  assert((transA == 'N') || (transB == 'N'));// Not for the products At*Bt
   assert(a->isFullMatrix() || b->isFullMatrix());
   assert(!(a->isRkMatrix() || b->isRkMatrix()));
   FullMatrix<T> *result = NULL;

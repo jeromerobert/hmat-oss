@@ -197,6 +197,25 @@ template<typename T> void ScalarArray<T>::transpose() {
 #endif
 }
 
+template<typename T> void ScalarArray<T>::conjugate() {
+  if (lda == rows) {
+    // Warning: check for overflow
+    size_t nm = ((size_t) rows) * cols;
+    const size_t block_size_blas = 1 << 30;
+    while (nm > block_size_blas) {
+      proxy_lapack::lacgv(block_size_blas, m + nm - block_size_blas, 1);
+      nm -= block_size_blas;
+    }
+    proxy_lapack::lacgv(nm, m, 1);
+  } else {
+    T* x = m;
+    for (int col = 0; col < cols; col++) {
+      proxy_lapack::lacgv(rows, x, 1);
+      x += lda;
+    }
+  }
+}
+
 template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result) const {
   if(result == NULL)
     result = new ScalarArray<T>(rows, cols);
