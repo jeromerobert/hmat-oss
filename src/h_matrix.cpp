@@ -41,6 +41,7 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 #include "json.hpp"
+#include "blas_overloads.hpp"
 
 using namespace std;
 
@@ -599,6 +600,19 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
     y->scale(beta);
   }
 
+#undef DEBUG_HMATRIX_GEMV
+#define DEBUG_HMATRIX_GEMV
+#ifdef DEBUG_HMATRIX_GEMV
+FullMatrix<T> * debug_h = new FullMatrix<T>(this->rows(), this->cols());
+this->evalPart(debug_h, this->rows(), this->cols());
+ScalarArray<T> * debug_result = y->copy(NULL);
+const int mm = matTrans == 'N' ? debug_h->rows() : debug_h->cols();
+const int nn = x->cols;
+const int k = x->rows;
+proxy_cblas::gemm(matTrans, 'N', mm, nn, k, alpha,
+     debug_h->data.m, debug_h->data.lda,
+     x->m, x->lda, Constants<T>::pone, debug_result->m, debug_result->lda);
+#endif
   if (!this->isLeaf()) {
     ScalarArray<T> *subX, *subY;
     for (int i = 0, iend = (matTrans=='N' ? nrChildRow() : nrChildCol()); i < iend; i++)
@@ -639,6 +653,20 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
       rk()->gemv(matTrans, alpha, x, Constants<T>::pone, y);
     }
   }
+
+#ifdef DEBUG_HMATRIX_GEMV
+// std::cout << "result: " << y->m[0] << " " << y->m[1] << " " << y->m[y->lda] << " " << y->m[y->lda+1] << std::endl;
+for (int i = 0; i < debug_result->cols; ++i) proxy_cblas::axpy(debug_result->rows, Constants<T>::mone, y->m+i*y->lda, 1, debug_result->m+i*debug_result->lda, 1);
+// proxy_cblas::axpy(debug_result->rows * debug_result->cols, Constants<T>::mone, y->m, 1, debug_result->m, 1);
+// std::cout << "diff: " << debug_result->m[0] << " " << debug_result->m[1] << " " << debug_result->m[debug_result->lda] << " " << debug_result->m[debug_result->lda+1] << std::endl;
+// std::cout << "  norm row 0: " << proxy_cblas_convenience::norm(debug_result->rows, debug_result->m, 1) << std::endl;
+// std::cout << "  norm row 1: " << proxy_cblas_convenience::norm(debug_result->rows, debug_result->m + debug_result->lda, 1) << std::endl;
+double frob = debug_result->norm();
+if (frob > 1e-9)
+std::cout << "HMatrix<T>::gemv " << alpha << " " << beta << " " << matTrans << " " << frob << std::endl;
+delete debug_h;
+delete debug_result;
+#endif
 }
 
 template<typename T>
@@ -750,8 +778,20 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     return;
   }
 
+#undef DEBUG_HMATRIX_AXPY_RK
+#define DEBUG_HMATRIX_AXPY_RK
+#ifdef DEBUG_HMATRIX_AXPY_RK
+FullMatrix<T> * debug_h = new FullMatrix<T>(rows(), cols());
+this->evalPart(debug_h, rows(), cols());
+const RkMatrix<T> * debug_b = b->subset(rows(), cols());
+FullMatrix<T> * debug_b_full = debug_b->eval();
+int mm = debug_h->data.rows;
+int nn = debug_h->data.cols;
+proxy_cblas::axpy(mm * nn, alpha, debug_b_full->data.m, 1, debug_h->data.m, 1);
+#endif
   // If 'this' is not a leaf, we recurse with the same 'b'
   if (!this->isLeaf()) {
+// std::cout << "non-leaf" << std::endl;
     for (int i = 0; i < this->nrChild(); i++) {
       if (this->getChild(i)) {
         this->getChild(i)->axpy(alpha, b);
@@ -768,9 +808,12 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     if (isRkMatrix()) {
       if(!rk())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+// std::cout << "rk " << rk()->rank() << " " << newRk->rank() << std::endl;
       rk()->axpy(alpha, newRk);
       rank_ = rk()->rank();
+// std::cout << "new rank=" << rank_ << std::endl;
     } else {
+// std::cout << "full" << std::endl;
       // In this case, the matrix has small size
       // then evaluating the Rk-matrix is cheaper
       FullMatrix<T>* rkMat = newRk->eval();
@@ -784,6 +827,17 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       delete newRk;
     }
   }
+#ifdef DEBUG_HMATRIX_AXPY_RK
+FullMatrix<T> * debug_result = new FullMatrix<T>(rows(), cols());
+this->evalPart(debug_result, rows(), cols());
+for(int i = 0; i < nn; ++i) proxy_cblas::axpy(mm, Constants<T>::mone, debug_h->data.m + i*debug_h->data.lda, 1, debug_result->data.m+i*debug_result->data.lda, 1);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-8)
+std::cout << "HMatrix<T>::axpy " << alpha << " " << frob << " " << debug_b_full->norm() << std::endl;
+delete debug_b_full;
+delete debug_b;
+delete debug_h;
+#endif
 }
 
 /** @brief AXPY between 'this' an H matrix and a subset of B with B a FullMatrix */

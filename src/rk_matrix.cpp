@@ -137,6 +137,13 @@ void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, Sca
     }
     return;
   }
+#define DEBUG_RKMATRIX_GEMV
+#undef DEBUG_RKMATRIX_GEMV
+#ifdef DEBUG_RKMATRIX_GEMV
+FullMatrix<T> * debug = eval();
+ScalarArray<T> * debug_result = y->copy();
+#endif
+
   if (trans == 'N') {
     // Compute Y <- Y + alpha * A * B^T * X
     ScalarArray<T> z(b->cols, x->cols);
@@ -157,6 +164,19 @@ void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, Sca
     y->gemm('N', 'N', alpha, newB, &z, beta);
     delete newB;
   }
+#ifdef DEBUG_RKMATRIX_GEMV
+int mm = trans == 'N' ? debug->rows() : debug->cols();
+int nn = x->cols;
+int k = x->rows;
+proxy_cblas::gemm(trans, 'N', mm, nn, k, alpha,
+     debug->data.m, debug->data.lda,
+     x->m, x->lda, Constants<T>::mone, debug_result->m, debug_result->lda);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-9)
+std::cout << "RkMatrix<T>::gemv " << alpha << "" << beta << " " << trans << " " << frob << std::endl;
+delete debug;
+delete debug_result;
+#endif
 }
 
 template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subRows,
@@ -343,9 +363,31 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
+#define DEBUG_RKMATRIX_AXPY_RK
+#ifdef DEBUG_RKMATRIX_AXPY_RK
+FullMatrix<T> * debug_h = eval();
+const RkMatrix<T> * debug_b = mat->subset(rows, cols);
+FullMatrix<T> * debug_b_full = debug_b->eval();
+int mm = debug_h->data.rows;
+int nn = debug_h->data.cols;
+proxy_cblas::axpy(mm * nn, alpha, debug_b_full->data.m, 1, debug_h->data.m, 1);
+// std::cout << std::setprecision(12) << "eval: values: " << debug_h->data.m[0] << " " << debug_h->data.m[1] << std::endl;
+#endif
   RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
   swap(*tmp);
   delete tmp;
+#ifdef DEBUG_RKMATRIX_AXPY_RK
+FullMatrix<T> * debug_result = eval();
+// std::cout << "formattedAddParts: values: " << debug_result->data.m[0] << " " << debug_result->data.m[1] << std::endl;
+for(int i = 0; i < nn; ++i) proxy_cblas::axpy(mm, Constants<T>::mone, debug_h->data.m + i*debug_h->data.lda, 1, debug_result->data.m+i*debug_result->data.lda, 1);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-9)
+std::cout << "frob=" << frob << " " << rows->description() << "x" << cols->description() << " diff: values: " << debug_result->data.m[0] << " " << debug_result->data.m[1] << std::endl;
+delete debug_b_full;
+delete debug_b;
+delete debug_h;
+#endif
+
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const RkMatrix<T>* o) const {
@@ -552,6 +594,20 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
     }
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, rkRows, newB, mCols, rk->method);
+#if 1
+FullMatrix<T> * debug = rk->eval();
+FullMatrix<T> * debug_result = result->eval();
+int mm = rkRows->size();
+int nn = mCols->size();
+int k = (transM == 'N') ? m->rows() : m->cols();
+proxy_cblas::gemm(transR, transM, mm, nn, k, Constants<T>::pone,
+     debug->data.m, transR == 'N' ? mm : k,
+     m->data.m, transM == 'N' ? k : nn, Constants<T>::mone, debug_result->data.m, mm);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-9) std::cout << frob << std::endl;
+delete debug;
+delete debug_result;
+#endif
   return result;
 }
 
@@ -599,6 +655,21 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
     newA->gemm(transM, 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, mRows, newB, rkCols, rk->method);
+#if 1
+FullMatrix<T> * debug = rk->eval();
+FullMatrix<T> * debug_result = result->eval();
+int mm = transM == 'N' ? m->rows() : m->cols();
+int nn = rkCols->size();
+int k = transR == 'N' ? rk->rows->size() : rk->cols->size();
+proxy_cblas::gemm(transM, transR, mm, nn, k, Constants<T>::pone,
+     m->data.m, transM == 'N' ? mm : k,
+     debug->data.m, transR == 'N' ? k : nn,
+     Constants<T>::mone, debug_result->data.m, mm);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-9) std::cout << frob << std::endl;
+delete debug;
+delete debug_result;
+#endif
   return result;
 }
 
@@ -664,6 +735,25 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transR, char transH,
     }
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, rkRows, newB, newCols, rk->method);
+#define RKMATRIX_DEBUG_MULTIPLYRKH
+#ifdef RKMATRIX_DEBUG_MULTIPLYRKH
+FullMatrix<T> * debug = rk->eval();
+FullMatrix<T> * debug_h = new FullMatrix<T>(h->rows(), h->cols());
+h->evalPart(debug_h, h->rows(), h->cols());
+FullMatrix<T> * debug_result = result->eval();
+int mm = rkRows->size();
+int nn = newCols->size();
+int k = (transH == 'N') ? h->rows()->size() : h->cols()->size();
+proxy_cblas::gemm(transR, transH, mm, nn, k, Constants<T>::pone,
+     debug->data.m, debug->data.lda,
+     debug_h->data.m, debug_h->data.lda, Constants<T>::mone, debug_result->data.m, mm);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-9)
+std::cout << "RkMatrix<T>::multiplyRkH " << transR << " " << transH << " " << frob << " H=" << h->rows()->description() << " " << h->cols()->description() << " R=" << rk->rows->description() << " " << rk->cols->description() << "==> " << rkRows->description() << " " << newCols->description() << std::endl;
+delete debug;
+delete debug_h;
+delete debug_result;
+#endif
   return result;
 }
 
@@ -717,6 +807,26 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
     h->gemv(transH, Constants<T>::pone, a, Constants<T>::zero, newA);
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, newRows, newB, rkCols, rk->method);
+#undef RKMATRIX_DEBUG_MULTIPLYHRK
+#define RKMATRIX_DEBUG_MULTIPLYHRK
+#ifdef RKMATRIX_DEBUG_MULTIPLYHRK
+FullMatrix<T> * debug_rk = rk->eval();
+FullMatrix<T> * debug_h = new FullMatrix<T>(h->rows(), h->cols());
+h->evalPart(debug_h, h->rows(), h->cols());
+FullMatrix<T> * debug_result = result->eval();
+int mm = newRows->size();
+int nn = rkCols->size();
+int k = (transH == 'N') ? debug_h->cols() : debug_h->rows();
+proxy_cblas::gemm(transH, transR, mm, nn, k, Constants<T>::pone,
+     debug_h->data.m, debug_h->data.lda,
+     debug_rk->data.m, debug_rk->data.lda, Constants<T>::mone, debug_result->data.m, debug_result->data.lda);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-9)
+std::cout << "RkMatrix<T>::multiplyHRk " << transH << " " << transR << " " << frob << " H=" << h->rows()->description() << " " << h->cols()->description() << " R=" << rk->rows->description() << " " << rk->cols->description() << "==> " << newRows->description() << " " << rkCols->description() << std::endl;
+delete debug_rk;
+delete debug_h;
+delete debug_result;
+#endif
   return result;
 }
 
@@ -796,7 +906,26 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   delete tmp;
 
   CompressionMethod combined = std::min(r1->method, r2->method);
-  return new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows), combined);
+  RkMatrix<T> * result = new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows), combined);
+#define RKMATRIX_DEBUG_MULTIPLYRKRK
+#ifdef RKMATRIX_DEBUG_MULTIPLYRKRK
+FullMatrix<T> * debug_r1 = r1->eval();
+FullMatrix<T> * debug_r2 = r2->eval();
+FullMatrix<T> * debug_result = result->eval();
+int mm = debug_result->rows();
+int nn = debug_result->cols();
+int k = (trans1 == 'N') ? r1->cols->size() : r1->rows->size();
+proxy_cblas::gemm(trans1, trans2, mm, nn, k, Constants<T>::pone,
+     debug_r1->data.m, debug_r1->data.lda,
+     debug_r2->data.m, debug_r2->data.lda, Constants<T>::mone, debug_result->data.m, debug_result->data.lda);
+double frob = debug_result->norm() / (debug_result->data.cols * debug_result->data.rows);
+if (frob > 1e-9)
+std::cout << "RkMatrix<T>::multiplyRkRk " << trans1 << " " << trans2 << " " << frob << " " << r1->rank() << " " << r2->rank() << " diff: values: " << debug_result->data.m[0] << " " << debug_result->data.m[1] << std::endl;
+delete debug_r1;
+delete debug_r2;
+delete debug_result;
+#endif
+  return result;
 }
 
 template<typename T>
