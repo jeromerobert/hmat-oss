@@ -315,6 +315,61 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
   }
 }
 
+template<typename T> void ScalarArray<T>::addRand(double epsilon) {
+  DECLARE_CONTEXT;
+  if (lda == rows) {
+    for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
+      m[i] *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+    }
+  } else {
+    for (int col = 0; col < cols; ++col) {
+      for (int row = 0; row < rows; ++row) {
+        get(row, col) *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      }
+    }
+  }
+}
+
+template<> void ScalarArray<C_t>::addRand(double epsilon) {
+  DECLARE_CONTEXT;
+
+  if (lda == rows) {
+    for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
+      float c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      float c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      m[i] *= C_t(c1, c2);
+    }
+  } else {
+    for (int col = 0; col < cols; ++col) {
+      for (int row = 0; row < rows; ++row) {
+        float c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+        float c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+        get(row, col) *= C_t(c1, c2);
+      }
+    }
+  }
+}
+
+template<> void ScalarArray<Z_t>::addRand(double epsilon) {
+  DECLARE_CONTEXT;
+
+  if (lda == rows) {
+    for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
+      double c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      double c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      m[i] *= Z_t(c1, c2);
+    }
+  } else {
+    for (int col = 0; col < cols; ++col) {
+      for (int row = 0; row < rows; ++row) {
+        double c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+        double c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+        get(row, col) *= Z_t(c1, c2);
+      }
+    }
+  }
+}
+
 template<typename T>
 void ScalarArray<T>::axpy(T alpha, const ScalarArray<T>* a) {
   assert(rows == a->rows);

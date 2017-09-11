@@ -215,6 +215,13 @@ void HMatInterface<T, E>::addIdentity(T alpha) {
 }
 
 template<typename T, template <typename> class E>
+void HMatInterface<T, E>::addRand(double epsilon) {
+  DISABLE_THREADING_IN_BLOCK;
+  DECLARE_CONTEXT;
+  engine_.addRand(epsilon);
+}
+
+template<typename T, template <typename> class E>
 void HMatInterface<T, E>::info(hmat_info_t & result) const {
   DECLARE_CONTEXT;
     memset(&result, 0, sizeof(hmat_info_t));

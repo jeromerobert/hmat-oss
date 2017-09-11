@@ -385,6 +385,11 @@ public:
       \param alpha
    */
   void addIdentity(T alpha);
+  /** This <- This + A , norm(A) ~ epsilon*norm(this)
+
+      \param epsilon
+   */
+  void addRand(double epsilon);
   /*! Return true if this is a full block.
    */
   inline bool isFullMatrix() const {

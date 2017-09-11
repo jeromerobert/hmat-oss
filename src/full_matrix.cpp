@@ -489,6 +489,11 @@ template<typename T> double FullMatrix<T>::norm() const {
   return data.norm();
 }
 
+template<typename T> void FullMatrix<T>::addRand(double epsilon) {
+  DECLARE_CONTEXT;
+  data.addRand(epsilon);
+}
+
 template<typename T> void FullMatrix<T>::fromFile(const char * filename) {
   FILE * f = fopen(filename, "rb");
   int code;

@@ -878,6 +878,26 @@ void HMatrix<T>::addIdentity(T alpha)
   }
 }
 
+template<typename T>
+void HMatrix<T>::addRand(double epsilon)
+{
+  if (this->isLeaf()) {
+    if (isFullMatrix()) {
+      full()->addRand(epsilon);
+    } else {
+      rk()->addRand(epsilon);
+    }
+  } else {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for(int j = 0; j < nrChildCol(); j++) {
+	if(get(i,j)) {
+          get(i,j)->addRand(epsilon);
+        }
+      }
+    }
+  }
+}
+
 template<typename T> HMatrix<T> * HMatrix<T>::subset(
     const IndexSet * rows, const IndexSet * cols) const
 {

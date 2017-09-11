@@ -285,6 +285,9 @@ public:
    */
   void addIdentity(T alpha);
 
+  /** this <- this + A(norm = epsilon * norm(this)
+   */
+  void addRand(double epsilon);
   /**
    * Fill a hmat_info_t structure with information of this matrix.
    * @note This is only meaningful once the HMatrix has been assembled.

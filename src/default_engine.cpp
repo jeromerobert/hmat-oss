@@ -170,6 +170,11 @@ void DefaultEngine<T>::scale(T alpha) {
 }
 
 template<typename T>
+void DefaultEngine<T>::addRand(double epsilon) {
+  hmat->addRand(epsilon);
+}
+
+template<typename T>
 void DefaultEngine<T>::solve(ScalarArray<T>& b, hmat_factorization_t t) const {
   switch(t) {
   case hmat_factorization_lu:

@@ -145,6 +145,11 @@ public:
    */
   void copyMatrixAtOffset(const ScalarArray<T>* a, int rowOffset, int colOffset,
                           int rowsToCopy, int colsToCopy);
+  /*! \brief add term by term a random value
+
+    \param epsilon  x *= (1 + a),  a = epsilon*(1.0-2.0*rand()/(double)RAND_MAX)
+   */
+  void addRand(double epsilon);
   /*! \brief this += alpha * A
 
     \param a the Matrix A

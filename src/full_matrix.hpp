@@ -238,6 +238,9 @@ public:
     \return the matrix norm.
    */
   double norm() const;
+   /*! \brief  Add an alea, term by term, to the matrix.
+   */
+  void addRand(double epsilon);
   /*! \brief Write the matrix to a binary file.
 
     \param filename output filename

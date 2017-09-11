@@ -183,6 +183,13 @@ template<typename T> size_t RkMatrix<T>::uncompressedSize() {
     return ((size_t)rows->size()) * cols->size();
 }
 
+template<typename T> void RkMatrix<T>::addRand(double epsilon) {
+  DECLARE_CONTEXT;
+  a->addRand(epsilon);
+  b->addRand(epsilon);
+  return;
+}
+
 template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   DECLARE_CONTEXT;
 
