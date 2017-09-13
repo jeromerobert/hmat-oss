@@ -214,7 +214,7 @@ public:
     void subToMe(const Vector<T>* x);
     /** L2 norm of the vector.
      */
-    int absoluteMaxIndex() const;
+    int absoluteMaxIndex(int startIndex = 0) const;
     /** Compute the dot product of two \Vector.
 
         For real-valued vectors, this is the usual dot product. For
