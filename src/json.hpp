@@ -44,6 +44,13 @@ protected:
      * each child.
      */
     virtual void loopOnChildren(int depth) = 0;
+    /**
+     * Dump data which are global to the matrix and not
+     * related to a single block
+     */
+    virtual void dumpMeta() = 0;
+    /** To call from dumpMeta to dump the points of the matrix */
+    void dumpPoints();
 public:
     JSONDumper(std::ostream & out) : out_(out) {}
     void dump();
@@ -56,6 +63,7 @@ class HMatrixJSONDumper: public JSONDumper {
     void update();
 protected:
     virtual void loopOnChildren(int depth);
+    virtual void dumpMeta();
 public:
     HMatrixJSONDumper(HMatrix<T> * m, std::ostream & out);
 };

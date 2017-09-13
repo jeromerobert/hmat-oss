@@ -80,16 +80,13 @@ void JSONDumper::nextChild(bool last) {
     nodeInfo_.str("");
 }
 
-void JSONDumper::dump() {
+void JSONDumper::dumpPoints() {
+    string delimiter;
     const DofCoordinates* points = rows_->coordinates();
     const double* coord = &points->get(0, 0);
     const int* indices = rows_->indices();
     const int dimension = points->dimension();
-    string delimiter;
-
-    // Points
-    out_ << "{" << endl
-         << "  \"points\": [" << endl;
+    out_ << "  \"points\": [" << endl;
     delimiter = "";
     for (int i = 0; i < points->size(); i++) {
         out_ << "    " << delimiter << "[";
@@ -112,9 +109,18 @@ void JSONDumper::dump() {
         delimiter = " ,";
     }
     out_ << "]," << endl;
+}
+
+void JSONDumper::dump() {
+    out_ << "{" << endl;
+    dumpMeta();
     out_ << "  \"tree\":" << endl;
     dumpSubTree(0);
     out_ << "}" << endl;
+}
+
+template<typename T> void HMatrixJSONDumper<T>::dumpMeta() {
+    dumpPoints();
 }
 
 template<typename T> void HMatrixJSONDumper<T>::update() {
