@@ -55,7 +55,7 @@ typedef enum {
   HMAT_SIMPLE_PRECISION=0,
   HMAT_DOUBLE_PRECISION=1,
   HMAT_SIMPLE_COMPLEX=2,
-  HMAT_DOUBLE_COMPLEX=3,
+  HMAT_DOUBLE_COMPLEX=3
 } hmat_value_t;
 
 /** Choice of the compression method */
