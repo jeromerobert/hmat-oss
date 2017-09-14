@@ -97,6 +97,7 @@ public:
     : SimpleAssemblyFunction<T>(), points(_points), k(_k) {}
   typename Types<T>::dp interaction(int i, int j) const;
   double distanceTo(int i, int j) const;
+  ScalarArray<T>* createRhs(double l) const;
 };
 
 template<typename T>
@@ -133,6 +134,17 @@ Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
   return result;
 }
 
+template<typename T>
+ScalarArray<T>* TestAssemblyFunction<T>::createRhs(double l) const {
+  const int n = (int) points.size();
+  ScalarArray<T>* rhs = new ScalarArray<T>(n, 1);
+  for (int i = 0; i < n; i++) {
+    double r = this->distanceTo(i, 0);
+    rhs->get(i, 0) = exp(-fabs(r) / l);
+  }
+  return rhs;
+}
+
 
 template<typename T, template<typename> class E> struct Configuration
 {
@@ -142,7 +154,7 @@ template<typename T, template<typename> class E> struct Configuration
 hmat::StandardAdmissibilityCondition admissibilityCondition(3.);
 
 template<typename T, template<typename> class E>
-void go(const DofCoordinates& coord, double k) {
+void go(const DofCoordinates& coord, double k, double epsilon) {
   if (0 != HMatInterface<T, E>::init())
     return;
   {
@@ -153,6 +165,10 @@ void go(const DofCoordinates& coord, double k) {
     std::cout << "HMatrix node count = " << hmat.nodesCount() << std::endl;
     Configuration<T, E>().configure(hmat);
     hmat.assemble(f, kNotSymmetric);
+    if(epsilon != 0.0) {
+      std::cout << "addRand epsilon = " << epsilon << std::endl;
+      hmat.addRand(epsilon);
+    }
     hmat.factorize(hmat_factorization_lu);
     hmat_info_t info;
     hmat.info(info);
@@ -160,24 +176,46 @@ void go(const DofCoordinates& coord, double k) {
               << 100 * ((double) info.compressed_size) / info.uncompressed_size
               << "%" << std::endl;
     hmat.createPostcriptFile("h_matrix.ps");
+
+    std::cout << "Resolution...";
+    double l = 0.01;
+    ScalarArray<T>* rhs = f.createRhs(l);
+    ScalarArray<T> rhsCopy(rhs->rows, 1);
+    rhsCopy.copyMatrixAtOffset(rhs, 0, 0);
+    hmat.solve(*rhs);
+    std::cout << "done." << std::endl;
+
+    std::cout << "Accuracy...";
+    double rhsCopyNorm = rhsCopy.norm();
+    int n = coord.size();
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+	rhsCopy.get(i, 0) -= static_cast<T>(f.interaction(i, j)) * rhs->get(j, 0);
+      }
+    }
+    double diffNorm = rhsCopy.norm();
+    std::cout << "Done" << std::endl;
+    std::cout << "||Ax - b|| / ||b|| = " << diffNorm / rhsCopyNorm << std::endl;
+
+    delete rhs;
   }
   HMatInterface<T, E>::finalize();
 }
 
 template<template<typename> class E>
-void goA(char arithmetic, const DofCoordinates& coord, double k) {
+void goA(char arithmetic, const DofCoordinates& coord, double k, double epsilon) {
     switch (arithmetic) {
     case 'S':
-        go<S_t, E>(coord, k);
+        go<S_t, E>(coord, k, epsilon);
         break;
     case 'D':
-        go<D_t, E>(coord, k);
+        go<D_t, E>(coord, k, epsilon);
         break;
     case 'C':
-        go<C_t, E>(coord, k);
+        go<C_t, E>(coord, k, epsilon);
         break;
     case 'Z':
-        go<Z_t, E>(coord, k);
+        go<Z_t, E>(coord, k, epsilon);
         break;
     default:
       std::cerr << "Unknown arithmetic code " << arithmetic << std::endl;
@@ -188,15 +226,23 @@ int main(int argc, char **argv) {
   HMatSettings& settings = HMatSettings::getInstance();
   settings.maxParallelLeaves = 10000;
 
-  if (argc != 3) {
-    std::cout << "Usage: " << argv[0] << " n_points (S|D|C|Z)"
+  if (argc != 3 && argc != 4) {
+    std::cout << "Usage: " << argv[0] << " n_points (S|D|C|Z) [epsilon]"
               << std::endl;
     return 0;
   }
   int n = atoi(argv[1]);
   char arithmetic = argv[2][0];
+  double epsilon  =  0.0;
+  if(argc == 4 ) {
+    epsilon = atof(argv[3]);
+  }
 
   settings.compressionMethod = AcaPlus;
+  if(epsilon != 0.0) {
+    settings.assemblyEpsilon = epsilon;
+    settings.recompressionEpsilon = epsilon;
+  }
   settings.setParameters();
   settings.printSettings();
   std::cout << "Generating the point cloud...";
@@ -216,6 +262,6 @@ int main(int argc, char **argv) {
 
   pointsToFile(points, "points.txt");
 
-  goA<DefaultEngine>(arithmetic, coord, k);
+  goA<DefaultEngine>(arithmetic, coord, k, epsilon);
   return 0;
 }
