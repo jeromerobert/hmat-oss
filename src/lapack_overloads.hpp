@@ -91,6 +91,89 @@ getrf<hmat::Z_t>(int m, int n, hmat::Z_t* a, int lda, int* ipiv) {
 #undef _CGETRF_
 #undef _ZGETRF_
 
+/*      SUBROUTINE DLARFG( N, ALPHA, X, INCX, TAU ) */
+/*      xLARFG GENERATES AN ELEMENTARY REFLECTOR H OF ORDER N */
+#define _SLARFG_ F77_FUNC(slarfg,SLARFG)
+#define _DLARFG_ F77_FUNC(dlarfg,DLARFG)
+#define _CLARFG_ F77_FUNC(clarfg,CLARFG)
+#define _ZLARFG_ F77_FUNC(zlarfg,ZLARFG)
+extern "C" {
+void _SLARFG_(int*, hmat::S_t*, hmat::S_t*, int*, hmat::S_t*); //int*, int*, hmat::S_t*, int*, int*, int*);
+void _DLARFG_(int*, hmat::D_t*, hmat::D_t*, int*, hmat::D_t*);
+void _CLARFG_(int*, hmat::C_t*, hmat::C_t*, int*, hmat::C_t*);
+void _ZLARFG_(int*, hmat::Z_t*, hmat::Z_t*, int*, hmat::Z_t*);
+}
+
+template <typename T>
+void larfg(int m, T* alpha, T* x, int incx, T* tau);
+
+template <>
+inline void
+larfg<hmat::S_t>(int m, hmat::S_t* alpha, hmat::S_t* x, int incx, hmat::S_t* tau){
+  _SLARFG_(&m, alpha, x, &incx, tau);
+}
+template <>
+inline void
+larfg<hmat::D_t>(int m, hmat::D_t* alpha, hmat::D_t* x, int incx, hmat::D_t* tau){
+  _DLARFG_(&m, alpha, x, &incx, tau);
+}
+template <>
+inline void
+larfg<hmat::C_t>(int m, hmat::C_t* alpha, hmat::C_t* x, int incx, hmat::C_t* tau){
+  _CLARFG_(&m, alpha, x, &incx, tau);
+}
+template <>
+inline void
+larfg<hmat::Z_t>(int m, hmat::Z_t* alpha, hmat::Z_t* x, int incx, hmat::Z_t* tau){
+  _ZLARFG_(&m, alpha, x, &incx, tau);
+}
+#undef _SLARFG_
+#undef _DLARFG_
+#undef _CLARFG_
+#undef _ZLARFG_
+
+/*      SUBROUTINE DLARF( SIDE, M, N, V, INCV, TAU, C, LDC, WORK ) */
+/*      LARF APPLIES A REAL ELEMENTARY REFLECTOR H TO A M BY N MATRIX C,
+        C, FROM EITHER THE LEFT OR THE RIGHT. */
+#define _SLARF_ F77_FUNC(slarf,SLARF)
+#define _DLARF_ F77_FUNC(dlarf,DLARF)
+#define _CLARF_ F77_FUNC(clarf,CLARF)
+#define _ZLARF_ F77_FUNC(zlarf,ZLARF)
+extern "C" {
+void _SLARF_(char*, int*, int*, hmat::S_t*, int*, hmat::S_t*, hmat::S_t*, int*, hmat::S_t*);
+void _DLARF_(char*, int*, int*, hmat::D_t*, int*, hmat::D_t*, hmat::D_t*, int*, hmat::D_t*);
+void _CLARF_(char*, int*, int*, hmat::C_t*, int*, hmat::C_t*, hmat::C_t*, int*, hmat::C_t*);
+void _ZLARF_(char*, int*, int*, hmat::Z_t*, int*, hmat::Z_t*, hmat::Z_t*, int*, hmat::Z_t*);
+}
+
+template <typename T>
+void larf( char side, int m, int n, T* v, int incv, T* tau, T* c, int ldc, T* work);
+
+template <>
+inline void
+larf<hmat::S_t>(char side, int m, int n, hmat::S_t* v, int incv, hmat::S_t* tau, hmat::S_t* c, int ldc, hmat::S_t* work){
+  _SLARF_(&side, &m, &n, v, &incv, tau, c, &ldc, work);
+}
+template <>
+inline void
+larf<hmat::D_t>(char side, int m, int n, hmat::D_t* v, int incv, hmat::D_t* tau, hmat::D_t* c, int ldc, hmat::D_t* work){
+  _DLARF_(&side, &m, &n, v, &incv, tau, c, &ldc, work);
+}
+template <>
+inline void
+larf<hmat::C_t>(char side, int m, int n, hmat::C_t* v, int incv, hmat::C_t* tau, hmat::C_t* c, int ldc, hmat::C_t* work){
+  _CLARF_(&side, &m, &n, v, &incv, tau, c, &ldc, work);
+}
+template <>
+inline void
+larf<hmat::Z_t>(char side, int m, int n, hmat::Z_t* v, int incv, hmat::Z_t* tau, hmat::Z_t* c, int ldc, hmat::Z_t* work){
+  _ZLARF_(&side, &m, &n, v, &incv, tau, c, &ldc, work);
+}
+#undef _SLARF_
+#undef _DLARF_
+#undef _CLARF_
+#undef _ZLARF_
+
 /*      SUBROUTINE SGETRI( N, A, LDA, IPIV, WORK, LWORK, INFO )*/
 /*      SGETRI COMPUTES THE INVERSE OF A MATRIX USING THE LU FACTORIZATION COMPUTED BY SGETRF.*/
 #define _SGETRI_ F77_FUNC(sgetri,SGETRI)

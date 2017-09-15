@@ -361,6 +361,123 @@ template D_t* qrDecomposition<D_t>(ScalarArray<D_t>* m);
 template C_t* qrDecomposition<C_t>(ScalarArray<C_t>* m);
 template Z_t* qrDecomposition<Z_t>(ScalarArray<Z_t>* m);
 
+template<typename T> int rrqrDecomposition(ScalarArray<T>* m,ScalarArray<T>* tau, double eps, int* colpiv){
+  DECLARE_CONTEXT;
+
+  int rows = m->rows;
+  int cols = m->cols;
+  int lda = m->lda;
+  int refl = std::min(rows,cols);
+
+  T alpha, beta;
+
+  double norm2, maxnorm2, firstnorm2;
+  double frobnorm2;
+
+  int j, k, jmax, rows1, cols1, lwork;
+  const int inc=1;
+  char side='L';
+
+  // Temporary arrays
+  Vector<T> buffer(rows);
+
+  /* Provide working storage for xLARF */
+  lwork = cols;
+  T* work = new T[lwork];
+
+  /* Initialize column pivots */
+  if (colpiv){
+    for(j=0;j<cols;j++){
+      colpiv[j] = j;
+    }
+  }
+
+  /* Initialize norm estimate for relative error criterion */
+  firstnorm2 = 0.0;
+
+  for( k=0; k<refl; k++){
+    /* Compute norm of k-th column */
+    rows1 = rows-k;
+
+    const Vector<T> mk( m->m+k+k*lda, rows1);
+    norm2 = mk.normSqr();
+    // norm2 = sqrt(norm2);
+
+    maxnorm2 = norm2;
+    frobnorm2 = norm2;
+    jmax = k;
+
+    /* Find maximal norm */
+    for (j = k+1; j<cols; j++) {
+
+      const Vector<T> mj( m->m+k+j*lda, rows1);
+      norm2 = mj.normSqr();
+      // norm2 = sqrt(norm2);
+
+      if(norm2 > maxnorm2){
+        maxnorm2 = norm2;
+        jmax = j;
+      }
+      frobnorm2 += norm2;
+    }
+
+    /* Swap columns */
+    if (jmax != k){
+
+      /* Swap k and jmax columns */
+      memcpy(buffer.m, m->m+jmax*lda, rows*sizeof(T));
+      memcpy(m->m+jmax*lda, m->m+k*lda, rows*sizeof(T));
+      memcpy(m->m+k*lda, buffer.m, rows*sizeof(T));
+
+      /* */
+      if (colpiv){
+        j=colpiv[k];
+        colpiv[k]=colpiv[jmax];
+        colpiv[jmax]=j;
+      }
+    }
+
+    /* Prepare norm */
+    norm2 = maxnorm2;
+
+    /* Exit if the norm is small enough */
+    if (k == 0){
+      firstnorm2 = norm2;
+    }
+    else{
+      /* Compare Frobenius norm with estimate for the entire matrix */
+      if (frobnorm2 <= eps * eps * firstnorm2){break;}
+    }
+
+    /* Determine Householder reflection vector v */
+    alpha = m->m[k+k*lda];
+    proxy_lapack::larfg(rows1, &alpha, m->m+k+1+k*lda, inc, &beta);
+
+    /* Store scaling factor */
+    tau->m[k] = beta;
+
+    /* Update remaining columns */
+    cols1 = cols-k-1;
+    m->m[k+k*lda] = 1.0;
+    beta = std::conj(beta);
+    proxy_lapack::larf( side, rows1, cols1, m->m+k+k*lda, inc, &beta, m->m+k+(k+1)*lda, lda, work);
+
+    /* Complete k-th column */
+    m->m[k+k*lda] = alpha;
+  }
+
+  /* free memory */
+  delete[] work;
+
+  return k;
+
+}
+
+// templates declaration
+template int rrqrDecomposition(ScalarArray<S_t>* m,ScalarArray<S_t>* tau, double eps, int* colpiv);
+template int rrqrDecomposition(ScalarArray<D_t>* m,ScalarArray<D_t>* tau, double eps, int* colpiv);
+template int rrqrDecomposition(ScalarArray<C_t>* m,ScalarArray<C_t>* tau, double eps, int* colpiv);
+template int rrqrDecomposition(ScalarArray<Z_t>* m,ScalarArray<Z_t>* tau, double eps, int* colpiv);
 
 
 template<typename T>
@@ -401,6 +518,7 @@ int productQ(char side, char trans, ScalarArray<T>* qr, T* tau, ScalarArray<T>* 
   int info;
   int workSize;
   T workSize_req;
+  std::cout << "m="<<m<<" "<<"n="<<n<<" "<<"k="<<k<<" "<<std::endl;
   {
     size_t _m = m, _n = n, _k = k;
     size_t muls = 2 * _m * _n * _k - _n * _k * _k + 2 * _n * _k;

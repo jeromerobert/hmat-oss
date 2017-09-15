@@ -48,6 +48,17 @@ template<typename T> int truncatedSvd(ScalarArray<T>* m, ScalarArray<T>** u, Vec
  */
 template<typename T> T* qrDecomposition(ScalarArray<T>* m);
 
+/** Another QR matrix decomposition.
+
+    Warning: m is modified!
+
+    \param m
+    \param tau
+    \return
+ */
+// template<typename T> T* qrDecomposition(ScalarArray<T>* m);
+template<typename T> int rrqrDecomposition(ScalarArray<T>* m,ScalarArray<T>* tau, double eps, int* colpiv);
+
 /** Do the product by Q.
 
     qr has to be factored using \a qrDecomposition.
