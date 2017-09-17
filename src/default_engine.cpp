@@ -220,6 +220,10 @@ template<typename T> void DefaultEngine<T>::transpose() {
     hmat->transpose();
 }
 
+template<typename T> void DefaultEngine<T>::applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f) {
+    hmat->apply_on_leaf(f);
+}
+
 }  // end namespace hmat
 
 #include "hmat_cpp_interface.cpp"

@@ -420,6 +420,20 @@ HMAT_API void hmat_delete_procedure(hmat_procedure_t* proc);
 /* Create a procedure to truncate Rk matrices */
 HMAT_API hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, double epsilon);
 
+/* Opaque pointer */
+typedef struct
+{
+    hmat_value_t value_type;
+    /** For internal use only */
+    const void * internal;
+} hmat_leaf_procedure_t;
+
+/* Delete a leaf procedure */
+HMAT_API void hmat_delete_leaf_procedure(hmat_leaf_procedure_t* proc);
+
+/* Create a procedure to truncate Rk matrices */
+HMAT_API hmat_leaf_procedure_t* hmat_create_leaf_procedure_epsilon_truncate(hmat_value_t type, double epsilon);
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
@@ -679,6 +693,13 @@ hmat
      * \param proc
      */
     int (*walk)(hmat_matrix_t* hmatrix, hmat_procedure_t* proc);
+
+    /**
+     * @brief Apply a procedure to all leaves of a matrix
+     * \param hmatrix A hmatrix
+     * \param proc
+     */
+    int (*apply_on_leaf)(hmat_matrix_t* hmatrix, const hmat_leaf_procedure_t* proc);
 
     hmat_value_t value_type;
 

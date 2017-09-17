@@ -310,6 +310,30 @@ hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, doub
     return result;
 }
 
+void hmat_delete_leaf_procedure(const hmat_leaf_procedure_t* proc) {
+    switch (proc->value_type) {
+    case HMAT_SIMPLE_PRECISION: delete static_cast<const hmat::LeafProcedure<HMatrix<S_t> >*>(proc->internal); break;
+    case HMAT_DOUBLE_PRECISION: delete static_cast<const hmat::LeafProcedure<HMatrix<D_t> >*>(proc->internal); break;
+    case HMAT_SIMPLE_COMPLEX:   delete static_cast<const hmat::LeafProcedure<HMatrix<C_t> >*>(proc->internal); break;
+    case HMAT_DOUBLE_COMPLEX:   delete static_cast<const hmat::LeafProcedure<HMatrix<Z_t> >*>(proc->internal); break;
+    default: HMAT_ASSERT(false);
+    }
+    delete proc;
+}
+
+hmat_leaf_procedure_t* hmat_create_leaf_procedure_epsilon_truncate(hmat_value_t type, double epsilon) {
+    hmat_leaf_procedure_t * result = new hmat_leaf_procedure_t();
+    result->value_type = type;
+    switch (type) {
+    case HMAT_SIMPLE_PRECISION: result->internal = new hmat::LeafEpsilonTruncate<S_t>(epsilon); break;
+    case HMAT_DOUBLE_PRECISION: result->internal = new hmat::LeafEpsilonTruncate<D_t>(epsilon); break;
+    case HMAT_SIMPLE_COMPLEX:   result->internal = new hmat::LeafEpsilonTruncate<C_t>(epsilon); break;
+    case HMAT_DOUBLE_COMPLEX:   result->internal = new hmat::LeafEpsilonTruncate<Z_t>(epsilon); break;
+    default: HMAT_ASSERT(false);
+    }
+    return result;
+}
+
 void hmat_tracing_dump(char *filename) {
   tracing_dump(filename);
 }

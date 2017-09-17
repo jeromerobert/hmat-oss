@@ -55,6 +55,7 @@ public:
   void solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose=false) const;
   void copy(DefaultEngine<T> & result, bool structOnly) const;
   void transpose();
+  void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f);
   void createPostcriptFile(const std::string& filename) const;
   double norm() const;
   void progress(hmat_progress_t * p){ progress_ = p; }

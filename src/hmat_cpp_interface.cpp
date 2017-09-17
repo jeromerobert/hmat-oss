@@ -240,11 +240,20 @@ int HMatInterface<T, E>::nodesCount() const {
   DECLARE_CONTEXT;
   return engine_.hmat->nodesCount();
 }
+
 template<typename T, template <typename> class E>
 void HMatInterface<T, E>::walk(TreeProcedure<HMatrix<T> > *proc){
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   return engine_.hmat->walk(proc);
 }
+
+template<typename T, template <typename> class E>
+void HMatInterface<T, E>::apply_on_leaf(const LeafProcedure<HMatrix<T>>& proc){
+  DISABLE_THREADING_IN_BLOCK;
+  DECLARE_CONTEXT;
+  engine_.applyOnLeaf(proc);
+}
+
 } // end namespace hmat
 

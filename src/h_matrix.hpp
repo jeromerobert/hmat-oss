@@ -101,8 +101,16 @@ class EpsilonTruncate : public TreeProcedure<HMatrix<T> > {
 private:
   double epsilon_;
 public:
-  EpsilonTruncate(double epsilon) : epsilon_(epsilon) {}
+  explicit EpsilonTruncate(double epsilon) : epsilon_(epsilon) {}
   void visit(HMatrix<T> * node, const Visit order) const;
+};
+template<typename T>
+class LeafEpsilonTruncate : public LeafProcedure<HMatrix<T> > {
+private:
+  double epsilon_;
+public:
+  explicit LeafEpsilonTruncate(double epsilon) : epsilon_(epsilon) {}
+  void apply(HMatrix<T> * node) const;
 };
 
 /*! \brief The HMatrix class, representing a HMatrix.

@@ -408,6 +408,15 @@ int walk(hmat_matrix_t* holder, hmat_procedure_t* proc) {
 }
 
 template <typename T, template <typename> class E>
+int apply_on_leaf(hmat_matrix_t* holder, const hmat_leaf_procedure_t* proc) {
+  DECLARE_CONTEXT;
+    hmat::HMatInterface<T, E> *hmat = (hmat::HMatInterface<T, E> *) holder;
+    const hmat::LeafProcedure<hmat::HMatrix<T> > *functor = static_cast<const hmat::LeafProcedure<hmat::HMatrix<T> > *>(proc->internal);
+    hmat->apply_on_leaf(*functor);
+    return 0;
+}
+
+template <typename T, template <typename> class E>
 hmat_matrix_t * read_struct(hmat_iostream readfunc, void * user_data) {
     hmat::MatrixStructUnmarshaller<T> unmarshaller(&hmat::HMatSettings::getInstance(), readfunc, user_data);
     hmat::HMatrix<T> * m = unmarshaller.read();
@@ -478,6 +487,7 @@ static void createCInterface(hmat_interface_t * i)
     i->write_struct = write_struct<T, E>;
     i->write_data = write_data<T, E>;
     i->read_data = read_data<T, E>;
+    i->apply_on_leaf = apply_on_leaf<T, E>;
 }
 
 }  // end namespace hmat

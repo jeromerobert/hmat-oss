@@ -2355,6 +2355,15 @@ void EpsilonTruncate<T>::visit(HMatrix<T>* node, const Visit order) const {
 }
 
 template<typename T>
+void LeafEpsilonTruncate<T>::apply(HMatrix<T>* node) const {
+  if (!node->isRkMatrix()) return;
+  RkMatrix<T> * rk = node->rk();
+  rk->truncate(epsilon_);
+  // Update rank
+  node->rk(rk);
+}
+
+template<typename T>
 HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, int appoxRank, char bitfield) {
     HMatrix<T> * m = new HMatrix<T>(settings);
     m->rank_ = rank;
@@ -2407,6 +2416,11 @@ template class EpsilonTruncate<S_t>;
 template class EpsilonTruncate<D_t>;
 template class EpsilonTruncate<C_t>;
 template class EpsilonTruncate<Z_t>;
+
+template class LeafEpsilonTruncate<S_t>;
+template class LeafEpsilonTruncate<D_t>;
+template class LeafEpsilonTruncate<C_t>;
+template class LeafEpsilonTruncate<Z_t>;
 
 }  // end namespace hmat
 

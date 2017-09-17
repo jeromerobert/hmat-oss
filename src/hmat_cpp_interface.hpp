@@ -328,6 +328,10 @@ public:
    */
   void walk(TreeProcedure<HMatrix<T> > *proc);
 
+  /** Recursively apply a procedure to all leaves of an HMatrix.
+   */
+  void apply_on_leaf(const LeafProcedure<HMatrix<T>>& proc);
+
   typename E<T>::Settings & engineSettings() { return engine_.settings; }
 
   const ClusterData * rows() const {

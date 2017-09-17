@@ -51,6 +51,15 @@ public:
   virtual ~TreeProcedure() {}
 };
 
+template <typename TreeNode>
+class LeafProcedure {
+
+public:
+  LeafProcedure() {}
+  virtual void apply(TreeNode* leaf) const = 0;
+  virtual ~LeafProcedure() {}
+};
+
 /*! \brief Templated tree class.
 
   This class represents a tree of arity N, holding an instance of NodeData in
@@ -195,6 +204,18 @@ public:
           children[i]->walk(proc);
         }
       proc->visit(me(), tree_postorder); // treatment on a non-leaf after recursion
+    }
+  }
+
+  void apply_on_leaf(const LeafProcedure<TreeNode>& proc) {
+    if (isLeaf()) {
+      proc.apply(me());
+    } else {
+      for (int i=0 ; i<nrChild() ; i++) {
+        if (children[i]) {
+          children[i]->apply_on_leaf(proc);
+        }
+      }
     }
   }
 
