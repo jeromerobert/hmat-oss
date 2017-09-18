@@ -593,6 +593,9 @@ public:
       return rank_;
   }
 
+  /// Set the rank of an evicted rk block
+  void rank(int rank);
+
   RkMatrix<T> * rk() const {
       assert(rank_ >= 0);
       return rk_;

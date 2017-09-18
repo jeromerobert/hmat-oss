@@ -2335,6 +2335,13 @@ HMatrix<T>::HMatrix(const ClusterTree * rows, const ClusterTree * cols,
     this->children = _children;
 }
 
+template<typename T> void HMatrix<T>::rank(int rank) {
+    HMAT_ASSERT_MSG(rank_ >= 0, "HMatrix::rank can only be used on Rk blocks");
+    HMAT_ASSERT_MSG(!rk() || rk()->a == NULL || rk()->rank() == rank,
+        "HMatrix::rank can only be used on evicted blocks");
+    rank_ = rank;
+}
+
 // Templates declaration
 template class HMatrix<S_t>;
 template class HMatrix<D_t>;
