@@ -198,7 +198,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   static char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
   if (useCUSTOM){
-    mGSTruncate(epsilon);
+    // mGSTruncate(epsilon);
+    rrTruncate(epsilon);
     return;
   }
   /* To recompress an Rk-matrix to Rk-matrix, we need :
@@ -404,6 +405,114 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     assert(!(b || a));
   }
 }
+
+template<typename T> void RkMatrix<T>::rrTruncate(double epsilon) {
+  DECLARE_CONTEXT;
+  if (rank() == 0) {
+    assert(!(a || b));
+    return;
+  }
+
+  ScalarArray<T>* ur = NULL;
+  Vector<double>* sr = NULL;
+  ScalarArray<T>* vhr = NULL;
+
+  int kA, kB, newK;
+  int krank = rank();
+
+  int* apivcol = new int[krank];
+  int* bpivcol = new int[krank];
+  ScalarArray<T> tauA(krank, 1);
+  ScalarArray<T> tauB(krank, 1);
+
+  // Limit scope to automatically destroy ra, rb and matR
+  {
+    // RRQR on a
+    kA = rrqrDecomposition(a, &tauA, epsilon, apivcol);
+    assert(kA<=krank);
+
+    ScalarArray<T> ra(kA, krank);
+    for(int j=0;j<krank;j++){
+      int jpiv = apivcol[j];
+      int imax = std::min(kA-1,j);
+      for(int i=0;i<=imax;i++){
+        ra.get(i,jpiv) = a->get(i,j);
+      }
+    }
+
+    // RRQR on b
+    kB = rrqrDecomposition(b, &tauB, epsilon, bpivcol);
+    assert(kB<=krank);
+
+    ScalarArray<T> rb(kB, krank);
+    for(int j=0;j<krank;j++){
+      int jpiv = bpivcol[j];
+      int imax = std::min(kB-1,j);
+      for(int i=0;i<=imax;i++){
+        rb.get(i,jpiv) = b->get(i,j);
+      }
+    }
+
+    ScalarArray<T> matR(kA, kB);
+    matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+    // SVD
+    int ierr = truncatedSvd<T>(&matR, &ur, &sr, &vhr);
+    // On output, ur->rows = kA, vhr->cols = kB
+    HMAT_ASSERT(!ierr);
+  }
+
+  // Remove small singular values and compute square root of sr
+  newK = approx.findK(sr->m, std::min(kA, kB), epsilon);
+  assert(newK>0);
+  for(int i = 0; i < newK; ++i) {
+    sr->m[i] = sqrt(sr->m[i]);
+  }
+  ur->cols = newK;
+  vhr->rows = newK;
+
+  ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
+  /* Scaling of ur and vhr */
+  for(int j = 0; j < newK; ++j) {
+    const T valJ = sr->m[j];
+    for(int i = 0; i < ur->rows; ++i) {
+      // ur->get(i, j) *= valJ;
+      newA->get(i,j) = ur->get(i, j) * valJ;
+    }
+  }
+
+  ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
+  for(int j = 0; j < newK; ++j){
+    for(int i = 0; i < kB; ++i){
+      newB->get(i,j) = vhr->get(j, i) * sr->m[j];
+    }
+  }
+
+  delete[] apivcol;
+  delete[] bpivcol;
+  delete ur;
+  delete vhr;
+  delete sr;
+
+  // newA = Qa * UTilde * SQRT(SigmaTilde)
+  a->cols = kA;
+  productQ<T>('L', 'N', a, tauA.m, newA);
+
+  // newB = Qb * VTilde * SQRT(SigmaTilde)
+  b->cols = kB;
+  productQ<T>('L', 'N', b, tauB.m, newB);
+
+  delete a;
+  a = newA;
+  delete b;
+  b = newB;
+
+  if (rank() == 0) {
+    assert(!(b || a));
+  }
+
+ }
+
 
 // Swap members with members from another instance.
 template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)

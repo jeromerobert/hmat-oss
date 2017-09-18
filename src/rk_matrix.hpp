@@ -141,6 +141,11 @@ public:
       @warning The previous rk->a and rk->b are no longer valid after this function.
    */
   void truncate(double epsilon);
+  /** Recompress an RkMatrix in place with a rank revealing QR.
+
+      @warning The previous rk->a and rk->b are no longer valid after this function.
+   */
+  void rrTruncate(double epsilon);
   /** Recompress an RkMatrix in place with a modified Gram-Schmidt algorithm.
 
       @warning The previous rk->a and rk->b are no longer valid after this function.

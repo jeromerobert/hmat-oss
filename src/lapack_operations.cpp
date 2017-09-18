@@ -393,7 +393,7 @@ template<typename T> int rrqrDecomposition(ScalarArray<T>* m,ScalarArray<T>* tau
   }
 
   /* Initialize norm estimate for relative error criterion */
-  firstnorm2 = 0.0;
+  firstnorm2 = Constants<T>::zero;
 
   for( k=0; k<refl; k++){
     /* Compute norm of k-th column */
@@ -401,7 +401,6 @@ template<typename T> int rrqrDecomposition(ScalarArray<T>* m,ScalarArray<T>* tau
 
     const Vector<T> mk( m->m+k+k*lda, rows1);
     norm2 = mk.normSqr();
-    // norm2 = sqrt(norm2);
 
     maxnorm2 = norm2;
     frobnorm2 = norm2;
@@ -412,7 +411,6 @@ template<typename T> int rrqrDecomposition(ScalarArray<T>* m,ScalarArray<T>* tau
 
       const Vector<T> mj( m->m+k+j*lda, rows1);
       norm2 = mj.normSqr();
-      // norm2 = sqrt(norm2);
 
       if(norm2 > maxnorm2){
         maxnorm2 = norm2;
@@ -451,14 +449,14 @@ template<typename T> int rrqrDecomposition(ScalarArray<T>* m,ScalarArray<T>* tau
 
     /* Determine Householder reflection vector v */
     alpha = m->m[k+k*lda];
-    proxy_lapack::larfg(rows1, &alpha, m->m+k+1+k*lda, inc, &beta);
+    proxy_lapack::larfg(rows1, &alpha, m->m+(k+1)+k*lda, inc, &beta);
 
     /* Store scaling factor */
     tau->m[k] = beta;
 
     /* Update remaining columns */
     cols1 = cols-k-1;
-    m->m[k+k*lda] = 1.0;
+    m->m[k+k*lda] = Constants<T>::pone;
     beta = std::conj(beta);
     proxy_lapack::larf( side, rows1, cols1, m->m+k+k*lda, inc, &beta, m->m+k+(k+1)*lda, lda, work);
 
@@ -518,7 +516,6 @@ int productQ(char side, char trans, ScalarArray<T>* qr, T* tau, ScalarArray<T>* 
   int info;
   int workSize;
   T workSize_req;
-  std::cout << "m="<<m<<" "<<"n="<<n<<" "<<"k="<<k<<" "<<std::endl;
   {
     size_t _m = m, _n = n, _k = k;
     size_t muls = 2 * _m * _n * _k - _n * _k * _k + 2 * _n * _k;
