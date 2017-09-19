@@ -176,7 +176,7 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
 }
 
 template<typename T> size_t RkMatrix<T>::compressedSize() {
-    return ((size_t)rows->size()) * rank() + ((size_t)cols->size()) * rank();
+    return ((size_t)rows->size() + cols->size()) * rank();
 }
 
 template<typename T> size_t RkMatrix<T>::uncompressedSize() {
@@ -206,8 +206,15 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     delete rk;
   }
 
-  static char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
-  if (useCUSTOM){
+  static long int gs_block_size = -1L;
+  if (gs_block_size < 0L) {
+    gs_block_size = 0L;
+    const char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
+    if (useCUSTOM != NULL) {
+      gs_block_size = atol(useCUSTOM);
+    }
+  }
+  if (compressedSize() < (size_t) gs_block_size) {
     mGSTruncate(epsilon);
     return;
   }
