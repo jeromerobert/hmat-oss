@@ -221,7 +221,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
       gs_block_size = atol(useCUSTOM);
     }
   }
-  if (compressedSize() < (size_t) gs_block_size) {
+  if (rank() * std::max(rows->size(), cols->size()) < gs_block_size) {
     mGSTruncate(epsilon);
     return;
   }
