@@ -479,36 +479,36 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
         std::swap(perm[j], perm[pivot]);
         std::swap(norm2.m[j], norm2.m[pivot]);
 
-        memcpy(buffer.m, a->m + j * a->lda, a->rows*sizeof(T));
-        memcpy(a->m + j * a->lda, a->m + pivot * a->lda, a->rows*sizeof(T));
-        memcpy(a->m + pivot * a->lda, buffer.m, a->rows*sizeof(T));
+        memcpy(&buffer.get(0, 0), &a->get(0, j), a->rows*sizeof(T));
+        memcpy(&a->get(0, j), &a->get(0, pivot), a->rows*sizeof(T));
+        memcpy(&a->get(0, pivot), &buffer.get(0, 0), a->rows*sizeof(T));
 
-        memcpy(buffer.m, r.m + j * r.lda, a->cols*sizeof(T));
-        memcpy(r.m +  j * r.lda, r.m + pivot * r.lda, a->cols*sizeof(T));
-        memcpy(r.m + pivot * r.lda, buffer.m, a->cols*sizeof(T));
+        memcpy(&buffer.get(0, 0), &r.get(0, j), a->cols*sizeof(T));
+        memcpy(&r.get(0, j), &r.get(0, pivot), a->cols*sizeof(T));
+        memcpy(&r.get(0, pivot), &buffer.get(0, 0), a->cols*sizeof(T));
       }
 
       // Normalisation of qj
-      r.m[j + j * r.lda] = sqrt(norm2.m[j]);
-      Vector<T> aj(a->m + j * a->lda, a->rows);
-      T coef = Constants<T>::pone / r.m[j + j * r.lda];
+      r.get(j, j) = sqrt(norm2.get(j, 0));
+      Vector<T> aj(&a->get(0, j), a->rows);
+      T coef = Constants<T>::pone / r.get(j, j);
       aj.scale(coef);
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
       for(int k = j + 1; k < a->cols; ++k) {
         // Scalar product of qj and bk
-        Vector<T> ak(a->m + k * a->lda, a->rows);
-        r.m[j + k * r.lda] = Vector<T>::dot(&aj, &ak);
-        coef = - r.m[j + k * r.lda];
-        ak.axpy(coef, &aj);
-        norm2.m[k] -= std::abs(r.m[j + k * r.lda]) * std::abs(r.m[j + k * r.lda]);
+        Vector<T> ak(&a->get(0, k), a->rows);
+        T dot_jk = Vector<T>::dot(&aj, &ak);
+        r.get(j, k) = dot_jk;
+        ak.axpy(- dot_jk, &aj);
+        norm2.m[k] -= std::abs(dot_jk) * std::abs(dot_jk);
       }
     }
   }
 
   // Apply perm to result
   for(int j = 0; j < result->cols; ++j) {
-    memcpy(result->m + perm[j] * result->lda, r.m + j * result->lda, result->lda*sizeof(T));
+    memcpy(&result->get(0, perm[j]), &r.get(0, j), result->lda*sizeof(T));
   }
   // Update matrix dimensions
   a->cols = rank;
