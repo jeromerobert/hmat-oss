@@ -107,7 +107,9 @@ template<typename T> void myTrmm(ScalarArray<T>* aFull,
     as a product of Householder reflectors. OR/ZU-MQR from LAPACK is NOT
     the way to apply the matrix: one has to use matrix-vector product instead.
 */
-template<typename T> int modifiedGramSchmidt(ScalarArray<T> *a, ScalarArray<T> *r, double prec );
+template<typename T> int modifiedGramSchmidt(ScalarArray<T> *a, ScalarArray<T> *r, double prec, double maxNorm );
+
+template<typename T> int blockedMGS(ScalarArray<T> *a, ScalarArray<T> *r, double prec );
 }  // end namespace hmat
 
 #endif

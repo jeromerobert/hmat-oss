@@ -423,7 +423,7 @@ template int productQ(char side, char trans, ScalarArray<D_t>* qr, D_t* tau, Sca
 template int productQ(char side, char trans, ScalarArray<C_t>* qr, C_t* tau, ScalarArray<C_t>* c);
 template int productQ(char side, char trans, ScalarArray<Z_t>* qr, Z_t* tau, ScalarArray<Z_t>* c);
 
-template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> *result, double prec ) {
+template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> *result, double prec, double maxNorm ) {
   DECLARE_CONTEXT;
   {
     size_t mm = a->rows;
@@ -462,6 +462,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
     norm2.m[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2.m[j]);
   }
+  if(maxNorm>0){relative_epsilon=maxNorm;}
   relative_epsilon *= prec * prec;
 
   // Modified Gram-Schmidt process with column pivoting
@@ -471,6 +472,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
     const double pivmax = norm2.m[pivot];
 
     // Stopping criterion
+    // std::cout << "  Stop in MGS: " << pivmax << "," << relative_epsilon << std::endl;
     if (pivmax <= relative_epsilon)
       break;
 
@@ -520,9 +522,170 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   return rank;
 }
 // Explicit instantiations
-template int modifiedGramSchmidt( ScalarArray<S_t> *a, ScalarArray<S_t> *r, double prec );
-template int modifiedGramSchmidt( ScalarArray<D_t> *a, ScalarArray<D_t> *r, double prec );
-template int modifiedGramSchmidt( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec );
-template int modifiedGramSchmidt( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, double prec );
+template int modifiedGramSchmidt( ScalarArray<S_t> *a, ScalarArray<S_t> *r, double prec, double maxNorm );
+template int modifiedGramSchmidt( ScalarArray<D_t> *a, ScalarArray<D_t> *r, double prec, double maxNorm );
+template int modifiedGramSchmidt( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec, double maxNorm );
+template int modifiedGramSchmidt( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, double prec, double maxNorm );
+
+template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, double prec ) {
+  DECLARE_CONTEXT;
+
+  // const int nb = 16;
+  const int nb = 8;
+  int mm = a->rows;
+  int nn = a->cols;
+
+  ScalarArray<T> rtmp(nn, nn);
+
+  int rank=0;
+  int nBlocks = a->cols/nb;
+  int reste = a->cols%nb;
+  if(reste > 0) nBlocks += 1;
+
+  int *permBlock = new int[nBlocks];
+  for(int p=0; p<nBlocks; p++){permBlock[p]=p;}
+
+  int *blockRanks = new int[nBlocks];
+  for(int p=0; p<nBlocks; p++){blockRanks[p]=0;}
+
+  int *blockSizes = new int[nBlocks];
+  for(int p=0; p<nBlocks; p++){blockSizes[p]=nb;}
+  if(reste>0) blockSizes[nBlocks-1] = reste;
+
+  double maxNorm = -1.0;
+  ScalarArray<T> * Ak = new ScalarArray<T>(NULL,a->rows,nb);
+
+  // block norms
+  Vector<double> blockNorms2(nBlocks);
+
+  ScalarArray<T> *aj = new ScalarArray<T>(NULL,a->rows,1);
+  double maxCol = 0.;
+  double maxBlockNorm = 0.;
+  for(int k=0; k<nBlocks; k++){
+    blockNorms2.m[k] = 0;
+    for(int p=0; p<blockSizes[k]; p++){
+      aj->m = a->m+(k*nb+p)*a->lda;
+      double norm2_aj = aj->normSqr();
+      blockNorms2.m[k] += norm2_aj;
+      if(norm2_aj > maxCol) maxCol = norm2_aj;
+    }
+    if(blockNorms2.m[k]>maxBlockNorm) maxBlockNorm = blockNorms2.m[k];
+  }
+  maxNorm = maxCol;
+  delete aj;
+
+  double relative_epsilon = maxBlockNorm * prec * prec;
+  ScalarArray<T> *Aj = new ScalarArray<T>(NULL,a->rows,nb);
+  ScalarArray<T> buffer(a->rows,nb);
+
+  rank = 0;
+  for(int k=0; k<nBlocks; k++){
+    // Find the largest pivot
+    const int pivot = blockNorms2.absoluteMaxIndex(k);
+    const double pivmax = blockNorms2.m[pivot];
+
+    if(pivmax < relative_epsilon)
+      break;
+
+    if(pivot != k){
+      std::swap(blockNorms2.m[k],blockNorms2.m[pivot]);
+      std::swap(blockSizes[k],blockSizes[pivot]);
+      std::swap(permBlock[k],permBlock[pivot]);
+    }
+    int kk = permBlock[k];
+    Ak->cols = blockSizes[k];
+    Ak->m = a->m+(kk*nb)*a->lda;
+
+    ScalarArray<T> r(nb,nb);
+    int rkk = modifiedGramSchmidt( Ak, &r, prec, maxNorm );
+    if(rkk==0){
+      blockRanks[k]=rkk;
+      continue;
+    }
+
+    for(int q=0;q<blockSizes[k];q++){
+      for(int p=0;p<rkk;p++){
+        rtmp.get(kk*nb+p,kk*nb+q) = r.get(p,q);
+      }
+    }
+    blockRanks[k]=rkk;
+    Ak->cols = rkk;
+
+    for(int j=k+1; j<nBlocks; j++){
+      int jj = permBlock[j];
+      ScalarArray<T> Rkj = ScalarArray<T>( rkk, blockSizes[j]);
+      Aj->m = a->m+(jj*nb)*a->lda;
+      Aj->cols = blockSizes[j];
+
+      // Contournement pour avoir le transconjuge
+      for(int p=0;p<Ak->lda*Ak->cols;p++){Ak->m[p] = std::conj(Ak->m[p]);}
+      Rkj.gemm('T','N',Constants<T>::pone, Ak, Aj , Constants<T>::pone);
+      for(int p=0;p<Ak->lda*Ak->cols;p++){Ak->m[p] = std::conj(Ak->m[p]);}
+
+      // Write Rkj
+      for(int q=0;q<blockSizes[j];q++){
+        for(int p=0;p<rkk;p++){
+          rtmp.get( kk*nb+p, jj*nb+q ) = Rkj.get( p, q );
+        }
+      }
+      double norm_Rkj2 = Rkj.normSqr();
+
+      // Update
+      Aj->gemm('N','N',Constants<T>::mone, Ak, &Rkj , Constants<T>::pone);
+
+      // Update Frobenius norm
+      blockNorms2.m[j] -= norm_Rkj2;
+    }
+    rank += rkk;
+  }
+
+  for(int p=0; p<nBlocks; p++){blockSizes[p]=nb;}
+  if(reste>0) blockSizes[nBlocks-1] = reste;
+
+  int jbStart = 0;
+  for(int jb = 0; jb < nBlocks; ++jb){
+    int ibStart = 0;
+    for(int ib = 0; ib < nBlocks; ++ib){
+      for(int p=0;p<blockSizes[jb];++p){
+         memcpy(&result->get(ibStart, jbStart+p), &rtmp.get(permBlock[ib]*nb,jb*nb+p), blockRanks[ib]*sizeof(T));
+      }
+      ibStart += blockRanks[ib];
+    }
+    jbStart += blockSizes[jb];
+  }
+  result->rows = rank;
+
+  ScalarArray<T> *ap = new ScalarArray<T>(mm,rank);
+  int toCol_start = 0;
+  for(int p=0; p<nBlocks; p++){
+    int fromCol_start = permBlock[p]*nb;
+    memcpy(&ap->get(0, toCol_start),  &a->get(0, fromCol_start),  a->lda*blockRanks[p]*sizeof(T));
+    toCol_start += blockRanks[p];
+  }
+
+  Aj->m = NULL;
+  Ak->m = NULL;
+  // Free memory
+  delete[] permBlock;
+  delete[] blockRanks;
+  delete[] blockSizes;
+  delete Aj;
+  delete Ak;
+
+  // a is overwritten by qa
+  delete[] a->m;
+  a->m = ap->m;
+  a->lda = mm;
+  a->rows = mm;
+  a->cols = rank;
+
+  /* end of blocked Modified Gram-Schmidt */
+  return rank;
+}
+// Explicit instantiations
+template int blockedMGS( ScalarArray<S_t> *a, ScalarArray<S_t> *r, double prec );
+template int blockedMGS( ScalarArray<D_t> *a, ScalarArray<D_t> *r, double prec );
+template int blockedMGS( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec );
+template int blockedMGS( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, double prec );
 
 }  // end namespace hmat

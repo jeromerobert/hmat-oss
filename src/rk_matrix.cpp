@@ -354,18 +354,17 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   int kA, kB, newK;
 
   int krank = rank();
-
   // Limit scope to automatically destroy ra, rb and matR
   {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
-    kA = modifiedGramSchmidt( a, &ra, epsilon );
+    kA = blockedMGS(a, &ra, epsilon);
     // On input, a0(m,A)
     // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
-    kB = modifiedGramSchmidt( b, &rb, epsilon );
+    kB = blockedMGS(b, &rb, epsilon);
     // On input, b0(p,B)
     // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
 
@@ -412,10 +411,8 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   */
   ScalarArray<T> *newA = new ScalarArray<T>(a->rows, newK);
   newA->gemm('N', 'N', Constants<T>::pone, a, ur, Constants<T>::zero);
-
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
   newB->gemm('N', 'T', Constants<T>::pone, b, vhr, Constants<T>::zero);
-
   delete ur;
   delete vhr;
 
