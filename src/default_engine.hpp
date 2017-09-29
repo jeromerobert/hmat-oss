@@ -49,6 +49,7 @@ public:
   void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
   void gemm(char transA, char transB, T alpha, const DefaultEngine<T> & a, const DefaultEngine<T>& b, T beta);
   void addIdentity(T alpha);
+  void scale(T alpha);
   void solve(ScalarArray<T>& b, hmat_factorization_t) const;
   void solve(DefaultEngine<T>& b, hmat_factorization_t) const;
   void solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose=false) const;
