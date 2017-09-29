@@ -256,7 +256,7 @@ void HMatInterface<T, E>::walk(TreeProcedure<HMatrix<T> > *proc){
 }
 
 template<typename T, template <typename> class E>
-void HMatInterface<T, E>::apply_on_leaf(const LeafProcedure<HMatrix<T>>& proc){
+void HMatInterface<T, E>::apply_on_leaf(const LeafProcedure<HMatrix<T> >& proc){
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   engine_.applyOnLeaf(proc);

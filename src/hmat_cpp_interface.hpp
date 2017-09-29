@@ -333,7 +333,7 @@ public:
 
   /** Recursively apply a procedure to all leaves of an HMatrix.
    */
-  void apply_on_leaf(const LeafProcedure<HMatrix<T>>& proc);
+  void apply_on_leaf(const LeafProcedure<HMatrix<T> >& proc);
 
   typename E<T>::Settings & engineSettings() { return engine_.settings; }
 
