@@ -206,16 +206,17 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     delete rk;
   }
 
-  static long int gs_block_size = -1L;
-  if (gs_block_size < 0L) {
-    gs_block_size = 0L;
+  static int gs_block_size = -1;
+  if (gs_block_size < 0) {
+    gs_block_size = 0;
     const char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
     if (useCUSTOM != NULL) {
-      gs_block_size = atol(useCUSTOM);
+      gs_block_size = std::min(atoi(useCUSTOM),32);
     }
   }
-  if (rank() * std::max(rows->size(), cols->size()) < gs_block_size) {
-    mGSTruncate(epsilon);
+
+  if (gs_block_size>0) {
+    mGSTruncate(epsilon, gs_block_size);
     return;
   }
   /* To recompress an Rk-matrix to Rk-matrix, we need :
@@ -333,7 +334,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   b = newB;
 }
 
-template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
+template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, const int nb) {
   DECLARE_CONTEXT;
 
   if (rank() == 0) {
@@ -351,13 +352,13 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
-    kA = blockedMGS(a, &ra, epsilon);
+    kA = blockedMGS(a, &ra, epsilon, nb);
     // On input, a0(m,A)
     // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
-    kB = blockedMGS(b, &rb, epsilon);
+    kB = blockedMGS(b, &rb, epsilon, nb);
     // On input, b0(p,B)
     // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
 
