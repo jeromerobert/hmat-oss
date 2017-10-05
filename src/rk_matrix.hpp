@@ -145,7 +145,7 @@ public:
 
       @warning The previous rk->a and rk->b are no longer valid after this function.
    */
-  void mGSTruncate(double epsilon);
+  void mGSTruncate(double epsilon, const int nb);
   /** Add alea to the RkMatrix.
 
    */
