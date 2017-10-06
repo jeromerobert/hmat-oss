@@ -748,7 +748,11 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
             } else {
                 if(full() == NULL)
                     full(new FullMatrix<T>(rows(), cols()));
-                if(x->isFullMatrix()) {
+                if(!x->isLeaf()) {
+                    FullMatrix<T> xFull(x->rows(), x->cols());
+                    x->evalPart(&xFull, x->rows(), x->cols());
+                    full()->axpy(alpha, &xFull);
+                } else if(x->isFullMatrix()) {
                     full()->axpy(alpha, x->full());
                 } else if(x->isRkMatrix()) {
                     FullMatrix<T> * f = x->rk()->eval();
@@ -1666,13 +1670,11 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, Mai
       assert(this->isLeaf());
       // Evaluate B, solve by column, and restore in the matrix
       // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
-
-      b->evalPart(bFull, b->rows(), b->cols());
-      this->solveLowerTriangularLeft(bFull, unitriangular);
+      FullMatrix<T> bFull(b->rows(), b->cols());
+      b->evalPart(&bFull, b->rows(), b->cols());
+      this->solveLowerTriangularLeft(&bFull, unitriangular);
       b->clear();
-      b->axpy(Constants<T>::pone, bFull);
-      delete bFull;
+      b->axpy(Constants<T>::pone, &bFull);
     }
   }
 }
