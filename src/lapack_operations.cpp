@@ -458,7 +458,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   rank = 0;
   relative_epsilon = 0.0;
   for(int j=0; j < a->cols; ++j) {
-    const Vector<T> aj(a->m + j * a->lda, a->rows);
+    const Vector<T> aj(&a->get(0, j), a->rows);
     norm2.m[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2.m[j]);
   }
@@ -529,26 +529,28 @@ template int modifiedGramSchmidt( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, doub
 template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, double prec, const int nb ) {
   DECLARE_CONTEXT;
 
-  int mm = a->rows;
-  int nn = a->cols;
+  const int mm = a->rows;
+  const int nn = a->cols;
 
   ScalarArray<T> rtmp(nn, nn);
 
   int rank=0;
-  int nBlocks = a->cols/nb;
-  int remain = a->cols%nb;
-  if(remain > 0) nBlocks += 1;
+  int nBlocks = a->cols / nb;
+  const int remain = a->cols % nb;
+  if(remain > 0) {
+    ++nBlocks;
+  }
 
   int *permBlock = new int[nBlocks];
-  for(int p=0; p<nBlocks; p++){permBlock[p]=p;}
-
   int *blockRanks = new int[nBlocks];
-  for(int p=0; p<nBlocks; p++){blockRanks[p]=0;}
-
   int *blockSizes = new int[nBlocks];
-  for(int p=0; p<nBlocks; p++){blockSizes[p]=nb;}
-  if(remain>0) blockSizes[nBlocks-1] = remain;
-
+  for(int p = 0; p < nBlocks; ++p) {
+    permBlock[p] = p;
+    blockSizes[p] = nb;
+  }
+  if(remain > 0) {
+    blockSizes[nBlocks-1] = remain;
+  }
 
   double maxNorm = -1.0;
 
@@ -556,23 +558,27 @@ template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, 
   // Initialization: computing column norms and panel norms
   double maxCol = 0.;
   double maxBlockNorm = 0.;
-  for(int k=0; k<nBlocks; k++){
+  for(int k = 0; k < nBlocks; ++k) {
     blockNorms2.m[k] = 0;
-    for(int p=0; p<blockSizes[k]; p++){
-      ScalarArray<T> ak(a->m+(k*nb+p)*a->lda,a->rows,1);
-      double norm2_ak = ak.normSqr();
+    for(int p = 0; p < blockSizes[k]; ++p) {
+      ScalarArray<T> ak(&a->get(0, k*nb+p), a->rows, 1);
+      const double norm2_ak = ak.normSqr();
       blockNorms2.m[k] += norm2_ak;
-      if(norm2_ak > maxCol) maxCol = norm2_ak;
+      if(norm2_ak > maxCol) {
+        maxCol = norm2_ak;
+      }
     }
-    if(blockNorms2.m[k]>maxBlockNorm) maxBlockNorm = blockNorms2.m[k];
+    if(blockNorms2.m[k] > maxBlockNorm) {
+      maxBlockNorm = blockNorms2.m[k];
+    }
   }
   maxNorm = maxCol;
 
-  double relative_epsilon = maxBlockNorm * prec * prec;
+  const double relative_epsilon = maxBlockNorm * prec * prec;
   ScalarArray<T> buffer(a->rows,nb);
 
   rank = 0;
-  for(int k=0; k<nBlocks; k++){
+  for(int k = 0; k < nBlocks; ++k) {
     // Find the largest pivot
     const int pivot = blockNorms2.absoluteMaxIndex(k);
     const double pivmax = blockNorms2.m[pivot];
@@ -580,45 +586,45 @@ template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, 
     if(pivmax < relative_epsilon)
       break;
 
-    if(pivot != k){
-      std::swap(blockNorms2.m[k],blockNorms2.m[pivot]);
-      std::swap(blockSizes[k],blockSizes[pivot]);
-      std::swap(permBlock[k],permBlock[pivot]);
+    if(pivot != k) {
+      std::swap(blockNorms2.m[k], blockNorms2.m[pivot]);
+      std::swap(blockSizes[k], blockSizes[pivot]);
+      std::swap(permBlock[k], permBlock[pivot]);
     }
 
-    int kk = permBlock[k];
-    ScalarArray<T> ak(a->m+(kk*nb)*a->lda,a->rows,blockSizes[k]);
-    ScalarArray<T> r(nb,nb);
+    const int kk = permBlock[k];
+    ScalarArray<T> ak(&a->get(0, kk*nb), a->rows, blockSizes[k]);
+    ScalarArray<T> r(nb, nb);
 
-    int rkk = modifiedGramSchmidt( &ak, &r, prec, maxNorm );
-    if(rkk==0){
-      blockRanks[k]=rkk;
+    const int rkk = modifiedGramSchmidt( &ak, &r, prec, maxNorm );
+    if(rkk == 0) {
+      blockRanks[k] = rkk;
       continue;
     }
 
-    for(int q=0;q<blockSizes[k];q++){
-      for(int p=0;p<rkk;p++){
-        rtmp.get(kk*nb+p,kk*nb+q) = r.get(p,q);
+    for(int q = 0; q < blockSizes[k]; ++q) {
+      for(int p = 0; p < rkk; ++p) {
+        rtmp.get(kk*nb+p, kk*nb+q) = r.get(p, q);
       }
     }
-    blockRanks[k]=rkk;
+    blockRanks[k] = rkk;
     ak.cols = rkk;
 
-    for(int j=k+1; j<nBlocks; j++){
-      int jj = permBlock[j];
-      ScalarArray<T> Rkj(rkk,blockSizes[j]);
-      ScalarArray<T> aj(a->m+(jj*nb)*a->lda,a->rows,blockSizes[j]);
+    for(int j = k+1; j < nBlocks; ++j) {
+      const int jj = permBlock[j];
+      ScalarArray<T> Rkj(rkk, blockSizes[j]);
+      ScalarArray<T> aj(&a->get(0, jj*nb), a->rows, blockSizes[j]);
 
       // Rkj = ak^* . aj
-      Rkj.gemm('C','N',Constants<T>::pone, &ak, &aj , Constants<T>::pone);
+      Rkj.gemm('C','N',Constants<T>::pone, &ak, &aj, Constants<T>::pone);
 
       // Write Rkj in buffer rtmp
-      for(int q=0;q<blockSizes[j];q++){
-        for(int p=0;p<rkk;p++){
-          rtmp.get( kk*nb+p, jj*nb+q ) = Rkj.get( p, q );
+      for(int q = 0; q < blockSizes[j]; ++q) {
+        for(int p = 0; p < rkk; ++p) {
+          rtmp.get(kk*nb+p, jj*nb+q) = Rkj.get(p, q);
         }
       }
-      double norm_Rkj2 = Rkj.normSqr();
+      const double norm_Rkj2 = Rkj.normSqr();
 
       // Update column aj
       aj.gemm('N','N',Constants<T>::mone, &ak, &Rkj , Constants<T>::pone);
@@ -635,14 +641,18 @@ template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, 
      Matrix a is overwritten with the orthonormal matrix composed of the panels computed.
      Panels have been orthonormalised in place so we do not copy the unused columns.
   */
-  for(int p=0; p<nBlocks; p++){blockSizes[p]=nb;}
-  if(remain>0) blockSizes[nBlocks-1] = remain;
+  for(int p = 0; p < nBlocks; ++p) {
+    blockSizes[p]=nb;
+  }
+  if(remain > 0) {
+    blockSizes[nBlocks-1] = remain;
+  }
 
   int jbStart = 0;
-  for(int jb = 0; jb < nBlocks; ++jb){
+  for(int jb = 0; jb < nBlocks; ++jb) {
     int ibStart = 0;
-    for(int ib = 0; ib < nBlocks; ++ib){
-      for(int p=0;p<blockSizes[jb];++p){
+    for(int ib = 0; ib < nBlocks; ++ib) {
+      for(int p = 0; p < blockSizes[jb]; ++p) {
          memcpy(&result->get(ibStart, jbStart+p), &rtmp.get(permBlock[ib]*nb,jb*nb+p), blockRanks[ib]*sizeof(T));
       }
       ibStart += blockRanks[ib];
@@ -653,9 +663,9 @@ template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, 
 
   T *newMat = new T[mm*rank];
   int toCol_start = 0;
-  for(int p=0; p<nBlocks; p++){
+  for(int p = 0; p < nBlocks; ++p) {
     int fromCol_start = permBlock[p]*nb;
-    memcpy(&newMat[toCol_start*mm],  &a->get(0, fromCol_start),  a->lda*blockRanks[p]*sizeof(T));
+    memcpy(&newMat[toCol_start*mm], &a->get(0, fromCol_start), a->lda*blockRanks[p]*sizeof(T));
     toCol_start += blockRanks[p];
   }
 

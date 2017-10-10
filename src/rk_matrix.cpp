@@ -218,11 +218,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     gs_block_size = 0;
     const char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
     if (useCUSTOM != NULL) {
-      gs_block_size = std::min(atoi(useCUSTOM),32);
+      gs_block_size = std::min(atoi(useCUSTOM), 32);
     }
   }
 
-  if (gs_block_size>0) {
+  if (gs_block_size > 0) {
     mGSTruncate(epsilon, gs_block_size);
     return;
   }
