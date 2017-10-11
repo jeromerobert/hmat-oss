@@ -143,7 +143,7 @@ template<typename T> int modifiedGramSchmidt(ScalarArray<T> *a, ScalarArray<T> *
     \return rank
 */
 
-template<typename T> int blockedMGS(ScalarArray<T> *a, ScalarArray<T> *r, double prec, const int nb );
+template<typename T> int tiledModifiedGramSchmidt(ScalarArray<T> *a, ScalarArray<T> *r, double prec, int tileSize );
 }  // end namespace hmat
 
 #endif

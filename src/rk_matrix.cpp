@@ -218,7 +218,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     gs_block_size = 0;
     const char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
     if (useCUSTOM != NULL) {
-      gs_block_size = std::min(atoi(useCUSTOM), 32);
+      gs_block_size = atoi(useCUSTOM);
     }
   }
 
@@ -359,13 +359,13 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, const int nb)
   {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
-    kA = blockedMGS(a, &ra, epsilon, nb);
+    kA = tiledModifiedGramSchmidt(a, &ra, epsilon, nb);
     // On input, a0(m,A)
     // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
-    kB = blockedMGS(b, &rb, epsilon, nb);
+    kB = tiledModifiedGramSchmidt(b, &rb, epsilon, nb);
     // On input, b0(p,B)
     // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
 

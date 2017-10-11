@@ -457,12 +457,14 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   Vector<double> norm2(a->cols);
   rank = 0;
   relative_epsilon = 0.0;
-  for(int j=0; j < a->cols; ++j) {
+  for(int j = 0; j < a->cols; ++j) {
     const Vector<T> aj(&a->get(0, j), a->rows);
     norm2.m[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2.m[j]);
   }
-  if(maxNorm>0){relative_epsilon=maxNorm;}
+  if(maxNorm > 0) {
+    relative_epsilon = maxNorm;
+  }
   relative_epsilon *= prec * prec;
 
   // Modified Gram-Schmidt process with column pivoting
@@ -510,7 +512,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
 
   // Apply perm to result
   for(int j = 0; j < result->cols; ++j) {
-    memcpy(&result->get(0, perm[j]), &r.get(0, j), result->lda*sizeof(T));
+    memcpy(&result->get(0, perm[j]), &r.get(0, j), result->rows*sizeof(T));
   }
   // Update matrix dimensions
   a->cols = rank;
@@ -526,7 +528,7 @@ template int modifiedGramSchmidt( ScalarArray<D_t> *a, ScalarArray<D_t> *r, doub
 template int modifiedGramSchmidt( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec, double maxNorm );
 template int modifiedGramSchmidt( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, double prec, double maxNorm );
 
-template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, double prec, const int nb ) {
+template<typename T> int tiledModifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> *result, double prec, int tileSize ) {
   DECLARE_CONTEXT;
 
   const int mm = a->rows;
@@ -534,95 +536,92 @@ template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, 
 
   ScalarArray<T> rtmp(nn, nn);
 
-  int rank=0;
-  int nBlocks = a->cols / nb;
-  const int remain = a->cols % nb;
-  if(remain > 0) {
-    ++nBlocks;
+  int rank = 0;
+  const int remain = a->cols % tileSize;
+  const int nTiles = (remain > 0 ? 1 : 0) + a->cols / tileSize;
+  // If there is a single tile, adjust tileSize
+  if (nTiles == 1 && remain > 0) {
+    tileSize = remain;
   }
 
-  int *permBlock = new int[nBlocks];
-  int *blockRanks = new int[nBlocks];
-  int *blockSizes = new int[nBlocks];
-  for(int p = 0; p < nBlocks; ++p) {
-    permBlock[p] = p;
-    blockSizes[p] = nb;
+  int tileIndex[nTiles];
+  int tileRanks[nTiles];
+  int tileSizes[nTiles];
+  for(int p = 0; p < nTiles; ++p) {
+    tileIndex[p] = p;
+    tileRanks[p] = 0;
+    tileSizes[p] = tileSize;
   }
   if(remain > 0) {
-    blockSizes[nBlocks-1] = remain;
+    tileSizes[nTiles-1] = remain;
   }
 
   double maxNorm = -1.0;
 
-  Vector<double> blockNorms2(nBlocks);
-  // Initialization: computing column norms and panel norms
+  Vector<double> tileNorms2(nTiles);
+  // Initialization: computing column norms and tile norms
   double maxCol = 0.;
-  double maxBlockNorm = 0.;
-  for(int k = 0; k < nBlocks; ++k) {
-    blockNorms2.m[k] = 0;
-    for(int p = 0; p < blockSizes[k]; ++p) {
-      ScalarArray<T> ak(&a->get(0, k*nb+p), a->rows, 1);
+  double maxTileNorm = 0.;
+  for(int k = 0; k < nTiles; ++k) {
+    for(int p = 0; p < tileSizes[k]; ++p) {
+      ScalarArray<T> ak(&a->get(0, k*tileSize+p), a->rows, 1);
       const double norm2_ak = ak.normSqr();
-      blockNorms2.m[k] += norm2_ak;
+      tileNorms2.m[k] += norm2_ak;
       if(norm2_ak > maxCol) {
         maxCol = norm2_ak;
       }
     }
-    if(blockNorms2.m[k] > maxBlockNorm) {
-      maxBlockNorm = blockNorms2.m[k];
+    if(tileNorms2.m[k] > maxTileNorm) {
+      maxTileNorm = tileNorms2.m[k];
     }
   }
   maxNorm = maxCol;
 
-  const double relative_epsilon = maxBlockNorm * prec * prec;
-  ScalarArray<T> buffer(a->rows,nb);
+  const double relative_epsilon = maxTileNorm * prec * prec;
+  ScalarArray<T> buffer(a->rows, tileSize);
 
   rank = 0;
-  for(int k = 0; k < nBlocks; ++k) {
-    // Find the largest pivot
-    const int pivot = blockNorms2.absoluteMaxIndex(k);
-    const double pivmax = blockNorms2.m[pivot];
+  for(int k = 0; k < nTiles; ++k) {
+    // Find the tile with the largest pivot
+    const int pivot = tileNorms2.absoluteMaxIndex(k);
 
-    if(pivmax < relative_epsilon)
+    if(tileNorms2.m[pivot] < relative_epsilon)
       break;
 
     if(pivot != k) {
-      std::swap(blockNorms2.m[k], blockNorms2.m[pivot]);
-      std::swap(blockSizes[k], blockSizes[pivot]);
-      std::swap(permBlock[k], permBlock[pivot]);
+      // Swap tiles k and pivot
+      std::swap(tileNorms2.m[k], tileNorms2.m[pivot]);
+      std::swap(tileSizes[k], tileSizes[pivot]);
+      std::swap(tileIndex[k], tileIndex[pivot]);
     }
 
-    const int kk = permBlock[k];
-    ScalarArray<T> ak(&a->get(0, kk*nb), a->rows, blockSizes[k]);
-    ScalarArray<T> r(nb, nb);
+    // Original tile index
+    const int kk = tileIndex[k];
+    ScalarArray<T> ak(&a->get(0, kk*tileSize), a->rows, tileSizes[k]);
+    ScalarArray<T> r(tileSizes[k], tileSizes[k]);
 
     const int rkk = modifiedGramSchmidt( &ak, &r, prec, maxNorm );
+    tileRanks[k] = rkk;
     if(rkk == 0) {
-      blockRanks[k] = rkk;
       continue;
     }
 
-    for(int q = 0; q < blockSizes[k]; ++q) {
-      for(int p = 0; p < rkk; ++p) {
-        rtmp.get(kk*nb+p, kk*nb+q) = r.get(p, q);
-      }
+    for(int q = 0; q < tileSizes[k]; ++q) {
+      memcpy(&rtmp.get(kk*tileSize, kk*tileSize+q), &r.get(0, q), rkk*sizeof(T));
     }
-    blockRanks[k] = rkk;
     ak.cols = rkk;
 
-    for(int j = k+1; j < nBlocks; ++j) {
-      const int jj = permBlock[j];
-      ScalarArray<T> Rkj(rkk, blockSizes[j]);
-      ScalarArray<T> aj(&a->get(0, jj*nb), a->rows, blockSizes[j]);
+    for(int j = k+1; j < nTiles; ++j) {
+      const int jj = tileIndex[j];
+      ScalarArray<T> Rkj(rkk, tileSizes[j]);
+      ScalarArray<T> aj(&a->get(0, jj*tileSize), a->rows, tileSizes[j]);
 
       // Rkj = ak^* . aj
       Rkj.gemm('C','N',Constants<T>::pone, &ak, &aj, Constants<T>::pone);
 
       // Write Rkj in buffer rtmp
-      for(int q = 0; q < blockSizes[j]; ++q) {
-        for(int p = 0; p < rkk; ++p) {
-          rtmp.get(kk*nb+p, jj*nb+q) = Rkj.get(p, q);
-        }
+      for(int q = 0; q < tileSizes[j]; ++q) {
+        memcpy(&rtmp.get(kk*tileSize, jj*tileSize+q), &Rkj.get(0, q), rkk*sizeof(T));
       }
       const double norm_Rkj2 = Rkj.normSqr();
 
@@ -630,49 +629,52 @@ template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, 
       aj.gemm('N','N',Constants<T>::mone, &ak, &Rkj , Constants<T>::pone);
 
       // Update Frobenius norm
-      blockNorms2.m[j] -= norm_Rkj2;
+      tileNorms2.m[j] -= norm_Rkj2;
     }
     rank += rkk;
   }
 
-  /* No 'physical' copies during the orthonornamisation so we do it now.
-     The matrix result is overwritten with the adequate blocks of rtmp according
+  /* No 'physical' copies during the orthonormalisation so we do it now.
+     The matrix result is overwritten with the adequate tiles of rtmp according
      to the permutation obtained.
-     Matrix a is overwritten with the orthonormal matrix composed of the panels computed.
-     Panels have been orthonormalised in place so we do not copy the unused columns.
+     Matrix a is overwritten with the orthonormal matrix composed of the tiles computed.
+     Tiles have been orthonormalised in place so we do not copy the unused columns.
   */
-  for(int p = 0; p < nBlocks; ++p) {
-    blockSizes[p]=nb;
+  for(int p = 0; p < nTiles; ++p) {
+    tileSizes[p] = tileSize;
   }
   if(remain > 0) {
-    blockSizes[nBlocks-1] = remain;
+    tileSizes[nTiles-1] = remain;
   }
 
   int jbStart = 0;
-  for(int jb = 0; jb < nBlocks; ++jb) {
+  for(int jb = 0; jb < nTiles; ++jb) {
     int ibStart = 0;
-    for(int ib = 0; ib < nBlocks; ++ib) {
-      for(int p = 0; p < blockSizes[jb]; ++p) {
-         memcpy(&result->get(ibStart, jbStart+p), &rtmp.get(permBlock[ib]*nb,jb*nb+p), blockRanks[ib]*sizeof(T));
+    for(int ib = 0; ib < nTiles; ++ib) {
+      for(int p = 0; p < tileSizes[jb]; ++p) {
+         memcpy(&result->get(ibStart, jbStart+p), &rtmp.get(tileIndex[ib]*tileSize, jb*tileSize+p), tileRanks[ib]*sizeof(T));
       }
-      ibStart += blockRanks[ib];
+      ibStart += tileRanks[ib];
     }
-    jbStart += blockSizes[jb];
+    jbStart += tileSizes[jb];
   }
   result->rows = rank;
 
   T *newMat = new T[mm*rank];
-  int toCol_start = 0;
-  for(int p = 0; p < nBlocks; ++p) {
-    int fromCol_start = permBlock[p]*nb;
-    memcpy(&newMat[toCol_start*mm], &a->get(0, fromCol_start), a->lda*blockRanks[p]*sizeof(T));
-    toCol_start += blockRanks[p];
+  if (a->lda == a->rows) {
+    int toCol = 0;
+    for(int p = 0; p < nTiles; ++p) {
+      memcpy(&newMat[toCol*mm], &a->get(0, tileIndex[p]*tileSize), a->rows*tileRanks[p]*sizeof(T));
+      toCol += tileRanks[p];
+    }
+  } else {
+    int toCol = 0;
+    for(int p = 0; p < nTiles; ++p) {
+      for (int fromCol = tileIndex[p]*tileSize; fromCol < tileIndex[p]*tileSize+tileRanks[p]; ++fromCol, ++toCol) {
+        memcpy(&newMat[toCol*mm], &a->get(0, fromCol), a->rows*sizeof(T));
+      }
+    }
   }
-
-  // Free memory
-  delete[] permBlock;
-  delete[] blockRanks;
-  delete[] blockSizes;
 
   // a is overwritten by qa
   delete[] a->m;
@@ -685,9 +687,9 @@ template<typename T> int blockedMGS( ScalarArray<T> *a, ScalarArray<T> *result, 
   return rank;
 }
 // Explicit instantiations
-template int blockedMGS( ScalarArray<S_t> *a, ScalarArray<S_t> *r, double prec, const int nb );
-template int blockedMGS( ScalarArray<D_t> *a, ScalarArray<D_t> *r, double prec, const int nb );
-template int blockedMGS( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec, const int nb );
-template int blockedMGS( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, double prec, const int nb );
+template int tiledModifiedGramSchmidt( ScalarArray<S_t> *a, ScalarArray<S_t> *r, double prec, int tileSize );
+template int tiledModifiedGramSchmidt( ScalarArray<D_t> *a, ScalarArray<D_t> *r, double prec, int tileSize );
+template int tiledModifiedGramSchmidt( ScalarArray<C_t> *a, ScalarArray<C_t> *r, double prec, int tileSize );
+template int tiledModifiedGramSchmidt( ScalarArray<Z_t> *a, ScalarArray<Z_t> *r, double prec, int tileSize );
 
 }  // end namespace hmat
