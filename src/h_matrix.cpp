@@ -486,8 +486,11 @@ template<typename T> double HMatrix<T>::normSqr() const {
     }
   } else if(!this->isLeaf()){
     for (int i = 0; i < this->nrChild(); i++) {
-      if (this->getChild(i)) {
-        result += this->getChild(i)->normSqr();
+      const HMatrix<T> *res=this->getChild(i);
+      if (res) {
+        // When computing the norm of symmetric matrices, extra-diagonal blocks count twice
+        double coeff = (isUpper || isLower) && ! (*res->rows() == *res->cols()) ? 2. : 1. ;
+        result += coeff * res->normSqr();
       }
     }
   }
