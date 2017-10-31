@@ -133,6 +133,7 @@ hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int d
     ctx.number_of_points = size;
     ctx.number_of_dof = ctx.number_of_points;
     ctx.span_offsets = NULL;
+    ctx.spans = NULL;
     ctx.builder = ctb;
     return hmat_create_cluster_tree_generic(&ctx);
 }
