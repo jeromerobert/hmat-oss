@@ -175,40 +175,26 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
 
 AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
   : dimension_(data.coordinates()->dimension())
-  , bbMin(new double[dimension_])
-  , bbMax(new double[dimension_])
+  , bb_(new double[2 * dimension_])
 {
   if (data.size() == 0) return;
   int* myIndices = data.indices() + data.offset();
   const double* coord = &data.coordinates()->get(0, 0);
-  memcpy(&bbMin[0], &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
-  memcpy(&bbMax[0], &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
+  memcpy(bb_, &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
+  memcpy(bb_ + dimension_, &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
 
   for (int i = 0; i < data.size(); ++i) {
     int index = myIndices[i];
     const double* p = &coord[dimension_*index];
-    for (int dim = 0; dim < dimension_; ++dim) {
-      bbMin[dim] = std::min(bbMin[dim], p[dim]);
-      bbMax[dim] = std::max(bbMax[dim], p[dim]);
+    for (unsigned dim = 0; dim < dimension_; ++dim) {
+      bb_[dim] = std::min(bbMin()[dim], p[dim]);
+      bb_[dim + dimension_] = std::max(bbMax()[dim], p[dim]);
     }
   }
 }
 
-AxisAlignedBoundingBox::AxisAlignedBoundingBox(int dim, const double *bboxMin, const double *bboxMax)
-  : dimension_(dim)
-  , bbMin(new double[dimension_])
-  , bbMax(new double[dimension_])
-{
-  memcpy(&bbMin[0], bboxMin, sizeof(double) * dimension_);
-  memcpy(&bbMax[0], bboxMax, sizeof(double) * dimension_);
-}
-
-AxisAlignedBoundingBox::~AxisAlignedBoundingBox()
-{
-  delete [] bbMin;
-  bbMin = NULL;
-  delete [] bbMax;
-  bbMax = NULL;
+AxisAlignedBoundingBox::~AxisAlignedBoundingBox() {
+    delete[] bb_;
 }
 
 double
@@ -217,7 +203,7 @@ AxisAlignedBoundingBox::diameter() const
   double result = 0.0;
   for(int i = 0; i < dimension_; ++i)
   {
-    double delta = bbMin[i] - bbMax[i];
+    double delta = bbMin()[i] - bbMax()[i];
     result += delta * delta;
   }
 
@@ -232,9 +218,9 @@ AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) const
 
   for(int i = 0; i < dimension_; ++i)
   {
-    difference = std::max(0., bbMin[i] - other.bbMax[i]);
+    difference = std::max(0., bbMin()[i] - other.bbMax()[i]);
     result += difference * difference;
-    difference = std::max(0., other.bbMin[i] - bbMax[i]);
+    difference = std::max(0., other.bbMin()[i] - bbMax()[i]);
     result += difference * difference;
   }
 

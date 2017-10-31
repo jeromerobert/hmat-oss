@@ -42,24 +42,24 @@ void JSONDumper::dumpSubTree(int _depth) {
       << prefix << " \"depth\": " << _depth << "," << endl
       << prefix << " \"rows\": "
       << "{\"offset\": " << rows_->offset() << ", \"n\": " << rows_->size() << ", "
-      << "\"boundingBox\": [[" << rows_bbox.bbMin[0];
+      << "\"boundingBox\": [[" << rows_bbox.bbMin()[0];
     for (int dim = 1; dim < rows_dimension; ++dim) {
-        out_ << ", " << rows_bbox.bbMin[dim];
+        out_ << ", " << rows_bbox.bbMin()[dim];
     }
-    out_ << "], [" << rows_bbox.bbMax[0];
+    out_ << "], [" << rows_bbox.bbMax()[0];
     for (int dim = 1; dim < rows_dimension; ++dim) {
-        out_ << ", " << rows_bbox.bbMax[dim];
+        out_ << ", " << rows_bbox.bbMax()[dim];
     }
     out_ << "]]}," << endl
       << prefix << " \"cols\": "
       << "{\"offset\": " << cols_->offset() << ", \"n\": " << cols_->size() << ", "
-      << "\"boundingBox\": [[" << cols_bbox.bbMin[0];
+      << "\"boundingBox\": [[" << cols_bbox.bbMin()[0];
     for (int dim = 1; dim < cols_dimension; ++dim) {
-        out_ << ", " << cols_bbox.bbMin[dim];
+        out_ << ", " << cols_bbox.bbMin()[dim];
     }
-    out_ << "], [" << cols_bbox.bbMax[0];
+    out_ << "], [" << cols_bbox.bbMax()[0];
     for (int dim = 1; dim < cols_dimension; ++dim) {
-        out_ << ", " << cols_bbox.bbMax[dim];
+        out_ << ", " << cols_bbox.bbMax()[dim];
     }
     out_ << "]]}";
     const std::string extra_info = nodeInfo_.str();

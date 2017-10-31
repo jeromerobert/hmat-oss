@@ -184,17 +184,15 @@ public:
 
 class AxisAlignedBoundingBox
 {
+    const unsigned dimension_;
+    double * bb_;
 public:
-  explicit AxisAlignedBoundingBox(const ClusterData& node);
-  AxisAlignedBoundingBox(int dim, const double *bboxMin, const double *bboxMax);
-  ~AxisAlignedBoundingBox();
-
-  double diameter() const;
-  double distanceTo(const AxisAlignedBoundingBox& other) const;
-private:
-  const int dimension_;
-public:
-  double *bbMin, *bbMax;
+    explicit AxisAlignedBoundingBox(const ClusterData& node);
+    ~AxisAlignedBoundingBox();
+    double diameter() const;
+    double distanceTo(const AxisAlignedBoundingBox& other) const;
+    const double * bbMin() const { return bb_; }
+    const double * bbMax() const { return bb_ + dimension_; }
 };
 
 }  // end namespace hmat

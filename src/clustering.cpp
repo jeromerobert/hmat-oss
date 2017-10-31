@@ -88,7 +88,7 @@ const
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
   const int dimension = node.data.coordinates()->dimension();
   for (int i = 0; i < dimension; i++) {
-    double size = (bbox->bbMax[i] - bbox->bbMin[i]);
+    double size = (bbox->bbMax()[i] - bbox->bbMin()[i]);
     if (size > maxSize) {
       maxSize = size;
       maxDim = i;
@@ -105,7 +105,7 @@ const
   double result = 1.;
   const int dimension = node.data.coordinates()->dimension();
   for (int dim = 0; dim < dimension; dim++) {
-    result *= (bbox->bbMax[dim] - bbox->bbMin[dim]);
+    result *= (bbox->bbMax()[dim] - bbox->bbMin()[dim]);
   }
   return result;
 }
@@ -172,7 +172,8 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   // Loop on 'divider_' = the number of children created
   for (int i=1 ; i<divider_ ; i++) {
     int middleIndex = previousIndex;
-    double middlePosition = bbox->bbMin[dim] + (i / (double)divider_) * (bbox->bbMax[dim] - bbox->bbMin[dim]);
+    double middlePosition = bbox->bbMin()[dim] + (i / (double)divider_) *
+      (bbox->bbMax()[dim] - bbox->bbMin()[dim]);
     int* myIndices = current.data.indices() + current.data.offset();
     const double* coord = &current.data.coordinates()->get(0,0);
     while (middleIndex < current.data.size() && coord[myIndices[middleIndex]*spatialDimension_+dim] < middlePosition) {
