@@ -105,18 +105,9 @@ private:
 
 DofCoordinates* createCoordinates(double* coord, int dim, int size);
 
-/** Create a ClusterTree.
-
-    The exact type of the returned ClusterTree depends on the global HMatrix
-    library settings (\a HMatSettings::clustering).  Passing the returned
-    ClusterTree pointer to the constructor of \a HMatInterface transfers its
-    ownership to this instance. It is then automatically freed at the destrution
-    of its owner.
-
-    @note This is the only proper way to dispose of a ClusterTree instance.
-
-    @param dls Array of DofCoordinate, of length n
-    @return a ClusterTree instance.
+/**
+ * @deprecated use one of hmat_create_cluster_tree, hmat_create_cluster_tree_from_builder,
+ * hmat_create_cluster_tree_generic
  */
 ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgorithm& algo = MedianBisectionAlgorithm());
 

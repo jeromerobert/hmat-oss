@@ -28,6 +28,7 @@
 #define _COORDINATES_HPP
 
 #include <cmath>
+#include <cstddef>
 
 namespace hmat {
 
@@ -67,7 +68,9 @@ public:
       \param size   number of points
       \param ownsMemory if true, coordinates are copied
    */
-  DofCoordinates(double* coord, int dim, int size, bool ownsMemory = false);
+  //TODO: why do we always copy (aka ownsMemory is always true)
+  DofCoordinates(double* coord, unsigned dim, unsigned size, bool ownsMemory = false,
+                 unsigned number_of_dof=0, unsigned * span_offsets = NULL, unsigned * spans = NULL);
 
   /*! \brief Copy constructor.
 
@@ -80,33 +83,69 @@ public:
   ~DofCoordinates();
 
   /*! \brief Get number of points.
+   * \deprecated Legacy API which does not support spans
    */
-  inline int size() const { return size_; }
+  int size() const;
 
   /*! \brief Get spatial dimension.
    */
   inline int dimension() const { return dimension_; }
 
   /*! \brief Accessor to array element.
+   * \deprecated Legacy API which does not support spans
    */
-  inline double& get(int i, int j) { return v_[j * dimension_ + i]; }
+  double& get(int i, int j);
 
   /*! \brief Accessor to array element.
+   * \deprecated Legacy API which does not support spans
    */
-  inline const double& get(int i, int j) const { return v_[j * dimension_ + i]; }
+  const double& get(int i, int j) const;
+
+  unsigned numberOfPoints() const { return size_; }
+  unsigned numberOfDof() const {
+      return spanOffsets_ == NULL ? size_ : numberOfDof_;
+  }
+
+  unsigned spanSize(unsigned dof) const {
+      if(spanOffsets_ == NULL)
+          return 1;
+      else
+          return dof == 0 ? spanOffsets_[0] :
+              spanOffsets_[dof] - spanOffsets_[dof - 1];
+  }
+
+  double spanPoint(unsigned dof, unsigned pointId, unsigned dim) const {
+      if(spanOffsets_ == NULL) {
+          return v_[pointId * dimension_ + dim];
+      } else {
+          unsigned offset = dof == 0 ? 0 : spanOffsets_[dof - 1];
+          return v_[spans_[offset + pointId] * dimension_ + dim];
+      }
+  }
+
+  double spanCenter(unsigned dof, unsigned dim) const {
+      // Use the first point of the DOF span as DOF center.
+      // This may be precise enough
+      return spanPoint(dof, 0, dim);
+  }
 
 private:
   /// Array
   double* v_;
 
   /// Spatial dimension
-  const int dimension_;
+  unsigned dimension_;
 
   /// Number of points
-  const int size_;
+  unsigned size_;
 
   /// Flag to tell whether array has been copied and must be freed by destructor
   const bool ownsMemory_;
+
+  unsigned numberOfDof_;
+  unsigned * spanOffsets_;
+  unsigned * spans_;
+  void init(double* coord, unsigned * span_offsets, unsigned * spans);
 };
 
 } // end namespace hmat

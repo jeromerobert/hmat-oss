@@ -177,6 +177,17 @@ HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_geometric();
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_hybrid();
 /* Create a new clustering algorithm by setting the maximum number of degrees of freedom in a leaf */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
+
+/**
+ * Create a new clustering algorithm which put large span apart and
+ * delegate to an other algorithm.
+ * @param algo the delegate algorithm
+ * @param ratio ratio between the number of DOF in a cluster and
+ * a span size so a DOF is concidered as large
+ */
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_span(
+        const hmat_clustering_algorithm_t* algo, double ratio);
+
 /* Create a new clustering algorithm (for tests purpose only) */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_void_clustering(const hmat_clustering_algorithm_t* algo);
 /* Create a new clustering algorithm (for tests purpose only) */
@@ -219,6 +230,28 @@ HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coo
 HMAT_API void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
 
 HMAT_API hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
+
+struct hmat_cluster_tree_create_context_t {
+    /** Spatial dimension */
+    unsigned dimension;
+    unsigned number_of_points;
+    double * coordinates;
+    unsigned number_of_dof;
+    /**
+     * Offset of each span in the spans array.
+     * if span_offset is NULL each span is concidered as a single point.
+     * if not NULL the size of this array must be number_of_dof.
+     * span_offsets[0] is the offset of the dof 1 (not 0).
+     * span_offset[number_of_dof-1] is the length of the spans array.
+     */
+    unsigned * span_offsets;
+    /** The id of the points in each span */
+    unsigned * spans;
+    /** pointer to an opaque ClusterTreeBuilder */
+    const hmat_cluster_tree_builder_t* builder;
+};
+
+HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree_generic(struct hmat_cluster_tree_create_context_t*);
 
 /*!
  * Return the number of nodes in a cluster tree

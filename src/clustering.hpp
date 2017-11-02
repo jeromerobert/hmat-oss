@@ -196,6 +196,21 @@ private:
   const double thresholdRatio_;
 };
 
+/**
+ * Isolate DoF with large span to a dedicated cluster
+ */
+class SpanClusteringAlgorithm: public ClusteringAlgorithm {
+    const ClusteringAlgorithm &algo_;
+    double ratio_;
+public:
+    /** @param ratio ratio between the number of DOF in a cluster and
+     * a span size so a DOF is concidered as large */
+    SpanClusteringAlgorithm(const ClusteringAlgorithm &algo, double ratio);
+    std::string str() const;
+    ClusteringAlgorithm* clone() const;
+    void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+};
+
 class VoidClusteringAlgorithm : public ClusteringAlgorithm
 {
 public:

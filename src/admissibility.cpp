@@ -93,6 +93,8 @@ StandardAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const Cl
     size_t elements = ((size_t) rows.data.size()) * cols.data.size();
     if(isFullAlgo && elements > maxElementsPerBlock_)
         return true;
+
+    // TODO: we may not be low rank for example if rows or cols is a large span cluster
     if(!isFullAlgo && elements > maxElementsPerBlockAca_)
         return true;
 

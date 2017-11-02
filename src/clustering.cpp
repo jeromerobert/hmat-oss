@@ -30,7 +30,7 @@
 
 namespace {
 
-/*! \brief Comparateur pour deux indices selon une de leur coordonnee.
+/*! \brief Compare two DOF indices based on their coordinates
  */
 class IndicesComparator
 {
@@ -54,6 +54,19 @@ public:
   }
 };
 
+/** @brief Compare two DOF based on their "large span" status */
+class LargeSpanComparator {
+    const hmat::DofCoordinates& coordinates_;
+    int threshold_;
+public:
+    LargeSpanComparator(const hmat::DofCoordinates& coordinates, int threshold)
+        : coordinates_(coordinates), threshold_(threshold){}
+    bool operator()(int i, int j) {
+        bool vi = coordinates_.spanSize(i) > threshold_;
+        bool vj = coordinates_.spanSize(j) > threshold_;
+        return vi > vj;
+    }
+};
 }
 
 namespace hmat {
@@ -428,6 +441,42 @@ ClusterTreeBuilder::divide_recursive(ClusterTree& current) const
     current.insertChild(i, children[i]);
     divide_recursive(*children[i]);
   }
+}
+
+SpanClusteringAlgorithm::SpanClusteringAlgorithm(
+    const ClusteringAlgorithm &algo, double ratio):
+    algo_(algo), ratio_(ratio){}
+
+std::string SpanClusteringAlgorithm::str() const {
+    return "SpanClusteringAlgorithm";
+}
+ClusteringAlgorithm* SpanClusteringAlgorithm::clone() const {
+    return new SpanClusteringAlgorithm(algo_, ratio_);
+}
+
+void SpanClusteringAlgorithm::partition(
+    ClusterTree& current, std::vector<ClusterTree*>& children) const {
+    int* indices = current.data.indices() + current.data.offset();
+    const DofCoordinates & coords = *current.data.coordinates();
+    int n = current.data.size();
+    int threshold = n * ratio_;
+    // move large span at the end of the indices array
+    LargeSpanComparator comparator(coords, threshold);
+    std::stable_sort(indices, indices + n, comparator);
+    // create the large span cluster
+    int i = n - 1;
+    while(i >= 0 && coords.spanSize(i) > threshold)
+        i--;
+    ClusterTree * largeSpanCluster = i < n - 1 ? current.slice(i, n - 1) : NULL;
+    // Call the delegate algorithm with a temporary cluster
+    // containing only small span DOFs.
+    ClusterTree * smallSpanCluster = i > 0 ? current.slice(0, i) : NULL;
+    if(smallSpanCluster != NULL) {
+        algo_.partition(*smallSpanCluster, children);
+        delete smallSpanCluster;
+    }
+    if(largeSpanCluster != NULL)
+        children.push_back(largeSpanCluster);
 }
 
 }  // end namespace hmat

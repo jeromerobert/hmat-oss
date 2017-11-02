@@ -25,38 +25,73 @@
   \brief Geometric coordinates.
 */
 #include "coordinates.hpp"
-
+#include "common/my_assert.h"
 #include <cstring>
 
 namespace hmat {
+void DofCoordinates::init(double* coord, unsigned* span_offsets, unsigned* spans)
+{
+    if (ownsMemory_) {
+        v_ = new double[size_ * dimension_];
+        std::memcpy(v_, coord, sizeof(double) * size_ * dimension_);
+        if(span_offsets) {
+            spanOffsets_ = new unsigned[numberOfDof_];
+            std::memcpy(spanOffsets_, span_offsets, sizeof(unsigned) * numberOfDof_);
+            unsigned n = span_offsets[numberOfDof_-1];
+            spans_ = new unsigned[n];
+            std::memcpy(spans_, spans, sizeof(unsigned) * n);
+        } else {
+            spanOffsets_ = NULL;
+            spans_ = NULL;
+        }
+    } else {
+        v_ = coord;
+        spanOffsets_ = span_offsets;
+        spans_ = spans;
+    }
+}
 
-DofCoordinates::DofCoordinates(double* coord, int dim, int size, bool ownsMemory)
+DofCoordinates::DofCoordinates(double* coord, unsigned dim, unsigned size, bool ownsMemory,
+                               unsigned number_of_dof, unsigned * span_offsets, unsigned * spans)
   : dimension_(dim)
   , size_(size)
-  , ownsMemory_(ownsMemory)
+  , ownsMemory_(ownsMemory), numberOfDof_(number_of_dof)
 {
-  if (ownsMemory_)
-  {
-    v_ = new double[size_ * dimension_];
-    std::memcpy(v_, coord, sizeof(double) * size_ * dimension_);
-  }
-  else
-    v_ = coord;
+    init(coord, span_offsets, spans);
 }
 
 DofCoordinates::DofCoordinates(const DofCoordinates& other)
   : dimension_(other.dimension_)
   , size_(other.size_)
-  , ownsMemory_(true)
+  , ownsMemory_(true), numberOfDof_(other.numberOfDof_)
 {
-  v_ = new double[size_ * dimension_];
-  std::memcpy(v_, other.v_, sizeof(double) * size_ * dimension_);
+    init(other.v_, other.spanOffsets_, other.spans_);
 }
 
 DofCoordinates::~DofCoordinates()
 {
-  if (ownsMemory_)
+  if (ownsMemory_) {
     delete[] v_;
+    if(spanOffsets_ != NULL) {
+      delete[] spanOffsets_;
+      delete[] spans_;
+    }
+  }
+}
+
+int DofCoordinates::size() const {
+    HMAT_ASSERT(spanOffsets_ == NULL);
+    return size_;
+}
+
+double& DofCoordinates::get(int i, int j) {
+    HMAT_ASSERT(spanOffsets_ == NULL);
+    return v_[j * dimension_ + i];
+}
+
+const double& DofCoordinates::get(int i, int j) const {
+    HMAT_ASSERT(spanOffsets_ == NULL);
+    return v_[j * dimension_ + i];
 }
 
 }  // end namespace hmat

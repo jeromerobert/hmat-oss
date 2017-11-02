@@ -71,7 +71,7 @@ void IndexSet::intersection(const IndexSet& s1, const IndexSet& s2) {
 
 DofData::DofData(const DofCoordinates& coordinates, int* group_index)
 {
-  const int size(coordinates.size());
+  int size = coordinates.numberOfDof();
   perm_i2e_ = new int[size];
   perm_e2i_ = new int[size];
   for (int i = 0; i < size; ++i)
@@ -174,23 +174,28 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
 }
 
 AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
-  : dimension_(data.coordinates()->dimension())
-  , bb_(new double[2 * dimension_])
+    : dimension_(data.coordinates()->dimension())
+    , bb_(new double[2 * dimension_])
 {
-  if (data.size() == 0) return;
-  int* myIndices = data.indices() + data.offset();
-  const double* coord = &data.coordinates()->get(0, 0);
-  memcpy(bb_, &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
-  memcpy(bb_ + dimension_, &coord[dimension_*myIndices[0]], sizeof(double) * dimension_);
-
-  for (int i = 0; i < data.size(); ++i) {
-    int index = myIndices[i];
-    const double* p = &coord[dimension_*index];
-    for (unsigned dim = 0; dim < dimension_; ++dim) {
-      bb_[dim] = std::min(bbMin()[dim], p[dim]);
-      bb_[dim + dimension_] = std::max(bbMax()[dim], p[dim]);
+    if (data.size() == 0)
+        return;
+    int* myIndices = data.indices() + data.offset();
+    const DofCoordinates& coords = *data.coordinates();
+    for (unsigned i = 0; i < dimension_; i++) {
+        bb_[i] = coords.spanPoint(myIndices[0], 0, i);
+        bb_[i + dimension_] = bb_[i];
     }
-  }
+
+    for (unsigned i = 1; i < data.size(); ++i) {
+        int dof = myIndices[i];
+        for (unsigned pointId = 0; pointId < coords.spanSize(dof); pointId++) {
+            for (unsigned dim = 0; dim < dimension_; ++dim) {
+                double v = coords.spanPoint(myIndices[i], pointId, dim);
+                bb_[dim] = std::min(bb_[dim], v);
+                bb_[dim + dimension_] = std::max(bb_[dim + dimension_], v);
+            }
+        }
+    }
 }
 
 AxisAlignedBoundingBox::~AxisAlignedBoundingBox() {
