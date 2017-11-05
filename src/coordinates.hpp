@@ -116,7 +116,7 @@ public:
 
   double spanPoint(unsigned dof, unsigned pointId, unsigned dim) const {
       if(spanOffsets_ == NULL) {
-          return v_[pointId * dimension_ + dim];
+          return v_[dof * dimension_ + dim];
       } else {
           unsigned offset = dof == 0 ? 0 : spanOffsets_[dof - 1];
           return v_[spans_[offset + pointId] * dimension_ + dim];
