@@ -94,6 +94,7 @@ hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int
     ctx.number_of_points = size;
     ctx.number_of_dof = ctx.number_of_points;
     ctx.span_offsets = NULL;
+    ctx.spans = NULL;
     ClusterTreeBuilder builder(*reinterpret_cast<ClusteringAlgorithm*>(algo));
     ctx.builder = reinterpret_cast<hmat_cluster_tree_builder_t*>(&builder);
     return hmat_create_cluster_tree_generic(&ctx);
