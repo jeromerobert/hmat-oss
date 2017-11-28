@@ -1000,6 +1000,10 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     // We modify the columns of f(a) and the rows of f(b)
     makeCompatible<T>(transA != 'N', transB == 'N', a, b, va, vb);
 
+    if (this->isLeaf() && !this->isRkMatrix() && !this->isFullMatrix())
+    {
+      this->full(new FullMatrix<T>(this->rows(), this->cols()));
+    }
     // Create vva & vc = the subsets of va & c (=this) that match each other for doing the sum c+f(a).f(b)
     // We modify the rows of f(a) and the rows of c
     makeCompatible<T>(transA == 'N', true, va, this, vva, vc);
