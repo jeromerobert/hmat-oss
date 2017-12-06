@@ -388,6 +388,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
 
 template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
     result.nr_block_clusters++;
+    result.memory += sizeof(*this);
     int r = rows()->size();
     int c = cols()->size();
     if(r == 0 || c == 0) {
@@ -404,6 +405,8 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
                 rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
 
             if (fitStudy) {
+              result.memory += mem*sizeof(T);
+              result.memory += sizeof(*rk());
               FullMatrix<T>* rk_eval = rk()->eval();
               result.rk_fit_nnz += rk_eval->info(result, rowsMin, colsMin, rowsMax, colsMax);
               if (colsMax == 0) {
@@ -449,6 +452,9 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
             result.rk_size += s;
         } else {
           if (isFullMatrix()) {
+            result.memory += sizeof(*full());
+            result.memory += s*sizeof(T);
+
             result.full_zeros += full()->storedZeros();
             if (fitStudy) {
               result.full_nnz += s - full()->storedZeros();

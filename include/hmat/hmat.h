@@ -376,6 +376,9 @@ typedef struct
   /*! Total number of terms that would be stored if the matrix was not compressed */
   size_t uncompressed_size;
 
+  /*! Memory used to store the matrix. This includes meta data */
+  size_t memory;
+
   /*! Total number of block cluster tree nodes in the HMatrix */
   int nr_block_clusters;
 
