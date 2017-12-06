@@ -54,6 +54,8 @@ namespace trace {
   bool Node::enabled = true;
   UM_NS::unordered_map<void*, Node*> Node::currentNodes[MAX_ROOTS];
   void* Node::enclosingContext[MAX_ROOTS] = {};
+  const char* Node::flops_count_filename = "data.flops";
+  std::ofstream flops_count_stream(Node::flops_count_filename);
 
   Node::Node(const char* _name, Node* _parent)
     : name_(_name), data(), parent(_parent), children() {}
@@ -89,6 +91,9 @@ namespace trace {
     assert(current);
 
     current->data.totalTime += time_diff_in_nanos(current->data.lastEnterTime, now());
+    static char * flopStudy = getenv("HMAT_FLOP_STUDY");
+    if (flopStudy)
+      flops_count_stream << " time " << time_diff_in_nanos(current->data.lastEnterTime, now())<< std::endl;
 
     if (!(current->parent)) {
       std::cout << "Warning! Closing root node." << std::endl;
@@ -108,6 +113,9 @@ namespace trace {
 
   void Node::incrementFlops(int64_t flops) {
     currentNode()->data.totalFlops += flops;
+    static char * flopStudy = getenv("HMAT_FLOP_STUDY");
+    if (flopStudy)
+      flops_count_stream << currentNode()->name_ << " flops " << flops << " ";
   }
 
   void Node::startComm() {

@@ -83,6 +83,7 @@ namespace trace {
   public:
     /// True if the tracing is enabled. True by default. Not used anywhere, apparently...
     static bool enabled;
+    static const char* flops_count_filename;
   private:
     /// Unique name for the context.
     const char* name_;
@@ -95,6 +96,7 @@ namespace trace {
     /// List of trace trees.
     static UM_NS::unordered_map<void*, Node*> currentNodes[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
     static void* enclosingContext[MAX_ROOTS]; // TODO: padding to avoid false sharing ?
+
 
   public:
     /** Enter a context noted by a name.
