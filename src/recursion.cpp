@@ -74,7 +74,7 @@ namespace hmat {
         // Hij <- Hij - Lik Dk tLjk
         // if i=j, we can use mdmtProduct, otherwise we use mdntProduct
         for (int j=k+1 ; j<i ; j++)
-          if (me()->get(i,j) && me()->get(j,k))
+          if (me()->get(i,k) && me()->get(j,k))
             me()->get(i,j)->mdntProduct(me()->get(i,k), me()->get(k,k), me()->get(j,k)); // hij -= Lik.Dk.tLjk
         me()->get(i,i)->mdmtProduct(me()->get(i,k), me()->get(k,k)); //  hii -= Lik.Dk.tLik
       }
@@ -102,11 +102,11 @@ namespace hmat {
       for (int k=0 ; k<b->nrChildRow() ; k++) // loop on the lines of b
         for (int i=0 ; i<me()->nrChildRow() ; i++) {
           // Update b[k,i] with the contribution of the solutions already computed b[k,j] j<i
-          if (!b->get(k, i)) continue;
           for (int j=0 ; j<i ; j++)
             if (b->get(k, j) && (lowerStored ? me()->get(i,j) : me()->get(j,i)))
               b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), lowerStored ? me()->get(i,j) : me()->get(j,i), Constants<T>::pone);
           // Solve the i-th diagonal system
+          if (b->get(k,i))
           me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), unitriangular, lowerStored);
         }
 
@@ -154,7 +154,7 @@ namespace hmat {
           if (!m->get(i,0))
             continue;
           for (int j=0 ; j<i ; j++)
-            if (me()->get(i,j) && m->get(j,0))
+            if (m->get(j,0))
               me()->get(i,j)->mdntProduct(m->get(i,0), d, m->get(j,0)); // hij -= Mi0.D.tMj0
           me()->get(i,i)->mdmtProduct(m->get(i,0),  d);               // hii -= Mi0.D.tMi0
         }
@@ -167,7 +167,7 @@ namespace hmat {
               continue;
             const Mat* d_k = d->get(k,k);
             for (int j=0 ; j<i ; j++)
-              if (me()->get(i,j) && m->get(j,k))
+              if (m->get(j,k))
                 me()->get(i,j)->mdntProduct(m_ik, d_k, m->get(j,k)); // hij -= Mik.Dk.tMjk
             me()->get(i,i)->mdmtProduct(m_ik, d_k); //  hii -= Mik.Dk.tMik
           }
@@ -270,7 +270,7 @@ namespace hmat {
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         for (int j=k+1 ; j<me()->nrChildRow() ; j++)
           // Hij <- Hij - Lik Ukj
-          if (me()->get(i,j) && me()->get(i,k) && me()->get(k,j))
+          if (me()->get(i,k) && me()->get(k,j))
           me()->get(i,j)->gemm('N', 'N', Constants<T>::mone, me()->get(i,k), me()->get(k,j), Constants<T>::pone);
     }
 

@@ -507,8 +507,12 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     const IndexSet** rowsParts = new const IndexSet*[n];
     const IndexSet** colsParts = new const IndexSet*[n];
     for (int i = 0; i < n; i++) {
-      if (!parts[i])
+      if (!parts[i]) {
+        fullParts[i] = NULL;
+        rowsParts[i] = NULL;
+        colsParts[i] = NULL;
         continue;
+      }
       fullParts[i] = parts[i]->eval();
       rowsParts[i] = parts[i]->rows;
       colsParts[i] = parts[i]->cols;
