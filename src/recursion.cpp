@@ -104,10 +104,11 @@ namespace hmat {
           // Update b[k,i] with the contribution of the solutions already computed b[k,j] j<i
           if (!b->get(k, i)) continue;
           for (int j=0 ; j<i ; j++)
-            if (b->get(k, j) && (lowerStored ? me()->get(i,j) : me()->get(j,i)))
+            if (b->get(k, i))
               b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), lowerStored ? me()->get(i,j) : me()->get(j,i), Constants<T>::pone);
           // Solve the i-th diagonal system
-          me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), unitriangular, lowerStored);
+          if (me()->get(i,i))
+            me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), unitriangular, lowerStored);
         }
 
     } else if (me()->nrChildRow()>1 && b->nrChildCol()==1 && b->nrChildRow()>1) {

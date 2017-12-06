@@ -678,7 +678,6 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
           ScalarArray<T> subY(y->rowsSubset(rowsOffset, rowsSize));
           child->gemv(trans, alpha, &subX, Constants<T>::pone, &subY);
         }
-        else continue;
       }
 
   } else {
@@ -1188,8 +1187,10 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, MainOp) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
-  if(isVoid() || a->isVoid())
-      return;
+  if (!a || !b || isVoid() || a->isVoid()) {
+    this->scale(beta);
+    return;
+  }
 
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
