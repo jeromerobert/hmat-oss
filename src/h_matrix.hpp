@@ -163,6 +163,10 @@ public:
   HMatrix<T> * internalCopy(bool temporary_ = false, bool withRowChild=false, bool withColChild=false) const;
   ~HMatrix();
 
+  /** Return a full null block at the given offset and of the give size */
+  HMatrix<T> * internalCopy(const ClusterTree * rows, const ClusterTree * cols) const;
+
+
   /**
    * Create a temporary block from a list of children.
    * @param children The list of children ordered as insertChild and get

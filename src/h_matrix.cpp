@@ -198,6 +198,15 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     return r;
 }
 
+template<typename T> HMatrix<T>* HMatrix<T>::internalCopy(
+        const ClusterTree * rows, const ClusterTree * cols) const {
+    HMatrix<T> * r = new HMatrix<T>(localSettings.global);
+    r->temporary_ = true;
+    r->rows_ = rows;
+    r->cols_ = cols;
+    return r;
+}
+
 template<typename T>
 HMatrix<T>* HMatrix<T>::copyStructure() const {
   HMatrix<T>* h = internalCopy();
