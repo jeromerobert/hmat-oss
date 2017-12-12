@@ -127,7 +127,9 @@ template<typename T> void HMatrixJSONDumper<T>::update() {
     cols_ = current_->cols();
     nrChild_ = current_->nrChild();
     if (current_->isFullMatrix()) {
-        nodeInfo_ << " \"leaf_type\": \"Full\"";
+        int zeros = current_->full()->storedZeros();
+        double ratio = zeros / ((double) current_->full()->rows() * current_->full()->cols());
+        nodeInfo_ << " \"leaf_type\": \"Full\", \"k\": " << 1-ratio;
     } else if (current_->isRkMatrix() && current_->rk()) {
         nodeInfo_ << " \"leaf_type\": \"Rk\", \"k\": " << current_->rank() << ",";
         nodeInfo_ << " \"method\": " << current_->rk()->method;
