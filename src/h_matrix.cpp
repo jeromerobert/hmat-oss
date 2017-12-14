@@ -1199,6 +1199,13 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
             rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
         rk()->gemmRk(transA, transB, alpha, a, b, Constants<T>::pone);
         rank_ = rk()->rank();
+        if (rk()->compressedSize() > rk()->uncompressedSize()){
+          FullMatrix<T>* fullMat = rk()->eval();
+          delete rk();
+          full(fullMat);
+          rank_=-1;
+        }
+
         return;
     }
 
