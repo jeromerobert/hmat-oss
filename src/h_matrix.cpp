@@ -1231,7 +1231,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
 }
 
 template<typename T>
-FullMatrix<T>* HMatrix<T>::multiplyFullH(char transM, char transH,
+FullMatrix<T>* multiplyFullH(char transM, char transH,
                                          const FullMatrix<T>* mat,
                                          const HMatrix<T>* h) {
   // R = M * H = (H^t * M^t*)^t
@@ -1243,7 +1243,7 @@ FullMatrix<T>* HMatrix<T>::multiplyFullH(char transM, char transH,
 }
 
 template<typename T>
-FullMatrix<T>* HMatrix<T>::multiplyHFull(char transH, char transM,
+FullMatrix<T>* multiplyHFull(char transH, char transM,
                                          const HMatrix<T>* h,
                                          const FullMatrix<T>* mat) {
   assert((transH == 'N' ? h->cols()->size() : h->rows()->size())
@@ -1325,10 +1325,10 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
   //  - A F, B H
   //  - A F, B F
   if (!a->isLeaf() && b->isFullMatrix()) {
-    result = HMatrix<T>::multiplyHFull(transA, transB, a, b->full());
+    result = multiplyHFull(transA, transB, a, b->full());
     HMAT_ASSERT(result);
   } else if (a->isFullMatrix() && !b->isLeaf()) {
-    result = HMatrix<T>::multiplyFullH(transA, transB, a->full(), b);
+    result = multiplyFullH(transA, transB, a->full(), b);
     HMAT_ASSERT(result);
   } else if (a->isFullMatrix() && b->isFullMatrix()) {
     const IndexSet* aRows = (transA == 'N')? a->rows() : a->cols();

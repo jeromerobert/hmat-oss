@@ -406,12 +406,6 @@ public:
   inline bool isRkMatrix() const {
     return rank_ >= 0;
   }
-  /*! \brief Return F * H (F Full, H divided)
-   */
-  static FullMatrix<T>* multiplyFullH(char transM, char transH, const FullMatrix<T>* m, const HMatrix<T>* h);
-  /*! \brief Return H * F (F Full, H divided)
-   */
-  static FullMatrix<T>* multiplyHFull(char transH, char transM, const HMatrix<T>* h, const FullMatrix<T>* m);
   /*! \brief Multiplication de deux HMatrix dont au moins une est une RkMatrix.
 
       Le resultat est alors une RkMatrix.
