@@ -212,7 +212,7 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::read(){
     ClusterTree * cols = readClusterTree();
     HMatrix<T> * r = readTree<HMatrix<T> >(NULL);
     r->setClusterTrees(rows, cols);
-    r->ownClusterTree_ = true;
+    r->ownClusterTrees(true, true);
     return r;
 }
 

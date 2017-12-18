@@ -63,10 +63,10 @@ template<typename T> HMatrix<T>::~HMatrix() {
     delete full_;
     full_ = NULL;
   }
-  if(ownClusterTree_) {
+  if(ownRowsClusterTree_)
       delete rows_;
+  if(ownColsClusterTree_)
       delete cols_;
-  }
 }
 
 template<typename T>
@@ -107,8 +107,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     rows_(_rows), cols_(_cols), rk_(NULL),
     rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
-    isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary_(false), ownClusterTree_(false),
-    localSettings(settings)
+    isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary_(false),
+    ownRowsClusterTree_(false), ownColsClusterTree_(false), localSettings(settings)
 {
   if (isVoid())
     return;
@@ -163,8 +163,8 @@ HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false), isTriUpper(false), isTriLower(false),
-    keepSameRows(true), keepSameCols(true), temporary_(false), ownClusterTree_(false),
-    localSettings(settings)
+    keepSameRows(true), keepSameCols(true), temporary_(false), ownRowsClusterTree_(false),
+    ownColsClusterTree_(false), localSettings(settings)
     {}
 
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withRowChild, bool withColChild) const {
@@ -2400,8 +2400,8 @@ HMatrix<T>::HMatrix(const ClusterTree * rows, const ClusterTree * cols,
     Tree<HMatrix<T> >(NULL, 0), rows_(rows), cols_(cols),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     approximateRank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
-    keepSameRows(false), keepSameCols(false), temporary_(true), ownClusterTree_(false),
-    localSettings(_children[0]->localSettings.global) {
+    keepSameRows(false), keepSameCols(false), temporary_(true), ownRowsClusterTree_(false),
+    ownColsClusterTree_(false), localSettings(_children[0]->localSettings.global) {
     this->children = _children;
 }
 

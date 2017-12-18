@@ -597,10 +597,10 @@ public:
   static bool validationDump;
   /// Error threshold for the compression validation
   static double validationErrorThreshold;
-  char isUpper:1, isLower:1,       /// symmetric, upper or lower stored
+  short isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
        keepSameRows:1, keepSameCols:1,
-       temporary_:1, ownClusterTree_:1;
+       temporary_:1, ownRowsClusterTree_:1, ownColsClusterTree_:1;
   LocalSettings localSettings;
 
   int rank() const {
@@ -678,9 +678,13 @@ public:
   }
 
   void ownClusterTrees(bool owns_row, bool owns_col) {
-    assert(owns_row);
-    assert(owns_col);
-    ownClusterTree_ = true;
+      ownRowsClusterTree_ = owns_row;
+      ownColsClusterTree_ = owns_col;
+  }
+
+  void setColsTree(ClusterTree * clusterTree, bool ownClusterTree) {
+      ownColsClusterTree_ = ownClusterTree;
+      cols_ = clusterTree;
   }
 
   /**
