@@ -2039,8 +2039,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, m->full(), Constants<T>::pone);
-    } else {
-      assert(!m->isLeaf());
+    } else if (!m->isLeaf()){
       FullMatrix<T> mTmp(m->rows(), m->cols());
       m->evalPart(&mTmp, m->rows(), m->cols());
       FullMatrix<T> mTmpCopy(m->rows(), m->cols());
