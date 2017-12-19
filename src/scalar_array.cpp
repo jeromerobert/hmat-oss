@@ -254,9 +254,9 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copyAndTranspose(ScalarArra
 }
 
 template<typename T>
-ScalarArray<T>* ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSize) const {
+ScalarArray<T> ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSize) const {
   assert(rowsOffset + rowsSize <= rows);
-  return new ScalarArray<T>(m + rowsOffset, rowsSize, cols, lda);
+  return ScalarArray<T>(m + rowsOffset, rowsSize, cols, lda);
 }
 
 template<typename T>

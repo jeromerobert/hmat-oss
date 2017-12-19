@@ -111,7 +111,7 @@ public:
        \param rowSize new number of rows
        \return pointer to a new ScalarArray.
    */
-  ScalarArray<T>* rowsSubset(const int rowOffset, const int rowSize) const ;
+  ScalarArray<T> rowsSubset(const int rowOffset, const int rowSize) const ;
 
   /** this = alpha * op(A) * op(B) + beta * this
 

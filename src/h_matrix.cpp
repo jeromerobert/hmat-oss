@@ -648,7 +648,6 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   }
 
   if (!this->isLeaf()) {
-    ScalarArray<T> *subX, *subY;
     for (int i = 0, iend = (matTrans=='N' ? nrChildRow() : nrChildCol()); i < iend; i++)
       for (int j = 0, jend = (matTrans=='N' ? nrChildCol() : nrChildRow()); j < jend; j++) {
         char trans = matTrans;
@@ -669,12 +668,9 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
           }
 
           // get the rows subset of X aligned with 'trans(child)' cols and Y aligned with 'trans(child)' rows
-          subX = x->rowsSubset(colsOffset, colsSize);
-          subY = y->rowsSubset(rowsOffset, rowsSize);
-
-          child->gemv(trans, alpha, subX, Constants<T>::pone, subY);
-          delete subX;
-          delete subY;
+          const ScalarArray<T> subX(x->rowsSubset(colsOffset, colsSize));
+          ScalarArray<T> subY(y->rowsSubset(rowsOffset, rowsSize));
+          child->gemv(trans, alpha, &subX, Constants<T>::pone, &subY);
         }
         else continue;
       }
@@ -1188,12 +1184,9 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     assert(transB == 'N');
     const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
     const IndexSet * c = transA == 'N' ? a->cols() : a->rows();
-    ScalarArray<T> *bSubset, *cSubset;
-    cSubset =    rk()->a->rowsSubset( r->offset() -    rows()->offset(), r->size());
-    bSubset = b->rk()->a->rowsSubset( c->offset() - b->rows()->offset(), c->size());
-    a->gemv(transA, alpha, bSubset, beta, cSubset);
-    delete bSubset;
-    delete cSubset;
+    ScalarArray<T> cSubset(rk()->a->rowsSubset( r->offset() -    rows()->offset(), r->size()));
+    ScalarArray<T> bSubset(b->rk()->a->rowsSubset( c->offset() - b->rows()->offset(), c->size()));
+    a->gemv(transA, alpha, &bSubset, beta, &cSubset);
     return;
   }
 
@@ -1208,12 +1201,9 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     assert(transA == 'N');
     const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
     const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
-    ScalarArray<T> *aSubset, *cSubset;
-    cSubset =    rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size());
-    aSubset = a->rk()->b->rowsSubset( r->offset() - a->cols()->offset(), r->size());
-    b->gemv(transB == 'N' ? 'T' : 'N', alpha, aSubset, beta, cSubset);
-    delete aSubset;
-    delete cSubset;
+    ScalarArray<T> cSubset(rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size()));
+    ScalarArray<T> aSubset(a->rk()->b->rowsSubset( r->offset() - a->cols()->offset(), r->size()));
+    b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
     return;
   }
 
@@ -1707,21 +1697,18 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular)
     //
 
     int offset(0);
-    ScalarArray<T> *sub[nrChildRow()];
+    vector<ScalarArray<T> > sub;
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = b->rowsSubset(offset, get(i, i)->cols()->size());
+      sub.push_back(b->rowsSubset(offset, get(i, i)->cols()->size()));
       offset += get(i, i)->cols()->size();
       // Update sub[i] with the contribution of the solutions already computed sub[j] j<i
-      if (!sub[i]) continue;
       for (int j=0 ; j<i ; j++)
-        if (get(i,j) && sub[j])
-          get(i, j)->gemv('N', Constants<T>::mone, sub[j], Constants<T>::pone, sub[i]);
+        if (get(i,j))
+          get(i, j)->gemv('N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
       // Solve the i-th diagonal system
-      get(i, i)->solveLowerTriangularLeft(sub[i], unitriangular);
+      get(i, i)->solveLowerTriangularLeft(&sub[i], unitriangular);
     }
-    for (int i=0 ; i<nrChildRow() ; i++)
-      delete sub[i];
   }
 }
 
@@ -1842,26 +1829,22 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular
   } else {
 
     int offset(0);
-    ScalarArray<T> *sub[nrChildRow()];
+    vector<ScalarArray<T> > sub;
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = b->rowsSubset(offset, get(i, i)->rows()->size());
+      sub.push_back(b->rowsSubset(offset, get(i, i)->rows()->size()));
       offset += get(i, i)->rows()->size();
     }
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Update sub[i] with the contribution of the solutions already computed sub[j]
-      if (!sub[i]) continue;
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (lowerStored ? get(i, j) : get(j, i));
-        if (u_ji && sub[j])
-          u_ji->gemv(lowerStored ? 'N' : 'T', Constants<T>::mone, sub[j], Constants<T>::pone, sub[i]);
+        if (u_ji)
+          u_ji->gemv(lowerStored ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
       }
       // Solve the i-th diagonal system
-      get(i, i)->solveUpperTriangularRight(sub[i], unitriangular, lowerStored);
+      get(i, i)->solveUpperTriangularRight(&sub[i], unitriangular, lowerStored);
     }
-    for (int i=0 ; i<nrChildRow() ; i++)
-      delete sub[i];
-
   }
 }
 
@@ -1882,26 +1865,22 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular,
   } else {
 
     int offset(0);
-    ScalarArray<T> *sub[nrChildRow()];
+    vector<ScalarArray<T> > sub;
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub[i] = b->rowsSubset(offset, get(i, i)->cols()->size());
+      sub.push_back(b->rowsSubset(offset, get(i, i)->cols()->size()));
       offset += get(i, i)->cols()->size();
     }
     for (int i=nrChildRow()-1 ; i>=0 ; i--) {
       // Solve the i-th diagonal system
-      if (!sub[i]) continue;
-      get(i, i)->solveUpperTriangularLeft(sub[i], unitriangular, lowerStored);
+      get(i, i)->solveUpperTriangularLeft(&sub[i], unitriangular, lowerStored);
       // Update sub[j] j<i with the contribution of the solutions just computed sub[i]
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (lowerStored ? get(i, j) : get(j, i));
-        if (u_ji && sub[j])
-          u_ji->gemv(lowerStored ? 'T' : 'N', Constants<T>::mone, sub[i], Constants<T>::pone, sub[j]);
+        if (u_ji)
+          u_ji->gemv(lowerStored ? 'T' : 'N', Constants<T>::mone, &sub[i], Constants<T>::pone, &sub[j]);
       }
     }
-    for (int i=0 ; i<nrChildRow() ; i++)
-      delete sub[i];
-
   }
 }
 
