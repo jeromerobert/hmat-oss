@@ -43,13 +43,19 @@ int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
     newK = std::min(newK, maxK);
   } else {
     assert(epsilon >= 0.);
-    double sumSingularValues = 0.;
-    for (int i = 0; i < maxK; i++) {
-      sumSingularValues += sigma[i];
+    static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
+    double threshold_eigenvalue = 0.0;
+    if (useL2Criterion == NULL) {
+      for (int i = 0; i < maxK; i++) {
+        threshold_eigenvalue += sigma[i];
+      }
+    } else {
+      threshold_eigenvalue = sigma[0];
     }
+    threshold_eigenvalue *= epsilon;
     int i = 0;
     for (i = 0; i < maxK; i++) {
-      if (sigma[i] <= epsilon * sumSingularValues){
+      if (sigma[i] <= threshold_eigenvalue){
         break;
       }
     }
