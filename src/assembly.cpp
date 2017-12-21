@@ -30,6 +30,9 @@
 #include "rk_matrix.hpp"
 #include "fromdouble.hpp"
 
+#include <cstdlib>
+#include <cstring>
+
 namespace hmat {
 
 template<typename T>
@@ -51,7 +54,17 @@ void AssemblyFunction<T>::assemble(const LocalSettings &,
       RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data),
                                                           allocationObserver);
       if (HMatrix<T>::recompress) {
-        rkDp->truncate(rkDp->approx.recompressionEpsilon); // TODO assemblyEpsilon ?
+        // TODO: recompress with assemblyEpsilon or recompressionEpsilon?
+        // When matrix is used as a preconditioner, we may want to have a large recompressionEpsilon
+        // in order to speed-up factorization.  But right-hand sides must be computed accurately.
+        // Ideally epsilon should be passed as an argument (via LocalSettings?).  In the mean time,
+        // change only for Jacobi tests.
+        static char *env = getenv("HMAT_JACOBI");
+        if(env != NULL && strcmp(env, "JMRES") == 0) {
+          rkDp->truncate(rkDp->approx.assemblyEpsilon);
+        } else {
+          rkDp->truncate(rkDp->approx.recompressionEpsilon);
+        }
       }
       rkMatrix = fromDoubleRk<T>(rkDp);
     } else if (rows.data.size() && cols.data.size()) {
