@@ -498,6 +498,13 @@ typedef struct
     hmat_matrix_t* (*create_empty_hmatrix_admissibility)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree,
                                                          int lower_symmetric, hmat_admissibility_t* cond);
 
+    /*! Declare that the given HMatrix owns its cluster trees, which means that they will be
+      automatically deallocated when HMatrix is destroyed.
+
+      \param hmatrix HMatrix
+    */
+    void (*own_cluster_trees)(hmat_matrix_t* hmatrix);
+
     /*! Assemble a HMatrix.
 
       \param hmatrix The matrix to be assembled.

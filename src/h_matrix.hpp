@@ -673,6 +673,10 @@ public:
       return cols_;
   }
 
+  void ownClusterTrees() {
+    ownClusterTree_ = true;
+  }
+
   /**
    * Convert this HMatrix to a string for debug.
    * This is better than overriding << because it allows to use printf.

@@ -60,7 +60,6 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
             sym, (hmat::AdmissibilityCondition*)condition);
 }
 
-
 template<typename T>
 class SimpleCAssemblyFunction : public hmat::SimpleAssemblyFunction<T> {
 private:
@@ -337,6 +336,14 @@ int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cl
 }
 
 template<typename T, template <typename> class E>
+void own_cluster_trees(hmat_matrix_t* holder)
+{
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
+  hmat->engine().hmat->ownClusterTrees();
+}
+
+template<typename T, template <typename> class E>
 int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
 {
   DECLARE_CONTEXT;
@@ -476,6 +483,7 @@ static void createCInterface(hmat_interface_t * i)
     i->get_info  = hmat_get_info<T, E>;
     i->dump_info = hmat_dump_info<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
+    i->own_cluster_trees = own_cluster_trees<T, E>;
     i->extract_diagonal = extract_diagonal<T, E>;
     i->solve_lower_triangular = solve_lower_triangular<T, E>;
     i->assemble_generic = assemble_generic<T, E>;

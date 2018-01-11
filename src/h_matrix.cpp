@@ -922,10 +922,10 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         // ensure the cluster tree are properly freed
         r->father = r;
         c->father = c;
-        tmpMatrix->ownClusterTree_ = true;
 
         tmpMatrix->rows_ = r;
         tmpMatrix->cols_ = c;
+        tmpMatrix->ownClusterTrees();
         if(this->isRkMatrix()) {
           tmpMatrix->rk(const_cast<RkMatrix<T>*>(rk()->subset(tmpMatrix->rows(), tmpMatrix->cols())));
         } else {
