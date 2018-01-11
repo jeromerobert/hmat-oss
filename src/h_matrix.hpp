@@ -673,7 +673,9 @@ public:
       return cols_;
   }
 
-  void ownClusterTrees() {
+  void ownClusterTrees(bool owns_row, bool owns_col) {
+    assert(owns_row);
+    assert(owns_col);
     ownClusterTree_ = true;
   }
 

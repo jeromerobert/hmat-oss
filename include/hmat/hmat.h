@@ -502,8 +502,10 @@ typedef struct
       automatically deallocated when HMatrix is destroyed.
 
       \param hmatrix HMatrix
+      \param owns_row if 1, declare that this HMatrix owns its row cluster tree
+      \param owns_col if 1, declare that this HMatrix owns its column cluster tree
     */
-    void (*own_cluster_trees)(hmat_matrix_t* hmatrix);
+    void (*own_cluster_trees)(hmat_matrix_t* hmatrix, int owns_row, int owns_col);
 
     /*! Assemble a HMatrix.
 

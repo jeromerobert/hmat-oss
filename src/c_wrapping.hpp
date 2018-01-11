@@ -336,11 +336,11 @@ int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cl
 }
 
 template<typename T, template <typename> class E>
-void own_cluster_trees(hmat_matrix_t* holder)
+void own_cluster_trees(hmat_matrix_t* holder, int owns_row, int owns_col)
 {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
-  hmat->engine().hmat->ownClusterTrees();
+  hmat->engine().hmat->ownClusterTrees(owns_row != 0, owns_col != 0);
 }
 
 template<typename T, template <typename> class E>
