@@ -410,7 +410,7 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
                 result.largest_rk_mem_rank = rank();
             }
             result.rk_count++;
-            result.rk_size += mem;
+            result.rk_size += s;
         } else {
           if (isFullMatrix()) {
             result.full_zeros += full()->storedZeros();
