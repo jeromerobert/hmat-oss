@@ -318,20 +318,19 @@ typedef struct
 {
   /*! Number of allocated zeros */
   int full_zeros;
-  /* ! Total number of terms stored in the full leaves of the HMatrix */
+  /** Total number of terms stored in the full leaves of the HMatrix */
   size_t full_size;
 
   /** @deprecated Use compressed_size, uncompressed_size or full_size */
   size_t rk_size;
 
-  /* ! Total number of full leaves of the HMatrix */
+  /** Total number of full leaves of the HMatrix */
   size_t full_count;
 
-  /* ! Total number of rk leaves of the HMatrix */
+  /** Total number of rk leaves of the HMatrix */
   size_t rk_count;
 
-  /* ! Total number of terms stored in the HMatrix */
-  /* ! => compressed_size = full_size + rk_size */
+  /** Total number of terms stored in the HMatrix */
   size_t compressed_size;
 
   /*! Total number of terms that would be stored if the matrix was not compressed */
