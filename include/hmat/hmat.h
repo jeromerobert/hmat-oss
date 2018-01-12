@@ -321,7 +321,7 @@ typedef struct
   /* ! Total number of terms stored in the full leaves of the HMatrix */
   size_t full_size;
 
-  /* ! Total number of terms stored in the rk leaves of the HMatrix */
+  /** @deprecated Use compressed_size, uncompressed_size or full_size */
   size_t rk_size;
 
   /* ! Total number of full leaves of the HMatrix */
