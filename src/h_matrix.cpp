@@ -861,10 +861,13 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
         rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
       rk()->axpy(alpha, subMat);
       rank_ = rk()->rank();
-    } else {
-       if (!isAssembled() || !full())
-         full(new FullMatrix<T>(rows(), cols()));
+    } else if(isFullMatrix()){
        full()->axpy(alpha, subMat);
+    } else {
+       assert(full() == NULL);
+       full(subMat->copy());
+       if(alpha != Constants<T>::pone)
+         full()->scale(alpha);
     }
     delete subMat;
   }
