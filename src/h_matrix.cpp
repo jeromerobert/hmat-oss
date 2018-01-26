@@ -1169,13 +1169,15 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         HMAT_ASSERT(false);
     }
 
-        // It's not optimal to concider that the result is a FullMatrix but
-        // this is a H*F case and it almost never happen
-    if (!isFullMatrix())
-      full(new FullMatrix<T>(rows(), cols()));
-    full()->axpy(alpha, fullMat);
-    delete fullMat;
-
+    // It's not optimal to concider that the result is a FullMatrix but
+    // this is a H*F case and it almost never happen
+    if (isFullMatrix()) {
+      full()->axpy(alpha, fullMat);
+      delete fullMat;
+    } else {
+      full(fullMat);
+      fullMat->scale(alpha);
+    }
 }
 
 template<typename T>
