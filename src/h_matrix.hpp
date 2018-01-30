@@ -704,10 +704,6 @@ public:
   std::string description() const {
     std::ostringstream convert;
     convert << "HMatrix " << rows()->description() << "x" << cols()->description() ;
-    if (isAssembled())
-      convert << "norm=" << norm();
-    else
-      convert << "uninitialized";
     return convert.str();
   }
 };
