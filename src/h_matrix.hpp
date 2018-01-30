@@ -36,7 +36,7 @@
 
 namespace hmat {
     /** Identify the current user level operation */
-    enum MainOp {MainOp_Other, MainOp_SolveLower, MainOp_SolveUpper};
+    enum MainOp {MainOp_Other, MainOp_SolveLower, MainOp_SolveUpper, MainOp_GEMM};
 }
 
 #include "recursion.hpp"
