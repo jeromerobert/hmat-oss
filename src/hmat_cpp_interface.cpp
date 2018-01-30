@@ -68,6 +68,9 @@ void HMatInterface<T>::assemble(Assembly<T>& f, SymmetryFlag sym, bool,
   engine_->assembly(f, sym, ownAssembly);
 }
 
+extern int truncate_counter, gemm_counter, zero_gemm_counter, compressMatrix_counter;
+extern int64_t gemm_size_counter, truncate_time, gemm_time, qr_time, pq_time, svd_time;
+
 template<typename T>
 void HMatInterface<T>::factorize(hmat_factorization_t t, hmat_progress_t * progress) {
   DISABLE_THREADING_IN_BLOCK;
@@ -78,6 +81,10 @@ void HMatInterface<T>::factorize(hmat_factorization_t t, hmat_progress_t * progr
   engine_->factorization(t);
   factorizationType = t;
   engine_->hmat->checkStructure();
+  printf("truncate_counter=%d gemm_counter=%d zero_gemm_counter=%d gemm_size_counter=%ld compressMatrix_counter=%d\n",
+      truncate_counter, gemm_counter, zero_gemm_counter, gemm_size_counter, compressMatrix_counter);
+  printf("gemm_time=%g truncate_time=%g\n", gemm_time/1E9, truncate_time/1E9);
+  printf("qr_time=%g pq_time=%g svd_time=%g\n", qr_time/1E9, pq_time/1E9, svd_time/1E9);
 }
 
 template<typename T>
@@ -107,6 +114,9 @@ void HMatInterface<T>::gemm(char transA, char transB, T alpha,
     DISABLE_THREADING_IN_BLOCK;
     DECLARE_CONTEXT;
     engine_->gemm(transA, transB, alpha, *a->engine_, *b->engine_, beta);
+    printf("truncate_counter=%d gemm_counter=%d zero_gemm_counter=%d gemm_size_counter=%ld compressMatrix_counter=%d\n",
+      truncate_counter, gemm_counter, zero_gemm_counter, gemm_size_counter, compressMatrix_counter);
+    printf("gemm_time=%g truncate_time=%g\n", gemm_time/1E9, truncate_time/1E9); 
     engine_->hmat->checkStructure();
 }
 

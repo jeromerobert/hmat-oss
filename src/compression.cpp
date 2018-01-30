@@ -210,10 +210,12 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
   return j_ref;
 }
 
+int compressMatrix_counter = 0;
 
 template<typename T>
 RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
   DECLARE_CONTEXT;
+  __sync_fetch_and_add(&compressMatrix_counter, 1);
 
   if (m->isZero()) {
     return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);

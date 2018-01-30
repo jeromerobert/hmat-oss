@@ -179,6 +179,10 @@ template<typename T> void RkMatrix<T>::addRand(double epsilon) {
   return;
 }
 
+int truncate_counter = 0;
+int64_t truncate_time = 0;
+int64_t qr_time = 0, pq_time = 0, svd_time = 0;
+
 /**
  * @brief Truncate the A or B block of a RkMatrix.
  * This is a utilitary function for RkMatrix<T>::truncated and RkMatrix<T>::truncate
@@ -214,7 +218,9 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
     // If no initialPivotA, then no gemm, just a productQ()
     newAB->copyMatrixAtOffset( uv, 0, 0);
     // newA <- Qa * newA
+    Time start = now();
     ab->productQ('L', 'N', newAB);
+    __sync_fetch_and_add(&pq_time, time_diff_in_nanos(start, now()));
   }
 
   newAB->setOrtho( uv->getOrtho());
@@ -224,12 +230,12 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
 
 template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
-
+  __sync_fetch_and_add(&truncate_counter, 1);
   if (rank() == 0) {
     assert(!(a || b));
     return;
   }
-
+  Time beforeStamp = now();
   assert(rows->size() >= rank());
   // Case: more columns than one dimension of the matrix.
   // In this case, the calculation of the SVD of the matrix "R_a R_b^t" is more
@@ -286,16 +292,20 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   {
     // QR decomposition of A and B
     ScalarArray<T> ra(rank(), rank());
-    a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
     ScalarArray<T> rb(rank(), rank());
+    Time start = now();
+    a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
     b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
+    __sync_fetch_and_add(&qr_time, time_diff_in_nanos(start, now()));
 
     // R <- Ra Rb^t
     ScalarArray<T> r(rank(), rank());
     r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
     // truncated SVD of Ra Rb^t (allows failure)
+    start = now();
     newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
+    __sync_fetch_and_add(&svd_time, time_diff_in_nanos(start, now()));
   }
   if (newK == 0) {
     clear();
@@ -310,6 +320,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   ScalarArray<T>* newB = truncatedAB(b, cols, newK, v, useInitPivot, initialPivotB);
   delete b;
   b = newB;
+  __sync_fetch_and_add(&truncate_time, time_diff_in_nanos(beforeStamp, now()));
 }
 
 template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivotA, int initialPivotB) {

@@ -287,10 +287,16 @@ ScalarArray<T> ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSi
   return ScalarArray<T>(*this, rowsOffset, rowsSize, 0, cols);
 }
 
+int64_t gemm_time = 0;
+int gemm_counter = 0;
+int zero_gemm_counter = 0;
+int64_t gemm_size_counter = 0;
+
 template<typename T>
 void ScalarArray<T>::gemm(char transA, char transB, T alpha,
                          const ScalarArray<T>* a, const ScalarArray<T>* b,
                          T beta) {
+  Time beforeStamp = now();
   const int aRows  = (transA == 'N' ? a->rows : a->cols);
   const int n  = (transB == 'N' ? b->cols : b->rows);
   const int k  = (transA == 'N' ? a->cols : a->rows);
@@ -305,12 +311,21 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
     const size_t adds = _m * _n * _k;
     const size_t muls = _m * _n * _k;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+    __sync_fetch_and_add(&gemm_size_counter, muls);
   }
+#if 0
+  if(storedZeros() == (cols * rows)) {
+    __sync_fetch_and_add(&zero_gemm_counter, 1);
+    assert(beta == Constants<T>::zero || beta == Constants<T>::pone);
+  }
+#endif
   if (n > 1 || transB != 'N')
     proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), b->lda,
                       beta, this->ptr(), this->lda);
   else
     proxy_cblas::gemv(transA, a->rows, a->cols, alpha, a->const_ptr(), a->lda, b->const_ptr(), 1, beta, this->ptr(), 1);
+  __sync_fetch_and_add(&gemm_counter, 1);
+  __sync_fetch_and_add(&gemm_time, time_diff_in_nanos(beforeStamp, now()));
 }
 
 template<typename T>
