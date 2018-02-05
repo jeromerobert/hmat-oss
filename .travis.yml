@@ -19,11 +19,7 @@ matrix:
   - os: osx
     compiler: clang
     env: >
-     EXTRA_CMAKE_FLAGS="-DCMAKE_CXX_FLAGS=-std=c++11 -DCMAKE_MACOSX_RPATH=ON
-      -DCBLAS_LIBRARIES=/usr/local/opt/openblas/lib/libopenblas.dylib
-      -DBLAS_LIBRARIES=/usr/local/opt/openblas/lib/libopenblas.dylib
-      -DLAPACK_LIBRARIES=/usr/local/opt/openblas/lib/libopenblas.dylib
-      -DCBLAS_INCLUDE_DIR=/usr/local/opt/openblas/include"
+     EXTRA_CMAKE_FLAGS="-DCMAKE_CXX_FLAGS=-std=c++11 -DCMAKE_MACOSX_RPATH=ON -DCBLAS_LIBRARIES=/usr/local/opt/openblas/lib/libopenblas.dylib -DBLAS_LIBRARIES=/usr/local/opt/openblas/lib/libopenblas.dylib -DLAPACK_LIBRARIES=/usr/local/opt/openblas/lib/libopenblas.dylib -DCBLAS_INCLUDE_DIR=/usr/local/opt/openblas/include"
      CMAKE_BUILD_TYPE=Release BUILD_SHARED_LIBS=ON
   - os: linux
     compiler: gcc
