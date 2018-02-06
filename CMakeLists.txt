@@ -270,8 +270,6 @@ list(REMOVE_ITEM HMAT_SOURCES src/hmat_cpp_interface.cpp src/recursion.cpp) # be
 
 link_directories(${PROJECT_BINARY_DIR} ${BLAS_LIBRARY_DIRS})
 
-add_definitions(-D_GNU_SOURCE)
-
 if (MSVC)
     add_definitions(-D__func__=__FUNCTION__)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
