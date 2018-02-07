@@ -36,7 +36,7 @@ typedef double complex double_complex;
 typedef SSIZE_T ssize_t;
 #endif
 
-#if _WIN32 || !(_POSIX_C_SOURCE >= 200809L)
+#if _WIN32
 // getline is not defined in mingw
 #include <stdlib.h>
 size_t getline(char **lineptr, size_t *n, FILE *stream) {
@@ -90,6 +90,8 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
 
     return p - bufptr - 1;
 }
+#elif !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
 #endif
 
 
