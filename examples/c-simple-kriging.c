@@ -20,6 +20,11 @@
   http://github.com/jeromerobert/hmat-oss
 */
 
+#ifndef _GNU_SOURCE
+// for getline with old glibc
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <math.h>
 #ifdef __cplusplus
@@ -90,8 +95,6 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
 
     return p - bufptr - 1;
 }
-#elif !defined(_GNU_SOURCE)
-#define _GNU_SOURCE
 #endif
 
 
