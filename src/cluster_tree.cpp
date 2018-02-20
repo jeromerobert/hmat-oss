@@ -150,6 +150,8 @@ ClusterTree::~ClusterTree() {
 ClusterTree*
 ClusterTree::slice(int offset, int size) const
 {
+  assert(offset >= 0);
+  assert(size >= 0);
   ClusterTree* result = new ClusterTree(*this);
   result->data.offset_ = offset;
   result->data.size_ = size;

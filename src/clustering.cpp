@@ -64,7 +64,7 @@ public:
     bool operator()(int i, int j) {
         bool vi = coordinates_.spanSize(i) > threshold_;
         bool vj = coordinates_.spanSize(j) > threshold_;
-        return vi > vj;
+        return vi < vj;
     }
 };
 }
@@ -456,26 +456,30 @@ ClusteringAlgorithm* SpanClusteringAlgorithm::clone() const {
 
 void SpanClusteringAlgorithm::partition(
     ClusterTree& current, std::vector<ClusterTree*>& children) const {
-    int* indices = current.data.indices() + current.data.offset();
+    int offset = current.data.offset();
+    int* indices = current.data.indices() + offset;
     const DofCoordinates & coords = *current.data.coordinates();
     int n = current.data.size();
+    assert(n + offset <= current.data.coordinates()->numberOfDof());
     int threshold = n * ratio_;
     // move large span at the end of the indices array
     LargeSpanComparator comparator(coords, threshold);
     std::stable_sort(indices, indices + n, comparator);
     // create the large span cluster
     int i = n - 1;
-    while(i >= 0 && coords.spanSize(i) > threshold)
+    while(i >= 0 && coords.spanSize(indices[i]) > threshold)
         i--;
-    ClusterTree * largeSpanCluster = i < n - 1 ? current.slice(i, n - 1) : NULL;
+    ClusterTree * largeSpanCluster = i < n - 1 ? current.slice(offset + i + 1, n - i - 1) : NULL;
     // Call the delegate algorithm with a temporary cluster
     // containing only small span DOFs.
-    ClusterTree * smallSpanCluster = i > 0 ? current.slice(0, i) : NULL;
+    ClusterTree * smallSpanCluster = i >= 0 ? current.slice(offset, i + 1) : NULL;
     if(smallSpanCluster != NULL) {
         algo_.partition(*smallSpanCluster, children);
+        // avoid dofData_ deletion
+        smallSpanCluster->father = smallSpanCluster;
         delete smallSpanCluster;
     }
-    if(largeSpanCluster != NULL)
+    if(largeSpanCluster != NULL && !children.empty())
         children.push_back(largeSpanCluster);
 }
 
