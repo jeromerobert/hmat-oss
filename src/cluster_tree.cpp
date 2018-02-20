@@ -104,8 +104,9 @@ DofData*
 DofData::copy() const
 {
   DofData* result = new DofData(*coordinates_, group_index_);
-  memcpy(result->perm_i2e_, perm_i2e_, sizeof(int) * coordinates_->size());
-  memcpy(result->perm_e2i_, perm_e2i_, sizeof(int) * coordinates_->size());
+  size_t s = sizeof(int) * coordinates_->numberOfDof();
+  memcpy(result->perm_i2e_, perm_i2e_, s);
+  memcpy(result->perm_e2i_, perm_e2i_, s);
   return result;
 }
 

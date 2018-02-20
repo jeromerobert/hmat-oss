@@ -105,7 +105,7 @@ public:
   ~DofData();
 
   DofData* copy() const;
-  inline int size() const { return coordinates_->size(); }
+  inline int size() const { return coordinates_->numberOfDof(); }
 
 private:
   /// Indices array

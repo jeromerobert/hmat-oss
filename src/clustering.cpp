@@ -35,21 +35,21 @@ namespace {
 class IndicesComparator
 {
 private:
-  const double* coordinates_;
+  const hmat::DofCoordinates * coordinates_;
   const int* group_index_;
   const int dimension_;
   const int axis_;
 
 public:
   IndicesComparator(int axis, const hmat::ClusterData& data)
-    : coordinates_(&data.coordinates()->get(0,0))
+    : coordinates_(data.coordinates())
     , group_index_(data.group_index())
     , dimension_(data.coordinates()->dimension())
     , axis_(axis)
   {}
   bool operator() (int i, int j) {
     if (group_index_ == NULL || group_index_[i] == group_index_[j])
-      return coordinates_[i * dimension_ + axis_] < coordinates_[j * dimension_ + axis_];
+      return coordinates_->spanCenter(i, axis_) < coordinates_->spanCenter(j, axis_);
     return group_index_[i] < group_index_[j];
   }
 };
