@@ -124,9 +124,16 @@ public:
   }
 
   double spanCenter(unsigned dof, unsigned dim) const {
-      // Use the first point of the DOF span as DOF center.
-      // This may be precise enough
-      return spanPoint(dof, 0, dim);
+      if(spanOffsets_ == NULL) {
+          return v_[dof * dimension_ + dim];
+      } else {
+          unsigned offset = dof == 0 ? 0 : spanOffsets_[dof - 1];
+          double r = 0;
+          int n = spanSize(dof);
+          for(int i = 0; i < n; i++)
+              r += v_[spans_[offset + i] * dimension_ + dim];
+          return r / n;
+      }
   }
 
 private:
