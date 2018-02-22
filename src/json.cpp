@@ -83,17 +83,16 @@ void JSONDumper::nextChild(bool last) {
 void JSONDumper::dumpPoints() {
     string delimiter;
     const DofCoordinates* points = rows_->coordinates();
-    const double* coord = &points->get(0, 0);
     const int* indices = rows_->indices();
     const int dimension = points->dimension();
     out_ << "  \"points\": [" << endl;
     delimiter = "";
-    for (int i = 0; i < points->size(); i++) {
+    for (int i = 0; i < points->numberOfDof(); i++) {
         out_ << "    " << delimiter << "[";
         if (dimension > 0) {
-            out_ << coord[dimension * i];
+            out_ << points->spanCenter(i, 0);
             for (int dim = 1; dim < dimension; ++dim) {
-                out_ << ", " << coord[dimension * i + dim];
+                out_ << ", " << points->spanCenter(i, dim);
             }
         }
         out_ << "]" << endl;
@@ -104,7 +103,7 @@ void JSONDumper::dumpPoints() {
          << "  \"mapping\": [" << endl
          << "    ";
     delimiter = "";
-    for (int i = 0; i < points->size(); i++) {
+    for (int i = 0; i < points->numberOfDof(); i++) {
         out_ << delimiter << indices[i];
         delimiter = " ,";
     }
