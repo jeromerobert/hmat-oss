@@ -26,8 +26,9 @@ function(git_version label default_version)
         find_package(Git)
         if(GIT_FOUND)
             execute_process(COMMAND "${GIT_EXECUTABLE}"
-                --work-tree ${CMAKE_CURRENT_SOURCE_DIR} describe --dirty=-dirty --always --tags
-                OUTPUT_VARIABLE _GIT_DESCRIBE ERROR_QUIET)
+              describe --dirty=-dirty --always --tags
+	      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+              OUTPUT_VARIABLE _GIT_DESCRIBE ERROR_QUIET)
             if(_GIT_DESCRIBE)
                 string(STRIP ${_GIT_DESCRIBE} ${label}_VERSION)
                 # Remove nonnumeric prefix, if any
