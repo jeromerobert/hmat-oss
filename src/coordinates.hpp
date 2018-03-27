@@ -29,6 +29,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <algorithm>
 
 namespace hmat {
 
@@ -106,6 +107,34 @@ public:
       return spanOffsets_ == NULL ? size_ : numberOfDof_;
   }
 
+  /** Enlarge the given AABB so it include the given DOF */
+  void spanAABB(unsigned dof, double * bb) const {
+      int n = dof * dimension_;
+      if(spanOffsets_ == NULL) {
+          for (unsigned dim = 0; dim < dimension_; ++dim) {
+              double v = v_[n + dim];
+              bb[dim] = std::min(bb[dim], v);
+              bb[dim + dimension_] = std::max(bb[dim + dimension_], v);
+          }
+      } else {
+          double * aabb = spanAABBs_ + 2 * n;
+          for (unsigned dim = 0; dim < dimension_; ++dim) {
+              bb[dim] = std::min(bb[dim], aabb[dim]);
+              bb[dim + dimension_] = std::max(bb[dim + dimension_],
+                                     aabb[dim + dimension_]);
+          }
+      }
+  }
+
+  double spanDiameter(unsigned dof, int dim) const {
+      double d = 0;
+      if(spanOffsets_ != NULL) {
+          double * aabb = spanAABBs_ + 2 * dof * dimension_;
+          d = std::max(aabb[dim + dimension_] - aabb[dim], d);
+      }
+      return d;
+  }
+
   unsigned spanSize(unsigned dof) const {
       if(spanOffsets_ == NULL)
           return 1;
@@ -124,15 +153,11 @@ public:
   }
 
   double spanCenter(unsigned dof, unsigned dim) const {
-      if(spanOffsets_ == NULL) {
+      if(spanOffsets_ == NULL)
           return v_[dof * dimension_ + dim];
-      } else {
-          unsigned offset = dof == 0 ? 0 : spanOffsets_[dof - 1];
-          double r = 0;
-          int n = spanSize(dof);
-          for(int i = 0; i < n; i++)
-              r += v_[spans_[offset + i] * dimension_ + dim];
-          return r / n;
+      else {
+          double * aabb = spanAABBs_ + dof * dimension_ * 2;
+          return (aabb[dim] + aabb[dim + dimension_]) / 2;
       }
   }
 
@@ -152,6 +177,12 @@ private:
   unsigned numberOfDof_;
   unsigned * spanOffsets_;
   unsigned * spans_;
+  /**
+   * @brief min_x, miny, ..., maxx, maxy, ... for each DOF.
+   * This is NULL if span is not supportedx else the size is
+   * 2*dimension()*numberOfDof_.
+   */
+  double * spanAABBs_;
   void init(double* coord, unsigned * span_offsets, unsigned * spans);
 };
 

@@ -49,6 +49,27 @@ void DofCoordinates::init(double* coord, unsigned* span_offsets, unsigned* spans
         spanOffsets_ = span_offsets;
         spans_ = spans;
     }
+    if(spanOffsets_) {
+        spanAABBs_ = new double[numberOfDof_ * dimension_ * 2];
+        double * aabb = spanAABBs_;
+        for(int dof = 0; dof < numberOfDof_; dof++) {
+            unsigned offset = dof == 0 ? 0 : spanOffsets_[dof - 1];
+            int n = spanSize(dof);
+            double * v = v_ + spans_[offset] * dimension_;
+            memcpy(aabb, v, dimension_ * sizeof(double));
+            memcpy(aabb + dimension_, v, dimension_ * sizeof(double));
+            for(int i = 1; i < n; i++) {
+                v = v_ + spans_[offset + i] * dimension_;
+                for(int dim = 0; dim < dimension_; dim++) {
+                    aabb[dim] = std::min(aabb[dim], v[dim]);
+                    aabb[dim + dimension_] = std::max(aabb[dim + dimension_], v[dim]);
+                }
+            }
+            aabb += 2 * dimension_;
+        }
+    } else {
+        spanAABBs_ = NULL;
+    }
 }
 
 DofCoordinates::DofCoordinates(double* coord, unsigned dim, unsigned size, bool ownsMemory,
@@ -77,6 +98,8 @@ DofCoordinates::~DofCoordinates()
       delete[] spans_;
     }
   }
+  if(spanOffsets_ != NULL)
+    delete[] spanAABBs_;
 }
 
 int DofCoordinates::size() const {

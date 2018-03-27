@@ -191,13 +191,8 @@ AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
 
     for (unsigned i = 1; i < data.size(); ++i) {
         int dof = myIndices[i];
-        for (unsigned pointId = 0; pointId < coords.spanSize(dof); pointId++) {
-            for (unsigned dim = 0; dim < dimension_; ++dim) {
-                double v = coords.spanPoint(myIndices[i], pointId, dim);
-                bb_[dim] = std::min(bb_[dim], v);
-                bb_[dim + dimension_] = std::max(bb_[dim + dimension_], v);
-            }
-        }
+        for (unsigned pointId = 0; pointId < coords.spanSize(dof); pointId++)
+            coords.spanAABB(dof, bb_);
     }
 }
 
@@ -216,6 +211,23 @@ AxisAlignedBoundingBox::diameter() const
   }
 
   return sqrt(result);
+}
+
+double AxisAlignedBoundingBox::extends(int dim) const {
+    return bbMax()[dim] - bbMin()[dim];
+}
+
+int AxisAlignedBoundingBox::greatestDim() const {
+    double dmax = 0;
+    int imax = 0;
+    for(int i = 0; i < dimension_; ++i) {
+        double delta = bbMin()[i] - bbMax()[i];
+        if(delta > dmax) {
+            dmax = delta;
+            imax = i;
+        }
+    }
+    return imax;
 }
 
 double

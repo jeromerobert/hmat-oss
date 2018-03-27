@@ -57,16 +57,29 @@ public:
 /** @brief Compare two DOF based on their "large span" status */
 class LargeSpanComparator {
     const hmat::DofCoordinates& coordinates_;
-    int threshold_;
+    double threshold_;
+    int dimension_;
 public:
-    LargeSpanComparator(const hmat::DofCoordinates& coordinates, int threshold)
-        : coordinates_(coordinates), threshold_(threshold){}
+	LargeSpanComparator(const hmat::DofCoordinates& coordinates,
+        double threshold, int dimension)
+        : coordinates_(coordinates), threshold_(threshold), dimension_(dimension){}
     bool operator()(int i, int j) {
-        bool vi = coordinates_.spanSize(i) > threshold_;
-        bool vj = coordinates_.spanSize(j) > threshold_;
+        bool vi = coordinates_.spanDiameter(i, dimension_) > threshold_;
+        bool vj = coordinates_.spanDiameter(j, dimension_) > threshold_;
         return vi < vj;
     }
 };
+
+hmat::AxisAlignedBoundingBox* getAxisAlignedBoundingBox(const hmat::ClusterTree& node) {
+    hmat::AxisAlignedBoundingBox* bbox =
+        static_cast<hmat::AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
+    if (bbox == NULL) {
+        bbox = new hmat::AxisAlignedBoundingBox(node.data);
+        node.clusteringAlgoData_ = bbox;
+    }
+    return bbox;
+}
+
 }
 
 namespace hmat {
@@ -83,13 +96,7 @@ AxisAlignedBoundingBox*
 AxisAlignClusteringAlgorithm::getAxisAlignedBoundingbox(const ClusterTree& node)
 const
 {
-  AxisAlignedBoundingBox* bbox = static_cast<AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
-  if (bbox == NULL)
-  {
-    bbox = new AxisAlignedBoundingBox(node.data);
-    node.clusteringAlgoData_ = bbox;
-  }
-  return bbox;
+    return ::getAxisAlignedBoundingBox(node);
 }
 
 int
@@ -461,13 +468,15 @@ void SpanClusteringAlgorithm::partition(
     const DofCoordinates & coords = *current.data.coordinates();
     int n = current.data.size();
     assert(n + offset <= current.data.coordinates()->numberOfDof());
-    int threshold = n * ratio_;
+    AxisAlignedBoundingBox * aabb = ::getAxisAlignedBoundingBox(current);
+    int greatestDim = aabb->greatestDim();
+    double threshold = aabb->extends(greatestDim) * ratio_;
     // move large span at the end of the indices array
-    LargeSpanComparator comparator(coords, threshold);
+    LargeSpanComparator comparator(coords, threshold, greatestDim);
     std::stable_sort(indices, indices + n, comparator);
     // create the large span cluster
     int i = n - 1;
-    while(i >= 0 && coords.spanSize(indices[i]) > threshold)
+    while(i >= 0 && coords.spanDiameter(indices[i], greatestDim) > threshold)
         i--;
     ClusterTree * largeSpanCluster = i < n - 1 ? current.slice(offset + i + 1, n - i - 1) : NULL;
     // Call the delegate algorithm with a temporary cluster

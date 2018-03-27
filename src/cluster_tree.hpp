@@ -189,6 +189,8 @@ class AxisAlignedBoundingBox
 public:
     explicit AxisAlignedBoundingBox(const ClusterData& node);
     ~AxisAlignedBoundingBox();
+    double extends(int dim) const;
+    int greatestDim() const;
     double diameter() const;
     double distanceTo(const AxisAlignedBoundingBox& other) const;
     const double * bbMin() const { return bb_; }
