@@ -48,6 +48,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/HMATLibraryDepends.cmake")
 # These are IMPORTED targets created by HMATLibraryDepends.cmake
 set(HMAT_LIBRARIES "@HMAT_LIBRARIES@")
 
+# cblas
+set (HMAT_CBLAS_INCLUDE_DIR "@HMAT_CBLAS_INCLUDE_DIR@")
+set (HMAT_CBLAS_LIBRARIES "@HMAT_CBLAS_LIBRARIES@")
+
 if(CMAKE_VERSION VERSION_LESS 2.8.3)
   set(CMAKE_CURRENT_LIST_DIR)
 endif ()
