@@ -310,6 +310,16 @@ HMAT_API hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
 HMAT_API hmat_admissibility_t* hmat_create_admissibility_always(
         size_t max_size, unsigned int min_block, int split_rows, int split_cols);
 
+/**
+ * @brief Create an admissibility condiction which set all blocks as full
+ * @param max_block_size The maximum acceptable block size in number of values (rows * cols)
+ * @param min_nr_block The minimum acceptable number of blocks created with this condition
+ * @param split_rows Tel whether or not to split rows
+ * @param split_cols Tel whether or not to split cols
+ */
+HMAT_API hmat_admissibility_t* hmat_create_admissibility_never(
+        size_t max_size, unsigned int min_block, int split_rows, int split_cols);
+
 /* Delete admissibility condition */
 HMAT_API void hmat_delete_admissibility(hmat_admissibility_t * cond);
 

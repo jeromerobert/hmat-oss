@@ -153,7 +153,7 @@ StandardAdmissibilityCondition StandardAdmissibilityCondition::DEFAULT_ADMISSIBL
 
 AlwaysAdmissibilityCondition::AlwaysAdmissibilityCondition(size_t max_block_size, unsigned int min_block,
                                                            bool row_split, bool col_split):
-    max_block_size_(max_block_size), min_nr_block_(min_block), split_rows_cols_(row_split, col_split) {
+    max_block_size_(max_block_size), min_nr_block_(min_block), split_rows_cols_(row_split, col_split), never_(false) {
     HMAT_ASSERT(row_split || col_split);
 }
 
@@ -166,7 +166,7 @@ std::string AlwaysAdmissibilityCondition::str() const {
 }
 
 bool AlwaysAdmissibilityCondition::isLowRank(const ClusterTree&, const ClusterTree&) const {
-    return true;
+    return !never_;
 }
 
 std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterTree&, const ClusterTree&) const {
@@ -183,7 +183,6 @@ bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const
 }
 
 bool AlwaysAdmissibilityCondition::forceFull(const ClusterTree& rows, const ClusterTree& cols) const {
-    return (rows.data.size() <= 2 || cols.data.size() <= 2);
+    return never_ || rows.data.size() <= 2 || cols.data.size() <= 2;
 }
-
 }  // end namespace hmat

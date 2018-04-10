@@ -184,6 +184,14 @@ hmat_admissibility_t* hmat_create_admissibility_always(
         new hmat::AlwaysAdmissibilityCondition(max_size, min_block, split_rows, split_cols));
 }
 
+hmat_admissibility_t* hmat_create_admissibility_never(
+        size_t max_size, unsigned int min_block, int split_rows, int split_cols) {
+    hmat::AlwaysAdmissibilityCondition * r = new hmat::AlwaysAdmissibilityCondition(
+        max_size, min_block, split_rows, split_cols);
+    r->never(true);
+    return reinterpret_cast<hmat_admissibility_t*>(r);
+}
+
 void hmat_delete_admissibility(hmat_admissibility_t * cond) {
     delete static_cast<AdmissibilityCondition*>((void*)cond);
 }

@@ -159,6 +159,7 @@ class AlwaysAdmissibilityCondition : public AdmissibilityCondition {
     unsigned int min_nr_block_;
     std::pair<bool, bool> split_rows_cols_;
     mutable size_t max_block_size_impl_;
+    bool never_;
 public:
     /**
      * @brief AlwaysAdmissibilityCondition
@@ -175,6 +176,8 @@ public:
     std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree&) const;
     bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
     bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
-  };
+    /** @Brief Let this admissibility condition always create full blocks */
+    void never(bool n) { never_ = n; }
+};
 } //  end namespace hmat
 #endif
