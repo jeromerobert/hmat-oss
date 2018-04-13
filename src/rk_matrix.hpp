@@ -33,7 +33,7 @@
 namespace hmat {
 
 template<typename T> class HMatrix;
-template<typename T> class AssemblyFunction;
+template<typename T, template <typename> class F> class AssemblyFunction;
 class ClusterData;
 class IndexSet;
 
@@ -182,21 +182,6 @@ public:
       \return truncate(*this + m) A new matrix.
    */
   RkMatrix<T> *formattedAdd(const FullMatrix<T>* o, T alpha = Constants<T>::pone) const;
-  /** Addition of a matrix and formatted a RkMatrix.
-
-      The two matrices must be on the same sets of indices in the case
-      otherwise use RkMatrix::formattedAddParts. The formatted addition of R
-      and S is defined by:
-       \code
-       truncate(R + S)
-       \endcode
-      with the addition defined by the juxtaposition of the matrices A and B of
-      RkMatrix each component of the product.
-
-      \param o The matrix sum
-      \return truncate(*this + m) A new matrix.
-   */
-  RkMatrix<T> *formattedAdd(const RkMatrix<T>* o) const;
   /** Adds a list of RkMatrix to a RkMatrix.
 
       In this function, RkMatrix may include some
@@ -207,7 +192,7 @@ public:
       \param n Number of matrices to add
       \return truncate(*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  RkMatrix<T>* formattedAddParts(T* alpha, const RkMatrix<T>** parts, int n) const;
+  RkMatrix<T>* formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts, int n, bool truncate=true) const;
   /** Adds a list of MatrixXd (solid matrices) to RkMatrix.
 
       In this function, MatrixXd may cover a portion of
@@ -222,7 +207,7 @@ public:
       \param n Number of matrices to add
       \return truncate (*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  RkMatrix<T>* formattedAddParts(T* alpha, const FullMatrix<T>** parts,
+  RkMatrix<T>* formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts,
                                  const IndexSet** rowsList,
                                  const IndexSet** colsList, int n) const;
   void gemmRk(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);

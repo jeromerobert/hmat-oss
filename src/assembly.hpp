@@ -68,39 +68,16 @@ public:
 /**
  * An assembling which use a Function object to compute blocks
  */
-template<typename T> class AssemblyFunction: public Assembly<T> {
+template<typename T, template <typename> class F> class AssemblyFunction: public Assembly<T> {
 public:
-    AssemblyFunction(const Function<T> & function): function_(function) {}
+    AssemblyFunction(const F<T> function): function_(function) {}
     virtual void assemble(const LocalSettings & settings,
                           const ClusterTree & rows, const ClusterTree & cols,
                           bool admissible,
                           FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
                           const AllocationObserver & = AllocationObserver());
 protected:
-    const Function<T> & function_;
-};
-
-/**
- * @Deprecated use AssemblyFunction instead
- */
-template<typename T> class SimpleAssemblyFunction: public AssemblyFunction<T>, SimpleFunction<T> {
-public:
-    SimpleAssemblyFunction():
-        AssemblyFunction<T>(*static_cast<SimpleFunction<T>*>(this)) {}
-};
-
-/**
- * @Deprecated use AssemblyFunction instead
- */
-template<typename T> class BlockAssemblyFunction: public AssemblyFunction<T> {
-public:
-    BlockAssemblyFunction(const ClusterData* _rowData, const ClusterData* _colData,
-                           void* matrixUserData,
-                           hmat_prepare_func_t _prepare, hmat_compute_func_t _compute):
-        AssemblyFunction<T>(blockFunction),
-        blockFunction(_rowData, _colData, matrixUserData, _prepare, _compute){}
-protected:
-    BlockFunction<T> blockFunction;
+    const F<T> function_;
 };
 
 /** Abstract base class representing an assembly function.
@@ -140,11 +117,12 @@ public:
     \param rowIndex the row index in the subblock
     \param handle the optional handle created by \a AssemblyFunction::prepareBlock()
     \param result the computed row
+    \param stratum the stratum id or -1 for all strata
     \return the row as a \a Vector
   */
   virtual void getRow(const ClusterData* rows, const ClusterData* cols,
                       int rowIndex, void* handle,
-                      Vector<typename Types<T>::dp>* result) const = 0;
+                      Vector<typename Types<T>::dp>* result, int stratum) const = 0;
 
   /*! \brief Return a column of a matrix block.
 
@@ -157,11 +135,12 @@ public:
     \param colIndex the row index in the subblock
     \param handle the optional handle created by \a AssemblyFunction::prepareBlock()
     \param result the computed column
+    \param stratum the stratum id or -1 for all strata
     \return the column as a \a Vector
   */
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
-                      Vector<typename Types<T>::dp>* result) const = 0;
+                      Vector<typename Types<T>::dp>* result, int stratum) const = 0;
 };
 
 /**
@@ -170,18 +149,13 @@ public:
  */
 void initBlockInfo(hmat_block_info_t * info);
 
-/** Simple \a AssemblyFunction that allows to only redefine \a AssemblyFunction::interaction().
-
-    The rest of the function work by executing a trivial loop on
-    \a SimpleAssemblyFunction<T>::interaction().
- */
+/** C++ wrapper for hmat_interaction_func_t */
 template<typename T> class SimpleFunction : public Function<T> {
+  hmat_interaction_func_t compute_;
+  void * userContext_;
 public:
-  /**
-   * @brief Return the element (i, j) of the matrix.
-   * This function has to ignore any mapping.
-   */
-  virtual typename Types<T>::dp interaction(int i, int j) const = 0;
+  SimpleFunction(hmat_interaction_func_t compute, void * userContext):
+      compute_(compute), userContext_(userContext) {}
   virtual ~SimpleFunction() {}
   virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                                       const ClusterData* cols,
@@ -189,17 +163,16 @@ public:
                                                       const AllocationObserver & = AllocationObserver()) const;
   virtual void getRow(const ClusterData* rows, const ClusterData* cols,
                       int rowIndex, void* handle,
-                      Vector<typename Types<T>::dp>* result) const;
+                      Vector<typename Types<T>::dp>* result, int stratum) const;
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
-                      Vector<typename Types<T>::dp>* result) const;
+                      Vector<typename Types<T>::dp>* result, int stratum) const;
 };
 
-
 template<typename T> class BlockFunction : public Function<T> {
-private:
   hmat_prepare_func_t prepare;
-  hmat_compute_func_t compute;
+  void (*compute_)(struct hmat_block_compute_context_t*);
+  hmat_compute_func_t legacyCompute_;
   void* matrixUserData_;
   int* rowMapping;
   int* rowReverseMapping;
@@ -209,8 +182,9 @@ private:
                    hmat_block_info_t * block_info) const;
 public:
   BlockFunction(const ClusterData* _rowData, const ClusterData* _colData,
-                         void* matrixUserData_,
-                         hmat_prepare_func_t _prepare, hmat_compute_func_t _compute);
+                void* matrixUserData_, hmat_prepare_func_t _prepare,
+                hmat_compute_func_t legacyCompute,
+                void (*compute)(struct hmat_block_compute_context_t*));
   ~BlockFunction();
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,
@@ -220,12 +194,11 @@ public:
                             hmat_block_info_t * block_info, const AllocationObserver &) const;
   virtual void releaseBlock(hmat_block_info_t * block_info, const AllocationObserver &) const;
 
-  virtual void getRow(const ClusterData* rows, const ClusterData* cols,
-                      int rowIndex, void* handle, Vector<typename Types<T>::dp>* result) const;
+  virtual void getRow(const ClusterData* rows, const ClusterData* cols, int rowIndex,
+                      void* handle, Vector<typename Types<T>::dp>* result, int stratum) const;
 
-  virtual void getCol(const ClusterData* rows, const ClusterData* cols,
-                      int colIndex, void* handle,
-                      Vector<typename Types<T>::dp>* result) const;
+  virtual void getCol(const ClusterData* rows, const ClusterData* cols, int colIndex,
+                      void* handle, Vector<typename Types<T>::dp>* result, int stratum) const;
 };
 
 }  // end namespace hmat

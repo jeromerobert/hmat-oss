@@ -53,26 +53,23 @@ distanceTo(const DofCoordinates& points, int i, const Point& to)
   return r;
 }
 
-class KrigingAssemblyFunction : public SimpleAssemblyFunction<D_t> {
-private:
-  const DofCoordinates& points;
-  double l;
+class KrigingFunction {
+    const DofCoordinates& points;
+    double l;
 
 public:
-  /** Constructor.
+    KrigingFunction(const DofCoordinates& _points, double _l):
+         points(_points) , l(_l) {}
 
-      \param _mat The FullMatrix<T> the values are taken from.
-   */
-  KrigingAssemblyFunction(const DofCoordinates& _points, double _l)
-    : SimpleAssemblyFunction<D_t>(), points(_points), l(_l) {}
+    D_t interaction(int i, int j) const {
+        return exp(-fabs(distanceTo(points, i, j)) / l);
+    }
 
-  D_t interaction(int i, int j) const {
-    // Exponential
-    return exp(-fabs(distanceTo(points, i, j)) / l);
-  }
+    // static for C API
+    static void compute(void* me, int i, int j, void* result) {
+        *static_cast<D_t*>(result) = static_cast<KrigingFunction *>(me)->interaction(i, j);
+    }
 };
-
-
 
 void readPointsFromFile(const char* filename, std::vector<Point>& points) {
   std::ifstream f(filename);
@@ -147,8 +144,9 @@ int go(const char* pointsFilename) {
   ScalarArray<D_t>* rhs = createRhs(coord, l);
   ScalarArray<D_t> rhsCopy(n, 1);
   rhsCopy.copyMatrixAtOffset(rhs, 0, 0);
-
-  KrigingAssemblyFunction f(coord, l);
+  KrigingFunction kriginFunction(coord, l);
+  AssemblyFunction<D_t, SimpleFunction> f(
+      SimpleFunction<D_t>(&KrigingFunction::compute, &kriginFunction));
 
   ClusterTree* ct = createClusterTree(coord);
   std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
@@ -176,7 +174,7 @@ int go(const char* pointsFilename) {
   double rhsCopyNorm = rhsCopy.norm();
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
-      rhsCopy.get(i, 0) -= f.interaction(i, j) * rhs->get(j, 0);
+      rhsCopy.get(i, 0) -= kriginFunction.interaction(i, j) * rhs->get(j, 0);
     }
   }
   double diffNorm = rhsCopy.norm();

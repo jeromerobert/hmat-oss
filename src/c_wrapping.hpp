@@ -60,27 +60,6 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
             sym, (hmat::AdmissibilityCondition*)condition);
 }
 
-template<typename T>
-class SimpleCAssemblyFunction : public hmat::SimpleAssemblyFunction<T> {
-private:
-  hmat_interaction_func_t functor;
-  void* functor_extra_args;
-
-  /** Constructor.
-
-      \param _mat The FullMatrix<T> the values are taken from.
-   */
-public:
-  SimpleCAssemblyFunction(void* user_context, hmat_interaction_func_t &f)
-    : hmat::SimpleAssemblyFunction<T>(), functor(f), functor_extra_args(user_context) {}
-
-  typename hmat::Types<T>::dp interaction(int i, int j) const {
-    typename hmat::Types<T>::dp result;
-    (*functor)(functor_extra_args, i, j, &result);
-    return result;
-  }
-};
-
 template<typename T, template <typename> class E>
 void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
     DECLARE_CONTEXT;
@@ -95,16 +74,19 @@ void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
             hmat->factorize(ctx->factorization, ctx->progress);
     } else if(ctx->block_compute != NULL) {
         HMAT_ASSERT(ctx->simple_compute == NULL && ctx->assembly == NULL);
-        hmat::BlockAssemblyFunction<T> * f =
-            new hmat::BlockAssemblyFunction<T> (hmat->rows(), hmat->cols(),
-                ctx->user_context, ctx->prepare, ctx->block_compute);
+        hmat::AssemblyFunction<T, hmat::BlockFunction> * f =
+            new hmat::AssemblyFunction<T, hmat::BlockFunction> (
+            hmat::BlockFunction<T>(hmat->rows(), hmat->cols(),
+            ctx->user_context, ctx->prepare,
+            ctx->block_compute, ctx->advanced_compute));
         hmat->assemble(*f, sf, true, ctx->progress, true);
         if(!assembleOnly)
             hmat->factorize(ctx->factorization, ctx->progress);
     } else {
         HMAT_ASSERT(ctx->block_compute == NULL && ctx->assembly == NULL);
-        SimpleCAssemblyFunction<T> * f = new SimpleCAssemblyFunction<T>(
-            ctx->user_context, ctx->simple_compute);
+        hmat::AssemblyFunction<T, hmat::SimpleFunction> * f =
+            new hmat::AssemblyFunction<T, hmat::SimpleFunction>(
+            hmat::SimpleFunction<T>(ctx->simple_compute, ctx->user_context));
         hmat->assemble(*f, sf, true, ctx->progress, true);
         if(!assembleOnly)
             hmat->factorize(ctx->factorization, ctx->progress);

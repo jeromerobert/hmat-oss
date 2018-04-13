@@ -101,6 +101,8 @@ struct hmat_block_info_t_struct {
      * be called a second time to run the actual preparation.
      */
     size_t needed_memory;
+    /** the number of strata in the block */
+    int number_of_strata;
 };
 
 typedef struct hmat_block_info_t_struct hmat_block_info_t;
@@ -386,6 +388,24 @@ hmat_progress_t * hmat_default_progress();
  */
 typedef void (*hmat_iostream)(void * buffer, size_t n, void *user_data);
 
+/** */
+struct hmat_block_compute_context_t {
+	/**
+     * opaque pointer as set by \a prepare_func() in
+     * hmat_block_info_t.user_data
+     */
+    void* user_data;
+    /** Location and size of the block */
+    int row_start, row_count, col_start, col_count;
+    /** stratum id */
+    int stratum;
+    /**
+     * block pointer to the output buffer. No padding is allowed,
+	 * that is the leading dimension of the buffer must be its real
+	 * leading.
+	 */
+    void* block;
+};
 /**
  * Argument of the assemble_generic function.
  * Only one of block_compute, simple_compute or assembly can be non NULL.
@@ -401,6 +421,7 @@ typedef struct {
      */
     hmat_prepare_func_t prepare;
     hmat_compute_func_t block_compute;
+    void (*advanced_compute)(struct hmat_block_compute_context_t*);
     hmat_interaction_func_t simple_compute;
     /** Copy left lower values to the upper right of the matrix */
     int lower_symmetric;

@@ -72,11 +72,12 @@ public:
   const ClusterData* rows;
   const ClusterData* cols;
   hmat_block_info_t info;
+  int stratum;
   const AllocationObserver & allocationObserver_;
   ClusterAssemblyFunction(const Function<T>& _f,
                           const ClusterData* _rows, const ClusterData* _cols,
                           const AllocationObserver & allocationObserver)
-    : f(_f), rows(_rows), cols(_cols), allocationObserver_(allocationObserver) {
+    : f(_f), rows(_rows), cols(_cols), stratum(-1), allocationObserver_(allocationObserver) {
     f.prepareBlock(rows, cols, &info, allocationObserver_);
     assert((info.user_data == NULL) == (info.release_user_data == NULL));
   }
@@ -85,11 +86,11 @@ public:
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
     if (info.block_type != hmat_block_sparse || !info.is_null_row(&info, index))
-      f.getRow(rows, cols, index, info.user_data, &result);
+      f.getRow(rows, cols, index, info.user_data, &result, stratum);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
     if (info.block_type != hmat_block_sparse || !info.is_null_col(&info, index))
-      f.getCol(rows, cols, index, info.user_data, &result);
+      f.getCol(rows, cols, index, info.user_data, &result, stratum);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
     if (info.block_type != hmat_block_null)
@@ -731,19 +732,31 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
   return rk;
 }
 
+template<typename T> RkMatrix<typename Types<T>::dp>* compress(
+    CompressionMethod method, const Function<T>& f,
+    const ClusterData* rows, const ClusterData* cols,
+    const AllocationObserver & ao) {
+    typedef typename Types<T>::dp dp_t;
+    ClusterAssemblyFunction<T> block(f, rows, cols, ao);
+    if(block.info.number_of_strata > 1)
+        block.stratum = 0;
+    RkMatrix<dp_t>* rk = compressOneStratum(method, block);
+    rk->truncate(rk->approx.assemblyEpsilon);
+    for(block.stratum = 1; block.stratum < block.info.number_of_strata; block.stratum++) {
+        RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
+        RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, false);
+        delete rk;
+        delete stratumRk;
+        rk = sumRk;
+        rk->truncate(stratumRk->approx.assemblyEpsilon);
+    }
+    return rk;
+}
 
-/* Appele par HMatrix<T>::assemble() */
-template<typename T>
-RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
-                                          const Function<T>& f,
-                                          const ClusterData* rows,
-                                          const ClusterData* cols,
-                                          const AllocationObserver & ao) {
+template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
+    CompressionMethod method, ClusterAssemblyFunction<T> & block) {
   typedef typename Types<T>::dp dp_t;
-  RkMatrix<dp_t>* rk = NULL;
-  ClusterAssemblyFunction<T> block(f, rows, cols, ao);
-
-  rk = compressWithoutValidation(method, block);
+  RkMatrix<dp_t>* rk = compressWithoutValidation(method, block);
 
   if (HMatrix<T>::validateCompression) {
     FullMatrix<dp_t>* full = block.assemble();
@@ -764,7 +777,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
     rkFull->axpy(Constants<T>::mone, full);
     double diffNorm = rkFull->norm();
     if (diffNorm > HMatrix<T>::validationErrorThreshold * fullNorm ) {
-      std::cout << rows->description() << "x" << cols->description() << std::endl
+      std::cout << block.rows->description() << "x" << block.cols->description() << std::endl
            << std::scientific
            << "|M|  = " << fullNorm << std::endl
            << "|Rk| = " << approxNorm << std::endl
@@ -782,7 +795,7 @@ RkMatrix<typename Types<T>::dp>* compress(CompressionMethod method,
       if (HMatrix<T>::validationDump) {
         std::string filename;
         std::ostringstream convert;   // stream used for the conversion
-        convert << rows->description() << "x" << cols->description()  ;
+        convert << block.rows->description() << "x" << block.cols->description();
 
         filename = "Rk_";
         filename += convert.str(); // set 'Result' to the contents of the stream

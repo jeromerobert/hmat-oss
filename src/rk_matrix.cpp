@@ -450,12 +450,6 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
   delete tmp;
 }
 
-template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const RkMatrix<T>* o) const {
-  const RkMatrix<T>* parts[1] = {o};
-  T alpha[1] = {Constants<T>::pone};
-  return formattedAddParts(alpha, parts, 1);
-}
-
 template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>* o, T alpha) const {
   const FullMatrix<T>* parts[1] = {o};
   const IndexSet* rowsList[1] = {rows};
@@ -465,8 +459,8 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>*
 }
 
 template<typename T>
-RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
-                                            int n) const {
+RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
+                                            int n, bool dotruncate) const {
   // TODO check if formattedAddParts() actually uses sometimes this 'alpha' parameter (or is it always 1 ?)
   DECLARE_CONTEXT;
   // If only one of the parts is non-zero, then the recompression is not necessary to
@@ -492,6 +486,10 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
       notNullParts += 1;
     }
   }
+
+  if(notNullParts == 0)
+    return new RkMatrix<T>(NULL, rows, NULL, cols, minMethod);
+
   // In case the sum of the ranks of the sub-matrices is greater than
   // the matrix size, it is more efficient to put everything in a
   // full matrix.
@@ -555,13 +553,13 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const RkMatrix<T>** parts,
     kOffset += parts[i]->rank();
   }
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
-  if (notNullParts > 1) {
+  if (notNullParts > 1 && dotruncate) {
     rk->truncate(approx.recompressionEpsilon);
   }
   return rk;
 }
 template<typename T>
-RkMatrix<T>* RkMatrix<T>::formattedAddParts(T* alpha, const FullMatrix<T>** parts,
+RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts,
                                             const IndexSet **rowsList,
                                             const IndexSet **colsList, int n) const {
   DECLARE_CONTEXT;

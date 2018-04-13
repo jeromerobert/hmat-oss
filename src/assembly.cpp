@@ -35,8 +35,8 @@
 
 namespace hmat {
 
-template<typename T>
-void AssemblyFunction<T>::assemble(const LocalSettings &,
+template<typename T, template <typename> class F>
+void AssemblyFunction<T, F>::assemble(const LocalSettings &,
                                      const ClusterTree &rows,
                                      const ClusterTree &cols,
                                      bool admissible,
@@ -51,22 +51,7 @@ void AssemblyFunction<T>::assemble(const LocalSettings &,
       if (std::max(rows.data.size(), cols.data.size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
         method = Svd;
       }
-      RkMatrix<typename Types<T>::dp>* rkDp = compress<T>(method, function_, &(rows.data), &(cols.data),
-                                                          allocationObserver);
-      if (HMatrix<T>::recompress) {
-        // TODO: recompress with assemblyEpsilon or recompressionEpsilon?
-        // When matrix is used as a preconditioner, we may want to have a large recompressionEpsilon
-        // in order to speed-up factorization.  But right-hand sides must be computed accurately.
-        // Ideally epsilon should be passed as an argument (via LocalSettings?).  In the mean time,
-        // change only for Jacobi tests.
-        static char *env = getenv("HMAT_JACOBI");
-        if(env != NULL && strcmp(env, "JMRES") == 0) {
-          rkDp->truncate(rkDp->approx.assemblyEpsilon);
-        } else {
-          rkDp->truncate(rkDp->approx.recompressionEpsilon);
-        }
-      }
-      rkMatrix = fromDoubleRk<T>(rkDp);
+      rkMatrix = fromDoubleRk<T>(compress<T>(method, function_, &rows.data, &cols.data, allocationObserver));
     } else if (rows.data.size() && cols.data.size()) {
       fullMatrix = fromDoubleFull<T>(function_.assemble(&(rows.data), &(cols.data), NULL, allocationObserver));
     }
@@ -86,7 +71,7 @@ SimpleFunction<T>::assemble(const ClusterData* rows,
     int col = cols_indices[j];
     for (int i = 0; i < rows->size(); ++i) {
       int row = rows_indices[i];
-      result->get(i, j) = interaction(row, col);
+      compute_(userContext_, row, col, &result->get(i, j));
     }
   }
   return result;
@@ -94,38 +79,44 @@ SimpleFunction<T>::assemble(const ClusterData* rows,
 
 template<typename T>
 void SimpleFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
-                                       int rowIndex, void*,
-                                       Vector<typename Types<T>::dp>* result) const {
+                               int rowIndex, void*,
+                               Vector<typename Types<T>::dp>* result, int stratum) const {
+  (void)stratum; //unused with NDEBUG
+  assert(stratum == -1); // statum not supported here
   const int row = *(rows->indices() + rows->offset() + rowIndex);
   const int* cols_indices = cols->indices() + cols->offset();
   for (int j = 0; j < cols->size(); j++) {
-    result->m[j] = interaction(row, cols_indices[j]);
+    compute_(userContext_, row, cols_indices[j], result->m + j);
   }
 }
 
 template<typename T>
 void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
-                                       int colIndex, void*,
-                                       Vector<typename Types<T>::dp>* result) const {
+                               int colIndex, void*,
+                               Vector<typename Types<T>::dp>* result, int stratum) const {
+  (void)stratum; //unused with NDEBUG
+  assert(stratum == -1); // statum not supported here
   const int col = *(cols->indices() + cols->offset() + colIndex);
   const int* rows_indices = rows->indices() + rows->offset();
   for (int i = 0; i < rows->size(); i++) {
-    result->m[i] = interaction(rows_indices[i], col);
+    compute_(userContext_, rows_indices[i], col, result->m + i);
   }
 }
 
 
 template<typename T>
 BlockFunction<T>::BlockFunction(const ClusterData* rowData,
-                                                  const ClusterData* colData,
-                                                  void* matrixUserData,
-                                                  hmat_prepare_func_t _prepare,
-                                                  hmat_compute_func_t _compute)
-  : prepare(_prepare), compute(_compute), matrixUserData_(matrixUserData) {
+                                const ClusterData* colData,
+                                void* matrixUserData,
+                                hmat_prepare_func_t _prepare,
+                                hmat_compute_func_t legacyCompute,
+                                void (*compute)(struct hmat_block_compute_context_t*))
+  : prepare(_prepare), compute_(compute), legacyCompute_(legacyCompute), matrixUserData_(matrixUserData) {
   rowMapping = rowData->indices();
   colMapping = colData->indices();
   rowReverseMapping = rowData->indices_rev();
   colReverseMapping = colData->indices_rev();
+  assert(legacyCompute_ || compute_);
 }
 
 template<typename T>
@@ -146,9 +137,22 @@ BlockFunction<T>::assemble(const ClusterData* rows,
   else
     local_block_info = *block_info ;
 
-  if (local_block_info.block_type != hmat_block_null) {
+  if (local_block_info.block_type == hmat_block_null) {
+    // Nothing to do
+  } else if(compute_ == NULL) {
     result = new FullMatrix<typename Types<T>::dp>(rows, cols);
-    compute(local_block_info.user_data, 0, rows->size(), 0, cols->size(), (void*) result->data.m);
+    legacyCompute_(local_block_info.user_data, 0, rows->size(), 0, cols->size(), result->data.m);
+  } else {
+    result = new FullMatrix<typename Types<T>::dp>(rows, cols);
+    struct hmat_block_compute_context_t ac;
+    ac.block = result->data.m;
+    ac.col_count = cols->size();
+    ac.col_start = 0;
+    ac.row_count = rows->size();
+    ac.row_start = 0;
+    ac.stratum=-1;
+    ac.user_data=local_block_info.user_data;
+    compute_(&ac);
   }
 
   if (!block_info)
@@ -164,6 +168,7 @@ void initBlockInfo(hmat_block_info_t * info) {
     info->is_null_row = NULL;
     info->user_data = NULL;
     info->needed_memory = HMAT_NEEDED_MEMORY_UNSET;
+    info->number_of_strata = 1;
 }
 
 template<typename T>
@@ -195,29 +200,45 @@ void BlockFunction<T>::releaseBlock(hmat_block_info_t * block_info, const Alloca
 }
 
 template<typename T>
-void BlockFunction<T>::getRow(const ClusterData*,
-                                       const ClusterData* cols,
-                                       int rowIndex, void* handle,
-                                       Vector<typename Types<T>::dp>* result) const {
-  DECLARE_CONTEXT;
-  assert(handle);
-  compute(handle, rowIndex, 1, 0, cols->size(), (void*) result->m);
+void BlockFunction<T>::getRow(const ClusterData*, const ClusterData* cols,
+                              int rowIndex, void* handle,
+                              Vector<typename Types<T>::dp>* result, int stratum) const {
+    DECLARE_CONTEXT;
+    assert(handle);
+    if(compute_ == NULL) {
+        legacyCompute_(handle, rowIndex, 1, 0, cols->size(), result->m);
+    } else {
+        struct hmat_block_compute_context_t ac;
+        ac.block = result->m;
+        ac.col_count = cols->size();
+        ac.col_start = 0;
+        ac.row_count = 0;
+        ac.row_start = rowIndex;
+        ac.stratum=stratum;
+        ac.user_data=handle;
+        compute_(&ac);
+    }
 }
 
 template<typename T>
 void BlockFunction<T>::getCol(const ClusterData* rows,
-                                       const ClusterData*,
-                                       int colIndex, void* handle,
-                                       Vector<typename Types<T>::dp>* result) const {
-  DECLARE_CONTEXT;
-  assert(handle);
-  compute(handle, 0, rows->size(), colIndex, 1, (void*) result->m);
-
-  // for (int i = 0; i < rows->size(); i++) {
-  //   if (result->v[i] == Constants<T>::zero) {
-  //     assert(false);
-  //   }
-  // }
+                              const ClusterData*, int colIndex, void* handle,
+                              Vector<typename Types<T>::dp>* result, int stratum) const {
+    DECLARE_CONTEXT;
+    assert(handle);
+    if(compute_ == NULL) {
+        legacyCompute_(handle, 0, rows->size(), colIndex, 1, result->m);
+    } else {
+        struct hmat_block_compute_context_t ac;
+        ac.block = result->m;
+        ac.col_count = 1;
+        ac.col_start = colIndex;
+        ac.row_count = rows->size();
+        ac.row_start = 0;
+        ac.stratum=stratum;
+        ac.user_data=handle;
+        compute_(&ac);
+    }
 }
 template<typename T>
 void Function<T>::prepareBlock(const ClusterData*, const ClusterData*,
@@ -237,25 +258,19 @@ template class SimpleFunction<D_t>;
 template class SimpleFunction<C_t>;
 template class SimpleFunction<Z_t>;
 
-template class AssemblyFunction<S_t>;
-template class AssemblyFunction<D_t>;
-template class AssemblyFunction<C_t>;
-template class AssemblyFunction<Z_t>;
-
 template class BlockFunction<S_t>;
 template class BlockFunction<D_t>;
 template class BlockFunction<C_t>;
 template class BlockFunction<Z_t>;
 
-template class SimpleAssemblyFunction<S_t>;
-template class SimpleAssemblyFunction<D_t>;
-template class SimpleAssemblyFunction<C_t>;
-template class SimpleAssemblyFunction<Z_t>;
+template class AssemblyFunction<S_t, SimpleFunction>;
+template class AssemblyFunction<D_t, SimpleFunction>;
+template class AssemblyFunction<C_t, SimpleFunction>;
+template class AssemblyFunction<Z_t, SimpleFunction>;
 
-template class BlockAssemblyFunction<S_t>;
-template class BlockAssemblyFunction<D_t>;
-template class BlockAssemblyFunction<C_t>;
-template class BlockAssemblyFunction<Z_t>;
-
+template class AssemblyFunction<S_t, BlockFunction>;
+template class AssemblyFunction<D_t, BlockFunction>;
+template class AssemblyFunction<C_t, BlockFunction>;
+template class AssemblyFunction<Z_t, BlockFunction>;
 }  // end namespace hmat
 
