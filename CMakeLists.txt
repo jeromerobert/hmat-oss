@@ -363,7 +363,6 @@ macro(hmat_add_example name source)
 endmacro()
 
 hmat_add_example(kriging kriging.cpp)
-hmat_add_example(cylinder cylinder.cpp)
 hmat_add_example(c-cylinder c-cylinder.c)
 hmat_add_example(c-simple-cylinder c-simple-cylinder.c)
 hmat_add_example(c-simple-kriging c-simple-kriging.c)
