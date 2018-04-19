@@ -223,9 +223,6 @@ if ((NOT MKL_CBLAS_FOUND) AND (NOT is_debian_openblas))
     endif()
 endif()
 include_directories(${CBLAS_INCLUDE_DIR})
-# It's a mess to detect so we publish it up
-set(HMAT_CBLAS_INCLUDE_DIR ${CBLAS_INCLUDE_DIR} PARENT_SCOPE)
-set(HMAT_CBLAS_LIBRARIES "${BLAS_LIBRARIES};${CBLAS_LIBRARIES}" PARENT_SCOPE)
 
 # ========================
 # Warning flags
@@ -427,6 +424,10 @@ if(NOT DEFINED HMAT_LIBRARIES)
         "${PROJECT_BINARY_DIR}/InstallFiles/HMATConfig.cmake"
         "${PROJECT_BINARY_DIR}/InstallFiles/HMATConfigVersion.cmake"
         DESTINATION "${HMAT_CMAKE_DIR}" COMPONENT    Development)
+else()
+    # It's a mess to detect so we publish it up (temporary solution)
+    set(HMAT_CBLAS_INCLUDE_DIR ${CBLAS_INCLUDE_DIR} PARENT_SCOPE)
+    set(HMAT_CBLAS_LIBRARIES "${BLAS_LIBRARIES};${CBLAS_LIBRARIES}" PARENT_SCOPE)
 endif()
 
 # ========================
