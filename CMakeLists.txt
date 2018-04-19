@@ -257,7 +257,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 if(HMAT_EXPORT_BUILD_DATE AND NOT WIN32)
   # Regle pour toujours recompiler les sources contenant __DATE__ et __TIME__
-  add_custom_target(force ALL COMMAND ${CMAKE_COMMAND} -E touch ${PROJECT_BINARY_DIR}/forcedBuild.tmp)
+  add_custom_command(COMMAND ${CMAKE_COMMAND} -E touch ${PROJECT_BINARY_DIR}/forcedBuild.tmp
+    OUTPUT ${PROJECT_BINARY_DIR}/forcedBuild.tmp)
   set_source_files_properties( src/c_default_interface.cpp PROPERTIES OBJECT_DEPENDS ${PROJECT_BINARY_DIR}/forcedBuild.tmp)
 endif(HMAT_EXPORT_BUILD_DATE AND NOT WIN32)
 
