@@ -166,6 +166,7 @@ void initBlockInfo(hmat_block_info_t * info) {
     info->release_user_data = NULL;
     info->is_null_col = NULL;
     info->is_null_row = NULL;
+    info->is_user_compress = NULL;
     info->user_data = NULL;
     info->needed_memory = HMAT_NEEDED_MEMORY_UNSET;
     info->number_of_strata = 1;

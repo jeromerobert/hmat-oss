@@ -336,6 +336,33 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m) {
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
+compressUser(const ClusterAssemblyFunction<T>& block) {
+  typedef typename Types<T>::dp dp_t;
+  int k = 0;
+  int maxK = min(block.rows->size(), block.cols->size());
+
+  while( k < maxK && !block.info.is_null_col(&block.info, k) ) k++;
+
+  if(k==0) return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, NoCompression);
+
+  ScalarArray<dp_t> *newA = new ScalarArray<dp_t>(block.rows->size(), k);
+  ScalarArray<dp_t> *newB = new ScalarArray<dp_t>(block.cols->size(), k);
+
+  for (int i = 0; i < k; i++) {
+    Vector<dp_t> aCol(newA->m + (i * newA->rows), block.rows->size());
+    block.getCol(i, aCol);
+  }
+
+  for (int i = 0; i < k; i++) {
+    Vector<dp_t> bCol(newB->m + (i * newB->rows), block.cols->size());
+    block.getRow(i, bCol);
+  }
+
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, NoCompression);
+}
+
+template<typename T>
+static RkMatrix<typename Types<T>::dp>*
 compressSvd(const ClusterAssemblyFunction<T>& block) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
@@ -704,6 +731,10 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
                                                            const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
+  if(block.info.is_user_compress != NULL && block.info.is_user_compress(&block.info)) {
+    rk = compressUser(block);
+    return rk;
+  }
   switch (method) {
   case Svd:
     rk = compressSvd(block);

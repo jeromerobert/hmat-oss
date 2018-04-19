@@ -88,12 +88,20 @@ struct hmat_block_info_t_struct {
     /**
      * user data to pass from prepare function to compute function.
      * Will also contains user data required to execute is_null_row and
-     * is_null_col
+     * is_null_col and is_user_compress if not NULL.
+     *
+     * is_user_compress is a new user function used if not NULL.
+     * if true the classical compute rows and cols will provide directly
+     * b and a. is_null_col must be implemanted at the same time 
+     * to calulate the rank k (k <=min(rows, cols)). 
+     * The compute of column i function must return column i of "a"
+     * and compute of row i function must return the associated column i in "b".
      */
     void * user_data;
     void (*release_user_data)(void* user_data);
     char (*is_null_row)(const struct hmat_block_info_t_struct * block_info, int i);
     char (*is_null_col)(const struct hmat_block_info_t_struct * block_info, int i);
+    char (*is_user_compress)(const struct hmat_block_info_t_struct * block_info);
     /**
      * The memory needed to assemble the block.
      * When set to HMAT_NEEDED_MEMORY_UNSET the hmat_prepare_func_t should reset it
