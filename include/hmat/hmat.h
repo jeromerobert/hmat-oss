@@ -241,7 +241,7 @@ struct hmat_cluster_tree_create_context_t {
     unsigned number_of_dof;
     /**
      * Offset of each span in the spans array.
-     * if span_offset is NULL each span is concidered as a single point.
+     * if span_offset is NULL each span is considered as a single point.
      * if not NULL the size of this array must be number_of_dof.
      * span_offsets[0] is the offset of the dof 1 (not 0).
      * span_offset[number_of_dof-1] is the length of the spans array.
@@ -408,7 +408,8 @@ struct hmat_block_compute_context_t {
 };
 /**
  * Argument of the assemble_generic function.
- * Only one of block_compute, simple_compute or assembly can be non NULL.
+ * Only one of block_compute/advanced_compute, simple_compute or assembly can be non NULL.
+ * If both block_compute & advanced_compute are set, advanced is used.
  */
 typedef struct {
     /**
@@ -417,7 +418,7 @@ typedef struct {
     void* user_context;
     /**
      * The user context to pass to the prepare function.
-     * This is ignored if block_compute is NULL.
+     * This is ignored if block_compute/advanced_compute is NULL.
      */
     hmat_prepare_func_t prepare;
     hmat_compute_func_t block_compute;

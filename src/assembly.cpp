@@ -206,13 +206,14 @@ void BlockFunction<T>::getRow(const ClusterData*, const ClusterData* cols,
     DECLARE_CONTEXT;
     assert(handle);
     if(compute_ == NULL) {
-        legacyCompute_(handle, rowIndex, 1, 0, cols->size(), result->m);
+      assert(stratum == -1); // statum not supported here
+      legacyCompute_(handle, rowIndex, 1, 0, cols->size(), result->m);
     } else {
         struct hmat_block_compute_context_t ac;
         ac.block = result->m;
         ac.col_count = cols->size();
         ac.col_start = 0;
-        ac.row_count = 0;
+        ac.row_count = 1;
         ac.row_start = rowIndex;
         ac.stratum=stratum;
         ac.user_data=handle;
@@ -227,7 +228,8 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
     DECLARE_CONTEXT;
     assert(handle);
     if(compute_ == NULL) {
-        legacyCompute_(handle, 0, rows->size(), colIndex, 1, result->m);
+      assert(stratum == -1); // statum not supported here
+      legacyCompute_(handle, 0, rows->size(), colIndex, 1, result->m);
     } else {
         struct hmat_block_compute_context_t ac;
         ac.block = result->m;
