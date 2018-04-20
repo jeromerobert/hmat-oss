@@ -738,11 +738,16 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
     const AllocationObserver & ao) {
     typedef typename Types<T>::dp dp_t;
     ClusterAssemblyFunction<T> block(f, rows, cols, ao);
-    if(block.info.number_of_strata > 1)
+    int nloop=-1; // so we assemble only one strata
+    if(block.info.number_of_strata > 1 && (method == AcaPartial || method == AcaPlus)) {
         block.stratum = 0;
+        // enable strata assembling for AcaPartial & AcaPlus only
+        nloop = block.info.number_of_strata;
+    }
     RkMatrix<dp_t>* rk = compressOneStratum(method, block);
     rk->truncate(rk->approx.assemblyEpsilon);
-    for(block.stratum = 1; block.stratum < block.info.number_of_strata; block.stratum++) {
+    for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
+        assert(method == AcaPartial || method == AcaPlus);
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
         RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, false);
         delete rk;
