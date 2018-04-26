@@ -128,8 +128,10 @@ template<> double squaredNorm(const Z_t x) {
 }
 
 template<typename T> static bool isZero(const Vector<T>& v) {
-  int index = v.absoluteMaxIndex();
-  return v.m[index] == Constants<T>::zero;
+  for(int i = 0; i < v.rows; i++)
+    if (v.m[i] != Constants<T>::zero)
+      return false;
+  return true;
 }
 
 
