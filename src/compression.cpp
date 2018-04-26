@@ -85,18 +85,18 @@ public:
     f.releaseBlock(&info, allocationObserver_);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
-    if (info.block_type != hmat_block_sparse || !info.is_null_row(&info, index))
+    if (info.is_null_row == NULL || !info.is_null_row(&info, index, stratum))
       f.getRow(rows, cols, index, info.user_data, &result, stratum);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
-    if (info.block_type != hmat_block_sparse || !info.is_null_col(&info, index))
+    if (info.is_null_col == NULL || !info.is_null_col(&info, index, stratum))
       f.getCol(rows, cols, index, info.user_data, &result, stratum);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
     if (info.block_type != hmat_block_null)
       return f.assemble(rows, cols, &info, allocationObserver_) ;
     else
-      // TODO return
+      // TODO return NULL
       return new FullMatrix<typename Types<T>::dp>(rows, cols);
   }
 private:

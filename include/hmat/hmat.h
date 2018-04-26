@@ -92,8 +92,8 @@ struct hmat_block_info_t_struct {
      */
     void * user_data;
     void (*release_user_data)(void* user_data);
-    char (*is_null_row)(const struct hmat_block_info_t_struct * block_info, int i);
-    char (*is_null_col)(const struct hmat_block_info_t_struct * block_info, int i);
+    char (*is_null_row)(const struct hmat_block_info_t_struct * block_info, int i, int stratum);
+    char (*is_null_col)(const struct hmat_block_info_t_struct * block_info, int i, int stratum);
     /**
      * The memory needed to assemble the block.
      * When set to HMAT_NEEDED_MEMORY_UNSET the hmat_prepare_func_t should reset it
