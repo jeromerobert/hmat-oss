@@ -574,7 +574,7 @@ void HMatrix<T>::scale(T alpha) {
 }
 
 template<typename T>
-void HMatrix<T>::coarsen(HMatrix<T>* upper) {
+bool HMatrix<T>::coarsen(HMatrix<T>* upper) {
   // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
   // This is done if the memory of the resulting leaf is less than the sum of the initial
   // leaves. Note that this operation could be used hierarchically.
@@ -621,6 +621,8 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
       delete candidate;
     }
   }
+
+  return allRkLeaves;
 }
 
 template<typename T> const HMatrix<T> * HMatrix<T>::getChildForGEMM(char & t, int i, int j) const {

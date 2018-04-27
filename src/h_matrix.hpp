@@ -180,8 +180,9 @@ public:
      This is done if the memory of the resulting leaf is less than the sum of the initial
      leaves. Note that this operation could be used hierarchically.
      \param upper the symmetric of 'this', when building a non-sym matrix with a sym content
+     \return true if all leaves are rk (i.e. if coarsening was tryed, not if it succeded)
    */
-  void coarsen(HMatrix<T>* upper = NULL) ;
+  bool coarsen(HMatrix<T>* upper = NULL) ;
   /*! \brief HMatrix assembly.
    */
   void assemble(Assembly<T>& f, const AllocationObserver & = AllocationObserver());
