@@ -84,7 +84,7 @@ public:
     */
   std::string description() const {
     std::ostringstream convert;   // stream used for the conversion
-    convert << "[" << offset() << ", " << offset()+size()-1 << "]" ;
+    convert << "[" << offset() << ", " << size() << "]" ;
     return convert.str();
   }
 
