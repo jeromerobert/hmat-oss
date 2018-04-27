@@ -600,7 +600,6 @@ void HMatrix<T>::coarsen(HMatrix<T>* upper) {
     RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild());
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
     if (elements < childrenElements) {
-      cout << "Coarsening ! " << elements << " < " << childrenElements << endl;
       // Replace 'this' by the new Rk matrix
       for (int i = 0; i < this->nrChild(); i++)
         this->removeChild(i);
