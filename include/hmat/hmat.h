@@ -87,13 +87,21 @@ struct hmat_block_info_t_struct {
     hmat_block_t block_type;
     /**
      * user data to pass from prepare function to compute function.
-     * Will also contains user data required to execute is_null_row and
-     * is_null_col
+     * Will also contains user data required to execute is_guaranteed_null_row and
+     * is_guaranteed_null_col
      */
     void * user_data;
+    /*! \brief Function provided by the user in hmat_prepare_func_t and used to release user_data */
     void (*release_user_data)(void* user_data);
-    char (*is_null_row)(const struct hmat_block_info_t_struct * block_info, int i, int stratum);
-    char (*is_null_col)(const struct hmat_block_info_t_struct * block_info, int i, int stratum);
+    /*! \brief Function provided by the user in hmat_prepare_func_t and used to quickly detect null rows
+
+      It should be able to detect null rows very quickly, possibly without to compute them,
+      at the cost of possibly missing some null rows. It should return 1 for a null row,
+      O means that the row can be anything (null or non-null).
+    */
+    char (*is_guaranteed_null_row)(const struct hmat_block_info_t_struct * block_info, int i, int stratum);
+    /*! \brief Function provided by the user in hmat_prepare_func_t and used to quickly detect null columns (equivalent to  is_guaranteed_null_row) */
+    char (*is_guaranteed_null_col)(const struct hmat_block_info_t_struct * block_info, int i, int stratum);
     /**
      * The memory needed to assemble the block.
      * When set to HMAT_NEEDED_MEMORY_UNSET the hmat_prepare_func_t should reset it

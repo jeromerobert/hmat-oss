@@ -164,8 +164,8 @@ BlockFunction<T>::assemble(const ClusterData* rows,
 void initBlockInfo(hmat_block_info_t * info) {
     info->block_type = hmat_block_full;
     info->release_user_data = NULL;
-    info->is_null_col = NULL;
-    info->is_null_row = NULL;
+    info->is_guaranteed_null_col = NULL;
+    info->is_guaranteed_null_row = NULL;
     info->user_data = NULL;
     info->needed_memory = HMAT_NEEDED_MEMORY_UNSET;
     info->number_of_strata = 1;

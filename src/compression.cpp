@@ -85,11 +85,11 @@ public:
     f.releaseBlock(&info, allocationObserver_);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
-    if (info.is_null_row == NULL || !info.is_null_row(&info, index, stratum))
+    if (info.is_guaranteed_null_row == NULL || !info.is_guaranteed_null_row(&info, index, stratum))
       f.getRow(rows, cols, index, info.user_data, &result, stratum);
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
-    if (info.is_null_col == NULL || !info.is_null_col(&info, index, stratum))
+    if (info.is_guaranteed_null_col == NULL || !info.is_guaranteed_null_col(&info, index, stratum))
       f.getCol(rows, cols, index, info.user_data, &result, stratum);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
@@ -720,7 +720,7 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
     if(block.cols->size() * 100 < block.rows->size())
        // ACA+ start with a findMinRow call which will last for hours
        // if the block contains many null rows
-       // TODO: use is_null_row to make compressAcaPlus fast in all cases
+       // TODO: use is_guaranteed_null_row to make compressAcaPlus fast in all cases
        rk = compressAcaPartial(block);
     else
        rk = compressAcaPlus(block);
