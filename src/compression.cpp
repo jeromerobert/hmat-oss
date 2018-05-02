@@ -93,6 +93,7 @@ public:
       f.getCol(rows, cols, index, info.user_data, &result, stratum);
   }
   FullMatrix<typename Types<T>::dp>* assemble() const {
+    assert(stratum==-1);
     if (info.block_type != hmat_block_null)
       return f.assemble(rows, cols, &info, allocationObserver_) ;
     else
@@ -751,11 +752,13 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
     for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
         assert(method == AcaPartial || method == AcaPlus);
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
-        RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, false);
-        delete rk;
+        if (stratumRk->rank()>0) {
+          RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, true);
+          delete rk;
+          rk = sumRk;
+          //        rk->truncate(stratumRk->approx.assemblyEpsilon); We rather use the truncate in formattedAddParts() which is done only if needed
+        }
         delete stratumRk;
-        rk = sumRk;
-        rk->truncate(stratumRk->approx.assemblyEpsilon);
     }
     return rk;
 }
