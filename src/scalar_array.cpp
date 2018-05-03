@@ -119,8 +119,7 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
 
 template<typename T> void ScalarArray<T>::clear() {
   assert(lda == rows);
-  size_t size = ((size_t) rows) * cols * sizeof(T);
-  memset(m, 0, size);
+  std::fill(m, m + ((size_t) rows) * cols, Constants<T>::zero);
 }
 
 template<typename T> size_t ScalarArray<T>::storedZeros() {
@@ -154,7 +153,7 @@ template<typename T> void ScalarArray<T>::scale(T alpha) {
     T* x = m;
     if (alpha == Constants<T>::zero) {
       for (int col = 0; col < cols; col++) {
-        memset(x, 0, sizeof(T) * rows);
+        std::fill(x, x + rows, Constants<T>::zero);
         x += lda;
       }
     } else {
