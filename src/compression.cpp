@@ -85,13 +85,31 @@ public:
     f.releaseBlock(&info, allocationObserver_);
   }
   void getRow(int index, Vector<typename Types<T>::dp>& result) const {
-    if (info.is_guaranteed_null_row == NULL || !info.is_guaranteed_null_row(&info, index, stratum))
+    if (!HMatrix<T>::validateNullRowCol) {
+      // Normal mode: we compute except if a function is_guaranteed_null_row() is provided and tells it's null
+      if (!info.is_guaranteed_null_row || !info.is_guaranteed_null_row(&info, index, stratum))
+        f.getRow(rows, cols, index, info.user_data, &result, stratum);
+    } else {
+      // Validation mode: we always compute, and if a function is_guaranteed_null_row() tells it's null then we check that
       f.getRow(rows, cols, index, info.user_data, &result, stratum);
+      if (info.is_guaranteed_null_row && info.is_guaranteed_null_row(&info, index, stratum))
+        assert(isZero(result));
+    }
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
-    if (info.is_guaranteed_null_col == NULL || !info.is_guaranteed_null_col(&info, index, stratum))
+    if (!HMatrix<T>::validateNullRowCol) {
+      // Normal mode: we compute except if a function is_guaranteed_null_col() is provided and tells it's null
+      if (!info.is_guaranteed_null_col || !info.is_guaranteed_null_col(&info, index, stratum))
+        f.getCol(rows, cols, index, info.user_data, &result, stratum);
+    } else {
+      // Validation mode: we always compute, and if a function is_guaranteed_null_col() tells it's null then we check that
       f.getCol(rows, cols, index, info.user_data, &result, stratum);
+      if (info.is_guaranteed_null_col && info.is_guaranteed_null_col(&info, index, stratum))
+        assert(isZero(result));
+    }
   }
+
+
   FullMatrix<typename Types<T>::dp>* assemble() const {
     assert(stratum==-1);
     if (info.block_type != hmat_block_null)

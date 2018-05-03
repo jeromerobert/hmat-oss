@@ -57,6 +57,7 @@ static void setTemplatedParameters(const HMatSettings& s) {
   RkMatrix<T>::approx.recompressionEpsilon = s.recompressionEpsilon;
   RkMatrix<T>::approx.method = s.compressionMethod;
   RkMatrix<T>::approx.compressionMinLeafSize = s.compressionMinLeafSize;
+  HMatrix<T>::validateNullRowCol = s.validateNullRowCol;
   HMatrix<T>::validateCompression = s.validateCompression;
   HMatrix<T>::validationErrorThreshold = s.validationErrorThreshold;
   HMatrix<T>::validationReRun = s.validationReRun;

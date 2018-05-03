@@ -237,6 +237,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
     settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
     settings->coarsening = settingsCxx.coarsening;
     settings->recompress = settingsCxx.recompress;
+    settings->validateNullRowCol = settingsCxx.validateNullRowCol;
     settings->validateCompression = settingsCxx.validateCompression;
     settings->validationErrorThreshold = settingsCxx.validationErrorThreshold;
     settings->validationReRun = settingsCxx.validationReRun;
@@ -274,6 +275,7 @@ int hmat_set_parameters(hmat_settings_t* settings)
     settingsCxx.maxParallelLeaves = settings->maxParallelLeaves;
     settingsCxx.coarsening = settings->coarsening;
     settingsCxx.recompress = settings->recompress;
+    settingsCxx.validateNullRowCol = settings->validateNullRowCol;
     settingsCxx.validateCompression = settings->validateCompression;
     settingsCxx.validationErrorThreshold = settings->validationErrorThreshold;
     settingsCxx.validationReRun = settings->validationReRun;

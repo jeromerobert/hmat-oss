@@ -903,6 +903,8 @@ typedef struct
   int coarsening;
   /*! \brief Recompress the matrix after assembly. */
   int recompress;
+  /*! \brief Validate the detection of null rows and columns */
+  int validateNullRowCol;
   /*! \brief Validate the rk-matrices after compression */
   int validateCompression;
   /*! \brief Dump trace at the end of the algorithms (depends on the runtime) */

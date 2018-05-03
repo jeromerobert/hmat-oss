@@ -589,6 +589,8 @@ public:
   static bool coarsening;
   /// Should recompress the matrix after assembly
   static bool recompress;
+  /// Validate the functions is_guaranteed_null_col/row() (user provided)
+  static bool validateNullRowCol;
   /// Validate the rk-matrices after compression
   static bool validateCompression;
   /// For blocks above error threshold, re-run the compression algorithm

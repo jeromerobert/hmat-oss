@@ -63,6 +63,7 @@ public:
   int maxParallelLeaves; ///< max(|L0|)
   bool coarsening; ///< Coarsen the matrix structure after assembly.
   bool recompress; ////< Recompress the matrix after assembly.
+  bool validateNullRowCol; ///< Validate the detection of null rows and columns
   bool validateCompression; ///< Validate the rk-matrices after compression
   bool validationReRun; ///< For blocks above error threshold, re-run the compression algorithm
   bool dumpTrace; ///< Dump trace at the end of the algorithms (depends on the runtime)
@@ -76,7 +77,7 @@ private:
                    maxLeafSize(100),
                    maxParallelLeaves(5000),
                    coarsening(false),
-                   recompress(true), validateCompression(false),
+                   recompress(true), validateNullRowCol(false), validateCompression(false),
                    validationReRun(false), dumpTrace(false), validationDump(false), validationErrorThreshold(0.) {
     setParameters();
   }
