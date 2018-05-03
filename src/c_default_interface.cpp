@@ -308,13 +308,13 @@ void hmat_get_build_date(const char **date, const char **time)
 
 void hmat_assemble_context_init(hmat_assemble_context_t * context) {
     context->assembly = NULL;
+    context->simple_compute = NULL;
     context->block_compute = NULL;
     context->advanced_compute = NULL;
-    context->factorization = hmat_factorization_none;
-    context->lower_symmetric = 0;
-    context->prepare = NULL;
-    context->simple_compute = NULL;
     context->user_context = NULL;
+    context->prepare = NULL;
+    context->lower_symmetric = 0;
+    context->factorization = hmat_factorization_none;
     context->progress = DefaultProgress::getInstance();
 }
 
