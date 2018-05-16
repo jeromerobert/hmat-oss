@@ -147,7 +147,7 @@ public:
   double getEta() const;
   void setRatio(double ratio);
   static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;
-private:
+protected:
   double eta_;
   double ratio_;
   size_t maxElementsPerBlock_;
