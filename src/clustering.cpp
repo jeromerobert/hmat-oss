@@ -453,7 +453,9 @@ ClusterTreeBuilder::divide_recursive(ClusterTree& current) const
 
 SpanClusteringAlgorithm::SpanClusteringAlgorithm(
     const ClusteringAlgorithm &algo, double ratio):
-    algo_(algo), ratio_(ratio){}
+    algo_(algo), ratio_(ratio){
+    setMaxLeafSize(algo_.getMaxLeafSize());
+}
 
 std::string SpanClusteringAlgorithm::str() const {
     return "SpanClusteringAlgorithm";
