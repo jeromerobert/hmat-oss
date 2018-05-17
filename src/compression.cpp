@@ -779,13 +779,15 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
     for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
         assert(method == AcaPartial || method == AcaPlus);
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
-        bool stratumRank = stratumRk->rank();
-        RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, false);
-        delete rk;
-        delete stratumRk;
-        rk = sumRk;
-        if(stratumRank > 0)
+        if(stratumRk->rank() > 0) {
+            RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, false);
+            delete rk;
+            delete stratumRk;
+            rk = sumRk;
             rk->truncate(stratumRk->approx.assemblyEpsilon);
+        } else {
+            delete stratumRk;
+        }
     }
     return rk;
 }
