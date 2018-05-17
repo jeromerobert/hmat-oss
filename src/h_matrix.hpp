@@ -589,7 +589,7 @@ public:
   /// Should try to coarsen the matrix at assembly
   static bool coarsening;
   /// Should recompress the matrix after assembly
-  static bool recompress;
+  static bool recompress;//TODO: remove
   /// Validate the functions is_guaranteed_null_col/row() (user provided)
   static bool validateNullRowCol;
   /// Validate the rk-matrices after compression

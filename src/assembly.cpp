@@ -82,7 +82,7 @@ void SimpleFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
                                int rowIndex, void*,
                                Vector<typename Types<T>::dp>* result, int stratum) const {
   (void)stratum; //unused with NDEBUG
-  assert(stratum == -1); // statum not supported here
+  assert(stratum == -1); // stratum not supported here
   const int row = *(rows->indices() + rows->offset() + rowIndex);
   const int* cols_indices = cols->indices() + cols->offset();
   for (int j = 0; j < cols->size(); j++) {
@@ -95,7 +95,7 @@ void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
                                int colIndex, void*,
                                Vector<typename Types<T>::dp>* result, int stratum) const {
   (void)stratum; //unused with NDEBUG
-  assert(stratum == -1); // statum not supported here
+  assert(stratum == -1); // stratum not supported here
   const int col = *(cols->indices() + cols->offset() + colIndex);
   const int* rows_indices = rows->indices() + rows->offset();
   for (int i = 0; i < rows->size(); i++) {

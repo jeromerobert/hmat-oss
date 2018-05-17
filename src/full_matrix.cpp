@@ -118,6 +118,7 @@ template<typename T> void FullMatrix<T>::scale(T alpha) {
 template<typename T> void FullMatrix<T>::transpose() {
   data.transpose();
   std::swap(rows_, cols_);
+  // std::swap(triUpper_, triLower_) won't work because you can't swap bitfields
   if (triUpper_) {
     triUpper_ = false;
     triLower_ = true;

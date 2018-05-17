@@ -41,6 +41,7 @@ ScalarArray<T>* fromDoubleScalarArray(ScalarArray<typename Types<T>::dp>* d, boo
   }
   ScalarArray<T>* result = new ScalarArray<T>(d->rows, d->cols);
   assert(result);
+  assert(d->lda == d->rows) ; // we assume data are contiguous
   const size_t size = ((size_t) d->rows) * d->cols;
   T* const r = result->m;
   const typename Types<T>::dp* m = d->m;
@@ -69,6 +70,7 @@ FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f) {
   if (!f)
     return NULL;
   FullMatrix<T>* result = new FullMatrix<T>(f->rows_, f->cols_);
+  assert(f->data.lda == f->data.rows) ; // we assume data are contiguous
   const size_t size = ((size_t) f->data.rows) * f->data.cols;
   for (size_t i = 0; i < size; ++i) {
     result->data.m[i] = T(f->data.m[i]);

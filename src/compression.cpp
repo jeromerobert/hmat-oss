@@ -94,6 +94,7 @@ public:
       f.getRow(rows, cols, index, info.user_data, &result, stratum);
       if (info.is_guaranteed_null_row && info.is_guaranteed_null_row(&info, index, stratum))
         assert(isZero(result));
+      // TODO: in validation mode, we could also warn about undetected null rows or columns
     }
   }
   void getCol(int index, Vector<typename Types<T>::dp>& result) const {
@@ -111,6 +112,7 @@ public:
 
 
   FullMatrix<typename Types<T>::dp>* assemble() const {
+    assert(stratum == -1); // stratum not supported (yet) for full block assembly
     if (info.block_type != hmat_block_null)
       return f.assemble(rows, cols, &info, allocationObserver_) ;
     else
@@ -337,6 +339,7 @@ RkMatrix<T>* compressMatrix(FullMatrix<T>* m) {
 
   for (int col = 0; col < k; col++) {
     for (int row = 0; row < rowCount; row++) {
+      // TODO: split sigma evenly between u and v to have even norms between the 2
       u->get(row, col) *= sigma->m[col];
     }
   }

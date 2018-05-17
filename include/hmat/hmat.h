@@ -902,7 +902,7 @@ typedef struct
   /*! \brief Coarsen the matrix structure after assembly. */
   int coarsening;
   /*! \brief Recompress the matrix after assembly. */
-  int recompress;
+  int recompress; //TODO: remove
   /*! \brief Validate the detection of null rows and columns */
   int validateNullRowCol;
   /*! \brief Validate the rk-matrices after compression */
