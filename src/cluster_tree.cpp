@@ -221,7 +221,7 @@ int AxisAlignedBoundingBox::greatestDim() const {
     double dmax = 0;
     int imax = 0;
     for(int i = 0; i < dimension_; ++i) {
-        double delta = bbMin()[i] - bbMax()[i];
+        double delta = bbMax()[i] - bbMin()[i];
         if(delta > dmax) {
             dmax = delta;
             imax = i;
