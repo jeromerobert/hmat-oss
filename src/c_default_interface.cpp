@@ -349,7 +349,7 @@ hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, doub
     return result;
 }
 
-void hmat_delete_leaf_procedure(const hmat_leaf_procedure_t* proc) {
+void hmat_delete_leaf_procedure(hmat_leaf_procedure_t* proc) {
     switch (proc->value_type) {
     case HMAT_SIMPLE_PRECISION: delete static_cast<const hmat::LeafProcedure<HMatrix<S_t> >*>(proc->internal); break;
     case HMAT_DOUBLE_PRECISION: delete static_cast<const hmat::LeafProcedure<HMatrix<D_t> >*>(proc->internal); break;

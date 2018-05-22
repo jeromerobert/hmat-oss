@@ -187,11 +187,11 @@ typedef struct hmat_clustering_algorithm hmat_clustering_algorithm_t;
 typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
 
 /* Median clustering */
-HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_median();
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_median(void);
 /* Geometric clustering */
-HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_geometric();
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_geometric(void);
 /* Hybrid clustering */
-HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_hybrid();
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_hybrid(void);
 /* Create a new clustering algorithm by setting the maximum number of degrees of freedom in a leaf */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
 
@@ -393,7 +393,7 @@ typedef struct hmat_progress_struct {
  * Return the default progress bar.
  * This is a singleton which must/can not be freed.
  */
-hmat_progress_t * hmat_default_progress();
+hmat_progress_t * hmat_default_progress(void);
 
 /**
  * Function representing a generic stream.
@@ -799,11 +799,11 @@ hmat
     int (*add_identity)(hmat_matrix_t* hmatrix, void *alpha);
     /*! \brief Initialize library
      */
-    int (*init)();
+    int (*init)(void);
 
     /*! \brief Do the cleanup
      */
-    int (*finalize)();
+    int (*finalize)(void);
 
     /*! \brief Get current informations
         \param hmatrix A hmatrix
@@ -938,7 +938,7 @@ HMAT_API void hmat_print_parameters(hmat_settings_t*);
  * \brief hmat_get_version
  * \return The version of this library
  */
-HMAT_API const char * hmat_get_version();
+HMAT_API const char * hmat_get_version(void);
 /*!
  * \brief hmat_get_build_date
  * \return The build date and time of this library
