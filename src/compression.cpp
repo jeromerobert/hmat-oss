@@ -112,7 +112,14 @@ public:
 
 
   FullMatrix<typename Types<T>::dp>* assemble() const {
-    assert(stratum == -1); // stratum not supported (yet) for full block assembly
+    if(stratum != -1) {
+      ScalarArray<typename Types<T>::dp> *mat = new ScalarArray<typename Types<T>::dp>(rows->size(), cols->size());
+      for(int j = 0 ; j < cols->size(); j++) {
+	Vector<typename Types<T>::dp> vec(mat->m + j*rows->size(), rows->size());
+	getCol(j, vec);
+      }
+      return new FullMatrix<typename Types<T>::dp>(mat, rows, cols);
+    }
     if (info.block_type != hmat_block_null)
       return f.assemble(rows, cols, &info, allocationObserver_) ;
     else
@@ -825,7 +832,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
       if (HMatrix<T>::validationDump) {
         std::string filename;
         std::ostringstream convert;   // stream used for the conversion
-        convert << block.rows->description() << "x" << block.cols->description();
+        convert << block.stratum << "_"<< block.rows->description() << "x" << block.cols->description();
 
         filename = "Rk_";
         filename += convert.str(); // set 'Result' to the contents of the stream
