@@ -274,7 +274,7 @@ public:
     If a NaN is found, an assertion is triggered.
    */
   void checkNan() const;
-  size_t memorySize() const;
+  size_t memorySize() const; //TODO not used
 
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320, 452]x[760, 890] norm=22.34758")
     */

@@ -265,7 +265,7 @@ void FullMatrix<T>::ldltDecomposition() {
 }
 
 template<typename T> void assertPositive(T v) {
-    HMAT_ASSERT_MSG(v != Constants<T>::zero, "Non positive diagonal value in LLt");
+    HMAT_ASSERT_MSG(v != Constants<T>::zero, "Null diagonal value in LLt");
 }
 
 template<> void assertPositive(S_t v) {

@@ -276,7 +276,7 @@ public:
 
     The result .ps file shows the matrix structure and the compression ratio. In
     the output, red = full block, green = compressed. The darker the green, the
-    worst the compression ration is. There is saturation at black when the block
+    worst the compression ratio is. There is saturation at black when the block
     size is divided by less than 5.
 
     \param filename output filename.

@@ -217,6 +217,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
     delete rk;
+    // TODO: shouldn't we 'return' here ? the rest of the code below is an expensive way to apply the epsilon of recompression...
   }
 
   static char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
@@ -298,8 +299,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     return;
   }
 
-  // We put the root of singular values in sigma
-  for (int i = 0; i < rank(); i++) {
+  // We put the square root of singular values in sigma
+  for (int i = 0; i < newK; i++) {
     sigma->m[i] = sqrt(sigma->m[i]);
   }
   // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
