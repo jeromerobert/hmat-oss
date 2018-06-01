@@ -37,7 +37,7 @@ namespace hmat {
     \param vt
     \return
  */
-template<typename T> int truncatedSvd(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt);
+template<typename T> int svdDecomposition(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt);
 /** QR matrix decomposition.
 
     Warning: m is modified!

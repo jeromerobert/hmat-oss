@@ -45,7 +45,7 @@ class IndexSet;
     \return A RkMatrix approximationg the argument \a m.
 */
 template<typename T>
-RkMatrix<T>* compressMatrix(FullMatrix<T>* m);
+RkMatrix<T>* truncatedSvd(FullMatrix<T>* m);
 
 /** Compress a block into an RkMatrix.
 

@@ -237,7 +237,7 @@ template<> int sddCall<hmat::Z_t>(char jobz, int m, int n, hmat::Z_t* a, int lda
 
 namespace hmat {
 
-template<typename T> int truncatedSdd(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt) {
+template<typename T> int sddDecomposition(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt) {
   DECLARE_CONTEXT;
 
 
@@ -276,11 +276,11 @@ template<typename T> int truncatedSdd(ScalarArray<T>* m, ScalarArray<T>** u, Vec
   return info;
 }
 
-template<typename T> int truncatedSvd(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt) {
+template<typename T> int svdDecomposition(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt) {
   DECLARE_CONTEXT;
   static char * useGESSD = getenv("HMAT_GESSD");
   if(useGESSD)
-      return truncatedSdd(m, u, sigma, vt);
+      return sddDecomposition(m, u, sigma, vt);
 
   // Allocate free space for U, S, V
   int rows = m->rows;
@@ -321,10 +321,10 @@ template<typename T> int truncatedSvd(ScalarArray<T>* m, ScalarArray<T>** u, Vec
 }
 
 // Explicit instantiations
-template int truncatedSvd(ScalarArray<S_t>* m, ScalarArray<S_t>** u, Vector<double>** sigma, ScalarArray<S_t>** vt);
-template int truncatedSvd(ScalarArray<D_t>* m, ScalarArray<D_t>** u, Vector<double>** sigma, ScalarArray<D_t>** vt);
-template int truncatedSvd(ScalarArray<C_t>* m, ScalarArray<C_t>** u, Vector<double>** sigma, ScalarArray<C_t>** vt);
-template int truncatedSvd(ScalarArray<Z_t>* m, ScalarArray<Z_t>** u, Vector<double>** sigma, ScalarArray<Z_t>** vt);
+template int svdDecomposition(ScalarArray<S_t>* m, ScalarArray<S_t>** u, Vector<double>** sigma, ScalarArray<S_t>** vt);
+template int svdDecomposition(ScalarArray<D_t>* m, ScalarArray<D_t>** u, Vector<double>** sigma, ScalarArray<D_t>** vt);
+template int svdDecomposition(ScalarArray<C_t>* m, ScalarArray<C_t>** u, Vector<double>** sigma, ScalarArray<C_t>** vt);
+template int svdDecomposition(ScalarArray<Z_t>* m, ScalarArray<Z_t>** u, Vector<double>** sigma, ScalarArray<Z_t>** vt);
 
 template<typename T> T* qrDecomposition(ScalarArray<T>* m) {
   DECLARE_CONTEXT;

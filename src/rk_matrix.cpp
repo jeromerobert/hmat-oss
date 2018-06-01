@@ -212,7 +212,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // TODO: in this case, the epsilon of recompression is not respected
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
-    RkMatrix<T>* rk = compressMatrix(tmp);
+    RkMatrix<T>* rk = truncatedSvd(tmp);
     delete tmp;
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
@@ -278,7 +278,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // Ra Rb^t
     myTrmm<T>(&rAFull, b);
     // SVD of Ra Rb^t
-    ierr = truncatedSvd<T>(&rAFull, &u, &sigma, &vt); // TODO use something else than SVD ?
+    ierr = svdDecomposition<T>(&rAFull, &u, &sigma, &vt); // TODO use something else than SVD ?
     HMAT_ASSERT(!ierr);
   }
 
@@ -376,7 +376,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
     // SVD
-    int ierr = truncatedSvd<T>(&matR, &ur, &sr, &vhr);
+    int ierr = svdDecomposition<T>(&matR, &ur, &sr, &vhr);
     // On output, ur->rows = kA, vhr->cols = kB
     HMAT_ASSERT(!ierr);
   }
@@ -583,7 +583,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>*
       }
     }
   }
-  RkMatrix<T>* result = compressMatrix(me); // TODO compress with something else than SVD
+  RkMatrix<T>* result = truncatedSvd(me); // TODO compress with something else than SVD
   delete me;
   return result;
 }
@@ -1021,7 +1021,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = compressMatrix(fullMat);
+        rk = truncatedSvd(fullMat);
         delete fullMat;
       }
     }
