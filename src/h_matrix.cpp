@@ -1261,7 +1261,7 @@ template<typename T>
 void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, MainOp) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
   if (a && b) {
-  if (isVoid() || a->isVoid())
+    if (isVoid() || a->isVoid())
       return;
 
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
@@ -1295,11 +1295,10 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
     b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
     return;
   }
-
-} else {
+  }
   this->scale(beta);
-  return;
-}
+
+  if (!a || !b) return;
 
   if((a->isLeaf() && a->isNull()) || (b->isLeaf() && b->isNull())) {
       if(!isAssembled() && this->isLeaf())
