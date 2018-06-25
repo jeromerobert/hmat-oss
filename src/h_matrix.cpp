@@ -920,6 +920,10 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
        (!rows->isSubset(*(this->rows())) || !cols->isSubset(*(this->cols())))) // TODO cette ligne me parait louche... si rows et cols sont pas bons, on renvoie 'this' sans meme se plaindre ???
         return const_cast<HMatrix<T>*>(this);
 
+    // this could be implemented but if you need it you more
+    // likely have something to fix at a higher level.
+    assert(!this->isNull());
+
     if(this->isLeaf()) {
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
         tmpMatrix->temporary_=true;
