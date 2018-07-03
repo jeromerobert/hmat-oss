@@ -32,13 +32,13 @@ namespace hmat {
 template<typename T>
 void MatrixStructMarshaller<T>::write(const ClusterTree * clusterTree) {
     const ClusterData & d = clusterTree->data;
-    int s = d.coordinates()->size();
+    int s = d.coordinates()->numberOfDof();
     int dim = d.coordinates()->dimension();
     writeValue(s);
     writeValue(dim);
     for(int j = 0; j < s; j++) {
         for(int i = 0; i < dim; i++) {
-            writeValue(d.coordinates()->get(i, j));
+            writeValue(d.coordinates()->spanCenter(j, i));
         }
     }
     writeFunc_(d.indices(), s * sizeof(int), userData_);
