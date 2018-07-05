@@ -196,8 +196,9 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
     double middlePosition = bbox->bbMin()[dim] + (i / (double)divider_) *
       (bbox->bbMax()[dim] - bbox->bbMin()[dim]);
     int* myIndices = current.data.indices() + current.data.offset();
-    const double* coord = &current.data.coordinates()->get(0,0);
-    while (middleIndex < current.data.size() && coord[myIndices[middleIndex]*spatialDimension_+dim] < middlePosition) {
+    const DofCoordinates & coord = *current.data.coordinates();
+    while (middleIndex < current.data.size() &&
+      coord.spanCenter(myIndices[middleIndex], dim) < middlePosition) {
       middleIndex++;
     }
     if (NULL != current.data.group_index())
@@ -221,7 +222,7 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
           middleIndex = upper;
         else if (upper == current.data.size())
           middleIndex = lower + 1;
-        else if (coord[myIndices[upper]*spatialDimension_+dim] + coord[myIndices[lower]*spatialDimension_+dim] < 2.0 * middlePosition)
+        else if (coord.spanCenter(myIndices[upper], dim) + coord.spanCenter(myIndices[lower], dim) < 2 * middlePosition)
           middleIndex = upper;
         else
           middleIndex = lower + 1;
