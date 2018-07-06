@@ -192,7 +192,9 @@ public:
     double extends(int dim) const;
     int greatestDim() const;
     double diameter() const;
+    double diameterSqr() const;
     double distanceTo(const AxisAlignedBoundingBox& other) const;
+    double distanceToSqr(const AxisAlignedBoundingBox& other) const;
     const double * bbMin() const { return bb_; }
     const double * bbMax() const { return bb_ + dimension_; }
 };

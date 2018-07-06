@@ -201,7 +201,7 @@ AxisAlignedBoundingBox::~AxisAlignedBoundingBox() {
 }
 
 double
-AxisAlignedBoundingBox::diameter() const
+AxisAlignedBoundingBox::diameterSqr() const
 {
   double result = 0.0;
   for(int i = 0; i < dimension_; ++i)
@@ -210,7 +210,11 @@ AxisAlignedBoundingBox::diameter() const
     result += delta * delta;
   }
 
-  return sqrt(result);
+  return result;
+}
+
+double AxisAlignedBoundingBox::diameter() const {
+    return sqrt(diameterSqr());
 }
 
 double AxisAlignedBoundingBox::extends(int dim) const {
@@ -231,7 +235,7 @@ int AxisAlignedBoundingBox::greatestDim() const {
 }
 
 double
-AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) const
+AxisAlignedBoundingBox::distanceToSqr(const AxisAlignedBoundingBox& other) const
 {
   double result = 0.;
   double difference = 0.;
@@ -244,7 +248,11 @@ AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) const
     result += difference * difference;
   }
 
-  return sqrt(result);
+  return result;
+}
+
+double AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) const {
+    return sqrt(distanceToSqr(other));
 }
 
 }  // end namespace hmat
