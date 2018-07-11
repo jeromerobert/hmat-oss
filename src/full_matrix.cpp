@@ -214,6 +214,25 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
 }
 
 template<typename T>
+class InvalidDiagonalException: public LapackException {
+    std::string invalidDiagonalMessage_;
+public:
+    InvalidDiagonalException(const T value, const int j, const char * where)
+      : LapackException(where, -1)
+    {
+        std::stringstream sstm;
+        sstm << "In " << where << ", diagonal index "<< j << " has an invalid value " << value;
+        invalidDiagonalMessage_ = sstm.str();
+    }
+
+    virtual const char* what() const throw() {
+        return invalidDiagonalMessage_.c_str();
+    }
+
+    virtual ~InvalidDiagonalException() throw() {}
+};
+
+template<typename T>
 void FullMatrix<T>::ldltDecomposition() {
   // Void matrix
   if (rows() == 0 || cols() == 0) return;
@@ -247,7 +266,8 @@ void FullMatrix<T>::ldltDecomposition() {
         get(k,j) -= get(k,i) * v[i];
 
     for (int k = j+1; k < n; k++) {
-      HMAT_ASSERT_MSG(v[j] != Constants<T>::zero, "Division by 0 in LDLt");
+      if (v[j] == Constants<T>::zero)
+        throw InvalidDiagonalException<T>(v[j], j, "ldltDecomposition");
       get(k,j) /= v[j];
     }
   }
@@ -264,16 +284,19 @@ void FullMatrix<T>::ldltDecomposition() {
   delete[] v;
 }
 
-template<typename T> void assertPositive(T v) {
-    HMAT_ASSERT_MSG(v != Constants<T>::zero, "Null diagonal value in LLt");
+template<typename T> void assertPositive(const T v, const int j, const char * const where) {
+    if(v == Constants<T>::zero)
+      throw InvalidDiagonalException<T>(v, j, where);
 }
 
-template<> void assertPositive(S_t v) {
-    HMAT_ASSERT_MSG(v > 0, "Non positive diagonal value in LLt");
+template<> void assertPositive(const S_t v, const int j, const char * const where) {
+    if(!(v > 0))
+      throw InvalidDiagonalException<S_t>(v, j, where);
 }
 
-template<> void assertPositive(D_t v) {
-    HMAT_ASSERT_MSG(v > 0, "Non positive diagonal value in LLt");
+template<> void assertPositive(D_t v, int j, const char * const where) {
+    if(!(v > 0))
+      throw InvalidDiagonalException<D_t>(v, j, where);
 }
 
 template<typename T> void FullMatrix<T>::lltDecomposition() {
@@ -297,7 +320,7 @@ template<typename T> void FullMatrix<T>::lltDecomposition() {
   for (int j = 0; j < n; j++) {
     for (int k = 0; k < j; k++)
       get(j,j) -= get(j,k) * get(j,k);
-    assertPositive(get(j, j));
+    assertPositive(get(j, j), j, "lltDecomposition");
 
     get(j,j) = std::sqrt(get(j,j));
 
@@ -342,7 +365,8 @@ void FullMatrix<T>::luDecomposition() {
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   info = proxy_lapack::getrf(rows(), cols(), data.m, data.lda, pivots);
-  HMAT_ASSERT(!info);
+  if (info)
+    throw hmat::LapackException("getrf", info);
 }
 
 // The following code is very close to that of ZGETRS in LAPACK.
@@ -420,7 +444,8 @@ void FullMatrix<T>::solve(ScalarArray<T>* x) const {
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   ierr = proxy_lapack::getrs('N', rows(), x->cols, data.m, data.lda, pivots, x->m, x->rows);
-  HMAT_ASSERT(!ierr);
+  if (ierr)
+    throw hmat::LapackException("getrs", ierr);
 }
 
 
@@ -458,7 +483,8 @@ void FullMatrix<T>::inverse() {
   HMAT_ASSERT(work);
   info = proxy_lapack::getri(rows(), data.m, data.lda, ipiv, work, workSize);
   delete[] work;
-  HMAT_ASSERT(!info);
+  if (info)
+    throw hmat::LapackException("getri", info);
   delete[] ipiv;
 }
 
