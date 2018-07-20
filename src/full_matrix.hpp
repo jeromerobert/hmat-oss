@@ -252,11 +252,11 @@ public:
 
       There are 2 types to allow matrix modification or not.
    */
-  T& get(int i, int j) {
-    return data.m[i + ((size_t) data.lda) * j];
+  inline T& get(int i, int j) {
+    return data.get(i,j);
   }
-  T get(int i, int j) const {
-    return data.m[i + ((size_t) data.lda) * j];
+  inline T get(int i, int j) const {
+    return data.get(i,j);
   }
   /** Simpler accessors for the diagonal.
 
@@ -264,16 +264,20 @@ public:
       with \a FullMatrix::ldltDecomposition() beforehand.
    */
   T getD(int i) const {
-    return diagonal->m[i];
+    return (*diagonal)[i];
   }
   T& getD(int i) {
-    return diagonal->m[i];
+    return (*diagonal)[i];
   }
   /*! Check the matrix for the presence of NaN numbers.
 
     If a NaN is found, an assertion is triggered.
    */
   void checkNan() const;
+
+  /*! Conjugate the content of the complex matrix */
+  void conjugate();
+
   size_t memorySize() const; //TODO not used
 
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320, 452]x[760, 890] norm=22.34758")

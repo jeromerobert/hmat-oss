@@ -174,7 +174,7 @@ template<typename T>
 static void updateRow(Vector<T>& rowVec, int row, const vector<Vector<T>*>& rows,
                       const vector<Vector<T>*>& cols, int k) {
   for (int l = 0; l < k; l++) {
-    rowVec.axpy(Constants<T>::mone * cols[l]->m[row], rows[l]);
+    rowVec.axpy(Constants<T>::mone * (*cols[l])[row], rows[l]);
   }
 }
 
@@ -347,7 +347,7 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   for (int col = 0; col < k; col++) {
     for (int row = 0; row < rowCount; row++) {
       // TODO: split sigma evenly between u and v to have even norms between the 2
-      u->get(row, col) *= sigma->m[col];
+      u->get(row, col) *= (*sigma)[col];
     }
   }
 
@@ -799,8 +799,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
 
   if (HMatrix<T>::validateCompression) {
     FullMatrix<dp_t>* full = block.assemble();
-    if (rk->a) rk->a->checkNan();
-    if (rk->b) rk->b->checkNan();
+    rk->checkNan();
     FullMatrix<dp_t>* rkFull = rk->eval();
     const double approxNorm = rkFull->norm();
     const double fullNorm = full->norm();

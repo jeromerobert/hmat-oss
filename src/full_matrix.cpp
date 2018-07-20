@@ -273,7 +273,7 @@ void FullMatrix<T>::ldltDecomposition() {
   }
 
   for(int i = 0; i < n; i++) {
-    diagonal->m[i] = get(i,i);
+    getD(i) = get(i,i);
     get(i,i) = Constants<T>::pone;
     for (int j = i + 1; j < n; j++)
       get(i,j) = Constants<T>::zero;
@@ -555,6 +555,12 @@ template<typename T> void FullMatrix<T>::checkNan() const {
   data.checkNan();
   if (diagonal)
     diagonal->checkNan();
+}
+
+template<typename T> void FullMatrix<T>::conjugate() {
+  data.conjugate();
+  if (diagonal)
+    diagonal->conjugate();
 }
 
 template<typename T> std::string FullMatrix<T>::description() const {

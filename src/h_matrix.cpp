@@ -518,7 +518,7 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
   Vector<T>* x1 = &xv1;
   T ev = Constants<T>::zero;
   for (int i = 0; i < nrow; i++)
-    x->m[i] = static_cast<T>(rand()/(double)RAND_MAX);
+    xv[i] = static_cast<T>(rand()/(double)RAND_MAX);
   double normx = x->norm();
   if (normx == 0.0)
     return approximateLargestEigenvalue(max_iter - 1, epsilon);
@@ -1263,7 +1263,7 @@ FullMatrix<T>* multiplyHFull(char transH, char transM,
   } else {
     FullMatrix<T>* matT = mat->copyAndTranspose();
     if (transM == 'C') {
-      matT->data.conjugate();
+      matT->conjugate();
     }
     h->gemv(transH, Constants<T>::pone, matT, Constants<T>::zero, result);
     delete matT;
@@ -1424,9 +1424,7 @@ template<typename T> void HMatrix<T>::transposeMeta() {
 template <typename T> void HMatrix<T>::transposeData() {
     if (this->isLeaf()) {
         if (isRkMatrix() && rk()) {
-            // To transpose an Rk-matrix, simple exchange A and B : (AB^T)^T = (BA^T)
-            swap(rk()->a, rk()->b);
-            swap(rk()->rows, rk()->cols);
+            rk()->transpose();
         } else if (isFullMatrix()) {
             full()->transpose();
         }

@@ -29,6 +29,7 @@
 
 #include "full_matrix.hpp"
 #include "compression.hpp"
+#include "common/my_assert.h"
 
 namespace hmat {
 
@@ -217,6 +218,9 @@ public:
        \param alpha the scalar
    */
   void scale(T alpha);
+  /** \brief Transpose in place.
+   */
+  void transpose();
   void clear();
   /** Copy  RkMatrix into this.
    */
@@ -301,8 +305,26 @@ public:
    */
   void checkNan() const;
 
+  /*! Conjugate the content of the complex matrix */
+  void conjugate();
+
   /** Return the memory size of the a*b product */
   static size_t computeRkRkMemorySize(char transA, char transB, const RkMatrix<T>* a, const RkMatrix<T>* b);
+
+  /** Simpler accessor for the data.
+
+      There is only 1 type to because we cant modify the data.
+   */
+  inline T& get(int i, int j) {
+    HMAT_ASSERT(false); // unable to write a value in an rk matrix
+  }
+  inline T get(int i, int j) const {
+    T result=Constants<T>::zero;
+    for (int k=0 ; k<rank() ; k++)
+      result += a->get(i,k)*b->get(j,k);
+    return result;
+  }
+
 };
 
 }  // end namespace hmat

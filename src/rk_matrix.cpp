@@ -123,6 +123,11 @@ template<typename T> void RkMatrix<T>::scale(T alpha) {
   }
 }
 
+template<typename T> void RkMatrix<T>::transpose() {
+  std::swap(a, b);
+  std::swap(rows, cols);
+}
+
 template<typename T> void RkMatrix<T>::clear() {
   delete a;
   delete b;
@@ -301,7 +306,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   // We put the square root of singular values in sigma
   for (int i = 0; i < newK; i++) {
-    sigma->m[i] = sqrt(sigma->m[i]);
+    (*sigma)[i] = sqrt((*sigma)[i]);
   }
   // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
 
@@ -309,7 +314,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // For that we first calculated Utilde * SQRT (SigmaTilde)
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
   for (int col = 0; col < newK; col++) {
-    const T alpha = sigma->m[col];
+    const T alpha = (*sigma)[col];
     for (int row = 0; row < rank(); row++) {
       newA->get(row, col) = u->get(row, col) * alpha;
     }
@@ -324,7 +329,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
   // Copy with transposing
   for (int col = 0; col < newK; col++) {
-    const T alpha = sigma->m[col];
+    const T alpha = (*sigma)[col];
     for (int row = 0; row < rank(); row++) {
       newB->get(row, col) = vt->get(col, row) * alpha;
     }
@@ -386,14 +391,14 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   newK = approx.findK(sr->m, std::min(kA, kB), epsilon);
   assert(newK>0);
   for(int i = 0; i < newK; ++i) {
-    sr->m[i] = sqrt(sr->m[i]);
+    (*sr)[i] = sqrt((*sr)[i]);
   }
   ur->cols = newK;
   vhr->rows = newK;
 
   /* Scaling of ur and vhr */
   for(int j = 0; j < newK; ++j) {
-    const T valJ = sr->m[j];
+    const T valJ = (*sr)[j];
     for(int i = 0; i < ur->rows; ++i) {
       ur->get(i, j) *= valJ;
     }
@@ -401,7 +406,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
 
   for(int j = 0; j < vhr->cols; ++j){
     for(int i = 0; i < newK; ++i) {
-      vhr->get(i, j) *= sr->m[i];
+      vhr->get(i, j) *= (*sr)[i];
     }
   }
 
@@ -1049,6 +1054,11 @@ template<typename T> void RkMatrix<T>::checkNan() const {
   }
   a->checkNan();
   b->checkNan();
+}
+
+template<typename T> void RkMatrix<T>::conjugate() {
+  if (a) a->conjugate();
+  if (b) b->conjugate();
 }
 
 // Templates declaration
