@@ -319,7 +319,7 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   // Control of the approximation
 
   int maxK = min(rowCount, colCount);
-  int k = RkMatrix<T>::approx.findK(sigma->m, maxK, RkMatrix<T>::approx.assemblyEpsilon);
+  int k = RkMatrix<T>::approx.findK(*sigma, maxK, RkMatrix<T>::approx.assemblyEpsilon);
 
   if(k == 0)
   {

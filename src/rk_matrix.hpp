@@ -70,7 +70,7 @@ public:
 
        note : the parameters maxK and sigma seem have contradictory explanation
    */
-  int findK(double *sigma, int maxK, double epsilon);
+  int findK(Vector<double> &sigma, int maxK, double epsilon);
 };
 
 

@@ -36,7 +36,7 @@ namespace hmat {
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
-int RkApproximationControl::findK(double *sigma, int maxK, double epsilon) {
+int RkApproximationControl::findK(Vector<double> &sigma, int maxK, double epsilon) {
   // Control of approximation for fixed approx.k != 0
   int newK = k;
   if (newK != 0) {
@@ -289,7 +289,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   }
 
   // Control of approximation
-  int newK = approx.findK(sigma->m, rank(), epsilon);
+  int newK = approx.findK(*sigma, rank(), epsilon);
   if (newK == 0)
   {
     delete u;
@@ -388,7 +388,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   }
 
   // Remove small singular values and compute square root of sr
-  newK = approx.findK(sr->m, std::min(kA, kB), epsilon);
+  newK = approx.findK(*sr, std::min(kA, kB), epsilon);
   assert(newK>0);
   for(int i = 0; i < newK; ++i) {
     (*sr)[i] = sqrt((*sr)[i]);
