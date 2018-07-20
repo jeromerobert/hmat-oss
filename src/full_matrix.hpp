@@ -91,11 +91,11 @@ public:
   FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols);
   ~FullMatrix();
 
-  bool isTriUpper() {
+  bool isTriUpper() const {
       return triUpper_;
   }
 
-  bool isTriLower() {
+  bool isTriLower() const {
       return triLower_;
   }
 
@@ -113,7 +113,7 @@ public:
   void clear();
   /** \brief Returns number of allocated zeros
    */
-  size_t storedZeros();
+  size_t storedZeros() const;
   /** \brief this *= alpha.
 
       \param alpha The scaling factor.

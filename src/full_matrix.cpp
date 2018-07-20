@@ -105,7 +105,7 @@ template<typename T> void FullMatrix<T>::clear() {
     diagonal->clear();
 }
 
-template<typename T> size_t FullMatrix<T>::storedZeros() {
+template<typename T> size_t FullMatrix<T>::storedZeros() const {
   return data.storedZeros();
 }
 

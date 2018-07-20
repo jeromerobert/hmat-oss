@@ -87,7 +87,7 @@ public:
   void clear();
   /** \brief Returns number of allocated zeros
    */
-  size_t storedZeros();
+  size_t storedZeros() const;
   /** \brief this *= alpha.
 
       \param alpha The scaling factor.
@@ -103,6 +103,8 @@ public:
    */
   ScalarArray<T>* copy(ScalarArray<T>* result = NULL) const;
   /** \brief Return a new matrix that is a transposed version of this.
+
+    This new matrix is created in \a result (if provided)
    */
   ScalarArray<T>* copyAndTranspose(ScalarArray<T>* result = NULL) const;
   /**  Returns a pointer to a new ScalarArray representing a subset of row indices.
@@ -209,6 +211,8 @@ public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
     //~Vector(){}
+    /** \brief this = alpha.a.x + beta.this
+     */
     void gemv(char trans, T alpha, const ScalarArray<T>* a, const Vector<T>* x,
               T beta);
     /** \brief this += x

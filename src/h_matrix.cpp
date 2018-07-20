@@ -533,7 +533,7 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
     //        ev(k+1) = <x(k+1),x(k)>
     //         x(k+1) = x(k+1) / ||x(k+1)||
     gemv('N', Constants<T>::pone, x, Constants<T>::zero, x1);
-    ev = x->dot(x,x1);
+    ev = Vector<T>::dot(x,x1);
     // new abs(ev)
     aev = std::abs(ev);
     normx = x1->norm();

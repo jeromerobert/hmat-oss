@@ -122,7 +122,7 @@ template<typename T> void ScalarArray<T>::clear() {
   std::fill(m, m + ((size_t) rows) * cols, Constants<T>::zero);
 }
 
-template<typename T> size_t ScalarArray<T>::storedZeros() {
+template<typename T> size_t ScalarArray<T>::storedZeros() const {
   size_t result = 0;
   for (int col = 0; col < cols; col++) {
     for (int row = 0; row < rows; row++) {
@@ -503,7 +503,7 @@ template<> void ScalarArray<Z_t>::checkNan() const {
 template<typename T>
 void Vector<T>::gemv(char trans, T alpha,
                      const ScalarArray<T>* a,
-                     const Vector* x, T beta)
+                     const Vector<T>* x, T beta)
 {
   assert(this->cols==1);
   assert(x->cols==1);
