@@ -479,13 +479,15 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
         std::swap(perm[j], perm[pivot]);
         std::swap(norm2.m[j], norm2.m[pivot]);
 
-        memcpy(buffer.m, a->m + j * a->lda, a->rows*sizeof(T));
-        memcpy(a->m + j * a->lda, a->m + pivot * a->lda, a->rows*sizeof(T));
-        memcpy(a->m + pivot * a->lda, buffer.m, a->rows*sizeof(T));
+        // Exchange the column 'j' and 'pivot' in a[] using buffer as temp space
+        memcpy(buffer.m,              a->m + j * a->lda,     a->rows*sizeof(T));
+        memcpy(a->m + j * a->lda,     a->m + pivot * a->lda, a->rows*sizeof(T));
+        memcpy(a->m + pivot * a->lda, buffer.m,              a->rows*sizeof(T));
 
-        memcpy(buffer.m, r.m + j * r.lda, a->cols*sizeof(T));
-        memcpy(r.m +  j * r.lda, r.m + pivot * r.lda, a->cols*sizeof(T));
-        memcpy(r.m + pivot * r.lda, buffer.m, a->cols*sizeof(T));
+        // Idem for r[]
+        memcpy(buffer.m,            r.m + j * r.lda,     a->cols*sizeof(T));
+        memcpy(r.m +  j * r.lda,    r.m + pivot * r.lda, a->cols*sizeof(T));
+        memcpy(r.m + pivot * r.lda, buffer.m,            a->cols*sizeof(T));
       }
 
       // Normalisation of qj

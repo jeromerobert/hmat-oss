@@ -365,13 +365,13 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
     kA = modifiedGramSchmidt( a, &ra, epsilon );
-    // On input, a0(m,A)
+    // On input, a0(m,k)
     // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
     kB = modifiedGramSchmidt( b, &rb, epsilon );
-    // On input, b0(p,B)
+    // On input, b0(p,k)
     // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
 
     // M = a0*b0^T = a*(ra*rb^T)*b^T
