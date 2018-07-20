@@ -157,9 +157,11 @@ template <typename T> class UncompressedBlock:
         int k = matrix().rank();
         ScalarArray<T> result(this->values_, nr, nc, this->ld());
         T *sa = matrix().rk()->a->m + this->rowIndexSet_.offset() - matrix().rows()->offset();
-        ScalarArray<T> a(sa, nr, k, matrix().rows()->size());
+        ScalarArray<T> a(sa, nr, k, matrix().rk()->a->lda);
+        // TODO use a->rowsSubset() ?
+        //        ScalarArray<T> a(matrix().rk()->a->rowsSubset(this->rowIndexSet_.offset() - matrix().rows()->offset(), nr);
         T *sb = matrix().rk()->b->m + this->colIndexSet_.offset() - matrix().cols()->offset();
-        ScalarArray<T> b(sb, nc, k, matrix().cols()->size());
+        ScalarArray<T> b(sb, nc, k, matrix().rk()->b->lda);
         result.gemm('N', 'T', Constants<T>::pone, &a, &b, Constants<T>::zero);
     }
 
