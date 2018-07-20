@@ -93,7 +93,7 @@ public:
       // Validation mode: we always compute, and if a function is_guaranteed_null_row() tells it's null then we check that
       f.getRow(rows, cols, index, info.user_data, &result, stratum);
       if (info.is_guaranteed_null_row && info.is_guaranteed_null_row(&info, index, stratum))
-        assert(isZero(result));
+        assert(result.isZero());
       // TODO: in validation mode, we could also warn about undetected null rows or columns
     }
   }
@@ -106,7 +106,7 @@ public:
       // Validation mode: we always compute, and if a function is_guaranteed_null_col() tells it's null then we check that
       f.getCol(rows, cols, index, info.user_data, &result, stratum);
       if (info.is_guaranteed_null_col && info.is_guaranteed_null_col(&info, index, stratum))
-        assert(isZero(result));
+        assert(result.isZero());
     }
   }
 
@@ -153,14 +153,6 @@ template<> double squaredNorm(const Z_t x) {
   return std::norm(x);
 #endif
 }
-
-template<typename T> static bool isZero(const Vector<T>& v) {
-  for(int i = 0; i < v.rows; i++)
-    if (v.m[i] != Constants<T>::zero)
-      return false;
-  return true;
-}
-
 
 /** \brief Updates a row to reflect its current value in the matrix.
 
@@ -223,7 +215,7 @@ static int findCol(const ClusterAssemblyFunction<T>& block, vector<bool>& colFre
       col.clear();
       block.getCol(i, col);
       colFree[i] = false;
-      if (!isZero(col)) {
+      if (!col.isZero()) {
         found = true;
         break;
       }
@@ -264,7 +256,7 @@ static int findMinRow(const ClusterAssemblyFunction<T>& block,
     row.clear();
     block.getRow(i_ref, row);
     updateRow<typename Types<T>::dp>(row, i_ref, bCols, aCols, aCols.size());
-    found = !isZero(row);
+    found = !row.isZero();
     rowFree[i_ref] = false;
   }
   return i_ref;
@@ -300,7 +292,7 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
     col.clear();
     block.getCol(j_ref, col);
     updateCol<typename Types<T>::dp>(col, j_ref, aCols, bCols, bCols.size());
-    found = !isZero(col);
+    found = !col.isZero();
     colFree[j_ref] = false;
   }
   return j_ref;
@@ -311,14 +303,7 @@ template<typename T>
 RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   DECLARE_CONTEXT;
 
-  //TODO replace with a case with m==NULL
-  bool zeroMatrix = true;
-  for (int col = 0; col < m->cols(); col++) {
-    Vector<T> v(m->data.m + ((size_t) m->rows()) * col, m->rows());
-    zeroMatrix = zeroMatrix && isZero(v);
-    if (!zeroMatrix) break;
-  }
-  if (zeroMatrix) {
+  if (m->isZero()) {
     return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
   }
   // In the case of non-square matrix, we don't calculate singular vectors
@@ -668,8 +653,8 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
     // Update of a_ref and b_ref
     aRef.axpy(Constants<dp_t>::mone * bCols[k - 1]->m[j_ref], aCols[k - 1]);
     bRef.axpy(Constants<dp_t>::mone * aCols[k - 1]->m[i_ref], bCols[k - 1]);
-    const bool needNewA = isZero(aRef) || (j_star == j_ref);
-    const bool needNewB = isZero(bRef) || (i_star == i_ref);
+    const bool needNewA = aRef.isZero() || (j_star == j_ref);
+    const bool needNewB = bRef.isZero() || (i_star == i_ref);
 
     // If the row or the column of reference have been already chosen as pivot,
     // we can not keep it and then we take one or two others.
@@ -683,7 +668,7 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
           break;
         }
         updateCol<dp_t>(aRef, j_ref, aCols, bCols, k);
-        found = !isZero(aRef);
+        found = !aRef.isZero();
       }
       if (!found) {
         break;

@@ -500,6 +500,14 @@ template<> void ScalarArray<Z_t>::checkNan() const {
   checkNanComplex(this);
 }
 
+template<typename T> bool ScalarArray<T>::isZero() const {
+  for(int i = 0; i < rows; i++)
+    for(int j = 0; j < cols; j++)
+      if (get(i, j) != Constants<T>::zero)
+        return false;
+  return true;
+}
+
 template<typename T>
 void Vector<T>::gemv(char trans, T alpha,
                      const ScalarArray<T>* a,

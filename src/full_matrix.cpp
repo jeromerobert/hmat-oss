@@ -557,6 +557,13 @@ template<typename T> void FullMatrix<T>::checkNan() const {
     diagonal->checkNan();
 }
 
+template<typename T> bool FullMatrix<T>::isZero() const {
+  bool res = data.isZero();
+  if (diagonal)
+    res = res & diagonal->isZero();
+  return res;
+}
+
 template<typename T> void FullMatrix<T>::conjugate() {
   data.conjugate();
   if (diagonal)

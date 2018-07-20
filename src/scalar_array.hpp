@@ -189,6 +189,11 @@ public:
     If a NaN is found, an assertion is triggered.
    */
   void checkNan() const;
+
+  /*! Returns true if the matrix contains only zero values.
+   */
+  bool isZero() const ;
+
   size_t memorySize() const;
 
   /*! \brief Return a short string describing the content of this ScalarArray for debug (like: "ScalarArray [320 x 100] norm=22.34758")

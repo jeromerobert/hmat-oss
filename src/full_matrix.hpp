@@ -275,6 +275,10 @@ public:
    */
   void checkNan() const;
 
+  /*! Returns true if the matrix contains only zero values.
+   */
+  bool isZero() const ;
+
   /*! Conjugate the content of the complex matrix */
   void conjugate();
 
