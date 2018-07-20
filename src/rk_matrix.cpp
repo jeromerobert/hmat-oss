@@ -597,12 +597,12 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>*
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char transM,
                                                               const RkMatrix<T>* rk,
-                                                              const FullMatrix<T>* m,
-                                                              const IndexSet* mCols) {
+                                                              const FullMatrix<T>* m) {
   DECLARE_CONTEXT;
 
   assert(((transR == 'N') ? rk->cols->size() : rk->rows->size()) == ((transM == 'N') ? m->rows() : m->cols()));
   const IndexSet *rkRows = ((transR == 'N')? rk->rows : rk->cols);
+  const IndexSet *mCols = ((transM == 'N')? m->cols_ : m->rows_);
 
   if(rk->rank() == 0) {
       return new RkMatrix<T>(NULL, rkRows, NULL, mCols, NoCompression);
@@ -664,8 +664,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
                                          const FullMatrix<T>* m,
-                                         const RkMatrix<T>* rk,
-                                         const IndexSet* mRows) {
+                                         const RkMatrix<T>* rk) {
   DECLARE_CONTEXT;
   // If transM is 'N' and transR is 'N', we compute
   //  M * A * B^T  ==> newA = M * A, newB = B
@@ -683,8 +682,9 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
     std::swap(a, b);
   }
   const IndexSet *rkCols = ((transR == 'N')? rk->cols : rk->rows);
+  const IndexSet *mRows = ((transM == 'N')? m->rows_ : m->cols_);
 
-  newA = new ScalarArray<T>(transM == 'N' ? m->rows() : m->cols(), b->cols);
+  newA = new ScalarArray<T>(mRows->size(), b->cols);
   newB = b->copy();
   if (transR == 'C') {
     newB->conjugate();

@@ -245,8 +245,7 @@ public:
        \return R * M
   */
   static RkMatrix<T>* multiplyRkFull(char transR, char transM,
-                                     const RkMatrix<T>* rk, const FullMatrix<T>* m,
-                                     const IndexSet* mCols);
+                                     const RkMatrix<T>* rk, const FullMatrix<T>* m);
 
   /** Left multiplication of RkMatrix by a matrix.
 
@@ -257,8 +256,7 @@ public:
    */
   static RkMatrix<T>* multiplyFullRk(char transM, char transR,
                                      const FullMatrix<T>* m,
-                                     const RkMatrix<T>* rk,
-                                     const IndexSet* mRows);
+                                     const RkMatrix<T>* rk);
   /* These functions are added to manage the particular case of the product by
       H-matrix, which is treated by decomposing the product into the succession of
       products by a vector, the result being a RkMatrix.

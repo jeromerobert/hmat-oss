@@ -1303,11 +1303,11 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
     HMAT_ASSERT(rk);
   }
   else if (a->isRkMatrix() && b->isFullMatrix()) {
-    rk = RkMatrix<T>::multiplyRkFull(transA, transB, a->rk(), b->full(), (transB == 'N' ? b->cols() : b->rows()));
+    rk = RkMatrix<T>::multiplyRkFull(transA, transB, a->rk(), b->full());
     HMAT_ASSERT(rk);
   }
   else if (a->isFullMatrix() && b->isRkMatrix()) {
-    rk = RkMatrix<T>::multiplyFullRk(transA, transB, a->full(), b->rk(), (transA == 'N' ? a->rows() : a->cols()));
+    rk = RkMatrix<T>::multiplyFullRk(transA, transB, a->full(), b->rk());
     HMAT_ASSERT(rk);
   } else if(a->isNull() || b->isNull()) {
     return new RkMatrix<T>(NULL, transA ? a->cols() : a->rows(),
