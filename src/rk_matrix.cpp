@@ -88,13 +88,18 @@ template<typename T> RkMatrix<T>::~RkMatrix() {
   clear();
 }
 
+
+template<typename T> ScalarArray<T>* RkMatrix<T>::evalArray(ScalarArray<T>* result) const {
+  if(result==NULL)
+    result = new ScalarArray<T>(rows->size(), cols->size());
+  if (rank())
+    result->gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+  return result;
+}
+
 template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {
-  // Special case of the empty matrix, assimilated to the zero matrix.
-  if (rank() == 0) {
-    return new FullMatrix<T>(rows, cols);
-  }
   FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
-  result->data.gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+  evalArray(&result->data);
   return result;
 }
 

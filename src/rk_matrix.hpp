@@ -134,9 +134,12 @@ public:
 
   size_t uncompressedSize();
 
-  /** Returns a pointer to a new matrix M = AB^t (uncompressed)
+  /** Returns a pointer to a new FullMatrix M = AB^t (uncompressed)
    */
   FullMatrix<T>* eval() const;
+  /** Returns a pointer to a new ScalarArray M = AB^t (uncompressed) or fill an existing one
+   */
+  ScalarArray<T>* evalArray(ScalarArray<T> *result=NULL) const ;
   /** Recompress an RkMatrix in place.
 
       @warning The previous rk->a and rk->b are no longer valid after this function.

@@ -76,6 +76,8 @@ public:
   FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols, int _lda=-1);
   /** \brief Initialize the matrix with an existing ScalarArray and 2 IndexSets.
 
+      In this case the matrix doesn't own the data (the memory is not
+      freed at the object destruction).
       \param _s a ScalarArray
       \param _rows indices of the rows
       \param _cols indices of the columns
