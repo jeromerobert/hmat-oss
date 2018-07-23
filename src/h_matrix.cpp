@@ -329,10 +329,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
     if (isRkMatrix()) {
       if ((!onlyLower) && (upper != this)) {
         // Admissible leaf: a matrix represented by AB^t is transposed by exchanging A and B.
-        RkMatrix<T>* newRk = new RkMatrix<T>(NULL, upper->rows(),
-                                          NULL, upper->cols(), rk()->method);
-        newRk->a = rk()->b ? rk()->b->copy() : NULL;
-        newRk->b = rk()->a ? rk()->a->copy() : NULL;
+        RkMatrix<T>* newRk = rk()->copy();
+        newRk->transpose();
         if(upper->isRkMatrix() && upper->rk() != NULL)
             delete upper->rk();
         upper->rk(newRk);

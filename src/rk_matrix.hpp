@@ -222,9 +222,14 @@ public:
    */
   void transpose();
   void clear();
+
   /** Copy  RkMatrix into this.
    */
-  void copy(RkMatrix<T>* o);
+  void copy(const RkMatrix<T>* o);
+
+  /** Return a copy of this.
+   */
+  RkMatrix<T>* copy() const;
 
   /** Compute y <- alpha * op(A) * y + beta * y with x and y FullMatrix<T>*
 

@@ -1038,13 +1038,19 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   }
 }
 
-template<typename T> void RkMatrix<T>::copy(RkMatrix<T>* o) {
+template<typename T> void RkMatrix<T>::copy(const RkMatrix<T>* o) {
   delete a;
   delete b;
   rows = o->rows;
   cols = o->cols;
   a = (o->a ? o->a->copy() : NULL);
   b = (o->b ? o->b->copy() : NULL);
+}
+
+template<typename T> RkMatrix<T>* RkMatrix<T>::copy() const {
+  RkMatrix<T> *result = new RkMatrix<T>(NULL, rows, NULL, cols, this->method);
+  result->copy(this);
+  return result;
 }
 
 
