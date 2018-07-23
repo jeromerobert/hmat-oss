@@ -336,9 +336,9 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
     }
   }
 
-  ScalarArray<T> matU(u->m, rowCount, k);
+  ScalarArray<T> matU(*u, 0, rowCount, 0, k);
   ScalarArray<T>* uTilde = matU.copy();
-  ScalarArray<T> matV(vt->m, k, colCount, maxK);
+  ScalarArray<T> matV(*vt, 0, k, 0, colCount);
   ScalarArray<T>* vTilde = matV.copyAndTranspose();
 
   delete u;
@@ -433,12 +433,10 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaFull);
   }
 
-  ScalarArray<dp_t>* newA = new ScalarArray<dp_t>(tmpA.rows, nu);
-  memcpy(newA->m, tmpA.m, sizeof(dp_t) * tmpA.rows * nu);
-  ScalarArray<dp_t>* newB = new ScalarArray<dp_t>(tmpB.rows, nu);
-  memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
+  tmpA.cols=nu; // resize tmpA and tmpB for the copy
+  tmpB.cols=nu;
 
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaFull);
+  return new RkMatrix<dp_t>(tmpA.copy(), block.rows, tmpB.copy(), block.cols, AcaFull);
 }
 
 
@@ -541,13 +539,13 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
   if (k != 0) {
     newA = new ScalarArray<dp_t>(block.rows->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
+      newA->copyMatrixAtOffset(aCols[i], 0, i);
       delete aCols[i];
       aCols[i] = NULL;
     }
     newB = new ScalarArray<dp_t>(block.cols->size(), k);
     for (int i = 0; i < k; i++) {
-      memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
+      newB->copyMatrixAtOffset(bCols[i], 0, i);
       delete bCols[i];
       bCols[i] = NULL;
     }
@@ -694,13 +692,13 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
   assert(k > 0);
   ScalarArray<dp_t>* newA = new ScalarArray<dp_t>(block.rows->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newA->m + (i * newA->rows), aCols[i]->m, sizeof(dp_t) * newA->rows);
+    newA->copyMatrixAtOffset(aCols[i], 0, i);
     delete aCols[i];
     aCols[i] = NULL;
   }
   ScalarArray<dp_t>* newB = new ScalarArray<dp_t>(block.cols->size(), k);
   for (int i = 0; i < k; i++) {
-    memcpy(newB->m + (i * newB->rows), bCols[i]->m, sizeof(dp_t) * newB->rows);
+    newB->copyMatrixAtOffset(bCols[i], 0, i);
     delete bCols[i];
     bCols[i] = NULL;
   }
