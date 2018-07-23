@@ -80,6 +80,10 @@ public:
      \param _cols Number of columns
    */
   ScalarArray(int _rows, int _cols);
+  /** \brief Initialize the ScalarArray with subset of existing ScalarArray.
+   */
+  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize):ScalarArray(d.m+rowsOffset+colsOffset*d.lda, rowsSize, colsSize, d.lda){}
+
   ~ScalarArray();
 
   /** This <- 0.
@@ -215,6 +219,10 @@ public:
   public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
+    /** \brief Create Vector with column 'col' of existing ScalarArray
+     */
+    Vector(const ScalarArray<T> &d, int col):ScalarArray<T>(d.m+col*d.lda, d.rows, 1, d.lda){}
+    Vector(const ScalarArray<T> *d, int col):Vector<T>(*d,col){}
     //~Vector(){}
     /** \brief this = alpha.a.x + beta.this
      */

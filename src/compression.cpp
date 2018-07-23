@@ -115,8 +115,8 @@ public:
     if(stratum != -1) {
       ScalarArray<typename Types<T>::dp> *mat = new ScalarArray<typename Types<T>::dp>(rows->size(), cols->size());
       for(int j = 0 ; j < cols->size(); j++) {
-	Vector<typename Types<T>::dp> vec(mat->m + j*rows->size(), rows->size());
-	getCol(j, vec);
+        Vector<typename Types<T>::dp> vec(mat, j);
+        getCol(j, vec);
       }
       return new FullMatrix<typename Types<T>::dp>(mat, rows, cols);
     }
@@ -405,10 +405,10 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <a_l, a_k> <b_l, b_k>))
     //              + ||a_k||^2 ||b_k||^2
     {
-      Vector<dp_t> va_nu(tmpA.m + nu * tmpA.rows, tmpA.rows);
-      Vector<dp_t> vb_nu(tmpB.m + nu * tmpB.rows, tmpB.rows);
-      Vector<dp_t> a_l(tmpA.m, tmpA.rows);
-      Vector<dp_t> b_l(tmpB.m, tmpB.rows);
+      Vector<dp_t> va_nu(tmpA, nu);
+      Vector<dp_t> vb_nu(tmpB, nu);
+      Vector<dp_t> a_l(tmpA, 0);
+      Vector<dp_t> b_l(tmpB, 0);
       // The sum
       double newEstimate = 0.0;
       for (int l = 0; l < nu - 1; l++) {
