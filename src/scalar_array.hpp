@@ -207,6 +207,12 @@ public:
     convert << "ScalarArray [" << rows << " x " << cols << "] norm=" << norm() ;
     return convert.str();
   }
+  /*! \brief performs the rank 1 operation this := alpha*x*y**T + this,
+
+     where alpha is a scalar, x and y are 2 Vector<T> of size 'm' and 'n', and this is a ScalarArray of size m x n
+  */
+  void rankOneUpdate(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &y);
+
 
 };
 

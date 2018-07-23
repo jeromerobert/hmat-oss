@@ -390,21 +390,22 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     }
 
     // Creation of the vectors A_i_nu and B_j_nu
-    memcpy(tmpA.m + nu * tmpA.rows, m->data.m + j_nu * m->rows(),
-           sizeof(dp_t) * tmpA.rows);
-    for (int j = 0; j < m->cols(); j++) {
-      tmpB.get(j, nu) = m->get(i_nu, j) / delta;
-    }
-
-    proxy_cblas::ger(m->rows(), m->cols(), Constants<dp_t>::mone, tmpA.m + nu * tmpA.rows, 1, tmpB.m + nu * tmpB.rows, 1, m->data.m, m->rows());
-
-    // Update the estimate norm
-    // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
-    //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <a_l, a_k> <b_l, b_k>))
-    //              + ||a_k||^2 ||b_k||^2
     {
       Vector<dp_t> va_nu(tmpA, nu);
       Vector<dp_t> vb_nu(tmpB, nu);
+
+      for (int i = 0; i < m->rows(); i++)
+        va_nu[i] = m->get(i, j_nu);
+      for (int j = 0; j < m->cols(); j++)
+        vb_nu[j] = m->get(i_nu, j) / delta;
+
+      // performs the rank 1 operation m := m - va_nu*vb_nu^T
+      m->data.rankOneUpdate(Constants<dp_t>::mone, va_nu, vb_nu);
+
+      // Update the estimate norm
+      // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
+      //  ||S_k||^2 = ||S_{k-1}||^2 + \sum_{l = 0}^{nu-1} (<a_k, a_l> <b_k, b_l> + <a_l, a_k> <b_l, b_k>))
+      //              + ||a_k||^2 ||b_k||^2
       // The sum
       double newEstimate = 0.0;
       for (int l = 0; l < nu - 1; l++) {

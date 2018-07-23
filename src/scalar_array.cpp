@@ -508,6 +508,15 @@ template<typename T> bool ScalarArray<T>::isZero() const {
   return true;
 }
 
+template<typename T> void ScalarArray<T>::rankOneUpdate(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &b){
+  assert(x.rows==rows);
+  assert(x.cols==1);
+  assert(b.rows==cols);
+  assert(b.cols==1);
+  proxy_cblas::ger(rows, cols, alpha, x.m, 1, b.m, 1, m, lda);
+}
+
+
 template<typename T>
 void Vector<T>::gemv(char trans, T alpha,
                      const ScalarArray<T>* a,
