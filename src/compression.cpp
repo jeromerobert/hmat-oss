@@ -243,7 +243,7 @@ static int findMinRow(const ClusterAssemblyFunction<T>& block,
     minNorm2 = DBL_MAX;
     for (int i = 0; i < rowCount; i++) {
       if (rowFree[i]) {
-        double norm2 = squaredNorm<typename Types<T>::dp>(aRef.m[i]);
+        double norm2 = squaredNorm<typename Types<T>::dp>(aRef[i]);
         if (norm2 < minNorm2) {
           i_ref = i;
           minNorm2 = norm2;
@@ -279,7 +279,7 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
     minNorm2 = DBL_MAX;
     for (int j = 0; j < colCount; j++) {
       if (colFree[j]) {
-        double norm2 = squaredNorm<typename Types<T>::dp>(bRef.m[j]);
+        double norm2 = squaredNorm<typename Types<T>::dp>(bRef[j]);
         if (norm2 < minNorm2) {
           j_ref = j;
           minNorm2 = norm2;
@@ -378,9 +378,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   }
 
   ScalarArray<dp_t> tmpA(m->rows(), maxK);
-  tmpA.clear();
   ScalarArray<dp_t> tmpB(m->cols(), maxK);
-  tmpB.clear();
   int nu;
 
   for (nu = 0; nu < maxK; nu++) {
@@ -407,13 +405,11 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
     {
       Vector<dp_t> va_nu(tmpA, nu);
       Vector<dp_t> vb_nu(tmpB, nu);
-      Vector<dp_t> a_l(tmpA, 0);
-      Vector<dp_t> b_l(tmpB, 0);
       // The sum
       double newEstimate = 0.0;
       for (int l = 0; l < nu - 1; l++) {
-        a_l.m = tmpA.m + l * tmpA.rows;
-        b_l.m = tmpB.m + l * tmpB.rows;
+        Vector<dp_t> a_l(tmpA, l);
+        Vector<dp_t> b_l(tmpB, l);
         newEstimate += hmat::real(Vector<dp_t>::dot(&va_nu, &a_l) * Vector<dp_t>::dot(&vb_nu, &b_l));
       }
       estimateSquaredNorm += 2.0 * newEstimate;
@@ -437,10 +433,8 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   }
 
   ScalarArray<dp_t>* newA = new ScalarArray<dp_t>(tmpA.rows, nu);
-  newA->clear();
   memcpy(newA->m, tmpA.m, sizeof(dp_t) * tmpA.rows * nu);
   ScalarArray<dp_t>* newB = new ScalarArray<dp_t>(tmpB.rows, nu);
-  newB->clear();
   memcpy(newB->m, tmpB.m, sizeof(dp_t) * tmpB.rows * nu);
 
   return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaFull);
@@ -595,10 +589,10 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
     dp_t i_star_value, j_star_value;
 
     i_star = aRef.absoluteMaxIndex();
-    i_star_value = aRef.m[i_star];
+    i_star_value = aRef[i_star];
 
     j_star = bRef.absoluteMaxIndex();
-    j_star_value = bRef.m[j_star];
+    j_star_value = bRef[j_star];
 
     if (squaredNorm<dp_t>(i_star_value) > squaredNorm<dp_t>(j_star_value)) {
       // i_star is fixed, we look for j_star

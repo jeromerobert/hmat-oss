@@ -459,8 +459,8 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   relative_epsilon = 0.0;
   for(int j=0; j < a->cols; ++j) {
     const Vector<T> aj(a->m + j * a->lda, a->rows);
-    norm2.m[j] = aj.normSqr();
-    relative_epsilon = std::max(relative_epsilon, norm2.m[j]);
+    norm2[j] = aj.normSqr();
+    relative_epsilon = std::max(relative_epsilon, norm2[j]);
   }
   relative_epsilon *= prec * prec;
 
@@ -468,7 +468,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
   for(int j = 0; j < a->cols; ++j) {
     // Find the largest pivot
     const int pivot = norm2.absoluteMaxIndex(j);
-    const double pivmax = norm2.m[pivot];
+    const double pivmax = norm2[pivot];
 
     // Stopping criterion
     if (pivmax > relative_epsilon) {
@@ -477,7 +477,7 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
       // Pivoting
       if (j != pivot) {
         std::swap(perm[j], perm[pivot]);
-        std::swap(norm2.m[j], norm2.m[pivot]);
+        std::swap(norm2[j], norm2[pivot]);
 
         // Exchange the column 'j' and 'pivot' in a[] using buffer as temp space
         memcpy(buffer.m,              a->m + j * a->lda,     a->rows*sizeof(T));
@@ -491,19 +491,19 @@ template<typename T> int modifiedGramSchmidt( ScalarArray<T> *a, ScalarArray<T> 
       }
 
       // Normalisation of qj
-      r.m[j + j * r.lda] = sqrt(norm2.m[j]);
+      r.get(j,j) = sqrt(norm2[j]);
       Vector<T> aj(a->m + j * a->lda, a->rows);
-      T coef = Constants<T>::pone / r.m[j + j * r.lda];
+      T coef = Constants<T>::pone / r.get(j,j);
       aj.scale(coef);
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
       for(int k = j + 1; k < a->cols; ++k) {
         // Scalar product of qj and bk
         Vector<T> ak(a->m + k * a->lda, a->rows);
-        r.m[j + k * r.lda] = Vector<T>::dot(&aj, &ak);
-        coef = - r.m[j + k * r.lda];
+        r.get(j,k) = Vector<T>::dot(&aj, &ak);
+        coef = - r.get(j,k);
         ak.axpy(coef, &aj);
-        norm2.m[k] -= std::abs(r.m[j + k * r.lda]) * std::abs(r.m[j + k * r.lda]);
+        norm2[k] -= std::abs(r.get(j,k)) * std::abs(r.get(j,k));
       }
     }
   }

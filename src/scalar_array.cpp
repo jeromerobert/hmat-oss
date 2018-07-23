@@ -183,15 +183,15 @@ template<typename T> void ScalarArray<T>::transpose() {
       }
     }
   } else {
-    ScalarArray<T> tmp(rows, cols);
-    tmp.copyMatrixAtOffset(this, 0, 0);
+    ScalarArray<T> *tmp=copy();
     std::swap(rows, cols);
     lda = rows;
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < cols; j++) {
-        get(i, j) = tmp.get(j, i);
+        get(i, j) = tmp->get(j, i);
       }
     }
+    delete(tmp);
   }
 #endif
 }

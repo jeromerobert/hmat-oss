@@ -78,7 +78,7 @@ void reorderVector(ScalarArray<T>* v, int* indices) {
   for (int col = 0; col < v->cols; col++) {
     T* column = v->m + ((size_t) n) * col;
     for (int i = 0; i < n; i++) {
-      tmp.m[i] = column[indices[i]];
+      tmp[i] = column[indices[i]];
     }
     memcpy(column, tmp.m, sizeof(T) * n);
   }
@@ -94,7 +94,7 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
   for (int col = 0; col < v->cols; col++) {
     T* column = v->m + ((size_t) n) * col;
     for (int i = 0; i < n; i++) {
-      tmp.m[indices[i]] = column[i];
+      tmp[indices[i]] = column[i];
     }
     memcpy(column, tmp.m, sizeof(T) * n);
   }
@@ -610,8 +610,9 @@ bool HMatrix<T>::coarsen(HMatrix<T>* upper) {
         for (int i = 0; i < this->nrChild(); i++)
           upper->removeChild(i);
         upper->children.clear();
-        upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
-                                  candidate->a->copy(), upper->cols(), candidate->method));
+        RkMatrix<T>* newRk = candidate->copy();
+        newRk->transpose();
+        upper->rk(newRk);
         assert(upper->isLeaf());
         assert(upper->isRkMatrix());
       }
@@ -1451,10 +1452,9 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       if (rk()) {
         delete rk();
       }
-      const RkMatrix<T>* oRk = o->rk();
-      ScalarArray<T>* newA = oRk->b ? oRk->b->copy() : NULL;
-      ScalarArray<T>* newB = oRk->a ? oRk->a->copy() : NULL;
-      rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method));
+      RkMatrix<T>* newRk = o->rk()->copy();
+      newRk->transpose();
+      rk(newRk);
     } else {
       if (isFullMatrix()) {
         delete full();
@@ -2153,7 +2153,7 @@ void HMatrix<T>::extractDiagonal(T* diag) const {
     } else {
       // LLt
       for (int i = 0; i < full()->rows(); ++i)
-        diag[i] = full()->data.m[i*full()->rows() + i];
+        diag[i] = full()->get(i,i);
     }
   } else {
     for (int i=0 ; i<nrChildRow() ; i++) {
