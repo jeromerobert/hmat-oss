@@ -2312,24 +2312,13 @@ template<typename T> void HMatrix<T>::setLower(bool value)
     }
 }
 
-template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const ScalarArray<T> * b, bool updateRank) {
+template<typename T>  void HMatrix<T>::rk(ScalarArray<T> * a, ScalarArray<T> * b) {
     assert(isRkMatrix());
     if(a == NULL && isNull())
         return;
-    if(rk_ == NULL)
-        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), Svd));
-    // TODO: if the matrices exist and are of the right size (same rank),
-    // reuse them.
-    if (rk_->a) {
-      delete rk_->a;
-    }
-    if (rk_->b) {
-      delete rk_->b;
-    }
-    rk_->a = a == NULL ? NULL : a->copy();
-    rk_->b = b == NULL ? NULL : b->copy();
-    if(updateRank)
-        rank_ = rk_->rank();
+    delete rk_;
+    rk(new RkMatrix<T>(a == NULL ? NULL : a->copy(), rows(),
+                       b == NULL ? NULL : b->copy(), cols(), Svd));
 }
 
 template<typename T> std::string HMatrix<T>::toString() const {
