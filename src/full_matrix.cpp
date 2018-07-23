@@ -522,25 +522,7 @@ template<typename T> void FullMatrix<T>::addRand(double epsilon) {
 }
 
 template<typename T> void FullMatrix<T>::fromFile(const char * filename) {
-  FILE * f = fopen(filename, "rb");
-  int code;
-  int r = fread(&code, sizeof(int), 1, f);
-  HMAT_ASSERT(r == 1);
-  HMAT_ASSERT(code == Constants<T>::code);
-  r = fread(&data.rows, sizeof(int), 1, f);
-  data.lda = data.rows;
-  HMAT_ASSERT(r == 1);
-  r = fread(&data.cols, sizeof(int), 1, f);
-  HMAT_ASSERT(r == 1);
-  r = fseek(f, 2 * sizeof(int), SEEK_CUR);
-  HMAT_ASSERT(r == 0);
-  if(data.m)
-      free(data.m);
-  size_t size = ((size_t) data.rows) * data.cols * sizeof(T);
-  data.m = (T*) calloc(size, 1);
-  r = fread(data.m, size, 1, f);
-  fclose(f);
-  HMAT_ASSERT(r == 1);
+  data.fromFile(filename);
 }
 
 template<typename T> void FullMatrix<T>::toFile(const char *filename) const {
