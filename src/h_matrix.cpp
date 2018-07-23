@@ -1195,7 +1195,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
     // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
     // As Cb = Bb we get
-    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba full matrices
+    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba scalar arrays
     // We support C and B not compatible (larger) with A so we first slice them
     assert(transB == 'N');
     const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
@@ -1210,11 +1210,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isRkMatrix() && !isNull() && a->isRkMatrix() && !a->isNull() && rk()->a == a->rk()->a) {
     // Ca * CbT = beta * Ca * CbT + alpha * Aa * AbT * B
     // As Ca = Aa we get
-    // CbT = beta * CbT + alpha AbT * B with only Cb and Ab full matrices
+    // CbT = beta * CbT + alpha AbT * B with only Cb and Ab scalar arrays
     // we transpose:
     // Cb = beta * Cb + alpha BT * Ab
     // We support C and B not compatible (larger) with A so we first slice them
     assert(transA == 'N');
+    assert(transB != 'C');
     const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
     const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
     ScalarArray<T> cSubset(rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size()));
@@ -1240,6 +1241,8 @@ template<typename T>
 FullMatrix<T>* multiplyFullH(char transM, char transH,
                                          const FullMatrix<T>* mat,
                                          const HMatrix<T>* h) {
+  assert(transH != 'C');
+  assert(transM != 'C');
   // R = M * H = (H^t * M^t*)^t
   FullMatrix<T>* resultT = multiplyHFull(transH == 'N' ? 'T' : 'N',
                                          transM == 'N' ? 'T' : 'N',
