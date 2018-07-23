@@ -1067,6 +1067,10 @@ template<typename T> void RkMatrix<T>::conjugate() {
   if (b) b->conjugate();
 }
 
+template<typename T> T RkMatrix<T>::get(int i, int j) const {
+  return proxy_cblas::dot(rank(), &a->get(i,0), a->lda, &b->get(j,0), b->lda);
+}
+
 // Templates declaration
 template class RkMatrix<S_t>;
 template class RkMatrix<D_t>;

@@ -321,12 +321,7 @@ public:
   inline T& get(int i, int j) {
     HMAT_ASSERT(false); // unable to write a value in an rk matrix
   }
-  inline T get(int i, int j) const {
-    T result=Constants<T>::zero;
-    for (int k=0 ; k<rank() ; k++)
-      result += a->get(i,k)*b->get(j,k);
-    return result;
-  }
+  inline T get(int i, int j) const ;
 
 };
 
