@@ -179,35 +179,28 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
   assert(left || (cols() == d->rows));
   assert(!left || (rows() == d->rows));
 
-  T* diag = d->m;
   {
     const size_t _rows = rows(), _cols = cols();
     increment_flops(Multipliers<T>::mul * _rows * _cols);
   }
-  if (left) {
-    if (inverse) {
-      // In this case, copying is a good idea since it avoids repeated
-      // computations of 1 / diag[i].
-      diag = (T*) malloc(d->rows * sizeof(T));
-      HMAT_ASSERT(diag);
-      memcpy(diag, d->m, d->rows * sizeof(T));
-      for (int i = 0; i < d->rows; i++) {
-        diag[i] = Constants<T>::pone / diag[i];
-      }
-    }
+  if (left) { // line i is multiplied by d[i] or 1/d[i]
     // TODO: Test with scale to see if it is better.
+    if (inverse) {
+      Vector<T> *d2 = new Vector<T>(rows());
+      for (int i = 0; i < rows(); i++)
+        (*d2)[i] = Constants<T>::pone / (*d)[i];
+      d = d2;
+    }
     for (int j = 0; j < cols(); j++) {
       for (int i = 0; i < rows(); i++) {
-        get(i, j) *= diag[i];
+        get(i, j) *= (*d)[i];
       }
     }
-    if (inverse) {
-      free(diag);
-    }
-  } else {
+    if (inverse) delete(d);
+  } else { // column j is multiplied by d[j] or 1/d[j]
     for (int j = 0; j < cols(); j++) {
-      T diag_val = inverse ? Constants<T>::pone / diag[j] : diag[j];
-      proxy_cblas::scal(rows(), diag_val, data.m + j * ((size_t) data.lda), 1);
+      T diag_val = inverse ? Constants<T>::pone / (*d)[j] : (*d)[j];
+      proxy_cblas::scal(rows(), diag_val, &get(0,j), 1);
     }
   }
 }
