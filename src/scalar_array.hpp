@@ -312,6 +312,10 @@ public:
    */
   void myTrmm(const ScalarArray<T>* bTri);
 
+  /** \brief this = alpha.a.x + beta.this (x and this must have 1 column)
+   */
+  void gemv(char trans, T alpha, const ScalarArray<T>* a, const ScalarArray<T>* x,
+            T beta);
 
   /** modified Gram-Schmidt algorithm of A='this'
 
@@ -362,10 +366,6 @@ public:
     Vector(const ScalarArray<T> &d, int col):ScalarArray<T>(d.m+col*d.lda, d.rows, 1, d.lda){}
     Vector(const ScalarArray<T> *d, int col):Vector<T>(*d,col){}
     //~Vector(){}
-    /** \brief this = alpha.a.x + beta.this
-     */
-    void gemv(char trans, T alpha, const ScalarArray<T>* a, const Vector<T>* x,
-              T beta);
     /** \brief this += x
      */
     void addToMe(const Vector<T>* x);

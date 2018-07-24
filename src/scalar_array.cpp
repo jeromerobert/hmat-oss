@@ -784,9 +784,9 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
 }
 
 template<typename T>
-void Vector<T>::gemv(char trans, T alpha,
+void ScalarArray<T>::gemv(char trans, T alpha,
                      const ScalarArray<T>* a,
-                     const Vector<T>* x, T beta)
+                     const ScalarArray<T>* x, T beta)
 {
   assert(this->cols==1);
   assert(x->cols==1);
@@ -804,6 +804,7 @@ void Vector<T>::gemv(char trans, T alpha,
     assert(x->rows == a->rows);
   }
   proxy_cblas::gemv(trans, matRows, matCols, alpha, a->m, aLda, x->m, 1, beta, this->m, 1);
+}
 
 template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec ) {
   DECLARE_CONTEXT;
