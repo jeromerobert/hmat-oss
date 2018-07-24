@@ -516,6 +516,132 @@ template<typename T> void ScalarArray<T>::rankOneUpdate(const T alpha, const Sca
   proxy_cblas::ger(rows, cols, alpha, x.m, 1, b.m, 1, m, lda);
 }
 
+template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
+  int info;
+  {
+    const size_t _m = rows, _n = cols;
+    const size_t muls = _m * _n *_n / 2 - _n *_n*_n / 6 + _m * _n / 2 - _n*_n / 2 + 2 * _n / 3;
+    const size_t adds = _m * _n *_n / 2 - _n *_n*_n / 6 + _m * _n / 2 + _n / 6;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  }
+  info = proxy_lapack::getrf(rows, cols, m, lda, pivots);
+  if (info)
+    throw hmat::LapackException("getrf", info);
+}
+
+// The following code is very close to that of ZGETRS in LAPACK.
+// However, the resolution here is divided in the two parties.
+
+// Warning! The matrix has been obtained with ZGETRF therefore it is
+// permuted! We have the factorization A = P L U  with P the
+// permutation matrix. So to solve L X = B, we must
+// solve LX = (P ^ -1 B), which is done by ZLASWP with
+// the permutation. we used it just like in ZGETRS.
+template<typename T>
+void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bool unitriangular) const {
+  {
+    const size_t _m = rows, _n = x->cols;
+    const size_t adds = _n * _m * (_m - 1) / 2;
+    const size_t muls = _n * _m * (_m + 1) / 2;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  }
+  if (pivots)
+    proxy_lapack::laswp(x->cols, x->m, x->lda, 1, rows, pivots, 1);
+  proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
+}
+
+// The resolution of the upper triangular system does not need to
+//  change the order of columns.
+//  The pivots are not necessary here, but this helps to check
+//  the matrix was factorized before.
+
+template<typename T>
+void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
+  // Void matrix
+  if (x->rows == 0 || x->cols == 0) return;
+
+  {
+    const size_t _m = rows, _n = x->cols;
+    const size_t adds = _n * _m * (_m - 1) / 2;
+    const size_t muls = _n * _m * (_m + 1) / 2;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  }
+  proxy_cblas::trsm('R', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
+    x->rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
+}
+
+template<typename T>
+void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
+  // Void matrix
+  if (x->rows == 0 || x->cols == 0) return;
+
+  {
+    const size_t _m = rows, _n = x->cols;
+    const size_t adds = _n * _m * (_n - 1) / 2;
+    const size_t muls = _n * _m * (_n + 1) / 2;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  }
+  proxy_cblas::trsm('L', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
+    x->rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
+}
+
+template<typename T>
+void ScalarArray<T>::solve(ScalarArray<T>* x, int *pivots) const {
+  // Void matrix
+  if (x->rows == 0 || x->cols == 0) return;
+
+  int ierr = 0;
+  {
+    const size_t nrhs = x->cols;
+    const size_t n = rows;
+    const size_t adds = n * n * nrhs;
+    const size_t muls = (n * n - n) * nrhs;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  }
+  ierr = proxy_lapack::getrs('N', rows, x->cols, m, lda, pivots, x->m, x->rows);
+  if (ierr)
+    throw hmat::LapackException("getrs", ierr);
+}
+
+
+template<typename T>
+void ScalarArray<T>::inverse() {
+
+  // The inversion is done in two steps with dgetrf for LU decomposition and
+  // dgetri for inversion of triangular matrices
+
+  assert(rows == cols);
+
+  int *ipiv = new int[rows];
+  int info;
+  {
+    size_t vn = cols, vm = cols;
+    // getrf
+    size_t additions = (vm*vn*vn)/2 - (vn*vn*vn)/6 - (vm*vn)/2 + vn/6;
+    size_t multiplications = (vm*vn*vn)/2 - (vn*vn*vn)/6 + (vm*vn)/2
+      - (vn*vn)/2 + 2*vn/3;
+    increment_flops(Multipliers<T>::add * additions + Multipliers<T>::mul * multiplications);
+    // getri
+    additions = (2*vn*vn*vn)/3 - (3*vn*vn)/2 + (5*vn)/6;
+    multiplications = (2*vn*vn*vn)/3 + (vn*vn)/2 + (5*vn)/6;
+    increment_flops(Multipliers<T>::add * additions + Multipliers<T>::mul * multiplications);
+  }
+  info = proxy_lapack::getrf(rows, cols, m, lda, ipiv);
+  HMAT_ASSERT(!info);
+  // We call it twice: the first time to know the optimal size of
+  // temporary arrays, and the second time for real calculation.
+  int workSize;
+  T workSize_req;
+  info = proxy_lapack::getri(rows, m, lda, ipiv, &workSize_req, -1);
+  workSize = (int) hmat::real(workSize_req) + 1;
+  T* work = new T[workSize];
+  HMAT_ASSERT(work);
+  info = proxy_lapack::getri(rows, m, lda, ipiv, work, workSize);
+  delete[] work;
+  if (info)
+    throw hmat::LapackException("getri", info);
+  delete[] ipiv;
+}
 
 template<typename T>
 void Vector<T>::gemv(char trans, T alpha,

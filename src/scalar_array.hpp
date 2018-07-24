@@ -30,6 +30,7 @@
 #include <cstddef>
 
 #include "data_types.hpp"
+#include "hmat/hmat.h"
 
 namespace hmat {
 
@@ -213,8 +214,51 @@ public:
   */
   void rankOneUpdate(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &y);
 
+  /*! \brief LU decomposition (in-place)
+    */
+  void luDecomposition(int *pivots) ;
 
-};
+  /*! \brief Solve the system L X = B, with B = X on entry, and L = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bool unitriangular) const;
+
+  /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+
+  /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+
+  /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solve(ScalarArray<T>* x, int *pivots) const;
+
+  /*! \brief Compute the inverse of this in place.
+   */
+  void inverse();
+
+  };
 
   /*! \brief Templated Vector class = a ScalarArray with 1 column
 
