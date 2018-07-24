@@ -270,6 +270,48 @@ public:
   /*! \brief Compute the inverse of this in place.
    */
   void inverse();
+  /** Makes an SVD of 'this' with LAPACK.
+
+      \param u
+      \param sigma
+      \param vt
+      \return
+   */
+  int svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** vt) const;
+
+  /** QR matrix decomposition.
+
+    Warning: m is modified!
+
+    \param tau
+    \return
+  */
+  T* qrDecomposition();
+
+  /** Do the product by Q.
+
+      this=qr has to be factored using \a qrDecomposition.
+      The arguments side and trans have the same meaning as in the
+      LAPACK xORMQR function. Beware, only the 'L', 'N' case has been
+      tested !
+
+      \param side either 'L' or 'R', as in xORMQR
+      \param trans either 'N' or 'T' as in xORMQR
+      \param tau as created by \a qrDecomposition
+      \param c as in xORMQR
+      \return 0 for success
+   */
+  int productQ(char side, char trans, T* tau, ScalarArray<T>* c) const;
+
+
+  /** Multiplication used in RkMatrix::truncate()
+
+       A B -> computing "AB^t" with A=this and B full upper triangular
+       (non-unitary diagonal)
+
+   */
+  void myTrmm(const ScalarArray<T>* bTri);
+
 
   };
 

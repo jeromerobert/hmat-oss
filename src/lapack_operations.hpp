@@ -29,51 +29,11 @@
 
 namespace hmat {
 
-/** Makes an SVD with LAPACK in MKL.
-
-    \param m
-    \param u
-    \param sigma
-    \param vt
-    \return
- */
-template<typename T> int svdDecomposition(ScalarArray<T>* m, ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** vt);
-/** QR matrix decomposition.
-
-    Warning: m is modified!
-
-    \param m
-    \param tau
-    \return
- */
-template<typename T> T* qrDecomposition(ScalarArray<T>* m);
-
-/** Do the product by Q.
-
-    qr has to be factored using \a qrDecomposition.
-    The arguments side and trans have the same meaning as in the
-    LAPACK xORMQR function. Beware, only the 'L', 'N' case has been
-    tested !
-
-    \param side either 'L' or 'R', as in xORMQR
-    \param trans either 'N' or 'T' as in xORMQR
-    \param qr the matrix factored using \a qrDecomposition
-    \param tau as created by \a qrDecomposition
-    \param c as in xORMQR
-    \return 0 for success
- */
-template<typename T>
-int productQ(char side, char trans, ScalarArray<T>* qr, T* tau, ScalarArray<T>* c);
-
-
-/** Multiplication used in RkMatrix::truncate()
-
-     A B -> computing "AB^t" with A and B full upper triangular
-     (non-unitary diagonal)
-
- */
-template<typename T> void myTrmm(ScalarArray<T>* aFull,
-                                 ScalarArray<T>* bTri);
+  template<typename T> int sddCall(char jobz, int m, int n, T* a, int lda,
+                                   double* sigma, T* u, int ldu, T* vt, int ldvt);
+  template<typename T> int svdCall(char jobu, char jobv, int m, int n, T* a,
+                                   int lda, double* sigma, T* u, int ldu, T* vt,
+                                   int ldvt);
 
 /** modified Gram-Schmidt algorithm
 

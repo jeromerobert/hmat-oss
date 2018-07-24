@@ -251,9 +251,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   */
   int ierr;
   // QR decomposition of A and B
-  T* tauA = qrDecomposition<T>(a); // A contains QaRa
+  T* tauA = a->qrDecomposition(); // A contains QaRa
   HMAT_ASSERT(tauA);
-  T* tauB = qrDecomposition<T>(b); // B contains QbRb
+  T* tauB = b->qrDecomposition(); // B contains QbRb
   HMAT_ASSERT(tauB);
 
   // Matrices created by the SVD
@@ -273,10 +273,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
       }
     }
 
-    // Ra Rb^t
-    myTrmm<T>(&rAFull, b);
+    // Ra <- Ra Rb^t with b upper triangular matrix
+    rAFull.myTrmm(b);
     // SVD of Ra Rb^t
-    ierr = svdDecomposition<T>(&rAFull, &u, &sigma, &vt); // TODO use something else than SVD ?
+    ierr = rAFull.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &vt); // TODO use something else than SVD ?
     HMAT_ASSERT(!ierr);
   }
 
@@ -314,7 +314,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   delete u;
   u = NULL;
   // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
-  productQ<T>('L', 'N', a, tauA, newA);
+  a->productQ('L', 'N', tauA, newA);
   free(tauA);
 
   // newB = Qb * VTilde * SQRT(SigmaTilde)
@@ -328,7 +328,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   }
   delete vt;
   delete sigma;
-  productQ<T>('L', 'N', b, tauB, newB);
+  // newB <- Qb * newB
+  b->productQ('L', 'N', tauB, newB);
   free(tauB);
 
   delete a;
@@ -374,7 +375,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
     // SVD
-    int ierr = svdDecomposition<T>(&matR, &ur, &sr, &vhr);
+    int ierr = matR.svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vhr);
     // On output, ur->rows = kA, vhr->cols = kB
     HMAT_ASSERT(!ierr);
   }

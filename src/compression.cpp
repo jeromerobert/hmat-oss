@@ -314,7 +314,7 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   ScalarArray<T> *u = NULL, *vt = NULL;
   Vector<double>* sigma = NULL;
   // TODO compress with something else than SVD
-  int info = svdDecomposition<T>(&m->data, &u, &sigma, &vt);
+  int info = m->data.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &vt);
   HMAT_ASSERT(info == 0);
   // Control of the approximation
 

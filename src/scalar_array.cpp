@@ -42,6 +42,7 @@
 #include "system_types.h"
 #include "common/my_assert.h"
 #include "common/context.hpp"
+#include "lapack_operations.hpp"
 
 #include <cstring> // memset
 #include <algorithm> // swap
@@ -396,12 +397,12 @@ double ScalarArray<T>::normSqr() const {
   // Fast path
   if ((size < 1000000000) && (lda == rows)) {
     result += proxy_cblas_convenience::dot_c(size, m, 1, m, 1);
-    return hmat::real(result);
+    return real(result);
   }
   for (int col = 0; col < cols; col++) {
     result += proxy_cblas_convenience::dot_c(rows, m + col * lda, 1, m + col * lda, 1);
   }
-  return hmat::real(result);
+  return real(result);
 }
 
 template<typename T> double ScalarArray<T>::norm() const {
@@ -414,13 +415,13 @@ template<typename T> double ScalarArray<T>::norm_abt_Sqr(ScalarArray<T> &b) cons
   const int k = cols;
   for (int i = 1; i < k; ++i) {
     for (int j = 0; j < i; ++j) {
-      result += hmat::real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + j*lda, 1) *
+      result += real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + j*lda, 1) *
                            proxy_cblas_convenience::dot_c(b.rows, b.m + i*b.lda, 1, b.m + j*b.lda, 1));
     }
   }
   result *= 2.0;
   for (int i = 0; i < k; ++i) {
-    result += hmat::real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + i*lda, 1) *
+    result += real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + i*lda, 1) *
                          proxy_cblas_convenience::dot_c(b.rows, b.m + i*b.lda, 1, b.m + i*b.lda, 1));
   }
   return result;
@@ -556,7 +557,7 @@ template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
   }
   info = proxy_lapack::getrf(rows, cols, m, lda, pivots);
   if (info)
-    throw hmat::LapackException("getrf", info);
+    throw LapackException("getrf", info);
 }
 
 // The following code is very close to that of ZGETRS in LAPACK.
@@ -630,7 +631,7 @@ void ScalarArray<T>::solve(ScalarArray<T>* x, int *pivots) const {
   }
   ierr = proxy_lapack::getrs('N', rows, x->cols, m, lda, pivots, x->m, x->rows);
   if (ierr)
-    throw hmat::LapackException("getrs", ierr);
+    throw LapackException("getrs", ierr);
 }
 
 
@@ -663,14 +664,123 @@ void ScalarArray<T>::inverse() {
   int workSize;
   T workSize_req;
   info = proxy_lapack::getri(rows, m, lda, ipiv, &workSize_req, -1);
-  workSize = (int) hmat::real(workSize_req) + 1;
+  workSize = (int) real(workSize_req) + 1;
   T* work = new T[workSize];
   HMAT_ASSERT(work);
   info = proxy_lapack::getri(rows, m, lda, ipiv, work, workSize);
   delete[] work;
   if (info)
-    throw hmat::LapackException("getri", info);
+    throw LapackException("getri", info);
   delete[] ipiv;
+}
+
+template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** vt) const {
+  DECLARE_CONTEXT;
+  static char * useGESDD = getenv("HMAT_GESDD");
+
+  // Allocate free space for U, S, V
+  int p = std::min(rows, cols);
+
+  *u = new ScalarArray<T>(rows, p);
+  *sigma = new ScalarArray<double>(p,1);
+  *vt = new ScalarArray<T>(p, cols);
+
+  assert(lda >= rows);
+
+  char jobz = 'S';
+  int info;
+
+  {
+    const size_t _m = rows, _n = cols;
+    // Warning: These quantities are a rough approximation.
+    // What's wrong with these estimates:
+    //  - Golub only gives 14 * M*N*N + 8 N*N*N
+    //  - This is for real numbers
+    //  - We assume the same number of * and +
+    size_t adds = 7 * _m * _n * _n + 4 * _n * _n * _n;
+    size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  }
+  if(useGESDD)
+    info = sddCall(jobz, rows, cols, m, lda, (*sigma)->m, (*u)->m,
+                      (*u)->lda, (*vt)->m, (*vt)->lda);
+  else
+    info = svdCall(jobz, jobz, rows, cols, m, lda, (*sigma)->m, (*u)->m,
+                      (*u)->lda, (*vt)->m, (*vt)->lda);
+
+  return info;
+}
+
+template<typename T> T* ScalarArray<T>::qrDecomposition() {
+  DECLARE_CONTEXT;
+  //  SUBROUTINE DGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
+  T* tau = (T*) calloc(std::min(rows, cols), sizeof(T));
+  {
+    size_t mm = std::max(rows, cols);
+    size_t n = std::min(rows, cols);
+    size_t multiplications = mm * n * n - (n * n * n) / 3 + mm * n + (n * n) / 2 + (29 * n) / 6;
+    size_t additions = mm * n * n + (n * n * n) / 3 + 2 * mm * n - (n * n) / 2 + (5 * n) / 6;
+    increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
+  }
+  int info;
+  int workSize;
+  T workSize_S;
+  // int info = LAPACKE_sgeqrf(LAPACK_COL_MAJOR, rows, cols, m, rows, *tau);
+  info = proxy_lapack::geqrf(rows, cols, m, rows, tau, &workSize_S, -1);
+  HMAT_ASSERT(!info);
+  workSize = (int) hmat::real(workSize_S) + 1;
+  T* work = new T[workSize];// TODO Mettre dans la pile ??
+  HMAT_ASSERT(work) ;
+  info = proxy_lapack::geqrf(rows, cols, m, rows, tau, work, workSize);
+  delete[] work;
+
+  HMAT_ASSERT(!info);
+  return tau;
+}
+
+// aFull <- aFull.bTri^t with aFull=this and bTri upper triangular matrix
+template<typename T>
+void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
+  DECLARE_CONTEXT;
+  int mm = rows;
+  int n = rows;
+  T alpha = Constants<T>::pone;
+  const T *aData = bTri->m;
+  int lda = bTri->rows;
+  T *bData = m;
+  int ldb = rows;
+  {
+    size_t m_ = mm;
+    size_t nn = n;
+    size_t multiplications = m_ * nn  * (nn + 1) / 2;
+    size_t additions = m_ * nn  * (nn - 1) / 2;
+    increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
+  }
+  proxy_cblas::trmm('R', 'U', 'T', 'N', mm, n, alpha, aData, lda, bData, ldb);
+}
+
+template<typename T>
+int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) const {
+  DECLARE_CONTEXT;
+  assert((side == 'L') ? rows == c->rows : rows == c->cols);
+  int info;
+  int workSize;
+  T workSize_req;
+  {
+    size_t _m = c->rows, _n = c->cols, _k = cols;
+    size_t muls = 2 * _m * _n * _k - _n * _k * _k + 2 * _n * _k;
+    size_t adds = 2 * _m * _n * _k - _n * _k * _k + _n * _k;
+    increment_flops(Multipliers<T>::mul * muls + Multipliers<T>::add * adds);
+  }
+  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, m, lda, tau, c->m, c->lda, &workSize_req, -1);
+  HMAT_ASSERT(!info);
+  workSize = (int) hmat::real(workSize_req) + 1;
+  T* work = new T[workSize];
+  HMAT_ASSERT(work);
+  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, m, lda, tau, c->m, c->lda, work, workSize);
+  HMAT_ASSERT(!info);
+  delete[] work;
+  return 0;
 }
 
 template<typename T>
