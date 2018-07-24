@@ -185,8 +185,8 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
     // The offset in the matrix, and not in all the indices
     int rowsOffset = subRows->offset() - rows->offset();
     int colsOffset = subCols->offset() - cols->offset();
-    subA = new ScalarArray<T>(a->m + rowsOffset, subRows->size(), rank(), a->lda);
-    subB = new ScalarArray<T>(b->m + colsOffset, subCols->size(), rank(), b->lda);
+    subA = new ScalarArray<T>(*a, rowsOffset, subRows->size(), 0, rank());
+    subB = new ScalarArray<T>(*b, colsOffset, subCols->size(), 0, rank());
   }
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
@@ -555,8 +555,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     resultA->copyMatrixAtOffset(parts[i]->a, rowOffset, kOffset);
     // Scaling the matrix already in place inside resultA
     if (alpha[i] != Constants<T>::pone) {
-      ScalarArray<T> tmp(resultA->m + rowOffset + ((size_t) kOffset) * resultA->lda,
-                        parts[i]->a->rows, parts[i]->a->cols, resultA->lda);
+      ScalarArray<T> tmp(*resultA, rowOffset, parts[i]->a->rows, kOffset, parts[i]->a->cols);
       tmp.scale(alpha[i]);
     }
     rowOffset = parts[i]->cols->offset() - cols->offset();

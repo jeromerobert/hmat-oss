@@ -76,11 +76,10 @@ void reorderVector(ScalarArray<T>* v, int* indices) {
   const int n = v->rows;
   Vector<T> tmp(n);
   for (int col = 0; col < v->cols; col++) {
-    T* column = v->m + ((size_t) n) * col;
-    for (int i = 0; i < n; i++) {
+    Vector<T> column(v, col);
+    for (int i = 0; i < n; i++)
       tmp[i] = column[indices[i]];
-    }
-    memcpy(column, tmp.m, sizeof(T) * n);
+    tmp.copy(&column);
   }
 }
 
@@ -92,11 +91,11 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
   Vector<T> tmp(n);
 
   for (int col = 0; col < v->cols; col++) {
-    T* column = v->m + ((size_t) n) * col;
+    Vector<T> column(v, col);
     for (int i = 0; i < n; i++) {
       tmp[indices[i]] = column[i];
     }
-    memcpy(column, tmp.m, sizeof(T) * n);
+    tmp.copy(&column);
   }
 }
 
