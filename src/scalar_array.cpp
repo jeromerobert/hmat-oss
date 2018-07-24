@@ -408,6 +408,24 @@ template<typename T> double ScalarArray<T>::norm() const {
   return sqrt(normSqr());
 }
 
+// Compute squared Frobenius norm of a.b^t (a=this)
+template<typename T> double ScalarArray<T>::norm_abt_Sqr(ScalarArray<T> &b) const {
+  double result = 0;
+  const int k = cols;
+  for (int i = 1; i < k; ++i) {
+    for (int j = 0; j < i; ++j) {
+      result += hmat::real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + j*lda, 1) *
+                           proxy_cblas_convenience::dot_c(b.rows, b.m + i*b.lda, 1, b.m + j*b.lda, 1));
+    }
+  }
+  result *= 2.0;
+  for (int i = 0; i < k; ++i) {
+    result += hmat::real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + i*lda, 1) *
+                         proxy_cblas_convenience::dot_c(b.rows, b.m + i*b.lda, 1, b.m + i*b.lda, 1));
+  }
+  return result;
+}
+
 template<typename T> void ScalarArray<T>::fromFile(const char * filename) {
   FILE * f = fopen(filename, "rb");
   /* Read the header before data : [stype, rows, cols, sieof(T), 0] */

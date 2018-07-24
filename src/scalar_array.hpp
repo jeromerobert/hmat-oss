@@ -172,6 +172,11 @@ public:
     \return the matrix norm.
    */
   double norm() const;
+  /*! \brief Return square of the Frobenius norm of the matrix 'this' x B^T.
+
+    \return the matrix norm.
+   */
+  double norm_abt_Sqr(ScalarArray<T> &b) const ;
   /*! \brief Write the matrix to a binary file.
 
     \param filename output filename
