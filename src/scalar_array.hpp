@@ -219,6 +219,14 @@ public:
   */
   void rankOneUpdate(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &y);
 
+  /*! \brief Write the ScalarArray data 'm' in a stream (FILE*, unix fd, ...)
+    */
+  void writeArray(hmat_iostream writeFunc, void * userData) const;
+
+  /*! \brief Read the ScalarArray data 'm' from a stream (FILE*, unix fd, ...)
+    */
+  void readArray(hmat_iostream writeFunc, void * userData) ;
+
   /*! \brief LU decomposition (in-place)
     */
   void luDecomposition(int *pivots) ;

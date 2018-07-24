@@ -534,6 +534,18 @@ template<typename T> void ScalarArray<T>::rankOneUpdate(const T alpha, const Sca
   proxy_cblas::ger(rows, cols, alpha, x.m, 1, b.m, 1, m, lda);
 }
 
+template<typename T> void ScalarArray<T>::writeArray(hmat_iostream writeFunc, void * userData) const{
+  assert(lda == rows);
+  size_t s = (size_t)rows * cols;
+  writeFunc(m, sizeof(T) * s, userData);
+}
+
+template<typename T> void ScalarArray<T>::readArray(hmat_iostream readFunc, void * userData) {
+  assert(lda == rows);
+  size_t s = (size_t)rows * cols;
+  readFunc(m, sizeof(T) * s, userData);
+}
+
 template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
   int info;
   {

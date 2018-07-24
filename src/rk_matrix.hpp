@@ -326,6 +326,9 @@ public:
   }
   inline T get(int i, int j) const ;
 
+  /*! \brief Write the RkMatrix data 'a' and 'b' in a stream (FILE*, unix fd, ...)
+    */
+  void writeArray(hmat_iostream writeFunc, void * userData) const;
 };
 
 }  // end namespace hmat
