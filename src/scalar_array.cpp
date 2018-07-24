@@ -804,6 +804,103 @@ void Vector<T>::gemv(char trans, T alpha,
     assert(x->rows == a->rows);
   }
   proxy_cblas::gemv(trans, matRows, matCols, alpha, a->m, aLda, x->m, 1, beta, this->m, 1);
+
+template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec ) {
+  DECLARE_CONTEXT;
+  {
+    size_t mm = rows;
+    size_t n = cols;
+    size_t multiplications = 2*mm*n*n;
+    size_t additions = 2*mm*n*n;
+    increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
+  }
+  int rank;
+  double relative_epsilon;
+  static const double LOWEST_EPSILON = 1.0e-6;
+
+  const int original_rank(result->lda);
+  assert(original_rank == result->rows);
+  assert(original_rank == result->cols);
+  assert(original_rank >= cols);
+  int* perm = new int[original_rank];
+  for(int k = 0; k < original_rank; ++k) {
+    perm[k] = k;
+  }
+  // Temporary arrays
+  ScalarArray<T> r(original_rank, original_rank);
+  Vector<T> buffer(std::max(original_rank, rows));
+
+  // Lower threshold for relative precision
+  if(prec < LOWEST_EPSILON) {
+    prec = LOWEST_EPSILON;
+  }
+
+  // Init.
+  Vector<double> norm2(cols);
+  rank = 0;
+  relative_epsilon = 0.0;
+  for(int j=0; j < cols; ++j) {
+    const Vector<T> aj(this, j);
+    norm2[j] = aj.normSqr();
+    relative_epsilon = std::max(relative_epsilon, norm2[j]);
+  }
+  relative_epsilon *= prec * prec;
+
+  // Modified Gram-Schmidt process with column pivoting
+  for(int j = 0; j < cols; ++j) {
+    // Find the largest pivot
+    const int pivot = norm2.absoluteMaxIndex(j);
+    const double pivmax = norm2[pivot];
+
+    // Stopping criterion
+    if (pivmax > relative_epsilon) {
+      ++rank;
+
+      // Pivoting
+      if (j != pivot) {
+        std::swap(perm[j], perm[pivot]);
+        std::swap(norm2[j], norm2[pivot]);
+
+        // Exchange the column 'j' and 'pivot' in this[] using buffer as temp space
+        memcpy(buffer.m,        m + j * lda,     rows*sizeof(T));
+        memcpy(m + j * lda,     m + pivot * lda, rows*sizeof(T));
+        memcpy(m + pivot * lda, buffer.m,        rows*sizeof(T));
+
+        // Idem for r[]
+        memcpy(buffer.m,            r.m + j * r.lda,     cols*sizeof(T));
+        memcpy(r.m +  j * r.lda,    r.m + pivot * r.lda, cols*sizeof(T));
+        memcpy(r.m + pivot * r.lda, buffer.m,            cols*sizeof(T));
+      }
+
+      // Normalisation of qj
+      r.get(j,j) = sqrt(norm2[j]);
+      Vector<T> aj(this, j);
+      T coef = Constants<T>::pone / r.get(j,j);
+      aj.scale(coef);
+
+      // Remove the qj-component from vectors bk (k=j+1,...,n-1)
+      for(int k = j + 1; k < cols; ++k) {
+        // Scalar product of qj and bk
+        Vector<T> ak(this, k);
+        r.get(j,k) = Vector<T>::dot(&aj, &ak);
+        coef = - r.get(j,k);
+        ak.axpy(coef, &aj);
+        norm2[k] -= std::abs(r.get(j,k)) * std::abs(r.get(j,k));
+      }
+    }
+  }
+
+  // Apply perm to result
+  for(int j = 0; j < result->cols; ++j) {
+    memcpy(result->m + perm[j] * result->lda, r.m + j * result->lda, result->lda*sizeof(T));
+  }
+  // Update matrix dimensions
+  cols = rank;
+  result->rows = rank;
+  // Clean up
+  delete[] perm;
+  /* end of modified Gram-Schmidt */
+  return rank;
 }
 
 template<typename T>
