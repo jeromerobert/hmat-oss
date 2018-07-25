@@ -89,7 +89,7 @@ public:
   ScalarArray(int _rows, int _cols);
   /** \brief Initialize the ScalarArray with subset of existing ScalarArray.
    */
-  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize):ScalarArray(d.m+rowsOffset+colsOffset*d.lda, rowsSize, colsSize, d.lda){}
+  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+colsOffset*d.lda), rows(rowsSize), cols(colsSize), lda(d.lda){}
 
   ~ScalarArray();
 
@@ -386,7 +386,7 @@ public:
       We use const_ptr because we dont want this to be considered as a read access into 'd'.
      */
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>((T*)d.const_ptr(0,_col), d.rows, 1, d.lda){}
-    Vector(const ScalarArray<T> *d, int _col):Vector<T>(*d,_col){}
+    Vector(const ScalarArray<T> *d, int _col):ScalarArray<T>((T*)d->const_ptr(0,_col), d->rows, 1, d->lda){}
     //~Vector(){}
     /** \brief this += x
      */

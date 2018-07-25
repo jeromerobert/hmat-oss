@@ -70,6 +70,13 @@ if ( WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel" )
   set(CMAKE_C_FLAGS "/Qstd=c99 ${CMAKE_C_FLAGS}")
 endif()
 
+include(CheckCXXCompilerFlag)
+# needed for shared_ptr
+check_cxx_compiler_flag("-std=c++98" stdcpp98)
+if(stdcpp98)
+    set(CMAKE_CXX_FLAGS "-std=c++98 ${CMAKE_CXX_FLAGS}")
+endif()
+
 # ========================
 # C
 # ========================
@@ -227,7 +234,6 @@ include_directories(${CBLAS_INCLUDE_DIR})
 # ========================
 # Warning flags
 # ========================
-include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix" HAVE_GCC_WARNING_FLAGS)
 if(HAVE_GCC_WARNING_FLAGS)
   SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
