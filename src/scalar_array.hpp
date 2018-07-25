@@ -41,12 +41,18 @@ namespace hmat {
   @data_types.hpp.
  */
 template<typename T> class ScalarArray {
+  friend class ScalarArray<S_t>; // needed for some methods that manipulate both ScalarArray<T> and ScalarArray<D_t>
+  friend class ScalarArray<D_t>;
+  friend class ScalarArray<C_t>;
+  friend class ScalarArray<Z_t>;
+
+private:
   /*! True if the matrix owns its memory, ie has to free it upon destruction */
   char ownsMemory:1;
-
-public:
+protected:
   /// Fortran style pointer (columnwise)
   T* m;
+public:
   /// Number of rows
   int rows;
   /// Number of columns
@@ -376,9 +382,11 @@ public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
     /** \brief Create Vector with column 'col' of existing ScalarArray
+
+      We use const_ptr because we dont want this to be considered as a read access into 'd'.
      */
-    Vector(const ScalarArray<T> &d, int col):ScalarArray<T>(d.m+col*d.lda, d.rows, 1, d.lda){}
-    Vector(const ScalarArray<T> *d, int col):Vector<T>(*d,col){}
+    Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>((T*)d.const_ptr(0,_col), d.rows, 1, d.lda){}
+    Vector(const ScalarArray<T> *d, int _col):Vector<T>(*d,_col){}
     //~Vector(){}
     /** \brief this += x
      */
