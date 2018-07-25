@@ -474,14 +474,14 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
     // Find max and argmax of the residue
     double maxNorm2 = 0.;
     for (int j = 0; j < colCount; j++) {
-      const double norm2 = squaredNorm<dp_t>(bCol->m[j]);
+      const double norm2 = squaredNorm<dp_t>((*bCol)[j]);
       if (colFree[j] && norm2 > maxNorm2) {
         maxNorm2 = norm2;
         J = j;
       }
     }
 
-    if (bCol->m[J] == Constants<dp_t>::zero) {
+    if ((*bCol)[J] == Constants<dp_t>::zero) {
       delete bCol;
       // We look for another row which has not already been used.
       I = 0;
@@ -490,7 +490,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       }
     } else {
       // Find pivot and scale column B
-      dp_t pivot = Constants<dp_t>::pone / bCol->m[J];
+      dp_t pivot = Constants<dp_t>::pone / (*bCol)[J];
       bCol->scale(pivot);
       bCols.push_back(bCol);
 
@@ -504,7 +504,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       // Find max and argmax of the residue
       maxNorm2 = 0.;
       for (int i = 0; i < rowCount; i++) {
-        const double norm2 = squaredNorm<dp_t>(aCol->m[i]);
+        const double norm2 = squaredNorm<dp_t>((*aCol)[i]);
         if (rowFree[i] && norm2 > maxNorm2) {
           maxNorm2 = norm2;
           I = i;
@@ -599,7 +599,7 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
       // Calculate the residue
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
       j_star = bVec->absoluteMaxIndex();
-      dp_t pivot = bVec->m[j_star];
+      dp_t pivot = (*bVec)[j_star];
       // Calculate a
       block.getCol(j_star, *aVec);
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
@@ -609,7 +609,7 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
       block.getCol(j_star, *aVec);
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
       i_star = aVec->absoluteMaxIndex();
-      dp_t pivot = aVec->m[i_star];
+      dp_t pivot = (*aVec)[i_star];
       // Calculate b
       block.getRow(i_star, *bVec);
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
@@ -644,8 +644,8 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
     }
 
     // Update of a_ref and b_ref
-    aRef.axpy(Constants<dp_t>::mone * bCols[k - 1]->m[j_ref], aCols[k - 1]);
-    bRef.axpy(Constants<dp_t>::mone * aCols[k - 1]->m[i_ref], bCols[k - 1]);
+    aRef.axpy(Constants<dp_t>::mone * (*bCols[k - 1])[j_ref], aCols[k - 1]);
+    bRef.axpy(Constants<dp_t>::mone * (*aCols[k - 1])[i_ref], bCols[k - 1]);
     const bool needNewA = aRef.isZero() || (j_star == j_ref);
     const bool needNewB = bRef.isZero() || (i_star == i_ref);
 

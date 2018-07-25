@@ -194,6 +194,20 @@ public:
   inline T get(int i, int j) const {
     return m[i + ((size_t) lda) * j];
   }
+
+  /** Simpler accessors for the pointer on the data (i,j) in the scalar array.
+
+      There are 2 types to allow matrix modification or not (const or not).
+   */
+  inline T* ptr(int i=0, int j=0) const {
+    // here I might modify the data with this pointer
+    return &m[i + ((size_t) lda) * j];
+  }
+  inline const T * const_ptr(int i=0, int j=0) const {
+    // here this pointer is not supposed to allow content modification (unless casted into non-const)
+    return &m[i + ((size_t) lda) * j];
+  }
+
   /*! Check the matrix for the presence of NaN numbers.
 
     If a NaN is found, an assertion is triggered.
