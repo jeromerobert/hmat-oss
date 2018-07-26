@@ -2310,7 +2310,7 @@ template<typename T> void HMatrix<T>::setLower(bool value)
     }
 }
 
-template<typename T>  void HMatrix<T>::rk(ScalarArray<T> * a, ScalarArray<T> * b) {
+template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const ScalarArray<T> * b) {
     assert(isRkMatrix());
     if(a == NULL && isNull())
         return;

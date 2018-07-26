@@ -94,6 +94,8 @@ template<typename T> ScalarArray<T>* RkMatrix<T>::evalArray(ScalarArray<T>* resu
     result = new ScalarArray<T>(rows->size(), cols->size());
   if (rank())
     result->gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+  else
+    result->clear();
   return result;
 }
 

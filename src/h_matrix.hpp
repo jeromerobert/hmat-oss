@@ -621,7 +621,7 @@ public:
 
   /*! \brief Set 'this' as an Rk matrix using copy of a and b
      */
-  void rk(ScalarArray<T> *a, ScalarArray<T> *b);
+  void rk(const ScalarArray<T> *a, const ScalarArray<T> *b);
 
   void rk(RkMatrix<T> * m) {
       rk_ = m;
