@@ -33,10 +33,13 @@ class LapackException: public std::exception {
     const char * primitive_;
     int info_;
     std::string msg;
+    LapackException() : primitive_(NULL), info_(0) {}
 public:
-    LapackException() : primitive_(NULL), info_(0)
-    {}
-
+    /** Singleton for no error */
+    static LapackException & noError() {
+        static LapackException instance;
+        return instance;
+    }
     LapackException(const char * primitive, int info)
         : primitive_(primitive), info_(info)
     {
