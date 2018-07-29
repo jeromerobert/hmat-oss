@@ -182,7 +182,7 @@ public:
 
     \return the matrix norm.
    */
-  double norm_abt_Sqr(ScalarArray<T> &b) const ;
+  double norm_abt_Sqr(const ScalarArray<T> &b) const ;
   /*! \brief Write the matrix to a binary file.
 
     \param filename output filename
@@ -388,12 +388,6 @@ public:
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>((T*)d.const_ptr(0,_col), d.rows, 1, d.lda){}
     Vector(const ScalarArray<T> *d, int _col):ScalarArray<T>((T*)d->const_ptr(0,_col), d->rows, 1, d->lda){}
     //~Vector(){}
-    /** \brief this += x
-     */
-    void addToMe(const Vector<T>* x);
-    /** \brief this -= x
-     */
-    void subToMe(const Vector<T>* x);
     /** L2 norm of the vector.
      */
     int absoluteMaxIndex(int startIndex = 0) const;

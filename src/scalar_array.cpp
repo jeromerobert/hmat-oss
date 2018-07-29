@@ -410,7 +410,7 @@ template<typename T> double ScalarArray<T>::norm() const {
 }
 
 // Compute squared Frobenius norm of a.b^t (a=this)
-template<typename T> double ScalarArray<T>::norm_abt_Sqr(ScalarArray<T> &b) const {
+template<typename T> double ScalarArray<T>::norm_abt_Sqr(const ScalarArray<T> &b) const {
   double result = 0;
   const int k = cols;
   for (int i = 1; i < k; ++i) {
@@ -902,16 +902,6 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   delete[] perm;
   /* end of modified Gram-Schmidt */
   return rank;
-}
-
-template<typename T>
-void Vector<T>::addToMe(const Vector<T>* x) {
-  ScalarArray<T>::axpy(Constants<T>::pone, x);
-}
-
-template<typename T>
-void Vector<T>::subToMe(const Vector<T>* x) {
-  ScalarArray<T>::axpy(Constants<T>::mone, x);
 }
 
 template<typename T>
