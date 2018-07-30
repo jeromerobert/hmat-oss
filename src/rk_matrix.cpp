@@ -310,7 +310,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   for (int col = 0; col < newK; col++) {
     const T alpha = (*sigma)[col];
     for (int row = 0; row < rank(); row++) {
-      newA->get(row, col) = u->get(row, col) * alpha;
+      newA->get(row, col) = u->get(row, col) * alpha; // use copy+multiplyWithDiagOrDiagInv (sigma is 'double') ?
     }
   }
   delete u;
@@ -325,7 +325,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   for (int col = 0; col < newK; col++) {
     const T alpha = (*sigma)[col];
     for (int row = 0; row < rank(); row++) {
-      newB->get(row, col) = vt->get(col, row) * alpha;
+      newB->get(row, col) = vt->get(col, row) * alpha; // use copyTranpose+multiplyWithDiagOrDiagInv (sigma is 'double') ?
     }
   }
   delete vt;
@@ -395,13 +395,13 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   for(int j = 0; j < newK; ++j) {
     const T valJ = (*sr)[j];
     for(int i = 0; i < ur->rows; ++i) {
-      ur->get(i, j) *= valJ;
+      ur->get(i, j) *= valJ; // use multiplyWithDiagOrDiagInv (note: sr is 'double') ?
     }
   }
 
   for(int j = 0; j < vhr->cols; ++j){
     for(int i = 0; i < newK; ++i) {
-      vhr->get(i, j) *= (*sr)[i];
+      vhr->get(i, j) *= (*sr)[i];  // use multiplyWithDiagOrDiagInv (note: sr is 'double') ?
     }
   }
 
