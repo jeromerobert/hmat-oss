@@ -238,7 +238,7 @@ void FullMatrix<T>::ldltDecomposition() {
   }
 
   for(int i = 0; i < n; i++) {
-    getD(i) = get(i,i);
+    (*diagonal)[i] = get(i,i);
     get(i,i) = Constants<T>::pone;
     for (int j = i + 1; j < n; j++)
       get(i,j) = Constants<T>::zero;

@@ -260,17 +260,6 @@ public:
   inline T get(int i, int j) const {
     return data.get(i,j);
   }
-  /** Simpler accessors for the diagonal.
-
-      \warning This will only work if the matrix has been factored
-      with \a FullMatrix::ldltDecomposition() beforehand.
-   */
-  T getD(int i) const {
-    return (*diagonal)[i];
-  }
-  T& getD(int i) {
-    return (*diagonal)[i];
-  }
   /*! Check the matrix for the presence of NaN numbers.
 
     If a NaN is found, an assertion is triggered.
