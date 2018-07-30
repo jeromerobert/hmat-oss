@@ -905,6 +905,39 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 }
 
 template<typename T>
+void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, bool left) {
+  assert(d);
+  assert(left || (cols == d->rows));
+  assert(!left || (rows == d->rows));
+  assert(d->cols==1);
+
+  {
+    const size_t _rows = rows, _cols = cols;
+    increment_flops(Multipliers<T>::mul * _rows * _cols);
+  }
+  if (left) { // line i is multiplied by d[i] or 1/d[i]
+    // TODO: Test with scale to see if it is better.
+    if (inverse) {
+      ScalarArray<T> *d2 = new ScalarArray<T>(rows,1);
+      for (int i = 0; i < rows; i++)
+        d2->get(i) = Constants<T>::pone / d->get(i);
+      d = d2;
+    }
+    for (int j = 0; j < cols; j++) {
+      for (int i = 0; i < rows; i++) {
+        get(i, j) *= d->get(i);
+      }
+    }
+    if (inverse) delete(d);
+  } else { // column j is multiplied by d[j] or 1/d[j]
+    for (int j = 0; j < cols; j++) {
+      T diag_val = inverse ? Constants<T>::pone / d->get(j,0) : d->get(j);
+      proxy_cblas::scal(rows, diag_val, &get(0,j), 1);
+    }
+  }
+}
+
+template<typename T>
 T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
   assert(x->cols == 1);
   assert(y->cols == 1);

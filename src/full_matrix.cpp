@@ -175,34 +175,7 @@ void FullMatrix<T>::gemm(char transA, char transB, T alpha,
 
 template<typename T>
 void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, bool left) {
-  assert(d);
-  assert(left || (cols() == d->rows));
-  assert(!left || (rows() == d->rows));
-
-  {
-    const size_t _rows = rows(), _cols = cols();
-    increment_flops(Multipliers<T>::mul * _rows * _cols);
-  }
-  if (left) { // line i is multiplied by d[i] or 1/d[i]
-    // TODO: Test with scale to see if it is better.
-    if (inverse) {
-      Vector<T> *d2 = new Vector<T>(rows());
-      for (int i = 0; i < rows(); i++)
-        (*d2)[i] = Constants<T>::pone / (*d)[i];
-      d = d2;
-    }
-    for (int j = 0; j < cols(); j++) {
-      for (int i = 0; i < rows(); i++) {
-        get(i, j) *= (*d)[i];
-      }
-    }
-    if (inverse) delete(d);
-  } else { // column j is multiplied by d[j] or 1/d[j]
-    for (int j = 0; j < cols(); j++) {
-      T diag_val = inverse ? Constants<T>::pone / (*d)[j] : (*d)[j];
-      proxy_cblas::scal(rows(), diag_val, &get(0,j), 1);
-    }
-  }
+  data.multiplyWithDiagOrDiagInv(d, inverse, left);
 }
 
 template<typename T>

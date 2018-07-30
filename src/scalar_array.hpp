@@ -370,6 +370,17 @@ public:
       the way to apply the matrix: one has to use matrix-vector product instead.
   */
   int modifiedGramSchmidt(ScalarArray<T> *r, double prec );
+
+  /*! \brief B <- B*D or B <- B*D^-1  (or with D on the left).
+
+    B = this, and D a diagonal matrix (given as a Vector or 1 column ScalarArray).
+
+     \param d  D
+     \param inverse true : B<-B*D^-1, false B<-B*D
+     \param left true : B<-D*B, false B<-B*D
+  */
+  void multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, bool left) ;
+
   };
 
   /*! \brief Templated Vector class = a ScalarArray with 1 column
