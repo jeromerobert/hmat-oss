@@ -577,11 +577,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>*
     int colOffset = colsList[i]->offset() - cols->offset();
     int maxCol = colsList[i]->size();
     int maxRow = rowsList[i]->size();
-    for (int col = 0; col < maxCol; col++) {
-      for (int row = 0; row < maxRow; row++) {
-        me->get(row + rowOffset, col + colOffset) += alpha[i] * parts[i]->get(row, col);
-      }
-    }
+    ScalarArray<T> sub(me->data, rowOffset, maxRow, colOffset, maxCol);
+    sub.axpy(alpha[i], &parts[i]->data);
   }
   RkMatrix<T>* result = truncatedSvd(me); // TODO compress with something else than SVD
   delete me;

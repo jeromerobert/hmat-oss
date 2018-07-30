@@ -2202,9 +2202,7 @@ template<typename T> void HMatrix<T>::solveDiagonal(ScalarArray<T>* b) const {
     if (rows()->size() == 0 || cols()->size() == 0) return;
     if(isFullMatrix() && full()->diagonal) {
       // LDLt
-      for (int j = 0; j < b->cols; j++)
-        for (int i = 0; i < b->rows; i++)
-          b->get(i, j) /= full()->getD(i);
+      b->multiplyWithDiagOrDiagInv(full()->diagonal, true, true); // multiply to the left by the inverse
     } else {
       // LLt
       T* diag = new T[cols()->size()];
