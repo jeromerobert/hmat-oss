@@ -194,10 +194,12 @@ public:
 
       There are 2 types to allow matrix modification or not.
    */
-  inline T& get(int i, int j) {
+  inline T& get(int i=0, int j=0) {
+    // here I might modify the data with this
     return m[i + ((size_t) lda) * j];
   }
-  inline T get(int i, int j) const {
+  inline const T& get(int i=0, int j=0) const {
+    // here this is not supposed to allow content modification (unless casted into non-const)
     return m[i + ((size_t) lda) * j];
   }
 
