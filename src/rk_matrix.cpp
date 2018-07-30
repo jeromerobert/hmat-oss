@@ -1059,7 +1059,7 @@ template<typename T> void RkMatrix<T>::conjugate() {
 }
 
 template<typename T> T RkMatrix<T>::get(int i, int j) const {
-  return proxy_cblas::dot(rank(), &a->get(i,0), a->lda, &b->get(j,0), b->lda);
+  return a->dot_aibj(i, *b, j);
 }
 
 template<typename T> void RkMatrix<T>::writeArray(hmat_iostream writeFunc, void * userData) const{

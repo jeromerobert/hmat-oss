@@ -183,6 +183,11 @@ public:
     \return the matrix norm.
    */
   double norm_abt_Sqr(const ScalarArray<T> &b) const ;
+
+  /*! \brief Compute dot product between a[i,*] and b[j,*]
+    */
+  T dot_aibj(int i, const ScalarArray<T> &b, int j) const ;
+
   /*! \brief Write the matrix to a binary file.
 
     \param filename output filename

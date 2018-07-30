@@ -427,6 +427,11 @@ template<typename T> double ScalarArray<T>::norm_abt_Sqr(const ScalarArray<T> &b
   return result;
 }
 
+// Compute dot product between this[i,*] and b[j,*]
+template<typename T> T ScalarArray<T>::dot_aibj(int i, const ScalarArray<T> &b, int j) const {
+  return proxy_cblas::dot(cols, &get(i,0), lda, &b.get(j,0), b.lda);
+}
+
 template<typename T> void ScalarArray<T>::fromFile(const char * filename) {
   FILE * f = fopen(filename, "rb");
   /* Read the header before data : [stype, rows, cols, sieof(T), 0] */
