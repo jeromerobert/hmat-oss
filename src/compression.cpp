@@ -177,7 +177,7 @@ static void updateCol(Vector<T>& colVec, int col, const vector<Vector<T>*>& cols
 }
 
 
-template<typename T> static void findMax(FullMatrix<T>* m, int& i, int& j) {
+template<typename T> static void findMax(const FullMatrix<T>* m, int& i, int& j) {
   i = 0;
   j = 0;
   double maxNorm = squaredNorm<T>(m->get(i, j));
