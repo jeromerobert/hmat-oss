@@ -329,23 +329,16 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
     return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
   }
 
-  for (int col = 0; col < k; col++) {
-    for (int row = 0; row < rowCount; row++) {
-      // TODO: split sigma evenly between u and v to have even norms between the 2
-      u->get(row, col) *= (*sigma)[col];
-    }
-  }
-
   ScalarArray<T> matU(*u, 0, rowCount, 0, k);
   ScalarArray<T>* uTilde = matU.copy();
+  uTilde->multiplyWithDiag(sigma); // TODO: split sigma evenly between u and v to have even norms between the 2
   ScalarArray<T> matV(*v, 0, colCount, 0, k);
   ScalarArray<T>* vTilde = matV.copy();
 
   delete u;
   delete v;
   delete sigma;
-  ScalarArray<T>* a = uTilde; // TODO : why this copy ?
-  return new RkMatrix<T>(a, m->rows_, vTilde, m->cols_, Svd);
+  return new RkMatrix<T>(uTilde, m->rows_, vTilde, m->cols_, Svd);
 }
 
 

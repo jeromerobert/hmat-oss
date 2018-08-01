@@ -253,9 +253,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   */
   int ierr;
   // QR decomposition of A and B
-  T* tauA = a->qrDecomposition(); // A contains QaRa
+  T* tauA = a->qrDecomposition(); // A contains Qa and Ra
   HMAT_ASSERT(tauA);
-  T* tauB = b->qrDecomposition(); // B contains QbRb
+  T* tauB = b->qrDecomposition(); // B contains Qb and Rb
   HMAT_ASSERT(tauB);
 
   // Matrices created by the SVD
@@ -298,6 +298,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     return;
   }
 
+  // Resize u, sigma, v (not very clean...)
+  u->cols =newK;
+  sigma->rows = newK;
+  v->cols =newK;
+
   // We put the square root of singular values in sigma
   for (int i = 0; i < newK; i++) {
     (*sigma)[i] = sqrt((*sigma)[i]);
@@ -306,13 +311,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
   // For that we first calculated Utilde * SQRT (SigmaTilde)
+  u->multiplyWithDiag(sigma);
+
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
-  for (int col = 0; col < newK; col++) {
-    const T alpha = (*sigma)[col];
-    for (int row = 0; row < rank(); row++) {
-      newA->get(row, col) = u->get(row, col) * alpha; // use copy+multiplyWithDiagOrDiagInv (sigma is 'double') ?
-    }
-  }
+  newA->copyMatrixAtOffset(u, 0, 0);
   delete u;
   u = NULL;
   // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
@@ -320,14 +322,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   free(tauA);
 
   // newB = Qb * VTilde * SQRT(SigmaTilde)
+  v->multiplyWithDiag(sigma);
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
-  // Copy with transposing
-  for (int col = 0; col < newK; col++) {
-    const T alpha = (*sigma)[col];
-    for (int row = 0; row < rank(); row++) {
-      newB->get(row, col) = v->get(row, col) * alpha; // use copy+multiplyWithDiagOrDiagInv (sigma is 'double') ?
-    }
-  }
+  newB->copyMatrixAtOffset(v, 0, 0);
   delete v;
   delete sigma;
   // newB <- Qb * newB
@@ -390,20 +387,9 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   }
   ur->cols = newK;
   vr->cols = newK;
-
   /* Scaling of ur and vr */
-  for(int j = 0; j < newK; ++j) {
-    const T valJ = (*sr)[j];
-    for(int i = 0; i < ur->rows; ++i) {
-      ur->get(i, j) *= valJ; // use multiplyWithDiagOrDiagInv (note: sr is 'double') ?
-    }
-  }
-
-  for(int i = 0; i < vr->rows; ++i){
-    for(int j = 0; j < newK; ++j) {
-      vr->get(i, j) *= (*sr)[j];  // use multiplyWithDiagOrDiagInv (note: sr is 'double') ?
-    }
-  }
+  ur->multiplyWithDiag(sr);
+  vr->multiplyWithDiag(sr);
 
   delete sr;
 

@@ -388,7 +388,15 @@ public:
   */
   void multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, bool left) ;
 
-  };
+  /*! \brief B <- B*D
+
+    B = this, and D a 'double' diagonal matrix (given as a Vector or 1 column ScalarArray).
+
+     \param d  D
+  */
+  void multiplyWithDiag(const ScalarArray<double>* d) ;
+
+};
 
   /*! \brief Templated Vector class = a ScalarArray with 1 column
 

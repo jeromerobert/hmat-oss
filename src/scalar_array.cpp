@@ -945,6 +945,22 @@ void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inv
 }
 
 template<typename T>
+void ScalarArray<T>::multiplyWithDiag(const ScalarArray<double>* d) {
+  assert(d);
+  assert(cols <= d->rows); // d can be larger than needed
+  assert(d->cols==1);
+
+  {
+    const size_t _rows = rows, _cols = cols;
+    increment_flops(Multipliers<T>::mul * _rows * _cols);
+  }
+  for (int j = 0; j < cols; j++) {
+    T diag_val = T(d->get(j));
+    proxy_cblas::scal(rows, diag_val, m+j*lda, 1); // We don't use ptr() on purpose, because is_ortho is preserved here
+  }
+}
+
+template<typename T>
 T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
   assert(x->cols == 1);
   assert(y->cols == 1);
