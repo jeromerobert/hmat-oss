@@ -899,22 +899,14 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
   assert(left  || (*cols == *d->rows()));
 
   // extracting the diagonal
-  T* diag = new T[d->cols()->size()];
-  d->extractDiagonal(diag);
-  if (inverse) {
-    for (int i = 0; i < d->cols()->size(); i++) {
-      diag[i] = Constants<T>::pone / diag[i];
-    }
-  }
+  Vector<T>* diag = new Vector<T>(d->cols()->size());
+  d->extractDiagonal(diag->ptr());
 
   // left multiplication by d of b (if M<-M*D : left = false) or a (if M<-D*M : left = true)
   ScalarArray<T>* aOrB = (left ? a : b);
-  for (int j = 0; j < rank(); j++) {
-    for (int i = 0; i < aOrB->rows; i++) {
-      aOrB->get(i, j) *= diag[i];
-    }
-  }
-  delete[] diag;
+  aOrB->multiplyWithDiagOrDiagInv(diag, inverse, true);
+
+  delete diag;
 }
 
 template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,

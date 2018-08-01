@@ -2205,12 +2205,10 @@ template<typename T> void HMatrix<T>::solveDiagonal(ScalarArray<T>* b) const {
       b->multiplyWithDiagOrDiagInv(full()->diagonal, true, true); // multiply to the left by the inverse
     } else {
       // LLt
-      T* diag = new T[cols()->size()];
-      extractDiagonal(diag);
-      for (int j = 0; j < b->cols; j++)
-        for (int i = 0; i < b->rows; i++)
-          b->get(i, j) /= diag[i];
-      delete[] diag;
+      Vector<T>* diag = new Vector<T>(cols()->size());
+      extractDiagonal(diag->ptr());
+      b->multiplyWithDiagOrDiagInv(diag, true, true); // multiply to the left by the inverse
+      delete diag;
     }
 }
 
