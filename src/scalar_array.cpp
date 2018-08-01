@@ -145,13 +145,13 @@ template<typename T> void ScalarArray<T>::scale(T alpha) {
       size_t nm = ((size_t) rows) * cols;
       const size_t block_size_blas = 1 << 30;
       while (nm > block_size_blas) {
-        proxy_cblas::scal(block_size_blas, alpha, m + nm - block_size_blas, 1);
+        proxy_cblas::scal(block_size_blas, alpha, ptr() + nm - block_size_blas, 1);
         nm -= block_size_blas;
       }
-      proxy_cblas::scal(nm, alpha, m, 1);
+      proxy_cblas::scal(nm, alpha, ptr(), 1);
     }
   } else {
-    T* x = m;
+    T* x = ptr();
     if (alpha == Constants<T>::zero) {
       for (int col = 0; col < cols; col++) {
         std::fill(x, x + rows, Constants<T>::zero);
@@ -168,9 +168,8 @@ template<typename T> void ScalarArray<T>::scale(T alpha) {
 
 template<typename T> void ScalarArray<T>::transpose() {
   assert(lda == rows);
-  assert(m);
 #ifdef HAVE_MKL_IMATCOPY
-  proxy_mkl::imatcopy(rows, cols, m);
+  proxy_mkl::imatcopy(rows, cols, ptr());
   std::swap(rows, cols);
   lda = rows;
 #else
@@ -222,12 +221,12 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result
 
   if (lda == rows && result->lda == result->rows) {
     size_t size = ((size_t) rows) * cols * sizeof(T);
-    memcpy(result->m, m, size);
+    memcpy(result->ptr(), const_ptr(), size);
   } else {
     for (int col = 0; col < cols; col++) {
       size_t resultOffset = ((size_t) result->lda) * col;
       size_t offset = ((size_t) lda) * col;
-      memcpy(result->m + resultOffset, m + offset, rows * sizeof(T));
+      memcpy(result->ptr() + resultOffset, const_ptr() + offset, rows * sizeof(T));
     }
   }
 
@@ -254,9 +253,9 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copyAndTranspose(ScalarArra
 }
 
 template<typename T>
-ScalarArray<T> ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSize) const {
+ScalarArray<T> ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSize) const { //TODO: remove it, we have a constructor to do this
   assert(rowsOffset + rowsSize <= rows);
-  return ScalarArray<T>(m + rowsOffset, rowsSize, cols, lda);
+  return ScalarArray<T>(*this, rowsOffset, rowsSize, 0, cols);
 }
 
 template<typename T>
@@ -277,8 +276,8 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
     const size_t muls = _m * _n * _k;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->m, a->lda, b->m, b->lda,
-                    beta, this->m, this->lda);
+  proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), b->lda,
+                    beta, this->ptr(), this->lda);
 }
 
 template<typename T>
@@ -293,13 +292,13 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
       && (a->rows == rows) && (a->cols == cols)
       && (a->lda == a->rows) && (lda == rows)) {
     size_t size = ((size_t) rows) * cols;
-    memcpy(m, a->m, size * sizeof(T));
+    memcpy(ptr(), a->const_ptr(), size * sizeof(T));
     return;
   }
 
   for (int col = 0; col < a->cols; col++) {
-    proxy_cblas::copy(a->rows, a->m + col * a->lda, 1,
-                m + rowOffset + ((colOffset + col) * lda), 1);
+    proxy_cblas::copy(a->rows, a->const_ptr() + col * a->lda, 1,
+                ptr() + rowOffset + ((colOffset + col) * lda), 1);
   }
 }
 
@@ -310,8 +309,8 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
   assert(rowOffset + rowsToCopy <= rows);
   assert(colOffset + colsToCopy <= cols);
   for (int col = 0; col < colsToCopy; col++) {
-    proxy_cblas::copy(rowsToCopy, a->m + col * a->lda, 1,
-                (m + rowOffset + ((colOffset + col) * lda)), 1);
+    proxy_cblas::copy(rowsToCopy, a->const_ptr() + col * a->lda, 1,
+                (ptr() + rowOffset + ((colOffset + col) * lda)), 1);
   }
 }
 
@@ -319,7 +318,7 @@ template<typename T> void ScalarArray<T>::addRand(double epsilon) {
   DECLARE_CONTEXT;
   if (lda == rows) {
     for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
-      m[i] *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      get(i) *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
     }
   } else {
     for (int col = 0; col < cols; ++col) {
@@ -337,7 +336,7 @@ template<> void ScalarArray<C_t>::addRand(double epsilon) {
     for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
       float c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
       float c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-      m[i] *= C_t(c1, c2);
+      get(i) *= C_t(c1, c2);
     }
   } else {
     for (int col = 0; col < cols; ++col) {
@@ -357,7 +356,7 @@ template<> void ScalarArray<Z_t>::addRand(double epsilon) {
     for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
       double c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
       double c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-      m[i] *= Z_t(c1, c2);
+      get(i) *= Z_t(c1, c2);
     }
   } else {
     for (int col = 0; col < cols; ++col) {
@@ -380,12 +379,12 @@ void ScalarArray<T>::axpy(T alpha, const ScalarArray<T>* a) {
 		  + (alpha == Constants<T>::pone ? 0 : Multipliers<T>::mul * size));
   // Fast path
   if ((lda == rows) && (a->lda == a->rows) && (size < 1000000000)) {
-    proxy_cblas::axpy(size, alpha, a->m, 1, m, 1);
+    proxy_cblas::axpy(size, alpha, a->const_ptr(), 1, ptr(), 1);
     return;
   }
 
   for (int col = 0; col < cols; col++) {
-    proxy_cblas::axpy(rows, alpha, a->m + ((size_t) col) * a->lda, 1, m + ((size_t) col) * lda, 1);
+    proxy_cblas::axpy(rows, alpha, a->const_ptr() + ((size_t) col) * a->lda, 1, ptr() + ((size_t) col) * lda, 1);
   }
 }
 
@@ -396,11 +395,11 @@ double ScalarArray<T>::normSqr() const {
 
   // Fast path
   if ((size < 1000000000) && (lda == rows)) {
-    result += proxy_cblas_convenience::dot_c(size, m, 1, m, 1);
+    result += proxy_cblas_convenience::dot_c(size, const_ptr(), 1, const_ptr(), 1);
     return real(result);
   }
   for (int col = 0; col < cols; col++) {
-    result += proxy_cblas_convenience::dot_c(rows, m + col * lda, 1, m + col * lda, 1);
+    result += proxy_cblas_convenience::dot_c(rows, const_ptr() + col * lda, 1, const_ptr() + col * lda, 1);
   }
   return real(result);
 }
@@ -415,14 +414,14 @@ template<typename T> double ScalarArray<T>::norm_abt_Sqr(const ScalarArray<T> &b
   const int k = cols;
   for (int i = 1; i < k; ++i) {
     for (int j = 0; j < i; ++j) {
-      result += real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + j*lda, 1) *
-                           proxy_cblas_convenience::dot_c(b.rows, b.m + i*b.lda, 1, b.m + j*b.lda, 1));
+      result += real(proxy_cblas_convenience::dot_c(rows, const_ptr() + i*lda, 1, const_ptr() + j*lda, 1) *
+                           proxy_cblas_convenience::dot_c(b.rows, b.const_ptr() + i*b.lda, 1, b.const_ptr() + j*b.lda, 1));
     }
   }
   result *= 2.0;
   for (int i = 0; i < k; ++i) {
-    result += real(proxy_cblas_convenience::dot_c(rows, m + i*lda, 1, m + i*lda, 1) *
-                         proxy_cblas_convenience::dot_c(b.rows, b.m + i*b.lda, 1, b.m + i*b.lda, 1));
+    result += real(proxy_cblas_convenience::dot_c(rows, const_ptr() + i*lda, 1, const_ptr() + i*lda, 1) *
+                         proxy_cblas_convenience::dot_c(b.rows, b.const_ptr() + i*b.lda, 1, b.const_ptr() + i*b.lda, 1));
   }
   return result;
 }
@@ -450,7 +449,7 @@ template<typename T> void ScalarArray<T>::fromFile(const char * filename) {
       free(m);
   size_t size = ((size_t) rows) * cols * sizeof(T);
   m = (T*) calloc(size, 1);
-  r = fread(m, size, 1, f);
+  r = fread(ptr(), size, 1, f);
   fclose(f);
   HMAT_ASSERT(r == 1);
 }
@@ -481,7 +480,7 @@ template<typename T> void ScalarArray<T>::toFile(const char *filename) const {
   asIntArray[4] = 0;
   asIntArray += 5;
   T* mat = (T*) asIntArray;
-  memcpy(mat, m, size - 5 * sizeof(int));
+  memcpy(mat, const_ptr(), size - 5 * sizeof(int));
   close(fd);
   munmap(mmapedFile, size);
 #else
@@ -537,19 +536,20 @@ template<typename T> void ScalarArray<T>::rankOneUpdate(const T alpha, const Sca
   assert(x.cols==1);
   assert(b.rows==cols);
   assert(b.cols==1);
-  proxy_cblas::ger(rows, cols, alpha, x.m, 1, b.m, 1, m, lda);
+  proxy_cblas::ger(rows, cols, alpha, x.const_ptr(), 1, b.const_ptr(), 1, ptr(), lda);
 }
 
 template<typename T> void ScalarArray<T>::writeArray(hmat_iostream writeFunc, void * userData) const{
   assert(lda == rows);
   size_t s = (size_t)rows * cols;
+  // We use m instead of const_ptr() because writeFunc() expects a void*, not a const void*
   writeFunc(m, sizeof(T) * s, userData);
 }
 
 template<typename T> void ScalarArray<T>::readArray(hmat_iostream readFunc, void * userData) {
   assert(lda == rows);
   size_t s = (size_t)rows * cols;
-  readFunc(m, sizeof(T) * s, userData);
+  readFunc(ptr(), sizeof(T) * s, userData);
 }
 
 template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
@@ -560,7 +560,7 @@ template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
     const size_t adds = _m * _n *_n / 2 - _n *_n*_n / 6 + _m * _n / 2 + _n / 6;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  info = proxy_lapack::getrf(rows, cols, m, lda, pivots);
+  info = proxy_lapack::getrf(rows, cols, ptr(), lda, pivots);
   if (info)
     throw LapackException("getrf", info);
 }
@@ -582,8 +582,8 @@ void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bo
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   if (pivots)
-    proxy_lapack::laswp(x->cols, x->m, x->lda, 1, rows, pivots, 1);
-  proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
+    proxy_lapack::laswp(x->cols, x->ptr(), x->lda, 1, rows, pivots, 1);
+  proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 // The resolution of the upper triangular system does not need to
@@ -603,7 +603,7 @@ void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, bool unitriang
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   proxy_cblas::trsm('R', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
-    x->rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
+    x->rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 template<typename T>
@@ -618,7 +618,7 @@ void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangu
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   proxy_cblas::trsm('L', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
-    x->rows, x->cols, Constants<T>::pone, m, lda, x->m, x->lda);
+    x->rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 template<typename T>
@@ -634,7 +634,7 @@ void ScalarArray<T>::solve(ScalarArray<T>* x, int *pivots) const {
     const size_t muls = (n * n - n) * nrhs;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  ierr = proxy_lapack::getrs('N', rows, x->cols, m, lda, pivots, x->m, x->rows);
+  ierr = proxy_lapack::getrs('N', rows, x->cols, const_ptr(), lda, pivots, x->ptr(), x->rows);
   if (ierr)
     throw LapackException("getrs", ierr);
 }
@@ -662,17 +662,17 @@ void ScalarArray<T>::inverse() {
     multiplications = (2*vn*vn*vn)/3 + (vn*vn)/2 + (5*vn)/6;
     increment_flops(Multipliers<T>::add * additions + Multipliers<T>::mul * multiplications);
   }
-  info = proxy_lapack::getrf(rows, cols, m, lda, ipiv);
+  info = proxy_lapack::getrf(rows, cols, ptr(), lda, ipiv);
   HMAT_ASSERT(!info);
   // We call it twice: the first time to know the optimal size of
   // temporary arrays, and the second time for real calculation.
   int workSize;
   T workSize_req;
-  info = proxy_lapack::getri(rows, m, lda, ipiv, &workSize_req, -1);
+  info = proxy_lapack::getri(rows, ptr(), lda, ipiv, &workSize_req, -1);
   workSize = (int) real(workSize_req) + 1;
   T* work = new T[workSize];
   HMAT_ASSERT(work);
-  info = proxy_lapack::getri(rows, m, lda, ipiv, work, workSize);
+  info = proxy_lapack::getri(rows, ptr(), lda, ipiv, work, workSize);
   delete[] work;
   if (info)
     throw LapackException("getri", info);
@@ -707,11 +707,11 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Sc
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
   if(useGESDD)
-    info = sddCall(jobz, rows, cols, m, lda, (*sigma)->m, (*u)->m,
-                      (*u)->lda, (*v)->m, (*v)->lda);
+    info = sddCall(jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
+                      (*u)->lda, (*v)->ptr(), (*v)->lda);
   else
-    info = svdCall(jobz, jobz, rows, cols, m, lda, (*sigma)->m, (*u)->m,
-                      (*u)->lda, (*v)->m, (*v)->lda);
+    info = svdCall(jobz, jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
+                      (*u)->lda, (*v)->ptr(), (*v)->lda);
 
   (*v)->transpose();
 
@@ -733,12 +733,12 @@ template<typename T> T* ScalarArray<T>::qrDecomposition() {
   int workSize;
   T workSize_S;
   // int info = LAPACKE_sgeqrf(LAPACK_COL_MAJOR, rows, cols, m, rows, *tau);
-  info = proxy_lapack::geqrf(rows, cols, m, rows, tau, &workSize_S, -1);
+  info = proxy_lapack::geqrf(rows, cols, ptr(), rows, tau, &workSize_S, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_S) + 1;
   T* work = new T[workSize];// TODO Mettre dans la pile ??
   HMAT_ASSERT(work) ;
-  info = proxy_lapack::geqrf(rows, cols, m, rows, tau, work, workSize);
+  info = proxy_lapack::geqrf(rows, cols, ptr(), rows, tau, work, workSize);
   delete[] work;
 
   HMAT_ASSERT(!info);
@@ -752,9 +752,8 @@ void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
   int mm = rows;
   int n = rows;
   T alpha = Constants<T>::pone;
-  const T *aData = bTri->m;
+  const T *aData = bTri->const_ptr();
   int lda = bTri->rows;
-  T *bData = m;
   int ldb = rows;
   {
     size_t m_ = mm;
@@ -763,7 +762,7 @@ void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
     size_t additions = m_ * nn  * (nn - 1) / 2;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
-  proxy_cblas::trmm('R', 'U', 'T', 'N', mm, n, alpha, aData, lda, bData, ldb);
+  proxy_cblas::trmm('R', 'U', 'T', 'N', mm, n, alpha, aData, lda, ptr(), ldb);
 }
 
 template<typename T>
@@ -779,12 +778,12 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
     size_t adds = 2 * _m * _n * _k - _n * _k * _k + _n * _k;
     increment_flops(Multipliers<T>::mul * muls + Multipliers<T>::add * adds);
   }
-  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, m, lda, tau, c->m, c->lda, &workSize_req, -1);
+  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, &workSize_req, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_req) + 1;
   T* work = new T[workSize];
   HMAT_ASSERT(work);
-  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, m, lda, tau, c->m, c->lda, work, workSize);
+  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, work, workSize);
   HMAT_ASSERT(!info);
   delete[] work;
   return 0;
@@ -810,7 +809,7 @@ void ScalarArray<T>::gemv(char trans, T alpha,
     assert(this->rows == a->cols);
     assert(x->rows == a->rows);
   }
-  proxy_cblas::gemv(trans, matRows, matCols, alpha, a->m, aLda, x->m, 1, beta, this->m, 1);
+  proxy_cblas::gemv(trans, matRows, matCols, alpha, a->const_ptr(), aLda, x->const_ptr(), 1, beta, this->ptr(), 1);
 }
 
 template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec ) {
@@ -870,14 +869,14 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
         std::swap(norm2[j], norm2[pivot]);
 
         // Exchange the column 'j' and 'pivot' in this[] using buffer as temp space
-        memcpy(buffer.m,        m + j * lda,     rows*sizeof(T));
-        memcpy(m + j * lda,     m + pivot * lda, rows*sizeof(T));
-        memcpy(m + pivot * lda, buffer.m,        rows*sizeof(T));
+        memcpy(buffer.ptr(),  const_ptr(0, j),     rows*sizeof(T));
+        memcpy(ptr(0, j),     const_ptr(0, pivot), rows*sizeof(T));
+        memcpy(ptr(0, pivot), buffer.const_ptr(),  rows*sizeof(T));
 
         // Idem for r[]
-        memcpy(buffer.m,            r.m + j * r.lda,     cols*sizeof(T));
-        memcpy(r.m +  j * r.lda,    r.m + pivot * r.lda, cols*sizeof(T));
-        memcpy(r.m + pivot * r.lda, buffer.m,            cols*sizeof(T));
+        memcpy(buffer.ptr(),    r.const_ptr(0, j),     cols*sizeof(T));
+        memcpy(r.ptr(0, j),     r.const_ptr(0, pivot), cols*sizeof(T));
+        memcpy(r.ptr(0, pivot), buffer.const_ptr(),    cols*sizeof(T));
       }
 
       // Normalisation of qj
@@ -900,7 +899,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 
   // Apply perm to result
   for(int j = 0; j < result->cols; ++j) {
-    memcpy(result->m + perm[j] * result->lda, r.m + j * result->lda, result->lda*sizeof(T));
+    memcpy(result->ptr() + perm[j] * result->lda, r.const_ptr() + j * result->lda, result->lda*sizeof(T));
   }
   // Update matrix dimensions
   cols = rank;
@@ -966,13 +965,13 @@ T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
   assert(y->cols == 1);
   assert(x->rows == y->rows);
   // TODO: Beware of large vectors (>2 billion elements) !
-  return proxy_cblas_convenience::dot_c(x->rows, x->m, 1, y->m, 1);
+  return proxy_cblas_convenience::dot_c(x->rows, x->const_ptr(), 1, y->const_ptr(), 1);
 }
 
 template<typename T>
 int Vector<T>::absoluteMaxIndex(int startIndex) const {
   assert(this->cols == 1);
-  return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->m + startIndex, 1);
+  return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->const_ptr() + startIndex, 1);
 }
 
 // the classes declaration

@@ -408,11 +408,9 @@ public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
     /** \brief Create Vector with column 'col' of existing ScalarArray
-
-      We use const_ptr because we dont want this to be considered as a read access into 'd'.
      */
-    Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>((T*)d.const_ptr(0,_col), d.rows, 1, d.lda){}
-    Vector(const ScalarArray<T> *d, int _col):ScalarArray<T>((T*)d->const_ptr(0,_col), d->rows, 1, d->lda){}
+    Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}
+    Vector(const ScalarArray<T> *d, int _col):ScalarArray<T>(*d, 0, d->rows, _col, 1){}
     //~Vector(){}
     /** L2 norm of the vector.
      */
@@ -435,10 +433,10 @@ public:
     /** Simpler accessors for the vector data.
      */
     inline T& operator[](std::size_t i){
-      return this->m[i];
+      return this->get(i);
     }
     inline const T& operator[] (std::size_t i) const {
-      return this->m[i];
+      return this->get(i);
     }
   private:
     /// Disallow the copy
