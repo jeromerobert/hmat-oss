@@ -305,7 +305,7 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
 template<typename T>
 void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
                                        int rowOffset, int colOffset,
-                                       int rowsToCopy, int colsToCopy) {
+                                       int rowsToCopy, int colsToCopy) { // NOT USED
   assert(rowOffset + rowsToCopy <= rows);
   assert(colOffset + colsToCopy <= cols);
   for (int col = 0; col < colsToCopy; col++) {

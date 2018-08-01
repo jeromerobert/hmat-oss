@@ -377,7 +377,7 @@ void FullMatrix<T>::copyMatrixAtOffset(const FullMatrix<T>* a,
 template<typename T>
 void FullMatrix<T>::copyMatrixAtOffset(const FullMatrix<T>* a,
                                        int rowOffset, int colOffset,
-                                       int rowsToCopy, int colsToCopy) {
+                                       int rowsToCopy, int colsToCopy) { // NOT USED
   data.copyMatrixAtOffset(&a->data, rowOffset, colOffset, rowsToCopy, colsToCopy);
 }
 
