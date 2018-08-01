@@ -301,10 +301,10 @@ public:
 
       \param u
       \param sigma
-      \param vt
+      \param v
       \return
    */
-  int svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** vt) const;
+  int svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** v) const;
 
   /** QR matrix decomposition.
 

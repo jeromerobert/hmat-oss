@@ -311,10 +311,10 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   // necessary here, since k < min (n, p) for M matrix (nxp).
   int rowCount = m->rows();
   int colCount = m->cols();
-  ScalarArray<T> *u = NULL, *vt = NULL;
+  ScalarArray<T> *u = NULL, *v = NULL;
   Vector<double>* sigma = NULL;
   // TODO compress with something else than SVD
-  int info = m->data.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &vt);
+  int info = m->data.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &v);
   HMAT_ASSERT(info == 0);
   // Control of the approximation
 
@@ -324,7 +324,7 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   if(k == 0)
   {
     delete u;
-    delete vt;
+    delete v;
     delete sigma;
     return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
   }
@@ -338,11 +338,11 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
 
   ScalarArray<T> matU(*u, 0, rowCount, 0, k);
   ScalarArray<T>* uTilde = matU.copy();
-  ScalarArray<T> matV(*vt, 0, k, 0, colCount);
-  ScalarArray<T>* vTilde = matV.copyAndTranspose();
+  ScalarArray<T> matV(*v, 0, colCount, 0, k);
+  ScalarArray<T>* vTilde = matV.copy();
 
   delete u;
-  delete vt;
+  delete v;
   delete sigma;
   ScalarArray<T>* a = uTilde; // TODO : why this copy ?
   return new RkMatrix<T>(a, m->rows_, vTilde, m->cols_, Svd);

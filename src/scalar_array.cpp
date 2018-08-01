@@ -679,7 +679,7 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** vt) const {
+template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** v) const {
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
 
@@ -688,7 +688,7 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Sc
 
   *u = new ScalarArray<T>(rows, p);
   *sigma = new ScalarArray<double>(p,1);
-  *vt = new ScalarArray<T>(p, cols);
+  *v = new ScalarArray<T>(p, cols); // We create v in transposed shape (as expected by lapack zgesvd)
 
   assert(lda >= rows);
 
@@ -708,10 +708,12 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Sc
   }
   if(useGESDD)
     info = sddCall(jobz, rows, cols, m, lda, (*sigma)->m, (*u)->m,
-                      (*u)->lda, (*vt)->m, (*vt)->lda);
+                      (*u)->lda, (*v)->m, (*v)->lda);
   else
     info = svdCall(jobz, jobz, rows, cols, m, lda, (*sigma)->m, (*u)->m,
-                      (*u)->lda, (*vt)->m, (*vt)->lda);
+                      (*u)->lda, (*v)->m, (*v)->lda);
+
+  (*v)->transpose();
 
   return info;
 }

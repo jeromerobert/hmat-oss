@@ -259,7 +259,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   HMAT_ASSERT(tauB);
 
   // Matrices created by the SVD
-  ScalarArray<T> *u = NULL, *vt = NULL;
+  ScalarArray<T> *u = NULL, *v = NULL;
   Vector<double> *sigma = NULL;
   {
     // The scope is to automatically delete rAFull.
@@ -278,7 +278,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // Ra <- Ra Rb^t with b upper triangular matrix
     rAFull.myTrmm(b);
     // SVD of Ra Rb^t
-    ierr = rAFull.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &vt); // TODO use something else than SVD ?
+    ierr = rAFull.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &v); // TODO use something else than SVD ?
     HMAT_ASSERT(!ierr);
   }
 
@@ -287,7 +287,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   if (newK == 0)
   {
     delete u;
-    delete vt;
+    delete v;
     delete sigma;
     free(tauA);
     free(tauB);
@@ -325,10 +325,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   for (int col = 0; col < newK; col++) {
     const T alpha = (*sigma)[col];
     for (int row = 0; row < rank(); row++) {
-      newB->get(row, col) = vt->get(col, row) * alpha; // use copyTranpose+multiplyWithDiagOrDiagInv (sigma is 'double') ?
+      newB->get(row, col) = v->get(row, col) * alpha; // use copy+multiplyWithDiagOrDiagInv (sigma is 'double') ?
     }
   }
-  delete vt;
+  delete v;
   delete sigma;
   // newB <- Qb * newB
   b->productQ('L', 'N', tauB, newB);
@@ -350,7 +350,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
 
   ScalarArray<T>* ur = NULL;
   Vector<double>* sr = NULL;
-  ScalarArray<T>* vhr = NULL;
+  ScalarArray<T>* vr = NULL;
   int kA, kB, newK;
 
   int krank = rank();
@@ -377,8 +377,8 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
     // SVD
-    int ierr = matR.svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vhr);
-    // On output, ur->rows = kA, vhr->cols = kB
+    int ierr = matR.svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vr);
+    // On output, ur->rows = kA, vr->rows = kB
     HMAT_ASSERT(!ierr);
   }
 
@@ -389,9 +389,9 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     (*sr)[i] = sqrt((*sr)[i]);
   }
   ur->cols = newK;
-  vhr->rows = newK;
+  vr->cols = newK;
 
-  /* Scaling of ur and vhr */
+  /* Scaling of ur and vr */
   for(int j = 0; j < newK; ++j) {
     const T valJ = (*sr)[j];
     for(int i = 0; i < ur->rows; ++i) {
@@ -399,9 +399,9 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     }
   }
 
-  for(int j = 0; j < vhr->cols; ++j){
-    for(int i = 0; i < newK; ++i) {
-      vhr->get(i, j) *= (*sr)[i];  // use multiplyWithDiagOrDiagInv (note: sr is 'double') ?
+  for(int i = 0; i < vr->rows; ++i){
+    for(int j = 0; j < newK; ++j) {
+      vr->get(i, j) *= (*sr)[j];  // use multiplyWithDiagOrDiagInv (note: sr is 'double') ?
     }
   }
 
@@ -414,10 +414,10 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   newA->gemm('N', 'N', Constants<T>::pone, a, ur, Constants<T>::zero);
 
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
-  newB->gemm('N', 'T', Constants<T>::pone, b, vhr, Constants<T>::zero);
+  newB->gemm('N', 'N', Constants<T>::pone, b, vr, Constants<T>::zero);
 
   delete ur;
-  delete vhr;
+  delete vr;
 
   delete a;
   a = newA;
