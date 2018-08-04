@@ -304,14 +304,15 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
   // For that we first calculate Utilde * SQRT (SigmaTilde)
   u->multiplyWithDiag(sigma);
-
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
   newA->copyMatrixAtOffset(u, 0, 0);
   delete u;
-  u = NULL;
   // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
   a->productQ('L', 'N', tauA, newA);
   free(tauA);
+  newA->setOrtho(1);
+  delete a;
+  a = newA;
 
   // newB = Qb * VTilde * SQRT(SigmaTilde)
   v->multiplyWithDiag(sigma);
@@ -322,9 +323,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // newB <- Qb * newB
   b->productQ('L', 'N', tauB, newB);
   free(tauB);
-
-  delete a;
-  a = newA;
+  newB->setOrtho(1);
   delete b;
   b = newB;
 }
@@ -413,6 +412,8 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
 
   delete ur;
   delete vr;
+  newA->setOrtho(1);
+  newB->setOrtho(1);
 
   delete a;
   a = newA;

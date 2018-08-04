@@ -224,6 +224,8 @@ void MatrixDataMarshaller<T>::writeLeaf(const HMatrix<T> * matrix) {
         writeInt(matrix->rank());
         if(!matrix->isNull()) {
           matrix->rk()->writeArray(writeFunc_, userData_);
+          writeInt(matrix->rk()->a->getOrtho());
+          writeInt(matrix->rk()->b->getOrtho());
         }
     } else if(matrix->isNull()){
         // null full block
@@ -289,6 +291,11 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
             ScalarArray<T> * a = readScalarArray(r->size(), rank);
             ScalarArray<T> * b = readScalarArray(c->size(), rank);
             matrix->rk(new RkMatrix<T>(a, r, b, c, Svd));
+            int orth;
+            readFunc_(&orth, sizeof(int), userData_);
+            matrix->rk()->a->setOrtho(orth);
+            readFunc_(&orth, sizeof(int), userData_);
+            matrix->rk()->b->setOrtho(orth);
         } else {
             matrix->rk(NULL);
         }

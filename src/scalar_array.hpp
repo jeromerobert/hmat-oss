@@ -52,6 +52,10 @@ private:
 protected:
   /// Fortran style pointer (columnwise)
   T* m;
+  /*! flag for column orthogonality in m[] (it is a pointer because it is copied with m in subsets) */
+  int *is_ortho;
+  /*! True if we own 'is_ortho' (there are cases where we own the flag and not the memory, with the constructor taking a 'T*' as input) */
+  char ownsFlag:1;
 public:
   /// Number of rows
   int rows;
@@ -67,7 +71,7 @@ public:
 
       \param d a ScalarArray
    */
-  ScalarArray(const ScalarArray& d) : ownsMemory(false), m(d.m), rows(d.rows), cols(d.cols), lda(d.lda) {}
+  ScalarArray(const ScalarArray& d) : ownsMemory(false), m(d.m), is_ortho(d.is_ortho), ownsFlag(false), rows(d.rows), cols(d.cols), lda(d.lda) {}
   /** \brief Initialize the matrix with existing data.
 
       In this case the matrix doesn't own the data (the memory is not
@@ -89,7 +93,7 @@ public:
   ScalarArray(int _rows, int _cols);
   /** \brief Initialize the ScalarArray with subset of existing ScalarArray.
    */
-  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+colsOffset*d.lda), rows(rowsSize), cols(colsSize), lda(d.lda){}
+  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+colsOffset*d.lda), is_ortho(d.is_ortho), ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda){}
 
   ~ScalarArray();
 
@@ -201,6 +205,7 @@ public:
    */
   inline T& get(int i=0, int j=0) {
     // here I might modify the data with this
+    setOrtho(0);
     return m[i + ((size_t) lda) * j];
   }
   inline const T& get(int i=0, int j=0) const {
@@ -214,6 +219,7 @@ public:
    */
   inline T* ptr(int i=0, int j=0) const {
     // here I might modify the data with this pointer
+    setOrtho(0);
     return &m[i + ((size_t) lda) * j];
   }
   inline const T * const_ptr(int i=0, int j=0) const {
@@ -396,6 +402,17 @@ public:
      \param d  D
   */
   void multiplyWithDiag(const ScalarArray<double>* d) ;
+
+  /*! \brief Set orthogonality flag
+   */
+  inline void setOrtho(const int flag) const {
+    *is_ortho = flag;
+  }
+  /*! \brief Get orthogonality flag
+   */
+  inline int getOrtho() const {
+    return *is_ortho;
+  }
 
 };
 

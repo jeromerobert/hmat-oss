@@ -89,18 +89,22 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
   if (lda == -1) {
     lda = rows;
   }
+  ownsFlag = true ;
+  is_ortho = (int*)calloc(1, sizeof(int));
   assert(lda >= rows);
 }
 
 template<typename T>
 ScalarArray<T>::ScalarArray(int _rows, int _cols)
-  : ownsMemory(true), rows(_rows), cols(_cols), lda(_rows) {
+  : ownsMemory(true), ownsFlag(true), rows(_rows), cols(_cols), lda(_rows) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
 #ifdef HAVE_JEMALLOC
   m = (T*) je_calloc(size, 1);
 #else
   m = (T*) calloc(size, 1);
 #endif
+  is_ortho = (int*)calloc(1, sizeof(int));
+  setOrtho(1); // buffer filled with 0 is orthogonal
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
 }
@@ -116,11 +120,16 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
 #endif
     m = NULL;
   }
+  if (ownsFlag) {
+    free(is_ortho);
+    is_ortho = NULL;
+  }
 }
 
 template<typename T> void ScalarArray<T>::clear() {
   assert(lda == rows);
   std::fill(m, m + ((size_t) rows) * cols, Constants<T>::zero);
+  setOrtho(1); // we dont use ptr(): buffer filled with 0 is orthogonal
 }
 
 template<typename T> size_t ScalarArray<T>::storedZeros() const {
@@ -164,6 +173,7 @@ template<typename T> void ScalarArray<T>::scale(T alpha) {
       }
     }
   }
+  if (alpha == Constants<T>::zero) setOrtho(1); // buffer filled with 0 is orthogonal
 }
 
 template<typename T> void ScalarArray<T>::transpose() {
@@ -202,6 +212,7 @@ template<typename T> void ScalarArray<T>::conjugate() {
     size_t nm = ((size_t) rows) * cols;
     const size_t block_size_blas = 1 << 30;
     while (nm > block_size_blas) {
+      // We don't use c->ptr() on purpose, because is_ortho is preserved here
       proxy_lapack::lacgv(block_size_blas, m + nm - block_size_blas, 1);
       nm -= block_size_blas;
     }
@@ -229,7 +240,7 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result
       memcpy(result->ptr() + resultOffset, const_ptr() + offset, rows * sizeof(T));
     }
   }
-
+  result->setOrtho(getOrtho());
   return result;
 }
 
@@ -238,7 +249,7 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copyAndTranspose(ScalarArra
     result = new ScalarArray<T>(cols, rows);
 #ifdef HAVE_MKL_IMATCOPY
   if (lda == rows && result->lda == result->rows) {
-    proxy_mkl::omatcopy(rows, cols, m, result->m);
+    proxy_mkl::omatcopy(rows, cols, const_ptr(), result->ptr());
   } else {
 #endif
   for (int i = 0; i < rows; i++) {
@@ -265,8 +276,6 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
   const int aRows  = (transA == 'N' ? a->rows : a->cols);
   const int n  = (transB == 'N' ? b->cols : b->rows);
   const int k  = (transA == 'N' ? a->cols : a->rows);
-  assert(a->lda >= (transA == 'N' ? aRows : k));
-  assert(b->lda >= (transB == 'N' ? k : n));
   assert(rows == aRows);
   assert(cols == n);
   assert(k == (transB == 'N' ? b->rows : b->cols));
@@ -296,6 +305,8 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
       && (a->lda == a->rows) && (lda == rows)) {
     size_t size = ((size_t) rows) * cols;
     memcpy(ptr(), a->const_ptr(), size * sizeof(T));
+    // If I copy the whole matrix, I copy this flag
+    setOrtho(a->getOrtho());
     return;
   }
 
@@ -417,14 +428,14 @@ template<typename T> double ScalarArray<T>::norm_abt_Sqr(const ScalarArray<T> &b
   const int k = cols;
   for (int i = 1; i < k; ++i) {
     for (int j = 0; j < i; ++j) {
-      result += real(proxy_cblas_convenience::dot_c(rows, const_ptr() + i*lda, 1, const_ptr() + j*lda, 1) *
-                           proxy_cblas_convenience::dot_c(b.rows, b.const_ptr() + i*b.lda, 1, b.const_ptr() + j*b.lda, 1));
+      result += real(proxy_cblas_convenience::dot_c(rows, const_ptr(0, i), 1, const_ptr(0, j), 1) *
+                     proxy_cblas_convenience::dot_c(b.rows, b.const_ptr(0, i), 1, b.const_ptr(0, j), 1));
     }
   }
   result *= 2.0;
   for (int i = 0; i < k; ++i) {
-    result += real(proxy_cblas_convenience::dot_c(rows, const_ptr() + i*lda, 1, const_ptr() + i*lda, 1) *
-                         proxy_cblas_convenience::dot_c(b.rows, b.const_ptr() + i*b.lda, 1, b.const_ptr() + i*b.lda, 1));
+    result += real(proxy_cblas_convenience::dot_c(rows, const_ptr(0, i), 1, const_ptr(0, i), 1) *
+                   proxy_cblas_convenience::dot_c(b.rows, b.const_ptr(0, i), 1, b.const_ptr(0, i), 1));
   }
   return result;
 }
@@ -728,6 +739,8 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
 
   (*v)->transpose();
 
+  (*u)->setOrtho(1);
+  (*v)->setOrtho(1);
   return info;
 }
 
@@ -791,6 +804,7 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
     size_t adds = 2 * _m * _n * _k - _n * _k * _k + _n * _k;
     increment_flops(Multipliers<T>::mul * muls + Multipliers<T>::add * adds);
   }
+  // We don't use c->ptr() on purpose, because c->is_ortho is preserved here (Q is orthogonal)
   info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, &workSize_req, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_req) + 1;
@@ -921,6 +935,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     // Copy the column j of r into the column perm[j] of result (only 'rank' rows)
     memcpy(result->ptr(0, perm[j]), r.const_ptr(0, j), result->rows*sizeof(T));
   }
+  setOrtho(1);
   // Clean up
   delete[] perm;
   /* end of modified Gram-Schmidt */
@@ -955,7 +970,7 @@ void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inv
   } else { // column j is multiplied by d[j] or 1/d[j]
     for (int j = 0; j < cols; j++) {
       T diag_val = inverse ? Constants<T>::pone / d->get(j,0) : d->get(j);
-      proxy_cblas::scal(rows, diag_val, &get(0,j), 1);
+      proxy_cblas::scal(rows, diag_val, ptr(0,j), 1);
     }
   }
 }
