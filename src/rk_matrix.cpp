@@ -437,10 +437,6 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
   delete tmp;
 }
 
-template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>* o, T alpha) const {
-  return formattedAddParts(&alpha, &o, 1);
-}
-
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
                                             int n, bool dotruncate) const {

@@ -171,21 +171,6 @@ public:
       \param mat
    */
   void axpy(T alpha, const RkMatrix<T>* mat);
-  /** Formatted addition of two Rk-matrices.
-
-      The two matrices must be on the same sets of indices in the case
-      otherwise use RkMatrix::formattedAddParts. The formatted addition of R
-      and S is defined by:
-       \code
-       truncate (R + S)
-       \endcode
-      with the addition defined by the juxtaposition of the matrices A and B of
-      each RkMatrix component of the product.
-
-      \param o The matrix sum
-      \return truncate(*this + m) A new matrix.
-   */
-  RkMatrix<T> *formattedAdd(const FullMatrix<T>* o, T alpha = Constants<T>::pone) const;
   /** Adds a list of RkMatrix to a RkMatrix.
 
       In this function, RkMatrix may include some

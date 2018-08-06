@@ -746,7 +746,8 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                         HMAT_ASSERT(false);
                     }
                 } else {
-                    RkMatrix<T>* tmp = rk()->formattedAdd(x->full(), alpha);
+                    FullMatrix<T>* f=x->full();
+                    RkMatrix<T>* tmp = rk()->formattedAddParts(&alpha, &f, 1);
                     delete rk();
                     rk(tmp);
                 }
