@@ -206,14 +206,11 @@ public:
       with RkMatrix :: formattedAddParts.
 
       \param units The list MatrixXd adding.
-      \param rowsList The list of indices rows
-      \param colsList The list of column indices
       \param n Number of matrices to add
       \return truncate (*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  RkMatrix<T>* formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts,
-                                 const IndexSet** rowsList,
-                                 const IndexSet** colsList, int n) const;
+  RkMatrix<T>* formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const;
+
   void gemmRk(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);
 
   /** Multiplication by a scalar.

@@ -426,7 +426,7 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
-  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, &rows, &cols, 1);
+  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
   swap(*tmp);
   delete tmp;
 }
@@ -438,11 +438,7 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>* o, T alpha) const {
-  const FullMatrix<T>* parts[1] = {o};
-  const IndexSet* rowsList[1] = {rows};
-  const IndexSet* colsList[1] = {cols};
-  T alphaArray[1] = {alpha};
-  return formattedAddParts(alphaArray, parts, rowsList, colsList, 1);
+  return formattedAddParts(&alpha, &o, 1);
 }
 
 template<typename T>
@@ -482,29 +478,21 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   // full matrix.
   if (kTotal >= std::min(rows->size(), cols->size())) {
     const FullMatrix<T>** fullParts = new const FullMatrix<T>*[n];
-    const IndexSet** rowsParts = new const IndexSet*[n];
-    const IndexSet** colsParts = new const IndexSet*[n];
     for (int i = 0; i < n; i++) {
       if (!parts[i])
         continue;
       fullParts[i] = parts[i]->eval();
-      rowsParts[i] = parts[i]->rows;
-      colsParts[i] = parts[i]->cols;
     }
-    RkMatrix<T>* result = formattedAddParts(alpha, fullParts, rowsParts, colsParts, n);
+    RkMatrix<T>* result = formattedAddParts(alpha, fullParts, n);
     for (int i = 0; i < n; i++) {
       delete fullParts[i];
     }
     delete[] fullParts;
-    delete[] rowsParts;
-    delete[] colsParts;
     return result;
   }
 
   ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), kTotal);
-  resultA->clear();
   ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), kTotal);
-  resultB->clear();
   // Special case if the original matrix is not empty.
   if (rank() > 0) {
     resultA->copyMatrixAtOffset(a, 0, 0);
@@ -545,24 +533,25 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   return rk;
 }
 template<typename T>
-RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts,
-                                            const IndexSet **rowsList,
-                                            const IndexSet **colsList, int n) const {
+RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const {
   DECLARE_CONTEXT;
   FullMatrix<T>* me = eval();
   HMAT_ASSERT(me);
 
   // TODO: here, we convert Rk->Full, Update the Full with parts[], and Full->Rk. We could also
   // create a new empty Full, update, convert to Rk and add it to 'this'.
+  // If the parts[] are smaller than 'this', convert them to Rk and add them could be less expensive
   for (int i = 0; i < n; i++) {
     if (!parts[i])
       continue;
-    assert(rowsList[i]->isSubset(*rows));
-    assert(colsList[i]->isSubset(*cols));
-    int rowOffset = rowsList[i]->offset() - rows->offset();
-    int colOffset = colsList[i]->offset() - cols->offset();
-    int maxCol = colsList[i]->size();
-    int maxRow = rowsList[i]->size();
+    const IndexSet *rows_full = parts[i]->rows_;
+    const IndexSet *cols_full = parts[i]->cols_;
+    assert(rows_full->isSubset(*rows));
+    assert(cols_full->isSubset(*cols));
+    int rowOffset = rows_full->offset() - rows->offset();
+    int colOffset = cols_full->offset() - cols->offset();
+    int maxCol = cols_full->size();
+    int maxRow = rows_full->size();
     ScalarArray<T> sub(me->data, rowOffset, maxRow, colOffset, maxCol);
     sub.axpy(alpha[i], &parts[i]->data);
   }
