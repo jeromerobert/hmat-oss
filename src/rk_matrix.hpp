@@ -64,13 +64,10 @@ public:
            sigma [k] / SUM (sigma) <epsilon
 
        \param sigma table of singular values at least maxK elements.
-       \param maxK maximum number of singular values to keep.
        \param epsilon tolerance.
        \return int the number of singular values to keep.
-
-       note : the parameters maxK and sigma seem have contradictory explanation
    */
-  int findK(Vector<double> &sigma, int maxK, double epsilon);
+  int findK(Vector<double> &sigma, double epsilon);
 };
 
 

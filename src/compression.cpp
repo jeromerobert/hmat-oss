@@ -317,9 +317,7 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   int info = m->data.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &v);
   HMAT_ASSERT(info == 0);
   // Control of the approximation
-
-  int maxK = min(rowCount, colCount);
-  int k = RkMatrix<T>::approx.findK(*sigma, maxK, RkMatrix<T>::approx.assemblyEpsilon);
+  int k = RkMatrix<T>::approx.findK(*sigma, RkMatrix<T>::approx.assemblyEpsilon);
 
   if(k == 0)
   {

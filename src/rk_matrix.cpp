@@ -36,17 +36,17 @@ namespace hmat {
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
-int RkApproximationControl::findK(Vector<double> &sigma, int maxK, double epsilon) {
+int RkApproximationControl::findK(Vector<double> &sigma, double epsilon) {
   // Control of approximation for fixed approx.k != 0
   int newK = k;
   if (newK != 0) {
-    newK = std::min(newK, maxK);
+    newK = std::min(newK, sigma.rows);
   } else {
     assert(epsilon >= 0.);
     static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
     double threshold_eigenvalue = 0.0;
     if (useL2Criterion == NULL) {
-      for (int i = 0; i < maxK; i++) {
+      for (int i = 0; i < sigma.rows; i++) {
         threshold_eigenvalue += sigma[i];
       }
     } else {
@@ -54,7 +54,7 @@ int RkApproximationControl::findK(Vector<double> &sigma, int maxK, double epsilo
     }
     threshold_eigenvalue *= epsilon;
     int i = 0;
-    for (i = 0; i < maxK; i++) {
+    for (i = 0; i < sigma.rows; i++) {
       if (sigma[i] <= threshold_eigenvalue){
         break;
       }
@@ -283,7 +283,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   }
 
   // Control of approximation
-  int newK = approx.findK(*sigma, rank(), epsilon);
+  int newK = approx.findK(*sigma, epsilon);
   if (newK == 0)
   {
     delete u;
@@ -310,7 +310,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
-  // For that we first calculated Utilde * SQRT (SigmaTilde)
+  // For that we first calculate Utilde * SQRT (SigmaTilde)
   u->multiplyWithDiag(sigma);
 
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
@@ -380,7 +380,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   }
 
   // Remove small singular values and compute square root of sr
-  newK = approx.findK(*sr, std::min(kA, kB), epsilon);
+  newK = approx.findK(*sr, epsilon);
   assert(newK>0);
   for(int i = 0; i < newK; ++i) {
     (*sr)[i] = sqrt((*sr)[i]);
@@ -981,7 +981,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = truncatedSvd(fullMat);
+        rk = truncatedSvd(fullMat); // TODO compress with something else than SVD
         delete fullMat;
       }
     }
