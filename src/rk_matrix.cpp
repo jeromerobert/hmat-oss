@@ -818,15 +818,10 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
     tmp->conjugate();
   } else if (trans1 == 'C') {
-    ScalarArray<T> *conj_b1 = b1->copy();
-    conj_b1->conjugate();
-    tmp->gemm('T', 'N', Constants<T>::pone, conj_b1, a2, Constants<T>::zero);
-    delete conj_b1;
+    tmp->gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   } else if (trans2 == 'C') {
-    ScalarArray<T> *conj_a2 = a2->copy();
-    conj_a2->conjugate();
-    tmp->gemm('T', 'N', Constants<T>::pone, b1, conj_a2, Constants<T>::zero);
-    delete conj_a2;
+    tmp->gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp->conjugate();
   } else {
     tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   }
