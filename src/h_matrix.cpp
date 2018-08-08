@@ -2315,7 +2315,7 @@ template<typename T> void HMatrix<T>::setLower(bool value)
 }
 
 template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const ScalarArray<T> * b, bool updateRank) {
-    assert(isRkMatrix());
+    assert(isRkMatrix() || !isAssembled());
     if(a == NULL && isNull())
         return;
     if(rk_ == NULL)
