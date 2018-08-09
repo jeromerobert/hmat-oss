@@ -805,13 +805,17 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
 
   // We want to compute the matrix a1.t^b1.a2.t^b2 and return an Rk matrix
   // Usually, the best way is to start with tmp=t^b1.a2 which produces a 'small' matrix rank1 x rank2
+  //
+  // OLD version (default):
   // Then we can either :
   // - compute a1.tmp : the cost is rank1.rank2.row_a, the resulting Rk has rank rank2
-  // - compute tmp.b2 : the cost is rank1.rank2.col_b, the resulting Rk has rank rank1
-  // We use the solution which gives the lowest rank.
-
-  // TODO also, once we have the small matrix tmp=t^b1.a2, we could do a recompression on it for low cost
+  // - compute tmp.t^b2 : the cost is rank1.rank2.col_b, the resulting Rk has rank rank1
+  // We use the solution which gives the lowest resulting rank.
+  //
+  // NEW version :
+  // Other solution: once we have the small matrix tmp=t^b1.a2, we can do a recompression on it for low cost
   // using SVD + truncation. This also removes the choice above, since tmp=U.S.V is then applied on both sides
+  // This version isn't default, it can be activated by setting env. var. HMAT_NEW_RKRK
 
   ScalarArray<T>* tmp = new ScalarArray<T>(r1->rank(), r2->rank());
   if (trans1 == 'C' && trans2 == 'C') {
@@ -826,34 +830,60 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   }
 
-  ScalarArray<T> *newA, *newB;
-  if (r1->rank() < r2->rank()) {
-    newA = a1->copy();
-    if (trans1 == 'C') {
-      newA->conjugate();
+  ScalarArray<T> *newA=NULL, *newB=NULL;
+  static char *newRKRK = getenv("HMAT_NEW_RKRK"); // Option to use the OLD version, without SVD
+  if (newRKRK) {
+    // NEW version
+    ScalarArray<T>* ur = NULL;
+    Vector<double>* sr = NULL;
+    ScalarArray<T>* vr = NULL;
+    int newK;
+    // SVD tmp = ur.sr.t^vr
+    tmp->svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vr);
+    // Remove small singular values and compute square root of sr
+    newK = approx.findK(*sr, RkMatrix<T>::approx.recompressionEpsilon);
+    //    printf("oldK1=%d oldK2=%d newK=%d\n", r1->rank(), r2->rank(), newK);
+    if (newK > 0) {
+      for(int i = 0; i < newK; ++i)
+        (*sr)[i] = sqrt((*sr)[i]);
+      ur->cols = newK;
+      vr->cols = newK;
+      /* Scaling of ur and vr */
+      ur->multiplyWithDiag(sr);
+      vr->multiplyWithDiag(sr);
+      /* Now compute newA = a1.ur and newB = b2.vr */
+      newA = new ScalarArray<T>(a1->rows, newK);
+      if (trans1 == 'C') ur->conjugate();
+      newA->gemm('N', 'N', Constants<T>::pone, a1, ur, Constants<T>::zero);
+      if (trans1 == 'C') newA->conjugate();
+      newB = new ScalarArray<T>(b2->rows, newK);
+      if (trans2 == 'C') vr->conjugate();
+      newB->gemm('N', 'N', Constants<T>::pone, b2, vr, Constants<T>::zero);
+      if (trans2 == 'C') newB->conjugate();
     }
-    newB = new ScalarArray<T>(b2->rows, r1->rank());
-    if (trans2 == 'C') {
-      ScalarArray<T> *conj_b2 = b2->copy();
-      conj_b2->conjugate();
-      newB->gemm('N', 'T', Constants<T>::pone, conj_b2, tmp, Constants<T>::zero);
-      delete conj_b2;
-    } else {
-      newB->gemm('N', 'T', Constants<T>::pone, b2, tmp, Constants<T>::zero);
-    }
+    delete ur;
+    delete vr;
+    delete sr;
   } else {
-    newA = new ScalarArray<T>(a1->rows, r2->rank());
-    if (trans1 == 'C') {
-      ScalarArray<T> *conj_a1 = a1->copy();
-      conj_a1->conjugate();
-      newA->gemm('N', 'N', Constants<T>::pone, conj_a1, tmp, Constants<T>::zero);
-      delete conj_a1;
-    } else {
+    // OLD version
+    if (r1->rank() < r2->rank()) {
+      // newA = a1, newB = b2.t^tmp
+      newA = a1->copy();
+      if (trans1 == 'C') newA->conjugate();
+      newB = new ScalarArray<T>(b2->rows, r1->rank());
+      if (trans2 == 'C') {
+        newB->gemm('N', 'C', Constants<T>::pone, b2, tmp, Constants<T>::zero);
+        newB->conjugate();
+      } else {
+        newB->gemm('N', 'T', Constants<T>::pone, b2, tmp, Constants<T>::zero);
+      }
+    } else { // newA = a1.tmp, newB = b2
+      newA = new ScalarArray<T>(a1->rows, r2->rank());
+      if (trans1 == 'C') tmp->conjugate(); // be careful if you re-use tmp after this...
       newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
-    }
-    newB = b2->copy();
-    if (trans2 == 'C') {
-      newB->conjugate();
+      if (trans1 == 'C') newA->conjugate();
+      newB = b2->copy();
+      if (trans2 == 'C') newB->conjugate();
     }
   }
   delete tmp;
