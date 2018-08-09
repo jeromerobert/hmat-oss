@@ -619,7 +619,9 @@ public:
       return rk_;
   }
 
-  void rk(const ScalarArray<T> * a, const ScalarArray<T> * b, bool updateRank = true);
+  /*! \brief Set 'this' as an Rk matrix using copy of a and b
+     */
+  void rk(const ScalarArray<T> *a, const ScalarArray<T> *b);
 
   void rk(RkMatrix<T> * m) {
       rk_ = m;

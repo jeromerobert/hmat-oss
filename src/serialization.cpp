@@ -223,8 +223,7 @@ void MatrixDataMarshaller<T>::writeLeaf(const HMatrix<T> * matrix) {
     } else if(matrix->isRkMatrix()){
         writeInt(matrix->rank());
         if(!matrix->isNull()) {
-            writeScalarArray(matrix->rk()->a);
-            writeScalarArray(matrix->rk()->b);
+          matrix->rk()->writeArray(writeFunc_, userData_);
         }
     } else if(matrix->isNull()){
         // null full block
@@ -244,15 +243,13 @@ void MatrixDataMarshaller<T>::writeLeaf(const HMatrix<T> * matrix) {
         if(pivot)
             writeFunc_(matrix->full()->pivots, sizeof(int) * r, userData_);
         if(diag)
-            writeFunc_(matrix->full()->diagonal->m, sizeof(T) * r, userData_);
+          matrix->full()->diagonal->writeArray(writeFunc_, userData_);
     }
 }
 
 template<typename T>
 void MatrixDataMarshaller<T>::writeScalarArray(ScalarArray<T> * a) {
-    assert(a->lda == a->rows);
-    size_t s = (size_t)a->rows * a->cols;
-    writeFunc_(a->m, sizeof(T) * s, userData_);
+  a->writeArray(writeFunc_, userData_);
 }
 
 template<typename T>
@@ -307,7 +304,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         }
         if(diagonal) {
             matrix->full()->diagonal = new Vector<T>(r->size());
-            readFunc_(matrix->full()->diagonal->m, sizeof(T) * r->size(), userData_);
+            matrix->full()->diagonal->readArray(readFunc_, userData_);
         }
     }
 }
@@ -315,7 +312,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
 template<typename T>
 ScalarArray<T> * MatrixDataUnmarshaller<T>::readScalarArray(int rows, int cols) {
     ScalarArray<T> * r = new ScalarArray<T>(rows, cols);
-    readFunc_(r->m, sizeof(T) * rows * cols, userData_);
+    r->readArray(readFunc_, userData_);
     return r;
 }
 

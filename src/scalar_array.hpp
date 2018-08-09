@@ -30,6 +30,7 @@
 #include <cstddef>
 
 #include "data_types.hpp"
+#include "hmat/hmat.h"
 
 namespace hmat {
 
@@ -40,12 +41,18 @@ namespace hmat {
   @data_types.hpp.
  */
 template<typename T> class ScalarArray {
+  friend class ScalarArray<S_t>; // needed for some methods that manipulate both ScalarArray<T> and ScalarArray<D_t>
+  friend class ScalarArray<D_t>;
+  friend class ScalarArray<C_t>;
+  friend class ScalarArray<Z_t>;
+
+private:
   /*! True if the matrix owns its memory, ie has to free it upon destruction */
   char ownsMemory:1;
-
-public:
+protected:
   /// Fortran style pointer (columnwise)
   T* m;
+public:
   /// Number of rows
   int rows;
   /// Number of columns
@@ -80,6 +87,10 @@ public:
      \param _cols Number of columns
    */
   ScalarArray(int _rows, int _cols);
+  /** \brief Initialize the ScalarArray with subset of existing ScalarArray.
+   */
+  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+colsOffset*d.lda), rows(rowsSize), cols(colsSize), lda(d.lda){}
+
   ~ScalarArray();
 
   /** This <- 0.
@@ -167,6 +178,16 @@ public:
     \return the matrix norm.
    */
   double norm() const;
+  /*! \brief Return square of the Frobenius norm of the matrix 'this' x B^T.
+
+    \return the matrix norm.
+   */
+  double norm_abt_Sqr(const ScalarArray<T> &b) const ;
+
+  /*! \brief Compute dot product between a[i,*] and b[j,*]
+    */
+  T dot_aibj(int i, const ScalarArray<T> &b, int j) const ;
+
   /*! \brief Write the matrix to a binary file.
 
     \param filename output filename
@@ -178,12 +199,28 @@ public:
 
       There are 2 types to allow matrix modification or not.
    */
-  inline T& get(int i, int j) {
+  inline T& get(int i=0, int j=0) {
+    // here I might modify the data with this
     return m[i + ((size_t) lda) * j];
   }
-  inline T get(int i, int j) const {
+  inline const T& get(int i=0, int j=0) const {
+    // here this is not supposed to allow content modification (unless casted into non-const)
     return m[i + ((size_t) lda) * j];
   }
+
+  /** Simpler accessors for the pointer on the data (i,j) in the scalar array.
+
+      There are 2 types to allow matrix modification or not (const or not).
+   */
+  inline T* ptr(int i=0, int j=0) const {
+    // here I might modify the data with this pointer
+    return &m[i + ((size_t) lda) * j];
+  }
+  inline const T * const_ptr(int i=0, int j=0) const {
+    // here this pointer is not supposed to allow content modification (unless casted into non-const)
+    return &m[i + ((size_t) lda) * j];
+  }
+
   /*! Check the matrix for the presence of NaN numbers.
 
     If a NaN is found, an assertion is triggered.
@@ -203,6 +240,161 @@ public:
     convert << "ScalarArray [" << rows << " x " << cols << "] norm=" << norm() ;
     return convert.str();
   }
+  /*! \brief performs the rank 1 operation this := alpha*x*y**T + this,
+
+     where alpha is a scalar, x and y are 2 Vector<T> of size 'm' and 'n', and this is a ScalarArray of size m x n
+  */
+  void rankOneUpdate(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &y);
+
+  /*! \brief Write the ScalarArray data 'm' in a stream (FILE*, unix fd, ...)
+    */
+  void writeArray(hmat_iostream writeFunc, void * userData) const;
+
+  /*! \brief Read the ScalarArray data 'm' from a stream (FILE*, unix fd, ...)
+    */
+  void readArray(hmat_iostream writeFunc, void * userData) ;
+
+  /*! \brief LU decomposition (in-place)
+    */
+  void luDecomposition(int *pivots) ;
+
+  /*! \brief Solve the system L X = B, with B = X on entry, and L = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bool unitriangular) const;
+
+  /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+
+  /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+
+  /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
+
+    This function requires the matrix to be factored by
+    HMatrix::luDecomposition() beforehand.
+
+    \param x B on entry, the solution on exit.
+   */
+  void solve(ScalarArray<T>* x, int *pivots) const;
+
+  /*! \brief Compute the inverse of this in place.
+   */
+  void inverse();
+  /** Makes an SVD of 'this' with LAPACK.
+
+      \param u
+      \param sigma
+      \param v
+      \return
+   */
+  int svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** v) const;
+
+  /** QR matrix decomposition.
+
+    Warning: m is modified!
+
+    \param tau
+    \return
+  */
+  T* qrDecomposition();
+
+  /** Do the product by Q.
+
+      this=qr has to be factored using \a qrDecomposition.
+      The arguments side and trans have the same meaning as in the
+      LAPACK xORMQR function. Beware, only the 'L', 'N' case has been
+      tested !
+
+      \param side either 'L' or 'R', as in xORMQR
+      \param trans either 'N' or 'T' as in xORMQR
+      \param tau as created by \a qrDecomposition
+      \param c as in xORMQR
+      \return 0 for success
+   */
+  int productQ(char side, char trans, T* tau, ScalarArray<T>* c) const;
+
+
+  /** Multiplication used in RkMatrix::truncate()
+
+       A B -> computing "AB^t" with A=this and B full upper triangular
+       (non-unitary diagonal)
+
+   */
+  void myTrmm(const ScalarArray<T>* bTri);
+
+  /** \brief this = alpha.a.x + beta.this (x and this must have 1 column)
+   */
+  void gemv(char trans, T alpha, const ScalarArray<T>* a, const ScalarArray<T>* x,
+            T beta);
+
+  /** modified Gram-Schmidt algorithm of A='this'
+
+      Computes a QR-decomposition of a matrix A=[a_1,...,a_n] thanks to the
+      modified Gram-Schmidt procedure with column pivoting.
+
+      The matrix A is overwritten with a matrix Q=[q_1,...,q_r] whose columns are
+      orthonormal and are a basis of Im(A).
+      A pivoting strategy is used to improve stability:
+      Each new qj vector is computed from the vector with the maximal 2-norm
+      amongst the remaining a_k vectors.
+
+      To further improve stability for each newly computed q_j vector its
+      component is removed from the remaining columns a_k of A.
+
+      Stopping criterion:
+      whenever the maximal norm of the remaining vectors is smaller than
+      prec * max(||ai||) the algorithm stops and the numerical rank at precision
+      prec is the number of q_j vectors computed.
+
+      Eventually the computed decomposition is:
+      [a_{perm[0]},...,a_{perm[rank-1]}] = [q_1,...,q_{rank-1}] * [r]
+      where [r] is an upper triangular matrix.
+
+      \param prec is a small parameter describing a relative precision thus
+      0 < prec < 1.
+      WARNING: the lowest precision allowed is 1e-6.
+      \return rank
+
+      NB: On exit the orthonormal matrix stored in A is 'full' and not represented
+      as a product of Householder reflectors. OR/ZU-MQR from LAPACK is NOT
+      the way to apply the matrix: one has to use matrix-vector product instead.
+  */
+  int modifiedGramSchmidt(ScalarArray<T> *r, double prec );
+
+  /*! \brief B <- B*D or B <- B*D^-1  (or with D on the left).
+
+    B = this, and D a diagonal matrix (given as a Vector or 1 column ScalarArray).
+
+     \param d  D
+     \param inverse true : B<-B*D^-1, false B<-B*D
+     \param left true : B<-D*B, false B<-B*D
+  */
+  void multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, bool left) ;
+
+  /*! \brief B <- B*D
+
+    B = this, and D a 'double' diagonal matrix (given as a Vector or 1 column ScalarArray).
+
+     \param d  D
+  */
+  void multiplyWithDiag(const ScalarArray<double>* d) ;
 
 };
 
@@ -215,17 +407,11 @@ public:
   public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
+    /** \brief Create Vector with column 'col' of existing ScalarArray
+     */
+    Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}
+    Vector(const ScalarArray<T> *d, int _col):ScalarArray<T>(*d, 0, d->rows, _col, 1){}
     //~Vector(){}
-    /** \brief this = alpha.a.x + beta.this
-     */
-    void gemv(char trans, T alpha, const ScalarArray<T>* a, const Vector<T>* x,
-              T beta);
-    /** \brief this += x
-     */
-    void addToMe(const Vector<T>* x);
-    /** \brief this -= x
-     */
-    void subToMe(const Vector<T>* x);
     /** L2 norm of the vector.
      */
     int absoluteMaxIndex(int startIndex = 0) const;
@@ -247,10 +433,10 @@ public:
     /** Simpler accessors for the vector data.
      */
     inline T& operator[](std::size_t i){
-      return this->m[i];
+      return this->get(i);
     }
     inline const T& operator[] (std::size_t i) const {
-      return this->m[i];
+      return this->get(i);
     }
   private:
     /// Disallow the copy

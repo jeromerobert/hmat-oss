@@ -76,11 +76,10 @@ void reorderVector(ScalarArray<T>* v, int* indices) {
   const int n = v->rows;
   Vector<T> tmp(n);
   for (int col = 0; col < v->cols; col++) {
-    T* column = v->m + ((size_t) n) * col;
-    for (int i = 0; i < n; i++) {
-      tmp.m[i] = column[indices[i]];
-    }
-    memcpy(column, tmp.m, sizeof(T) * n);
+    Vector<T> column(v, col);
+    for (int i = 0; i < n; i++)
+      tmp[i] = column[indices[i]];
+    tmp.copy(&column);
   }
 }
 
@@ -92,11 +91,11 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
   Vector<T> tmp(n);
 
   for (int col = 0; col < v->cols; col++) {
-    T* column = v->m + ((size_t) n) * col;
+    Vector<T> column(v, col);
     for (int i = 0; i < n; i++) {
-      tmp.m[indices[i]] = column[i];
+      tmp[indices[i]] = column[i];
     }
-    memcpy(column, tmp.m, sizeof(T) * n);
+    tmp.copy(&column);
   }
 }
 
@@ -329,10 +328,8 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
     if (isRkMatrix()) {
       if ((!onlyLower) && (upper != this)) {
         // Admissible leaf: a matrix represented by AB^t is transposed by exchanging A and B.
-        RkMatrix<T>* newRk = new RkMatrix<T>(NULL, upper->rows(),
-                                          NULL, upper->cols(), rk()->method);
-        newRk->a = rk()->b ? rk()->b->copy() : NULL;
-        newRk->b = rk()->a ? rk()->a->copy() : NULL;
+        RkMatrix<T>* newRk = rk()->copy();
+        newRk->transpose();
         if(upper->isRkMatrix() && upper->rk() != NULL)
             delete upper->rk();
         upper->rk(newRk);
@@ -612,8 +609,9 @@ bool HMatrix<T>::coarsen(HMatrix<T>* upper) {
         for (int i = 0; i < this->nrChild(); i++)
           upper->removeChild(i);
         upper->children.clear();
-        upper->rk(new RkMatrix<T>(candidate->b->copy(), upper->rows(),
-                                  candidate->a->copy(), upper->cols(), candidate->method));
+        RkMatrix<T>* newRk = candidate->copy();
+        newRk->transpose();
+        upper->rk(newRk);
         assert(upper->isLeaf());
         assert(upper->isRkMatrix());
       }
@@ -748,7 +746,8 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                         HMAT_ASSERT(false);
                     }
                 } else {
-                    RkMatrix<T>* tmp = rk()->formattedAdd(x->full(), alpha);
+                    FullMatrix<T>* f=x->full();
+                    RkMatrix<T>* tmp = rk()->formattedAddParts(&alpha, &f, 1);
                     delete rk();
                     rk(tmp);
                 }
@@ -1196,7 +1195,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
     // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
     // As Cb = Bb we get
-    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba full matrices
+    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba scalar arrays
     // We support C and B not compatible (larger) with A so we first slice them
     assert(transB == 'N');
     const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
@@ -1211,11 +1210,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isRkMatrix() && !isNull() && a->isRkMatrix() && !a->isNull() && rk()->a == a->rk()->a) {
     // Ca * CbT = beta * Ca * CbT + alpha * Aa * AbT * B
     // As Ca = Aa we get
-    // CbT = beta * CbT + alpha AbT * B with only Cb and Ab full matrices
+    // CbT = beta * CbT + alpha AbT * B with only Cb and Ab scalar arrays
     // we transpose:
     // Cb = beta * Cb + alpha BT * Ab
     // We support C and B not compatible (larger) with A so we first slice them
     assert(transA == 'N');
+    assert(transB != 'C');
     const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
     const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
     ScalarArray<T> cSubset(rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size()));
@@ -1241,6 +1241,8 @@ template<typename T>
 FullMatrix<T>* multiplyFullH(char transM, char transH,
                                          const FullMatrix<T>* mat,
                                          const HMatrix<T>* h) {
+  assert(transH != 'C');
+  assert(transM != 'C');
   // R = M * H = (H^t * M^t*)^t
   FullMatrix<T>* resultT = multiplyHFull(transH == 'N' ? 'T' : 'N',
                                          transM == 'N' ? 'T' : 'N',
@@ -1393,7 +1395,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
       full()->multiplyWithDiagOrDiagInv(d->full()->diagonal, inverse, left);
     } else {
       Vector<T> diag(d->rows()->size());
-      d->extractDiagonal(diag.m);
+      d->extractDiagonal(diag.ptr());
       full()->multiplyWithDiagOrDiagInv(&diag, inverse, left);
     }
   } else {
@@ -1453,10 +1455,9 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
       if (rk()) {
         delete rk();
       }
-      const RkMatrix<T>* oRk = o->rk();
-      ScalarArray<T>* newA = oRk->b ? oRk->b->copy() : NULL;
-      ScalarArray<T>* newB = oRk->a ? oRk->a->copy() : NULL;
-      rk(new RkMatrix<T>(newA, oRk->cols, newB, oRk->rows, oRk->method));
+      RkMatrix<T>* newRk = o->rk()->copy();
+      newRk->transpose();
+      rk(newRk);
     } else {
       if (isFullMatrix()) {
         delete full();
@@ -1471,7 +1472,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
             full()->diagonal = new Vector<T>(oF->rows());
             HMAT_ASSERT(full()->diagonal);
           }
-          memcpy(full()->diagonal->m, oF->diagonal->m, oF->rows() * sizeof(T));
+          oF->diagonal->copy(full()->diagonal);
         }
       }
     }
@@ -2029,7 +2030,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
       } else {
         Vector<T> diag(d->cols()->size());
-        d->extractDiagonal(diag.m);
+        d->extractDiagonal(diag.ptr());
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, m->full(), Constants<T>::pone);
@@ -2042,7 +2043,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
       } else {
         Vector<T> diag(d->cols()->size());
-        d->extractDiagonal(diag.m);
+        d->extractDiagonal(diag.ptr());
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, &mTmpCopy, Constants<T>::pone);
@@ -2151,11 +2152,11 @@ void HMatrix<T>::extractDiagonal(T* diag) const {
     assert(isFullMatrix());
     if(full()->diagonal) {
       // LDLt
-      memcpy(diag, full()->diagonal->m, full()->rows() * sizeof(T));
+      memcpy(diag, full()->diagonal->const_ptr(), full()->rows() * sizeof(T));
     } else {
       // LLt
       for (int i = 0; i < full()->rows(); ++i)
-        diag[i] = full()->data.m[i*full()->rows() + i];
+        diag[i] = full()->get(i,i);
     }
   } else {
     for (int i=0 ; i<nrChildRow() ; i++) {
@@ -2199,25 +2200,17 @@ template<typename T> void HMatrix<T>::solve(
 template<typename T> void HMatrix<T>::solveDiagonal(ScalarArray<T>* b) const {
     // Solve D*X = B and store result into B
     // Diagonal extraction
-    T* diag;
-    bool extracted = false;
     if (rows()->size() == 0 || cols()->size() == 0) return;
     if(isFullMatrix() && full()->diagonal) {
-        // LDLt
-        diag = full()->diagonal->m;
+      // LDLt
+      b->multiplyWithDiagOrDiagInv(full()->diagonal, true, true); // multiply to the left by the inverse
     } else {
-        // LLt
-        diag = new T[cols()->size()];
-        extractDiagonal(diag);
-        extracted = true;
+      // LLt
+      Vector<T>* diag = new Vector<T>(cols()->size());
+      extractDiagonal(diag->ptr());
+      b->multiplyWithDiagOrDiagInv(diag, true, true); // multiply to the left by the inverse
+      delete diag;
     }
-    for (int j = 0; j < b->cols; j++) {
-        for (int i = 0; i < b->rows; i++) {
-            b->get(i, j) = b->get(i, j) / diag[i];
-        }
-    }
-    if(extracted)
-        delete[] diag;
 }
 
 template<typename T> void HMatrix<T>::solveDiagonal(FullMatrix<T>* b) const {
@@ -2314,26 +2307,15 @@ template<typename T> void HMatrix<T>::setLower(bool value)
     }
 }
 
-template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const ScalarArray<T> * b, bool updateRank) {
+template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const ScalarArray<T> * b) {
     if(!isAssembled())
         rk(NULL);
     assert(isRkMatrix());
     if(a == NULL && isNull())
         return;
-    if(rk_ == NULL)
-        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), Svd));
-    // TODO: if the matrices exist and are of the right size (same rank),
-    // reuse them.
-    if (rk_->a) {
-      delete rk_->a;
-    }
-    if (rk_->b) {
-      delete rk_->b;
-    }
-    rk_->a = a == NULL ? NULL : a->copy();
-    rk_->b = b == NULL ? NULL : b->copy();
-    if(updateRank)
-        rank_ = rk_->rank();
+    delete rk_;
+    rk(new RkMatrix<T>(a == NULL ? NULL : a->copy(), rows(),
+                       b == NULL ? NULL : b->copy(), cols(), Svd));
 }
 
 template<typename T> std::string HMatrix<T>::toString() const {

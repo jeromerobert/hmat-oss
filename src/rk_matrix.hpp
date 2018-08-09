@@ -64,13 +64,10 @@ public:
            sigma [k] / SUM (sigma) <epsilon
 
        \param sigma table of singular values at least maxK elements.
-       \param maxK maximum number of singular values to keep.
        \param epsilon tolerance.
        \return int the number of singular values to keep.
-
-       note : the parameters maxK and sigma seem have contradictory explanation
    */
-  int findK(Vector<double> &sigma, int maxK, double epsilon);
+  int findK(Vector<double> &sigma, double epsilon);
 };
 
 
@@ -134,9 +131,12 @@ public:
 
   size_t uncompressedSize();
 
-  /** Returns a pointer to a new matrix M = AB^t (uncompressed)
+  /** Returns a pointer to a new FullMatrix M = AB^t (uncompressed)
    */
   FullMatrix<T>* eval() const;
+  /** Returns a pointer to a new ScalarArray M = AB^t (uncompressed) or fill an existing one
+   */
+  ScalarArray<T>* evalArray(ScalarArray<T> *result=NULL) const ;
   /** Recompress an RkMatrix in place.
 
       @warning The previous rk->a and rk->b are no longer valid after this function.
@@ -168,21 +168,6 @@ public:
       \param mat
    */
   void axpy(T alpha, const RkMatrix<T>* mat);
-  /** Formatted addition of two Rk-matrices.
-
-      The two matrices must be on the same sets of indices in the case
-      otherwise use RkMatrix::formattedAddParts. The formatted addition of R
-      and S is defined by:
-       \code
-       truncate (R + S)
-       \endcode
-      with the addition defined by the juxtaposition of the matrices A and B of
-      each RkMatrix component of the product.
-
-      \param o The matrix sum
-      \return truncate(*this + m) A new matrix.
-   */
-  RkMatrix<T> *formattedAdd(const FullMatrix<T>* o, T alpha = Constants<T>::pone) const;
   /** Adds a list of RkMatrix to a RkMatrix.
 
       In this function, RkMatrix may include some
@@ -203,14 +188,13 @@ public:
       with RkMatrix :: formattedAddParts.
 
       \param units The list MatrixXd adding.
-      \param rowsList The list of indices rows
-      \param colsList The list of column indices
       \param n Number of matrices to add
       \return truncate (*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  RkMatrix<T>* formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts,
-                                 const IndexSet** rowsList,
-                                 const IndexSet** colsList, int n) const;
+  RkMatrix<T>* formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const;
+
+  /*! \brief Add a product of HMatrix to an RkMatrix
+     */
   void gemmRk(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);
 
   /** Multiplication by a scalar.
@@ -222,9 +206,14 @@ public:
    */
   void transpose();
   void clear();
+
   /** Copy  RkMatrix into this.
    */
-  void copy(RkMatrix<T>* o);
+  void copy(const RkMatrix<T>* o);
+
+  /** Return a copy of this.
+   */
+  RkMatrix<T>* copy() const;
 
   /** Compute y <- alpha * op(A) * y + beta * y with x and y FullMatrix<T>*
 
@@ -316,13 +305,11 @@ public:
   inline T& get(int i, int j) {
     HMAT_ASSERT(false); // unable to write a value in an rk matrix
   }
-  inline T get(int i, int j) const {
-    T result=Constants<T>::zero;
-    for (int k=0 ; k<rank() ; k++)
-      result += a->get(i,k)*b->get(j,k);
-    return result;
-  }
+  inline T get(int i, int j) const ;
 
+  /*! \brief Write the RkMatrix data 'a' and 'b' in a stream (FILE*, unix fd, ...)
+    */
+  void writeArray(hmat_iostream writeFunc, void * userData) const;
 };
 
 }  // end namespace hmat

@@ -36,17 +36,17 @@ namespace hmat {
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
-int RkApproximationControl::findK(Vector<double> &sigma, int maxK, double epsilon) {
+int RkApproximationControl::findK(Vector<double> &sigma, double epsilon) {
   // Control of approximation for fixed approx.k != 0
   int newK = k;
   if (newK != 0) {
-    newK = std::min(newK, maxK);
+    newK = std::min(newK, sigma.rows);
   } else {
     assert(epsilon >= 0.);
     static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
     double threshold_eigenvalue = 0.0;
     if (useL2Criterion == NULL) {
-      for (int i = 0; i < maxK; i++) {
+      for (int i = 0; i < sigma.rows; i++) {
         threshold_eigenvalue += sigma[i];
       }
     } else {
@@ -54,7 +54,7 @@ int RkApproximationControl::findK(Vector<double> &sigma, int maxK, double epsilo
     }
     threshold_eigenvalue *= epsilon;
     int i = 0;
-    for (i = 0; i < maxK; i++) {
+    for (i = 0; i < sigma.rows; i++) {
       if (sigma[i] <= threshold_eigenvalue){
         break;
       }
@@ -88,32 +88,26 @@ template<typename T> RkMatrix<T>::~RkMatrix() {
   clear();
 }
 
+
+template<typename T> ScalarArray<T>* RkMatrix<T>::evalArray(ScalarArray<T>* result) const {
+  if(result==NULL)
+    result = new ScalarArray<T>(rows->size(), cols->size());
+  if (rank())
+    result->gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+  else
+    result->clear();
+  return result;
+}
+
 template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {
-  // Special case of the empty matrix, assimilated to the zero matrix.
-  if (rank() == 0) {
-    return new FullMatrix<T>(rows, cols);
-  }
   FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
-  result->data.gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+  evalArray(&result->data);
   return result;
 }
 
 // Compute squared Frobenius norm
 template<typename T> double RkMatrix<T>::normSqr() const {
-  double result = 0;
-  const int k = rank();
-  for (int i = 1; i < k; ++i) {
-    for (int j = 0; j < i; ++j) {
-      result += hmat::real(proxy_cblas_convenience::dot_c(a->rows, a->m + i*a->lda, 1, a->m + j*a->lda, 1) *
-                           proxy_cblas_convenience::dot_c(b->rows, b->m + i*b->lda, 1, b->m + j*b->lda, 1));
-    }
-  }
-  result *= 2.0;
-  for (int i = 0; i < k; ++i) {
-    result += hmat::real(proxy_cblas_convenience::dot_c(a->rows, a->m + i*a->lda, 1, a->m + i*a->lda, 1) *
-                         proxy_cblas_convenience::dot_c(b->rows, b->m + i*b->lda, 1, b->m + i*b->lda, 1));
-  }
-  return result;
+  return a->norm_abt_Sqr(*b);
 }
 
 template<typename T> void RkMatrix<T>::scale(T alpha) {
@@ -180,8 +174,8 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
     // The offset in the matrix, and not in all the indices
     int rowsOffset = subRows->offset() - rows->offset();
     int colsOffset = subCols->offset() - cols->offset();
-    subA = new ScalarArray<T>(a->m + rowsOffset, subRows->size(), rank(), a->lda);
-    subB = new ScalarArray<T>(b->m + colsOffset, subCols->size(), rank(), b->lda);
+    subA = new ScalarArray<T>(*a, rowsOffset, subRows->size(), 0, rank());
+    subB = new ScalarArray<T>(*b, colsOffset, subCols->size(), 0, rank());
   }
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
@@ -217,7 +211,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // TODO: in this case, the epsilon of recompression is not respected
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
-    RkMatrix<T>* rk = truncatedSvd(tmp);
+    RkMatrix<T>* rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
     delete tmp;
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
@@ -259,13 +253,13 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   */
   int ierr;
   // QR decomposition of A and B
-  T* tauA = qrDecomposition<T>(a); // A contains QaRa
+  T* tauA = a->qrDecomposition(); // A contains Qa and Ra
   HMAT_ASSERT(tauA);
-  T* tauB = qrDecomposition<T>(b); // B contains QbRb
+  T* tauB = b->qrDecomposition(); // B contains Qb and Rb
   HMAT_ASSERT(tauB);
 
   // Matrices created by the SVD
-  ScalarArray<T> *u = NULL, *vt = NULL;
+  ScalarArray<T> *u = NULL, *v = NULL;
   Vector<double> *sigma = NULL;
   {
     // The scope is to automatically delete rAFull.
@@ -281,19 +275,19 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
       }
     }
 
-    // Ra Rb^t
-    myTrmm<T>(&rAFull, b);
+    // Ra <- Ra Rb^t with b upper triangular matrix
+    rAFull.myTrmm(b);
     // SVD of Ra Rb^t
-    ierr = svdDecomposition<T>(&rAFull, &u, &sigma, &vt); // TODO use something else than SVD ?
+    ierr = rAFull.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &v); // TODO use something else than SVD ?
     HMAT_ASSERT(!ierr);
   }
 
   // Control of approximation
-  int newK = approx.findK(*sigma, rank(), epsilon);
+  int newK = approx.findK(*sigma, epsilon);
   if (newK == 0)
   {
     delete u;
-    delete vt;
+    delete v;
     delete sigma;
     free(tauA);
     free(tauB);
@@ -304,6 +298,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     return;
   }
 
+  // Resize u, sigma, v (not very clean...)
+  u->cols =newK;
+  sigma->rows = newK;
+  v->cols =newK;
+
   // We put the square root of singular values in sigma
   for (int i = 0; i < newK; i++) {
     (*sigma)[i] = sqrt((*sigma)[i]);
@@ -311,32 +310,25 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
-  // For that we first calculated Utilde * SQRT (SigmaTilde)
+  // For that we first calculate Utilde * SQRT (SigmaTilde)
+  u->multiplyWithDiag(sigma);
+
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
-  for (int col = 0; col < newK; col++) {
-    const T alpha = (*sigma)[col];
-    for (int row = 0; row < rank(); row++) {
-      newA->get(row, col) = u->get(row, col) * alpha;
-    }
-  }
+  newA->copyMatrixAtOffset(u, 0, 0);
   delete u;
   u = NULL;
   // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
-  productQ<T>('L', 'N', a, tauA, newA);
+  a->productQ('L', 'N', tauA, newA);
   free(tauA);
 
   // newB = Qb * VTilde * SQRT(SigmaTilde)
+  v->multiplyWithDiag(sigma);
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
-  // Copy with transposing
-  for (int col = 0; col < newK; col++) {
-    const T alpha = (*sigma)[col];
-    for (int row = 0; row < rank(); row++) {
-      newB->get(row, col) = vt->get(col, row) * alpha;
-    }
-  }
-  delete vt;
+  newB->copyMatrixAtOffset(v, 0, 0);
+  delete v;
   delete sigma;
-  productQ<T>('L', 'N', b, tauB, newB);
+  // newB <- Qb * newB
+  b->productQ('L', 'N', tauB, newB);
   free(tauB);
 
   delete a;
@@ -355,7 +347,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
 
   ScalarArray<T>* ur = NULL;
   Vector<double>* sr = NULL;
-  ScalarArray<T>* vhr = NULL;
+  ScalarArray<T>* vr = NULL;
   int kA, kB, newK;
 
   int krank = rank();
@@ -364,13 +356,13 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
-    kA = modifiedGramSchmidt( a, &ra, epsilon );
+    kA = a->modifiedGramSchmidt( &ra, epsilon );
     // On input, a0(m,k)
     // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
-    kB = modifiedGramSchmidt( b, &rb, epsilon );
+    kB = b->modifiedGramSchmidt( &rb, epsilon );
     // On input, b0(p,k)
     // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
 
@@ -382,33 +374,22 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
     // SVD
-    int ierr = svdDecomposition<T>(&matR, &ur, &sr, &vhr);
-    // On output, ur->rows = kA, vhr->cols = kB
+    int ierr = matR.svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vr);
+    // On output, ur->rows = kA, vr->rows = kB
     HMAT_ASSERT(!ierr);
   }
 
   // Remove small singular values and compute square root of sr
-  newK = approx.findK(*sr, std::min(kA, kB), epsilon);
+  newK = approx.findK(*sr, epsilon);
   assert(newK>0);
   for(int i = 0; i < newK; ++i) {
     (*sr)[i] = sqrt((*sr)[i]);
   }
   ur->cols = newK;
-  vhr->rows = newK;
-
-  /* Scaling of ur and vhr */
-  for(int j = 0; j < newK; ++j) {
-    const T valJ = (*sr)[j];
-    for(int i = 0; i < ur->rows; ++i) {
-      ur->get(i, j) *= valJ;
-    }
-  }
-
-  for(int j = 0; j < vhr->cols; ++j){
-    for(int i = 0; i < newK; ++i) {
-      vhr->get(i, j) *= (*sr)[i];
-    }
-  }
+  vr->cols = newK;
+  /* Scaling of ur and vr */
+  ur->multiplyWithDiag(sr);
+  vr->multiplyWithDiag(sr);
 
   delete sr;
 
@@ -419,10 +400,10 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   newA->gemm('N', 'N', Constants<T>::pone, a, ur, Constants<T>::zero);
 
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
-  newB->gemm('N', 'T', Constants<T>::pone, b, vhr, Constants<T>::zero);
+  newB->gemm('N', 'N', Constants<T>::pone, b, vr, Constants<T>::zero);
 
   delete ur;
-  delete vhr;
+  delete vr;
 
   delete a;
   a = newA;
@@ -445,7 +426,7 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
-  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, &rows, &cols, 1);
+  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
   swap(*tmp);
   delete tmp;
 }
@@ -454,14 +435,6 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
   RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
   swap(*tmp);
   delete tmp;
-}
-
-template<typename T> RkMatrix<T>* RkMatrix<T>::formattedAdd(const FullMatrix<T>* o, T alpha) const {
-  const FullMatrix<T>* parts[1] = {o};
-  const IndexSet* rowsList[1] = {rows};
-  const IndexSet* colsList[1] = {cols};
-  T alphaArray[1] = {alpha};
-  return formattedAddParts(alphaArray, parts, rowsList, colsList, 1);
 }
 
 template<typename T>
@@ -501,29 +474,21 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   // full matrix.
   if (kTotal >= std::min(rows->size(), cols->size())) {
     const FullMatrix<T>** fullParts = new const FullMatrix<T>*[n];
-    const IndexSet** rowsParts = new const IndexSet*[n];
-    const IndexSet** colsParts = new const IndexSet*[n];
     for (int i = 0; i < n; i++) {
       if (!parts[i])
         continue;
       fullParts[i] = parts[i]->eval();
-      rowsParts[i] = parts[i]->rows;
-      colsParts[i] = parts[i]->cols;
     }
-    RkMatrix<T>* result = formattedAddParts(alpha, fullParts, rowsParts, colsParts, n);
+    RkMatrix<T>* result = formattedAddParts(alpha, fullParts, n);
     for (int i = 0; i < n; i++) {
       delete fullParts[i];
     }
     delete[] fullParts;
-    delete[] rowsParts;
-    delete[] colsParts;
     return result;
   }
 
   ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), kTotal);
-  resultA->clear();
   ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), kTotal);
-  resultB->clear();
   // Special case if the original matrix is not empty.
   if (rank() > 0) {
     resultA->copyMatrixAtOffset(a, 0, 0);
@@ -550,8 +515,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     resultA->copyMatrixAtOffset(parts[i]->a, rowOffset, kOffset);
     // Scaling the matrix already in place inside resultA
     if (alpha[i] != Constants<T>::pone) {
-      ScalarArray<T> tmp(resultA->m + rowOffset + ((size_t) kOffset) * resultA->lda,
-                        parts[i]->a->rows, parts[i]->a->cols, resultA->lda);
+      ScalarArray<T> tmp(*resultA, rowOffset, parts[i]->a->rows, kOffset, parts[i]->a->cols);
       tmp.scale(alpha[i]);
     }
     rowOffset = parts[i]->cols->offset() - cols->offset();
@@ -565,31 +529,29 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   return rk;
 }
 template<typename T>
-RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts,
-                                            const IndexSet **rowsList,
-                                            const IndexSet **colsList, int n) const {
+RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const {
   DECLARE_CONTEXT;
   FullMatrix<T>* me = eval();
   HMAT_ASSERT(me);
 
   // TODO: here, we convert Rk->Full, Update the Full with parts[], and Full->Rk. We could also
   // create a new empty Full, update, convert to Rk and add it to 'this'.
+  // If the parts[] are smaller than 'this', convert them to Rk and add them could be less expensive
   for (int i = 0; i < n; i++) {
     if (!parts[i])
       continue;
-    assert(rowsList[i]->isSubset(*rows));
-    assert(colsList[i]->isSubset(*cols));
-    int rowOffset = rowsList[i]->offset() - rows->offset();
-    int colOffset = colsList[i]->offset() - cols->offset();
-    int maxCol = colsList[i]->size();
-    int maxRow = rowsList[i]->size();
-    for (int col = 0; col < maxCol; col++) {
-      for (int row = 0; row < maxRow; row++) {
-        me->get(row + rowOffset, col + colOffset) += alpha[i] * parts[i]->get(row, col);
-      }
-    }
+    const IndexSet *rows_full = parts[i]->rows_;
+    const IndexSet *cols_full = parts[i]->cols_;
+    assert(rows_full->isSubset(*rows));
+    assert(cols_full->isSubset(*cols));
+    int rowOffset = rows_full->offset() - rows->offset();
+    int colOffset = cols_full->offset() - cols->offset();
+    int maxCol = cols_full->size();
+    int maxRow = rows_full->size();
+    ScalarArray<T> sub(me->data, rowOffset, maxRow, colOffset, maxCol);
+    sub.axpy(alpha[i], &parts[i]->data);
   }
-  RkMatrix<T>* result = truncatedSvd(me); // TODO compress with something else than SVD
+  RkMatrix<T>* result = truncatedSvd(me, RkMatrix<T>::approx.recompressionEpsilon); // TODO compress with something else than SVD
   delete me;
   return result;
 }
@@ -843,60 +805,87 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
 
   // We want to compute the matrix a1.t^b1.a2.t^b2 and return an Rk matrix
   // Usually, the best way is to start with tmp=t^b1.a2 which produces a 'small' matrix rank1 x rank2
+  //
+  // OLD version (default):
   // Then we can either :
   // - compute a1.tmp : the cost is rank1.rank2.row_a, the resulting Rk has rank rank2
-  // - compute tmp.b2 : the cost is rank1.rank2.col_b, the resulting Rk has rank rank1
-  // We use the solution which gives the lowest rank.
-
-  // TODO also, once we have the small matrix tmp=t^b1.a2, we could do a recompression on it for low cost
+  // - compute tmp.t^b2 : the cost is rank1.rank2.col_b, the resulting Rk has rank rank1
+  // We use the solution which gives the lowest resulting rank.
+  // With this version, orthogonality is lost on one panel, it is preserved on the other.
+  //
+  // NEW version :
+  // Other solution: once we have the small matrix tmp=t^b1.a2, we can do a recompression on it for low cost
   // using SVD + truncation. This also removes the choice above, since tmp=U.S.V is then applied on both sides
+  // This version isn't default, it can be activated by setting env. var. HMAT_NEW_RKRK
+  // With this version, orthogonality is lost on both panel.
 
   ScalarArray<T>* tmp = new ScalarArray<T>(r1->rank(), r2->rank());
   if (trans1 == 'C' && trans2 == 'C') {
     tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
     tmp->conjugate();
   } else if (trans1 == 'C') {
-    ScalarArray<T> *conj_b1 = b1->copy();
-    conj_b1->conjugate();
-    tmp->gemm('T', 'N', Constants<T>::pone, conj_b1, a2, Constants<T>::zero);
-    delete conj_b1;
+    tmp->gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   } else if (trans2 == 'C') {
-    ScalarArray<T> *conj_a2 = a2->copy();
-    conj_a2->conjugate();
-    tmp->gemm('T', 'N', Constants<T>::pone, b1, conj_a2, Constants<T>::zero);
-    delete conj_a2;
+    tmp->gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp->conjugate();
   } else {
     tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   }
 
-  ScalarArray<T> *newA, *newB;
-  if (r1->rank() < r2->rank()) {
-    newA = a1->copy();
-    if (trans1 == 'C') {
-      newA->conjugate();
+  ScalarArray<T> *newA=NULL, *newB=NULL;
+  static char *newRKRK = getenv("HMAT_NEW_RKRK"); // Option to use the NEW version, with SVD-in-the-middle
+  if (newRKRK) {
+    // NEW version
+    ScalarArray<T>* ur = NULL;
+    Vector<double>* sr = NULL;
+    ScalarArray<T>* vr = NULL;
+    int newK;
+    // SVD tmp = ur.sr.t^vr
+    tmp->svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vr);
+    // Remove small singular values and compute square root of sr
+    newK = approx.findK(*sr, RkMatrix<T>::approx.recompressionEpsilon);
+    //    printf("oldK1=%d oldK2=%d newK=%d\n", r1->rank(), r2->rank(), newK);
+    if (newK > 0) {
+      for(int i = 0; i < newK; ++i)
+        (*sr)[i] = sqrt((*sr)[i]);
+      ur->cols = newK;
+      vr->cols = newK;
+      /* Scaling of ur and vr */
+      ur->multiplyWithDiag(sr);
+      vr->multiplyWithDiag(sr);
+      /* Now compute newA = a1.ur and newB = b2.vr */
+      newA = new ScalarArray<T>(a1->rows, newK);
+      if (trans1 == 'C') ur->conjugate();
+      newA->gemm('N', 'N', Constants<T>::pone, a1, ur, Constants<T>::zero);
+      if (trans1 == 'C') newA->conjugate();
+      newB = new ScalarArray<T>(b2->rows, newK);
+      if (trans2 == 'C') vr->conjugate();
+      newB->gemm('N', 'N', Constants<T>::pone, b2, vr, Constants<T>::zero);
+      if (trans2 == 'C') newB->conjugate();
     }
-    newB = new ScalarArray<T>(b2->rows, r1->rank());
-    if (trans2 == 'C') {
-      ScalarArray<T> *conj_b2 = b2->copy();
-      conj_b2->conjugate();
-      newB->gemm('N', 'T', Constants<T>::pone, conj_b2, tmp, Constants<T>::zero);
-      delete conj_b2;
-    } else {
-      newB->gemm('N', 'T', Constants<T>::pone, b2, tmp, Constants<T>::zero);
-    }
+    delete ur;
+    delete vr;
+    delete sr;
   } else {
-    newA = new ScalarArray<T>(a1->rows, r2->rank());
-    if (trans1 == 'C') {
-      ScalarArray<T> *conj_a1 = a1->copy();
-      conj_a1->conjugate();
-      newA->gemm('N', 'N', Constants<T>::pone, conj_a1, tmp, Constants<T>::zero);
-      delete conj_a1;
-    } else {
+    // OLD version
+    if (r1->rank() < r2->rank()) {
+      // newA = a1, newB = b2.t^tmp
+      newA = a1->copy();
+      if (trans1 == 'C') newA->conjugate();
+      newB = new ScalarArray<T>(b2->rows, r1->rank());
+      if (trans2 == 'C') {
+        newB->gemm('N', 'C', Constants<T>::pone, b2, tmp, Constants<T>::zero);
+        newB->conjugate();
+      } else {
+        newB->gemm('N', 'T', Constants<T>::pone, b2, tmp, Constants<T>::zero);
+      }
+    } else { // newA = a1.tmp, newB = b2
+      newA = new ScalarArray<T>(a1->rows, r2->rank());
+      if (trans1 == 'C') tmp->conjugate(); // be careful if you re-use tmp after this...
       newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
-    }
-    newB = b2->copy();
-    if (trans2 == 'C') {
-      newB->conjugate();
+      if (trans1 == 'C') newA->conjugate();
+      newB = b2->copy();
+      if (trans2 == 'C') newB->conjugate();
     }
   }
   delete tmp;
@@ -922,22 +911,14 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
   assert(left  || (*cols == *d->rows()));
 
   // extracting the diagonal
-  T* diag = new T[d->cols()->size()];
-  d->extractDiagonal(diag);
-  if (inverse) {
-    for (int i = 0; i < d->cols()->size(); i++) {
-      diag[i] = Constants<T>::pone / diag[i];
-    }
-  }
+  Vector<T>* diag = new Vector<T>(d->cols()->size());
+  d->extractDiagonal(diag->ptr());
 
   // left multiplication by d of b (if M<-M*D : left = false) or a (if M<-D*M : left = true)
   ScalarArray<T>* aOrB = (left ? a : b);
-  for (int j = 0; j < rank(); j++) {
-    for (int i = 0; i < aOrB->rows; i++) {
-      aOrB->get(i, j) *= diag[i];
-    }
-  }
-  delete[] diag;
+  aOrB->multiplyWithDiagOrDiagInv(diag, inverse, true);
+
+  delete diag;
 }
 
 template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
@@ -1027,7 +1008,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = truncatedSvd(fullMat);
+        rk = truncatedSvd(fullMat, RkMatrix<T>::approx.recompressionEpsilon); // TODO compress with something else than SVD
         delete fullMat;
       }
     }
@@ -1038,13 +1019,19 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   }
 }
 
-template<typename T> void RkMatrix<T>::copy(RkMatrix<T>* o) {
+template<typename T> void RkMatrix<T>::copy(const RkMatrix<T>* o) {
   delete a;
   delete b;
   rows = o->rows;
   cols = o->cols;
   a = (o->a ? o->a->copy() : NULL);
   b = (o->b ? o->b->copy() : NULL);
+}
+
+template<typename T> RkMatrix<T>* RkMatrix<T>::copy() const {
+  RkMatrix<T> *result = new RkMatrix<T>(NULL, rows, NULL, cols, this->method);
+  result->copy(this);
+  return result;
 }
 
 
@@ -1059,6 +1046,15 @@ template<typename T> void RkMatrix<T>::checkNan() const {
 template<typename T> void RkMatrix<T>::conjugate() {
   if (a) a->conjugate();
   if (b) b->conjugate();
+}
+
+template<typename T> T RkMatrix<T>::get(int i, int j) const {
+  return a->dot_aibj(i, *b, j);
+}
+
+template<typename T> void RkMatrix<T>::writeArray(hmat_iostream writeFunc, void * userData) const{
+  a->writeArray(writeFunc, userData);
+  b->writeArray(writeFunc, userData);
 }
 
 // Templates declaration

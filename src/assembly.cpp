@@ -86,7 +86,7 @@ void SimpleFunction<T>::getRow(const ClusterData* rows, const ClusterData* cols,
   const int row = *(rows->indices() + rows->offset() + rowIndex);
   const int* cols_indices = cols->indices() + cols->offset();
   for (int j = 0; j < cols->size(); j++) {
-    compute_(userContext_, row, cols_indices[j], result->m + j);
+    compute_(userContext_, row, cols_indices[j], &(*result)[j]);
   }
 }
 
@@ -99,7 +99,7 @@ void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
   const int col = *(cols->indices() + cols->offset() + colIndex);
   const int* rows_indices = rows->indices() + rows->offset();
   for (int i = 0; i < rows->size(); i++) {
-    compute_(userContext_, rows_indices[i], col, result->m + i);
+    compute_(userContext_, rows_indices[i], col, &(*result)[i]);
   }
 }
 
@@ -141,11 +141,11 @@ BlockFunction<T>::assemble(const ClusterData* rows,
     // Nothing to do
   } else if(compute_ == NULL) {
     result = new FullMatrix<typename Types<T>::dp>(rows, cols);
-    legacyCompute_(local_block_info.user_data, 0, rows->size(), 0, cols->size(), result->data.m);
+    legacyCompute_(local_block_info.user_data, 0, rows->size(), 0, cols->size(), result->data.ptr());
   } else {
     result = new FullMatrix<typename Types<T>::dp>(rows, cols);
     struct hmat_block_compute_context_t ac;
-    ac.block = result->data.m;
+    ac.block = result->data.ptr();
     ac.col_count = cols->size();
     ac.col_start = 0;
     ac.row_count = rows->size();
@@ -207,10 +207,10 @@ void BlockFunction<T>::getRow(const ClusterData*, const ClusterData* cols,
     assert(handle);
     if(compute_ == NULL) {
       assert(stratum == -1); // statum not supported here
-      legacyCompute_(handle, rowIndex, 1, 0, cols->size(), result->m);
+      legacyCompute_(handle, rowIndex, 1, 0, cols->size(), result->ptr());
     } else {
         struct hmat_block_compute_context_t ac;
-        ac.block = result->m;
+        ac.block = result->ptr();
         ac.col_count = cols->size();
         ac.col_start = 0;
         ac.row_count = 1;
@@ -229,10 +229,10 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
     assert(handle);
     if(compute_ == NULL) {
       assert(stratum == -1); // statum not supported here
-      legacyCompute_(handle, 0, rows->size(), colIndex, 1, result->m);
+      legacyCompute_(handle, 0, rows->size(), colIndex, 1, result->ptr());
     } else {
         struct hmat_block_compute_context_t ac;
-        ac.block = result->m;
+        ac.block = result->ptr();
         ac.col_count = 1;
         ac.col_start = colIndex;
         ac.row_count = rows->size();
