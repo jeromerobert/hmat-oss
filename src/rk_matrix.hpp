@@ -193,6 +193,8 @@ public:
    */
   RkMatrix<T>* formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const;
 
+  /*! \brief Add a product of HMatrix to an RkMatrix
+     */
   void gemmRk(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);
 
   /** Multiplication by a scalar.

@@ -892,7 +892,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
         r.get(j,k) = Vector<T>::dot(&aj, &ak);
         coef = - r.get(j,k);
         ak.axpy(coef, &aj);
-        norm2[k] -= std::abs(r.get(j,k)) * std::abs(r.get(j,k));
+        norm2[k] -= std::abs(coef) * std::abs(coef);
       }
     }
   }
