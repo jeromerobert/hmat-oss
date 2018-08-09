@@ -211,7 +211,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // TODO: in this case, the epsilon of recompression is not respected
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
-    RkMatrix<T>* rk = truncatedSvd(tmp);
+    RkMatrix<T>* rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
     delete tmp;
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
@@ -551,7 +551,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>*
     ScalarArray<T> sub(me->data, rowOffset, maxRow, colOffset, maxCol);
     sub.axpy(alpha[i], &parts[i]->data);
   }
-  RkMatrix<T>* result = truncatedSvd(me); // TODO compress with something else than SVD
+  RkMatrix<T>* result = truncatedSvd(me, RkMatrix<T>::approx.recompressionEpsilon); // TODO compress with something else than SVD
   delete me;
   return result;
 }
@@ -1006,7 +1006,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = truncatedSvd(fullMat); // TODO compress with something else than SVD
+        rk = truncatedSvd(fullMat, RkMatrix<T>::approx.recompressionEpsilon); // TODO compress with something else than SVD
         delete fullMat;
       }
     }

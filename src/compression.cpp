@@ -300,7 +300,7 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
 
 
 template<typename T>
-RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
+RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
   DECLARE_CONTEXT;
 
   if (m->isZero()) {
@@ -317,7 +317,7 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m) {
   int info = m->data.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &v);
   HMAT_ASSERT(info == 0);
   // Control of the approximation
-  int k = RkMatrix<T>::approx.findK(*sigma, RkMatrix<T>::approx.assemblyEpsilon);
+  int k = RkMatrix<T>::approx.findK(*sigma, epsilon);
 
   if(k == 0)
   {
@@ -347,7 +347,7 @@ compressSvd(const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = block.assemble();
-  RkMatrix<dp_t>* result = truncatedSvd(m);
+  RkMatrix<dp_t>* result = truncatedSvd(m, RkMatrix<T>::approx.assemblyEpsilon);
   delete m;
   return result;
 }
@@ -744,7 +744,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
         nloop = block.info.number_of_strata;
     }
     RkMatrix<dp_t>* rk = compressOneStratum(method, block);
-    rk->truncate(rk->approx.assemblyEpsilon);
+    rk->truncate(rk->approx.assemblyEpsilon); // why recompress right after compress ??
     for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
         assert(method == AcaPartial || method == AcaPlus);
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
@@ -821,10 +821,10 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
 }
 
 // Declaration of the used templates
-template RkMatrix<S_t>* truncatedSvd(FullMatrix<S_t>* m);
-template RkMatrix<D_t>* truncatedSvd(FullMatrix<D_t>* m);
-template RkMatrix<C_t>* truncatedSvd(FullMatrix<C_t>* m);
-template RkMatrix<Z_t>* truncatedSvd(FullMatrix<Z_t>* m);
+template RkMatrix<S_t>* truncatedSvd(FullMatrix<S_t>* m, double eps);
+template RkMatrix<D_t>* truncatedSvd(FullMatrix<D_t>* m, double eps);
+template RkMatrix<C_t>* truncatedSvd(FullMatrix<C_t>* m, double eps);
+template RkMatrix<Z_t>* truncatedSvd(FullMatrix<Z_t>* m, double eps);
 
 template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
