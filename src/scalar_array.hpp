@@ -28,7 +28,7 @@
 #pragma once
 
 #include <cstddef>
-
+#include "assert.h"
 #include "data_types.hpp"
 #include "hmat/hmat.h"
 
@@ -403,10 +403,18 @@ public:
   */
   void multiplyWithDiag(const ScalarArray<double>* d) ;
 
+  /*! \brief Computes if 'this' has orthogonal columns
+
+    \return true or false
+    */
+  bool testOrtho() const ;
+
   /*! \brief Set orthogonality flag
    */
   inline void setOrtho(const int flag) const {
     *is_ortho = flag;
+    static char *test = getenv("HMAT_TEST_ORTHO");
+    if (flag && test) assert(getOrtho() == testOrtho());
   }
   /*! \brief Get orthogonality flag
    */

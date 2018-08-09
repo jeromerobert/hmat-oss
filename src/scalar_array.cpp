@@ -992,6 +992,35 @@ void ScalarArray<T>::multiplyWithDiag(const ScalarArray<double>* d) {
 }
 
 template<typename T>
+bool ScalarArray<T>::testOrtho() const {
+  static char *test = getenv("HMAT_TEST_ORTHO");
+  // code % 2 == 0 means we are in simple precision (real or complex)
+  static double machine_accuracy = Constants<T>::code % 2 == 0 ? 1.19e-7 : 1.11e-16 ;
+  static double test_accuracy = Constants<T>::code % 2 == 0 ? 1.e-3 : 1.e-7 ;
+  static double ratioMax=0.;
+  double ref = norm();
+  if (ref==0.) return true;
+  ScalarArray<T> *sp = new ScalarArray<T>(cols, cols);
+  // Compute the scalar product sp = X^H.X
+  sp->gemm('C', 'N', Constants<T>::pone, this, this, Constants<T>::zero);
+  // Nullify the diagonal elements
+  for (int i=0 ; i<cols ; i++)
+    sp->get(i,i) = Constants<T>::zero;
+  // The norm of the rest should be below 'epsilon x norm of this' to have orthogonality and return true
+  double res = sp->norm();
+  delete sp;
+  if (test) {
+    double ratio = res/ref/machine_accuracy/sqrt((double)rows);
+    if (ratio > ratioMax) {
+      ratioMax = ratio;
+      printf("testOrtho[%dx%d] test=%d get=%d        res=%g ref=%g res/ref=%g ratio=%g ratioMax=%g\n",
+             rows, cols, (res < ref * test_accuracy), getOrtho(), res, ref, res/ref, ratio, ratioMax);
+    }
+  }
+  return (res < ref * test_accuracy);
+}
+
+template<typename T>
 T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
   assert(x->cols == 1);
   assert(y->cols == 1);
