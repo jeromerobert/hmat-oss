@@ -825,8 +825,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   double relative_epsilon;
   static const double LOWEST_EPSILON = 1.0e-6;
 
-  const int original_rank(result->lda);
-  assert(original_rank == result->rows);
+  const int original_rank(result->rows);
   assert(original_rank == result->cols);
   assert(original_rank >= cols);
   int* perm = new int[original_rank];
@@ -843,21 +842,38 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   }
 
   // Init.
-  Vector<double> norm2(cols);
+  Vector<double> norm2(cols); // Norm^2 of the columns of 'this' during computation
+  Vector<double> norm2_orig(cols); // Norm^2 of the original columns of 'this'
+  Vector<double> norm2_update(cols); // Norm^2 of the columns of 'this' normalized (will be 1. at the beginning, then decrease)
+  // The actual norm^2 of column j during computation (before it is finally normalized) will be norm2[j] = norm2_orig[j] * norm2_update[j]
+  // The choice of the pivot will be based on norm2_update[] or norm2[]
   rank = 0;
   relative_epsilon = 0.0;
   for(int j=0; j < cols; ++j) {
     const Vector<T> aj(this, j);
     norm2[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2[j]);
+    norm2_orig[j] = norm2[j];
+    norm2_update[j] = 1.0 ;
+    if(norm2_orig[j]==0) { // Neutralize the null columns
+      norm2_orig[j] = 1.;
+      norm2_update[j] = 0.0 ;
+    }
   }
   relative_epsilon *= prec * prec;
 
   // Modified Gram-Schmidt process with column pivoting
   for(int j = 0; j < cols; ++j) {
     // Find the largest pivot
-    const int pivot = norm2.absoluteMaxIndex(j);
-    const double pivmax = norm2[pivot];
+    int pivot = norm2.absoluteMaxIndex(j);
+    double pivmax = norm2[pivot];
+
+    static char *newPivot = getenv("HMAT_MGS_ALTPIV");
+    if (newPivot) {
+      pivot = norm2_update.absoluteMaxIndex(j);
+      pivmax = norm2_update[pivot];
+      relative_epsilon = prec * prec;
+    }
 
     // Stopping criterion
     if (pivmax > relative_epsilon) {
@@ -867,6 +883,8 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       if (j != pivot) {
         std::swap(perm[j], perm[pivot]);
         std::swap(norm2[j], norm2[pivot]);
+        std::swap(norm2_orig[j], norm2_orig[pivot]);
+        std::swap(norm2_update[j], norm2_update[pivot]);
 
         // Exchange the column 'j' and 'pivot' in this[] using buffer as temp space
         memcpy(buffer.ptr(),  const_ptr(0, j),     rows*sizeof(T));
@@ -889,17 +907,20 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       for(int k = j + 1; k < cols; ++k) {
         // Scalar product of qj and bk
         Vector<T> ak(this, k);
-        r.get(j,k) = Vector<T>::dot(&aj, &ak);
+        r.get(j,k) = Vector<T>::dot(&aj, &ak); // Fill row j, only the upper part of r
         coef = - r.get(j,k);
         ak.axpy(coef, &aj);
         norm2[k] -= std::abs(coef) * std::abs(coef);
+        norm2_update[k] -= std::abs(coef) * std::abs(coef) / norm2_orig[k];
       }
-    }
+    } else
+      break;
   }
 
   // Apply perm to result
-  for(int j = 0; j < result->cols; ++j) {
-    memcpy(result->ptr() + perm[j] * result->lda, r.const_ptr() + j * result->lda, result->lda*sizeof(T));
+  for(int j = 0; j < result->cols; ++j) { // could copy only 'rank' rows ?
+    // Copy the column j of r into the column perm[j] of result
+    memcpy(result->ptr(0, perm[j]), r.const_ptr(0, j), result->rows*sizeof(T));
   }
   // Update matrix dimensions
   cols = rank;

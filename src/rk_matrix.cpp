@@ -291,10 +291,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     delete sigma;
     free(tauA);
     free(tauB);
-    delete a;
-    a = NULL;
-    delete b;
-    b = NULL;
+    clear();
     return;
   }
 
@@ -357,12 +354,20 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
     kA = a->modifiedGramSchmidt( &ra, epsilon );
+    if (kA==0) {
+      clear();
+      return;
+    }
     // On input, a0(m,k)
     // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
     kB = b->modifiedGramSchmidt( &rb, epsilon );
+    if (kB==0) {
+      clear();
+      return;
+    }
     // On input, b0(p,k)
     // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
 
@@ -381,6 +386,15 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
 
   // Remove small singular values and compute square root of sr
   newK = approx.findK(*sr, epsilon);
+  if (newK == 0)
+  {
+    delete ur;
+    delete vr;
+    delete sr;
+    clear();
+    return;
+  }
+
   assert(newK>0);
   for(int i = 0; i < newK; ++i) {
     (*sr)[i] = sqrt((*sr)[i]);
@@ -409,10 +423,6 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   a = newA;
   delete b;
   b = newB;
-
-  if (rank() == 0) {
-    assert(!(b || a));
-  }
 }
 
 // Swap members with members from another instance.
