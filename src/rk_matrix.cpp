@@ -449,31 +449,39 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
 
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
-                                            int n, bool dotruncate) const {
+                                            const int n, const bool dotruncate) const {
   // TODO check if formattedAddParts() actually uses sometimes this 'alpha' parameter (or is it always 1 ?)
   DECLARE_CONTEXT;
-  // If only one of the parts is non-zero, then the recompression is not necessary to
-  // get exactly the same result.
-  int notNullParts = (rank() == 0 ? 0 : 1);
-  int kTotal = rank();
+
+  /* List of non-null and non-empty Rk matrices to coalesce, and the corresponding scaling coefficients */
+  const RkMatrix<T>* usedParts[n+1];
+  T usedAlpha[n+1];
+  /* Number of elements in usedParts[] */
+  int notNullParts = 0;
+  /* Sum of the ranks */
+  int rankTotal = 0;
+
+  // If needed, put 'this' in first position in usedParts[]
+  if (rank()) {
+    usedAlpha[0] = Constants<T>::pone ;
+    usedParts[notNullParts++] = this ;
+    rankTotal += rank();
+  }
+
   CompressionMethod minMethod = method;
   for (int i = 0; i < n; i++) {
-    if (!parts[i])
+    // exclude the NULL and 0-rank matrices
+    if (!parts[i] || parts[i]->rank() == 0 || parts[i]->rows->size() == 0 || parts[i]->cols->size() == 0 || alpha[i]==Constants<T>::zero)
       continue;
     // Check that partial RkMatrix indices are subsets of their global indices set.
-    // According to the indices organization, it is necessary to check that the indices
-    // of the matrix are such that:
-    //   - parts[i].rows->offset >= rows->offset
-    //   - offset + n <= this.offset + this.n
-    //   - same for cols
-
     assert(parts[i]->rows->isSubset(*rows));
     assert(parts[i]->cols->isSubset(*cols));
-    kTotal += parts[i]->rank();
+    // Add this Rk to the list
+    rankTotal += parts[i]->rank();
     minMethod = std::min(minMethod, parts[i]->method);
-    if (parts[i]->rank() != 0) {
-      notNullParts += 1;
-    }
+    usedAlpha[notNullParts] = alpha[i] ;
+    usedParts[notNullParts] = parts[i] ;
+    notNullParts++;
   }
 
   if(notNullParts == 0)
@@ -482,58 +490,52 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   // In case the sum of the ranks of the sub-matrices is greater than
   // the matrix size, it is more efficient to put everything in a
   // full matrix.
-  if (kTotal >= std::min(rows->size(), cols->size())) {
-    const FullMatrix<T>** fullParts = new const FullMatrix<T>*[n];
-    for (int i = 0; i < n; i++) {
-      if (!parts[i])
-        continue;
-      fullParts[i] = parts[i]->eval();
-    }
-    RkMatrix<T>* result = formattedAddParts(alpha, fullParts, n);
-    for (int i = 0; i < n; i++) {
+  if (rankTotal >= std::min(rows->size(), cols->size())) {
+    const FullMatrix<T>** fullParts = new const FullMatrix<T>*[notNullParts];
+    fullParts[0] = NULL ;
+    for (int i = rank() ? 1 : 0 ; i < notNullParts; i++) // exclude usedParts[0] if it is 'this'
+      fullParts[i] = usedParts[i]->eval();
+    RkMatrix<T>* result = formattedAddParts(usedAlpha, fullParts, notNullParts);
+    for (int i = 0; i < notNullParts; i++)
       delete fullParts[i];
-    }
     delete[] fullParts;
     return result;
   }
 
-  ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), kTotal);
-  ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), kTotal);
-  // Special case if the original matrix is not empty.
-  if (rank() > 0) {
-    resultA->copyMatrixAtOffset(a, 0, 0);
-    resultB->copyMatrixAtOffset(b, 0, 0);
-  }
+  ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
+  ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
   // According to the indices organization, the sub-matrices are
   // contiguous blocks in the "big" matrix whose columns offset is
-  //      kOffset = this->k + parts[0]->k + ... + parts[i-1]->k
+  //      kOffset = usedParts[0]->k + ... + usedParts[i-1]->k
   // rows offset is
-  //   parts[i]->rows->offset - rows->offset
+  //      usedParts[i]->rows->offset - rows->offset
   // rows size
-  //      parts[i]->rows->size x parts[i]->k (rows x columns)
+  //      usedParts[i]->rows->size x usedParts[i]->k (rows x columns)
   // Same for columns.
-  int kOffset = rank();
-  for (int i = 0; i < n; i++) {
-    if (!parts[i])
-      continue;
-    int rowOffset = parts[i]->rows->offset() - rows->offset();
-    int rowCount = parts[i]->rows->size();
-    int colCount = parts[i]->rank();
-    if ((rowCount == 0) || (colCount == 0)) {
-      continue;
-    }
-    resultA->copyMatrixAtOffset(parts[i]->a, rowOffset, kOffset);
+  int rankOffset = 0;
+  for (int i = 0; i < notNullParts; i++) {
+
+    // Copy 'a' at position rowOffset, kOffset
+    int rowOffset = usedParts[i]->rows->offset() - rows->offset();
+    resultA->copyMatrixAtOffset(usedParts[i]->a, rowOffset, rankOffset);
+
     // Scaling the matrix already in place inside resultA
-    if (alpha[i] != Constants<T>::pone) {
-      ScalarArray<T> tmp(*resultA, rowOffset, parts[i]->a->rows, kOffset, parts[i]->a->cols);
-      tmp.scale(alpha[i]);
+    if (usedAlpha[i] != Constants<T>::pone) {
+      ScalarArray<T> tmp(*resultA, rowOffset, usedParts[i]->a->rows, rankOffset, usedParts[i]->a->cols);
+      tmp.scale(usedAlpha[i]);
     }
-    rowOffset = parts[i]->cols->offset() - cols->offset();
-    resultB->copyMatrixAtOffset(parts[i]->b, rowOffset, kOffset);
-    kOffset += parts[i]->rank();
+
+    // Copy 'b' at position colOffset, kOffset
+    int colOffset = usedParts[i]->cols->offset() - cols->offset();
+    resultB->copyMatrixAtOffset(usedParts[i]->b, colOffset, rankOffset);
+
+    // Update the rank offset
+    rankOffset += usedParts[i]->rank();
   }
+  assert(rankOffset==rankTotal);
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
   if (notNullParts > 1 && dotruncate) {
+  // If only one of the parts is non-zero, then the recompression is not necessary
     rk->truncate(approx.recompressionEpsilon);
   }
   return rk;

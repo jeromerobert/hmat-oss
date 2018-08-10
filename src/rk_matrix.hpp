@@ -62,6 +62,8 @@ public:
        The stop criterion is (assuming that the singular value
        are in descending order):
            sigma [k] / SUM (sigma) <epsilon
+       except if env. var. HMAT_L2_CRITERION is set, in which case the criterion is:
+           sigma [k] / sigma[0] <epsilon
 
        \param sigma table of singular values at least maxK elements.
        \param epsilon tolerance.
@@ -178,7 +180,7 @@ public:
       \param n Number of matrices to add
       \return truncate(*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  RkMatrix<T>* formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts, int n, bool truncate=true) const;
+  RkMatrix<T>* formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts, const int n, const bool truncate=true) const;
   /** Adds a list of MatrixXd (solid matrices) to RkMatrix.
 
       In this function, MatrixXd may cover a portion of
