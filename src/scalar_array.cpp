@@ -850,7 +850,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   rank = 0;
   relative_epsilon = 0.0;
   for(int j=0; j < cols; ++j) {
-    const Vector<T> aj(this, j);
+    const Vector<T> aj(*this, j);
     norm2[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2[j]);
     norm2_orig[j] = norm2[j];
@@ -899,14 +899,14 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 
       // Normalisation of qj
       r.get(j,j) = sqrt(norm2[j]);
-      Vector<T> aj(this, j);
+      Vector<T> aj(*this, j);
       T coef = Constants<T>::pone / r.get(j,j);
       aj.scale(coef);
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
       for(int k = j + 1; k < cols; ++k) {
         // Scalar product of qj and bk
-        Vector<T> ak(this, k);
+        Vector<T> ak(*this, k);
         r.get(j,k) = Vector<T>::dot(&aj, &ak); // Fill row j, only the upper part of r
         coef = - r.get(j,k);
         ak.axpy(coef, &aj);

@@ -115,7 +115,7 @@ public:
     if(stratum != -1) {
       ScalarArray<typename Types<T>::dp> *mat = new ScalarArray<typename Types<T>::dp>(rows->size(), cols->size());
       for(int j = 0 ; j < cols->size(); j++) {
-        Vector<typename Types<T>::dp> vec(mat, j);
+        Vector<typename Types<T>::dp> vec(*mat, j);
         getCol(j, vec);
       }
       return new FullMatrix<typename Types<T>::dp>(mat, rows, cols);

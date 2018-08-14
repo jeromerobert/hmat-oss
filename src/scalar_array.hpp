@@ -413,7 +413,6 @@ public:
     /** \brief Create Vector with column 'col' of existing ScalarArray
      */
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}
-    Vector(const ScalarArray<T> *d, int _col):ScalarArray<T>(*d, 0, d->rows, _col, 1){}
     //~Vector(){}
     /** L2 norm of the vector.
      */
