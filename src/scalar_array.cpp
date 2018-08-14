@@ -679,7 +679,7 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** v) const {
+template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const {
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
 
@@ -687,7 +687,7 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Sc
   int p = std::min(rows, cols);
 
   *u = new ScalarArray<T>(rows, p);
-  *sigma = new ScalarArray<double>(p,1);
+  *sigma = new Vector<double>(p);
   *v = new ScalarArray<T>(p, cols); // We create v in transposed shape (as expected by lapack zgesvd)
 
   assert(lda >= rows);

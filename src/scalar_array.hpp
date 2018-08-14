@@ -34,6 +34,9 @@
 
 namespace hmat {
 
+// Forward declaration
+template<typename T> class Vector;
+
 /*! \brief Templated dense Matrix type.
 
   The template parameter represents the scalar type of the matrix elements.  The
@@ -304,7 +307,7 @@ public:
       \param v
       \return
    */
-  int svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** v) const;
+  int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const;
 
   /** QR matrix decomposition.
 

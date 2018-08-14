@@ -278,7 +278,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // Ra <- Ra Rb^t with b upper triangular matrix
     rAFull.myTrmm(b);
     // SVD of Ra Rb^t
-    ierr = rAFull.svdDecomposition(&u, (ScalarArray<double> **)&sigma, &v); // TODO use something else than SVD ?
+    ierr = rAFull.svdDecomposition(&u, &sigma, &v); // TODO use something else than SVD ?
     HMAT_ASSERT(!ierr);
   }
 
@@ -379,7 +379,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
     matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
     // SVD
-    int ierr = matR.svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vr);
+    int ierr = matR.svdDecomposition(&ur, &sr, &vr);
     // On output, ur->rows = kA, vr->rows = kB
     HMAT_ASSERT(!ierr);
   }
@@ -853,7 +853,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     ScalarArray<T>* vr = NULL;
     int newK;
     // SVD tmp = ur.sr.t^vr
-    tmp->svdDecomposition(&ur, (ScalarArray<double> **)&sr, &vr);
+    tmp->svdDecomposition(&ur, &sr, &vr);
     // Remove small singular values and compute square root of sr
     newK = approx.findK(*sr, RkMatrix<T>::approx.recompressionEpsilon);
     //    printf("oldK1=%d oldK2=%d newK=%d\n", r1->rank(), r2->rank(), newK);
