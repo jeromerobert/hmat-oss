@@ -816,7 +816,10 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
   return 0;
 }
 
-template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec ) {
+template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec, int initialPivot ) {
+  static char *useInitPivot = getenv("HMAT_MGS_INITPIV");
+  if (!useInitPivot) initialPivot=0;
+  assert(initialPivot>=0 && initialPivot<=cols);
   DECLARE_CONTEXT;
   {
     size_t mm = rows;
@@ -878,6 +881,10 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       pivmax = norm2_update[pivot];
       relative_epsilon = prec * prec;
     }
+    if (j<initialPivot) {
+      pivot = j;
+      pivmax = 1.;
+    }
 
     // Stopping criterion
     if (pivmax > relative_epsilon) {
@@ -909,14 +916,15 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
       if (j<cols-1) {
-        ScalarArray<T> bK(*this, 0, rows, j+1, cols-j-1); // All the columns of 'this' after column 'j'
-        ScalarArray<T> aj_bK(r, j, 1, j+1, cols-j-1); // In 'r': row 'j', all the columns after column 'j'
-        // Compute in 1 operation all the scalar products between aj and a_j+1, ..., a_n
+        int firstcol=std::max(j+1, initialPivot) ;
+        ScalarArray<T> bK(*this, 0, rows, firstcol, cols-firstcol); // All the columns of 'this' after column 'firstcol'
+        ScalarArray<T> aj_bK(r, j, 1, firstcol, cols-firstcol); // In 'r': row 'j', all the columns after column 'firstcol'
+        // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
         aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
-        // Update a_j+1, ..., a_n
+        // Update a_firstcol, ..., a_n
         bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
         // Update the norms
-        for(int k = j + 1; k < cols; ++k) {
+        for(int k = firstcol; k < cols; ++k) {
           double rjk = std::abs(r.get(j,k));
           norm2[k] -= rjk * rjk;
           norm2_update[k] -= rjk * rjk / norm2_orig[k];

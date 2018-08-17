@@ -374,16 +374,22 @@ public:
       [a_{perm[0]},...,a_{perm[rank-1]}] = [q_1,...,q_{rank-1}] * [r]
       where [r] is an upper triangular matrix.
 
+      If some columns [0..j] are already orthogonal in A, it can be interesting to use
+      these as pivots (and spare orthogonalisation within these columns). The
+      optionnal parameter initialPivot indicates the number of columns [0..initialPivot-1]
+      orthogonal.
+
       \param prec is a small parameter describing a relative precision thus
       0 < prec < 1.
       WARNING: the lowest precision allowed is 1e-6.
+      \param initialPivot the number of initial columns orthogonal in the array
       \return rank
 
       NB: On exit the orthonormal matrix stored in A is 'full' and not represented
       as a product of Householder reflectors. OR/ZU-MQR from LAPACK is NOT
       the way to apply the matrix: one has to use matrix-vector product instead.
   */
-  int modifiedGramSchmidt(ScalarArray<T> *r, double prec );
+  int modifiedGramSchmidt(ScalarArray<T> *r, double prec, int initialPivot=0 );
 
   /*! \brief B <- B*D or B <- B*D^-1  (or with D on the left).
 

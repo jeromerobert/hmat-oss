@@ -147,8 +147,10 @@ public:
   /** Recompress an RkMatrix in place with a modified Gram-Schmidt algorithm.
 
       @warning The previous rk->a and rk->b are no longer valid after this function.
+      \param epsilon is the accuracy of the recompression
+      \param initialPivot is the number of orthogonal columns in panels a and b
    */
-  void mGSTruncate(double epsilon);
+  void mGSTruncate(double epsilon, int initialPivot=0);
   /** Add alea to the RkMatrix.
 
    */

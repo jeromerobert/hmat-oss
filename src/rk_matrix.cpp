@@ -328,7 +328,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   b = newB;
 }
 
-template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
+template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivot) {
   DECLARE_CONTEXT;
 
   if (rank() == 0) {
@@ -347,7 +347,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
-    kA = a->modifiedGramSchmidt( &ra, epsilon );
+    kA = a->modifiedGramSchmidt( &ra, epsilon, initialPivot);
     if (kA==0) {
       clear();
       return;
@@ -357,7 +357,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
-    kB = b->modifiedGramSchmidt( &rb, epsilon );
+    kB = b->modifiedGramSchmidt( &rb, epsilon, initialPivot);
     if (kB==0) {
       clear();
       return;
@@ -530,9 +530,18 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   }
   assert(rankOffset==rankTotal);
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
-  if (notNullParts > 1 && dotruncate) {
   // If only one of the parts is non-zero, then the recompression is not necessary
-    rk->truncate(approx.recompressionEpsilon);
+  if (notNullParts > 1 && dotruncate) {
+
+    static char *usedRecomp = getenv("HMAT_RECOMPRESS");
+    if (usedRecomp && strcmp(usedRecomp, "MGS")==0){
+      // Find if the MGS can be accelerated using orthogonality information
+      int initialPivot=0;
+      if (usedParts[0]->a->getOrtho() && usedParts[0]->b->getOrtho())
+        initialPivot = usedParts[0]->rank();
+      rk->mGSTruncate(approx.recompressionEpsilon, initialPivot);
+    } else
+      rk->truncate(approx.recompressionEpsilon);
   }
   return rk;
 }
