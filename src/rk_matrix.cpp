@@ -219,8 +219,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // TODO: shouldn't we 'return' here ? the rest of the code below is an expensive way to apply the epsilon of recompression...
   }
 
-  static char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
-  if (useCUSTOM){
+  static char *usedRecomp = getenv("HMAT_RECOMPRESS");
+  if (usedRecomp && strcmp(usedRecomp, "MGS")==0){
     mGSTruncate(epsilon);
     return;
   }
