@@ -216,7 +216,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
     delete rk;
-    // TODO: shouldn't we 'return' here ? the rest of the code below is an expensive way to apply the epsilon of recompression...
+    return;
   }
 
   static char *usedRecomp = getenv("HMAT_RECOMPRESS");
