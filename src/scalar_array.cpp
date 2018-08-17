@@ -531,12 +531,22 @@ template<typename T> bool ScalarArray<T>::isZero() const {
   return true;
 }
 
+// this := alpha*x*b^T + this
 template<typename T> void ScalarArray<T>::rankOneUpdate(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &b){
   assert(x.rows==rows);
   assert(x.cols==1);
   assert(b.rows==cols);
   assert(b.cols==1);
   proxy_cblas::ger(rows, cols, alpha, x.const_ptr(), 1, b.const_ptr(), 1, ptr(), lda);
+}
+
+// this := alpha*x*b + this
+template<typename T> void ScalarArray<T>::rankOneUpdateT(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &tb){
+  assert(x.rows==rows);
+  assert(x.cols==1);
+  assert(tb.rows==1);
+  assert(tb.cols==cols);
+  proxy_cblas::ger(rows, cols, alpha, x.const_ptr(), 1, tb.const_ptr(), tb.lda, ptr(), lda);
 }
 
 template<typename T> void ScalarArray<T>::writeArray(hmat_iostream writeFunc, void * userData) const{
@@ -904,27 +914,33 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       aj.scale(coef);
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
-      for(int k = j + 1; k < cols; ++k) {
-        // Scalar product of qj and bk
-        Vector<T> ak(this, k);
-        r.get(j,k) = Vector<T>::dot(&aj, &ak); // Fill row j, only the upper part of r
-        coef = - r.get(j,k);
-        ak.axpy(coef, &aj);
-        norm2[k] -= std::abs(coef) * std::abs(coef);
-        norm2_update[k] -= std::abs(coef) * std::abs(coef) / norm2_orig[k];
+      if (j<cols-1) {
+        ScalarArray<T> bK(*this, 0, rows, j+1, cols-j-1); // All the columns of 'this' after column 'j'
+        ScalarArray<T> aj_bK(r, j, 1, j+1, cols-j-1); // In 'r': row 'j', all the columns after column 'j'
+        // Compute in 1 operation all the scalar products between aj and a_j+1, ..., a_n
+        aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
+        // Update a_j+1, ..., a_n
+        bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+        // Update the norms
+        for(int k = j + 1; k < cols; ++k) {
+          double rjk = std::abs(r.get(j,k));
+          norm2[k] -= rjk * rjk;
+          norm2_update[k] -= rjk * rjk / norm2_orig[k];
+        }
       }
     } else
       break;
   }
 
-  // Apply perm to result
-  for(int j = 0; j < result->cols; ++j) { // could copy only 'rank' rows ?
-    // Copy the column j of r into the column perm[j] of result
-    memcpy(result->ptr(0, perm[j]), r.const_ptr(0, j), result->rows*sizeof(T));
-  }
   // Update matrix dimensions
   cols = rank;
   result->rows = rank;
+
+  // Apply perm to result
+  for(int j = 0; j < result->cols; ++j) {
+    // Copy the column j of r into the column perm[j] of result (only 'rank' rows)
+    memcpy(result->ptr(0, perm[j]), r.const_ptr(0, j), result->rows*sizeof(T));
+  }
   // Clean up
   delete[] perm;
   /* end of modified Gram-Schmidt */

@@ -246,6 +246,12 @@ public:
   */
   void rankOneUpdate(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &y);
 
+  /*! \brief performs the rank 1 operation this := alpha*x*y + this,
+
+     where alpha is a scalar, x is a Vector<T> of size 'm x 1' , y is a ScalarArray of size 1 x n (a 'horizontal'
+     vector), and 'this' is a ScalarArray of size m x n
+  */
+  void rankOneUpdateT(const T alpha, const ScalarArray<T> &x, const ScalarArray<T> &ty);
   /*! \brief Write the ScalarArray data 'm' in a stream (FILE*, unix fd, ...)
     */
   void writeArray(hmat_iostream writeFunc, void * userData) const;
