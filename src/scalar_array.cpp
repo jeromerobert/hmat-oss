@@ -828,7 +828,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     size_t additions = mm*n*n;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
-  int rank;
+  int rank=0;
   double relative_epsilon;
   static const double LOWEST_EPSILON = 1.0e-6;
 
@@ -848,15 +848,44 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     prec = LOWEST_EPSILON;
   }
 
+  // Apply Modified Gram-Schmidt process with column pivoting to the 'initialPivot' first columns,
+  // where the j-th pivot is column j
+  // No stopping criterion here. Since these columns come from another recompression, we assume
+  // they are all kept.
+  // With this approach, we use blas3 (more computationnaly efficient) but we do a classical
+  // (not a "modified") Gram Schmidt algorithm, which is known to be numerically unstable
+  // So expect to lose several digits on final accuracy of hmat
+  static char *useBlas3 = getenv("HMAT_MGS_BLAS3");
+  if (useBlas3 && initialPivot) {
+    for(int j = 0; j < initialPivot; ++j) {
+      // Normalisation of qj
+      Vector<T> aj(*this, j);
+      r.get(j,j) = aj.norm();
+      T coef = Constants<T>::pone / r.get(j,j);
+      aj.scale(coef);
+    }
+
+    // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
+    if (initialPivot<cols) {
+      ScalarArray<T> aJ(*this, 0, rows, 0, initialPivot); // All the columns of 'this' from 0 to 'initialPivot-1'
+      ScalarArray<T> bK(*this, 0, rows, initialPivot, cols-initialPivot); // All the columns of 'this' after column 'initialPivot-1'
+      ScalarArray<T> aJ_bK(r, 0, initialPivot, initialPivot, cols-initialPivot); // In 'r': row '0' to 'initialPivot-1', all the columns after column 'initialPivot-1'
+      // Compute in 1 operation all the scalar products between a_0,...,a_init-1 and a_init, ..., a_n-1
+      aJ_bK.gemm('C', 'N', Constants<T>::pone, &aJ, &bK, Constants<T>::zero);
+      // Update a_init, ..., a_n-1
+      bK.gemm('N', 'N', Constants<T>::mone, &aJ, &aJ_bK, Constants<T>::pone);
+    }
+    rank = initialPivot;
+  }
+
   // Init.
   Vector<double> norm2(cols); // Norm^2 of the columns of 'this' during computation
   Vector<double> norm2_orig(cols); // Norm^2 of the original columns of 'this'
   Vector<double> norm2_update(cols); // Norm^2 of the columns of 'this' normalized (will be 1. at the beginning, then decrease)
   // The actual norm^2 of column j during computation (before it is finally normalized) will be norm2[j] = norm2_orig[j] * norm2_update[j]
   // The choice of the pivot will be based on norm2_update[] or norm2[]
-  rank = 0;
   relative_epsilon = 0.0;
-  for(int j=0; j < cols; ++j) {
+  for(int j=rank; j < cols; ++j) {
     const Vector<T> aj(*this, j);
     norm2[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2[j]);
@@ -870,7 +899,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   relative_epsilon *= prec * prec;
 
   // Modified Gram-Schmidt process with column pivoting
-  for(int j = 0; j < cols; ++j) {
+  for(int j = rank; j < cols; ++j) {
     // Find the largest pivot
     int pivot = norm2.absoluteMaxIndex(j);
     double pivmax = norm2[pivot];
