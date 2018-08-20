@@ -498,6 +498,23 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     return result;
   }
 
+  // Put in first position the Rk matrix with orthogonal panels AND maximum rank
+  // TODO: when coallescing Rk from childs toward parent, it is possible to "merge" Rk from (extra-)diagonal
+  // childs because with non-intersecting rows and cols we will extend orthogonality between separate Rk.
+  static char *useBestRk = getenv("HMAT_MGS_BESTRK");
+  if (useBestRk){
+    int bestRk=-1, bestRank=-1;
+    for (int i=0 ; i<notNullParts ; i++)
+      if (usedParts[i]->a->getOrtho() && usedParts[i]->b->getOrtho() && usedParts[i]->rank() > bestRank) {
+        bestRank = usedParts[i]->rank();
+        bestRk = i;
+      }
+    if (bestRk > 0) {
+      std::swap(usedParts[0], usedParts[bestRk]) ;
+      std::swap(usedAlpha[0], usedAlpha[bestRk]) ;
+    }
+  }
+
   ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
   ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
   // According to the indices organization, the sub-matrices are
