@@ -744,8 +744,38 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
   return info;
 }
 
-template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR) {
+template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR, int initialPivot) {
   DECLARE_CONTEXT;
+
+  // Initial pivot
+  if (initialPivot) {
+    // We use the fact that the initial 'initialPivot' are orthogonal
+    // We just normalize them and update the columns >= initialPivot using MGS-like approach
+    ScalarArray<T> bK(*this, 0, rows, initialPivot, cols-initialPivot); // All the columns of 'this' after column 'initialPivot'
+    for(int j = 0; j < initialPivot; ++j) {
+
+      // Normalisation of column j
+      Vector<T> aj(*this, j);
+      resultR->get(j,j) = aj.norm();
+      T coef = Constants<T>::pone / resultR->get(j,j);
+      aj.scale(coef);
+
+      // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
+      if (initialPivot<cols) {
+        ScalarArray<T> aj_bK(*resultR, j, 1, initialPivot, cols-initialPivot); // In 'r': row 'j', all the columns after column 'initialPivot'
+        // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
+        aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
+        // Update a_firstcol, ..., a_n
+        bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+      }
+    } // for(int j = 0;
+
+    // then we do qrDecomposition on the remaining columns (without initial pivot)
+    ScalarArray<T> restR(*resultR, initialPivot, cols-initialPivot, initialPivot, cols-initialPivot); // In 'r': all the rows and columns after row/column 'initialPivot'
+    bK.qrDecomposition(&restR);
+    return;
+  }
+
   //  SUBROUTINE DGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
   T* tau = (T*) calloc(std::min(rows, cols), sizeof(T));
   {
@@ -819,7 +849,7 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
 
   // In qrDecomposition(), tau is stored in the last column of 'this'
   // it is not valid to work with 'tau' inside the array 'a' because zunmqr modifies 'a'
-  // but restores it on exit. So we work on a copy of tau.
+  // during computation. So we work on a copy of tau.
   T tau[std::min(rows, cols)];
   memcpy(tau, const_ptr(0, cols-1), sizeof(T)*std::min(rows, cols));
 
@@ -980,7 +1010,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       }
     } else
       break;
-  }
+  } // for(int j = rank;
 
   // Update matrix dimensions
   cols = rank;

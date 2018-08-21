@@ -323,9 +323,10 @@ public:
     Warning: m is modified!
     tau is now stored in the last column of 'this'
     \param resultR the R upper triangular bloc (also available in 'this')
+    \param initialPivot the number of initial columns orthogonal in the array
     \return
   */
-  void qrDecomposition(ScalarArray<T> *resultR);
+  void qrDecomposition(ScalarArray<T> *resultR, int initialPivot=0);
 
   /** Do the product by Q.
 

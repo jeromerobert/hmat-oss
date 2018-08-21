@@ -143,7 +143,7 @@ public:
 
       @warning The previous rk->a and rk->b are no longer valid after this function.
    */
-  void truncate(double epsilon);
+  void truncate(double epsilon, int initialPivot=0);
   /** Recompress an RkMatrix in place with a modified Gram-Schmidt algorithm.
 
       @warning The previous rk->a and rk->b are no longer valid after this function.

@@ -190,8 +190,12 @@ template<typename T> void RkMatrix<T>::addRand(double epsilon) {
   return;
 }
 
-template<typename T> void RkMatrix<T>::truncate(double epsilon) {
+template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot) {
   DECLARE_CONTEXT;
+  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
+  if (!useInitPivot)
+    initialPivot=0;
+  assert(initialPivot>=0 && initialPivot<=rank());
 
   if (rank() == 0) {
     assert(!(a || b));
@@ -214,9 +218,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     return;
   }
 
-  static char *usedRecomp = getenv("HMAT_RECOMPRESS");
-  if (usedRecomp && strcmp(usedRecomp, "MGS")==0){
-    mGSTruncate(epsilon);
+  static bool usedRecomp = getenv("HMAT_RECOMPRESS") && strcmp(getenv("HMAT_RECOMPRESS"), "MGS") == 0 ;
+  if (usedRecomp){
+    mGSTruncate(epsilon, initialPivot);
     return;
   }
   /* To recompress an Rk-matrix to Rk-matrix, we need :
@@ -253,9 +257,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   {
     // QR decomposition of A and B
     ScalarArray<T> ra(rank(), rank());
-    a->qrDecomposition(&ra); // A contains Qa and Ra
+    a->qrDecomposition(&ra, initialPivot); // A contains Qa and tau_a
     ScalarArray<T> rb(rank(), rank());
-    b->qrDecomposition(&rb); // B contains Qb and Rb
+    b->qrDecomposition(&rb, initialPivot); // B contains Qb and tau_b
 
     // R <- Ra Rb^t
     ScalarArray<T> r(rank(), rank());
@@ -287,27 +291,65 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     (*sigma)[i] = sqrt((*sigma)[i]);
   }
   // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
+  // we first calculate Utilde * SQRT (SigmaTilde) and VTilde * SQRT(SigmaTilde)
+  u->multiplyWithDiag(sigma);
+  v->multiplyWithDiag(sigma);
+  delete sigma;
 
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
-  // For that we first calculate Utilde * SQRT (SigmaTilde)
-  u->multiplyWithDiag(sigma);
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
-  newA->copyMatrixAtOffset(u, 0, 0);
+
+  if (initialPivot) {
+    // If there is an initial pivot, we must compute the product by Q in two parts
+    // first the column >= initialPivot, obtained from lapack GETRF, will overwrite newA when calling UNMQR
+    // then the first initialPivot columns, with a classical GEMM, will add the result in newA
+
+    // create subset of a (columns>=initialPivot) and u (rows>=initialPivot)
+    ScalarArray<T> sub_a(*a, 0, a->rows, initialPivot, a->cols-initialPivot);
+    ScalarArray<T> sub_u(*u, initialPivot, u->rows-initialPivot, 0, u->cols);
+    newA->copyMatrixAtOffset(&sub_u, 0, 0);
+    // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
+    sub_a.productQ('L', 'N', newA);
+
+    // then add the regular part of the product by Q
+    ScalarArray<T> sub_a2(*a, 0, a->rows, 0, initialPivot);
+    ScalarArray<T> sub_u2(*u, 0, initialPivot, 0, u->cols);
+    newA->gemm('N', 'N', Constants<T>::pone, &sub_a2, &sub_u2, Constants<T>::pone);
+  } else {
+    // If no initialPivot, then no gemm, just a productQ()
+    newA->copyMatrixAtOffset(u, 0, 0);
+    // newA <- Qa * newA
+    a->productQ('L', 'N', newA);
+  }
+
   delete u;
-  // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
-  a->productQ('L', 'N', newA);
   newA->setOrtho(1);
   delete a;
   a = newA;
 
   // newB = Qb * VTilde * SQRT(SigmaTilde)
-  v->multiplyWithDiag(sigma);
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
-  newB->copyMatrixAtOffset(v, 0, 0);
+
+  if (initialPivot) {
+    // create subset of b (columns>=initialPivot) and v (rows>=initialPivot)
+    ScalarArray<T> sub_b(*b, 0, b->rows, initialPivot, b->cols-initialPivot);
+    ScalarArray<T> sub_v(*v, initialPivot, v->rows-initialPivot, 0, v->cols);
+    newB->copyMatrixAtOffset(&sub_v, 0, 0);
+    // newB <- Qb * newB (et newB = Vtilde * SQRT(SigmaTilde))
+    sub_b.productQ('L', 'N', newB);
+
+    // then add the regular part of the product by Q
+    ScalarArray<T> sub_b2(*b, 0, b->rows, 0, initialPivot);
+    ScalarArray<T> sub_v2(*v, 0, initialPivot, 0, v->cols);
+    newB->gemm('N', 'N', Constants<T>::pone, &sub_b2, &sub_v2, Constants<T>::pone);
+  } else {
+    // If no initialPivot, then no gemm, just a productQ()
+    newB->copyMatrixAtOffset(v, 0, 0);
+    // newB <- Qb * newB
+    b->productQ('L', 'N', newB);
+  }
+
   delete v;
-  delete sigma;
-  // newB <- Qb * newB
-  b->productQ('L', 'N', newB);
   newB->setOrtho(1);
   delete b;
   b = newB;
@@ -499,6 +541,10 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
       std::swap(usedAlpha[0], usedAlpha[bestRk]) ;
     }
   }
+  // Find if the QR factorisation can be accelerated using orthogonality information
+  int initialPivot=0;
+  if (usedParts[0]->a->getOrtho() && usedParts[0]->b->getOrtho())
+    initialPivot = usedParts[0]->rank();
 
   ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
   ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
@@ -533,20 +579,12 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   assert(rankOffset==rankTotal);
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
   // If only one of the parts is non-zero, then the recompression is not necessary
-  if (notNullParts > 1 && dotruncate) {
+  if (notNullParts > 1 && dotruncate)
+    rk->truncate(approx.recompressionEpsilon, initialPivot);
 
-    static char *usedRecomp = getenv("HMAT_RECOMPRESS");
-    if (usedRecomp && strcmp(usedRecomp, "MGS")==0){
-      // Find if the MGS can be accelerated using orthogonality information
-      int initialPivot=0;
-      if (usedParts[0]->a->getOrtho() && usedParts[0]->b->getOrtho())
-        initialPivot = usedParts[0]->rank();
-      rk->mGSTruncate(approx.recompressionEpsilon, initialPivot);
-    } else
-      rk->truncate(approx.recompressionEpsilon);
-  }
   return rk;
 }
+
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const {
   DECLARE_CONTEXT;
