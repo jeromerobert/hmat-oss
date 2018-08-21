@@ -247,33 +247,22 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
 
   */
   int ierr;
-  // QR decomposition of A and B
-  T* tauA = a->qrDecomposition(); // A contains Qa and Ra
-  HMAT_ASSERT(tauA);
-  T* tauB = b->qrDecomposition(); // B contains Qb and Rb
-  HMAT_ASSERT(tauB);
-
   // Matrices created by the SVD
   ScalarArray<T> *u = NULL, *v = NULL;
   Vector<double> *sigma = NULL;
   {
-    // The scope is to automatically delete rAFull.
-    // For computing Ra*Rb^t, we would like to use directly a BLAS function
-    // because Ra and Rb are triangular matrices.
-    //
-    // However, there is no multiplication of two triangular matrices in BLAS,
-    // left matrix must be converted into full matrix first.
-    ScalarArray<T> rAFull(rank(), rank());
-    for (int col = 0; col < rank(); col++) {
-      for (int row = 0; row <= col; row++) {
-        rAFull.get(row, col) = a->get(row, col);
-      }
-    }
+    // QR decomposition of A and B
+    ScalarArray<T> ra(rank(), rank());
+    a->qrDecomposition(&ra); // A contains Qa and Ra
+    ScalarArray<T> rb(rank(), rank());
+    b->qrDecomposition(&rb); // B contains Qb and Rb
 
-    // Ra <- Ra Rb^t with b upper triangular matrix
-    rAFull.myTrmm(b);
+    // R <- Ra Rb^t
+    ScalarArray<T> r(rank(), rank());
+    r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
     // SVD of Ra Rb^t
-    ierr = rAFull.svdDecomposition(&u, &sigma, &v); // TODO use something else than SVD ?
+    ierr = r.svdDecomposition(&u, &sigma, &v); // TODO use something else than SVD ?
     HMAT_ASSERT(!ierr);
   }
 
@@ -284,8 +273,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     delete u;
     delete v;
     delete sigma;
-    free(tauA);
-    free(tauB);
     clear();
     return;
   }
@@ -308,8 +295,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   newA->copyMatrixAtOffset(u, 0, 0);
   delete u;
   // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
-  a->productQ('L', 'N', tauA, newA);
-  free(tauA);
+  a->productQ('L', 'N', newA);
   newA->setOrtho(1);
   delete a;
   a = newA;
@@ -321,8 +307,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   delete v;
   delete sigma;
   // newB <- Qb * newB
-  b->productQ('L', 'N', tauB, newB);
-  free(tauB);
+  b->productQ('L', 'N', newB);
   newB->setOrtho(1);
   delete b;
   b = newB;

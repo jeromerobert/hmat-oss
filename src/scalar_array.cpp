@@ -744,7 +744,7 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
   return info;
 }
 
-template<typename T> T* ScalarArray<T>::qrDecomposition() {
+template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR) {
   DECLARE_CONTEXT;
   //  SUBROUTINE DGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
   T* tau = (T*) calloc(std::min(rows, cols), sizeof(T));
@@ -768,7 +768,19 @@ template<typename T> T* ScalarArray<T>::qrDecomposition() {
   delete[] work;
 
   HMAT_ASSERT(!info);
-  return tau;
+
+  // Copy the 'r' factor in the upper part of resultR
+  for (int col = 0; col < cols; col++) {
+    for (int row = 0; row <= col; row++) {
+      resultR->get(row, col) = get(row, col);
+    }
+  }
+
+  // Copy tau in the last column of 'this'
+  memcpy(ptr(0, cols-1), tau, sizeof(T)*std::min(rows, cols));
+  free(tau);
+
+  return;
 }
 
 // aFull <- aFull.bTri^t with aFull=this and bTri upper triangular matrix
@@ -792,7 +804,7 @@ void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
 }
 
 template<typename T>
-int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) const {
+int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   DECLARE_CONTEXT;
   assert((side == 'L') ? rows == c->rows : rows == c->cols);
   int info;
@@ -804,6 +816,13 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
     size_t adds = 2 * _m * _n * _k - _n * _k * _k + _n * _k;
     increment_flops(Multipliers<T>::mul * muls + Multipliers<T>::add * adds);
   }
+
+  // In qrDecomposition(), tau is stored in the last column of 'this'
+  // it is not valid to work with 'tau' inside the array 'a' because zunmqr modifies 'a'
+  // but restores it on exit. So we work on a copy of tau.
+  T tau[std::min(rows, cols)];
+  memcpy(tau, const_ptr(0, cols-1), sizeof(T)*std::min(rows, cols));
+
   // We don't use c->ptr() on purpose, because c->is_ortho is preserved here (Q is orthogonal)
   info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, &workSize_req, -1);
   HMAT_ASSERT(!info);

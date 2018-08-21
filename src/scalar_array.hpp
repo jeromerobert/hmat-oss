@@ -321,11 +321,11 @@ public:
   /** QR matrix decomposition.
 
     Warning: m is modified!
-
-    \param tau
+    tau is now stored in the last column of 'this'
+    \param resultR the R upper triangular bloc (also available in 'this')
     \return
   */
-  T* qrDecomposition();
+  void qrDecomposition(ScalarArray<T> *resultR);
 
   /** Do the product by Q.
 
@@ -336,11 +336,10 @@ public:
 
       \param side either 'L' or 'R', as in xORMQR
       \param trans either 'N' or 'T' as in xORMQR
-      \param tau as created by \a qrDecomposition
       \param c as in xORMQR
       \return 0 for success
    */
-  int productQ(char side, char trans, T* tau, ScalarArray<T>* c) const;
+  int productQ(char side, char trans, ScalarArray<T>* c) const;
 
 
   /** Multiplication used in RkMatrix::truncate()
