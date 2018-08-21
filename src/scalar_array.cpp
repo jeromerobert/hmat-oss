@@ -753,22 +753,33 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
     // We just normalize them and update the columns >= initialPivot using MGS-like approach
     ScalarArray<T> bK(*this, 0, rows, initialPivot, cols-initialPivot); // All the columns of 'this' after column 'initialPivot'
     for(int j = 0; j < initialPivot; ++j) {
-
       // Normalisation of column j
       Vector<T> aj(*this, j);
       resultR->get(j,j) = aj.norm();
       T coef = Constants<T>::pone / resultR->get(j,j);
       aj.scale(coef);
-
-      // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
-      if (initialPivot<cols) {
-        ScalarArray<T> aj_bK(*resultR, j, 1, initialPivot, cols-initialPivot); // In 'r': row 'j', all the columns after column 'initialPivot'
-        // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
-        aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
-        // Update a_firstcol, ..., a_n
-        bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+    }
+    // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
+    if (initialPivot<cols) {
+      static char *useBlas3 = getenv("HMAT_MGS_BLAS3");
+      if (useBlas3) {
+        ScalarArray<T> aJ(*this, 0, rows, 0, initialPivot); // All the columns of 'this' from 0 to 'initialPivot-1'
+        ScalarArray<T> aJ_bK(*resultR, 0, initialPivot, initialPivot, cols-initialPivot); // In 'r': row '0' to 'initialPivot-1', all the columns after column 'initialPivot-1'
+        // Compute in 1 operation all the scalar products between a_0,...,a_init-1 and a_init, ..., a_n-1
+        aJ_bK.gemm('C', 'N', Constants<T>::pone, &aJ, &bK, Constants<T>::zero);
+        // Update a_init, ..., a_n-1
+        bK.gemm('N', 'N', Constants<T>::mone, &aJ, &aJ_bK, Constants<T>::pone);
+      } else {
+        for(int j = 0; j < initialPivot; ++j) {
+          Vector<T> aj(*this, j);
+          ScalarArray<T> aj_bK(*resultR, j, 1, initialPivot, cols-initialPivot); // In 'r': row 'j', all the columns after column 'initialPivot'
+          // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
+          aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
+          // Update a_firstcol, ..., a_n
+          bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+        }
       }
-    } // for(int j = 0;
+    }
 
     // then we do qrDecomposition on the remaining columns (without initial pivot)
     ScalarArray<T> restR(*resultR, initialPivot, cols-initialPivot, initialPivot, cols-initialPivot); // In 'r': all the rows and columns after row/column 'initialPivot'
