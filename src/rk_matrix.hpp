@@ -217,12 +217,6 @@ public:
    */
   RkMatrix<T>* copy() const;
 
-  /** Compute y <- alpha * op(A) * y + beta * y with x and y FullMatrix<T>*
-
-      The arguments are similar to BLAS GEMV.
-   */
-  void gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const;
-
   /** Compute y <- alpha * op(A) * y + beta * y with x and y ScalarArray<T>*
 
       The arguments are similar to BLAS GEMV.

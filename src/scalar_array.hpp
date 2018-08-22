@@ -339,11 +339,6 @@ public:
    */
   void myTrmm(const ScalarArray<T>* bTri);
 
-  /** \brief this = alpha.a.x + beta.this (x and this must have 1 column)
-   */
-  void gemv(char trans, T alpha, const ScalarArray<T>* a, const ScalarArray<T>* x,
-            T beta);
-
   /** modified Gram-Schmidt algorithm of A='this'
 
       Computes a QR-decomposition of a matrix A=[a_1,...,a_n] thanks to the
