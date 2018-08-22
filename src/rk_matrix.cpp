@@ -190,12 +190,15 @@ template<typename T> void RkMatrix<T>::addRand(double epsilon) {
   return;
 }
 
-template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot) {
+template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
   static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
-  if (!useInitPivot)
-    initialPivot=0;
-  assert(initialPivot>=0 && initialPivot<=rank());
+  if (!useInitPivot) {
+    initialPivotA=0;
+    initialPivotB=0;
+  }
+  assert(initialPivotA>=0 && initialPivotA<=rank());
+  assert(initialPivotB>=0 && initialPivotB<=rank());
 
   if (rank() == 0) {
     assert(!(a || b));
@@ -220,7 +223,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
   static bool usedRecomp = getenv("HMAT_RECOMPRESS") && strcmp(getenv("HMAT_RECOMPRESS"), "MGS") == 0 ;
   if (usedRecomp){
-    mGSTruncate(epsilon, initialPivot);
+    mGSTruncate(epsilon, initialPivotA, initialPivotB);
     return;
   }
   /* To recompress an Rk-matrix to Rk-matrix, we need :
@@ -257,9 +260,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   {
     // QR decomposition of A and B
     ScalarArray<T> ra(rank(), rank());
-    a->qrDecomposition(&ra, initialPivot); // A contains Qa and tau_a
+    a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
     ScalarArray<T> rb(rank(), rank());
-    b->qrDecomposition(&rb, initialPivot); // B contains Qb and tau_b
+    b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
 
     // R <- Ra Rb^t
     ScalarArray<T> r(rank(), rank());
@@ -299,24 +302,24 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
 
-  if (initialPivot) {
+  if (initialPivotA) {
     // If there is an initial pivot, we must compute the product by Q in two parts
-    // first the column >= initialPivot, obtained from lapack GETRF, will overwrite newA when calling UNMQR
-    // then the first initialPivot columns, with a classical GEMM, will add the result in newA
+    // first the column >= initialPivotA, obtained from lapack GETRF, will overwrite newA when calling UNMQR
+    // then the first initialPivotA columns, with a classical GEMM, will add the result in newA
 
-    // create subset of a (columns>=initialPivot) and u (rows>=initialPivot)
-    ScalarArray<T> sub_a(*a, 0, a->rows, initialPivot, a->cols-initialPivot);
-    ScalarArray<T> sub_u(*u, initialPivot, u->rows-initialPivot, 0, u->cols);
+    // create subset of a (columns>=initialPivotA) and u (rows>=initialPivotA)
+    ScalarArray<T> sub_a(*a, 0, a->rows, initialPivotA, a->cols-initialPivotA);
+    ScalarArray<T> sub_u(*u, initialPivotA, u->rows-initialPivotA, 0, u->cols);
     newA->copyMatrixAtOffset(&sub_u, 0, 0);
     // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
     sub_a.productQ('L', 'N', newA);
 
     // then add the regular part of the product by Q
-    ScalarArray<T> sub_a2(*a, 0, a->rows, 0, initialPivot);
-    ScalarArray<T> sub_u2(*u, 0, initialPivot, 0, u->cols);
+    ScalarArray<T> sub_a2(*a, 0, a->rows, 0, initialPivotA);
+    ScalarArray<T> sub_u2(*u, 0, initialPivotA, 0, u->cols);
     newA->gemm('N', 'N', Constants<T>::pone, &sub_a2, &sub_u2, Constants<T>::pone);
   } else {
-    // If no initialPivot, then no gemm, just a productQ()
+    // If no initialPivotA, then no gemm, just a productQ()
     newA->copyMatrixAtOffset(u, 0, 0);
     // newA <- Qa * newA
     a->productQ('L', 'N', newA);
@@ -330,20 +333,20 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // newB = Qb * VTilde * SQRT(SigmaTilde)
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
 
-  if (initialPivot) {
-    // create subset of b (columns>=initialPivot) and v (rows>=initialPivot)
-    ScalarArray<T> sub_b(*b, 0, b->rows, initialPivot, b->cols-initialPivot);
-    ScalarArray<T> sub_v(*v, initialPivot, v->rows-initialPivot, 0, v->cols);
+  if (initialPivotB) {
+    // create subset of b (columns>=initialPivotB) and v (rows>=initialPivotB)
+    ScalarArray<T> sub_b(*b, 0, b->rows, initialPivotB, b->cols-initialPivotB);
+    ScalarArray<T> sub_v(*v, initialPivotB, v->rows-initialPivotB, 0, v->cols);
     newB->copyMatrixAtOffset(&sub_v, 0, 0);
     // newB <- Qb * newB (et newB = Vtilde * SQRT(SigmaTilde))
     sub_b.productQ('L', 'N', newB);
 
     // then add the regular part of the product by Q
-    ScalarArray<T> sub_b2(*b, 0, b->rows, 0, initialPivot);
-    ScalarArray<T> sub_v2(*v, 0, initialPivot, 0, v->cols);
+    ScalarArray<T> sub_b2(*b, 0, b->rows, 0, initialPivotB);
+    ScalarArray<T> sub_v2(*v, 0, initialPivotB, 0, v->cols);
     newB->gemm('N', 'N', Constants<T>::pone, &sub_b2, &sub_v2, Constants<T>::pone);
   } else {
-    // If no initialPivot, then no gemm, just a productQ()
+    // If no initialPivotB, then no gemm, just a productQ()
     newB->copyMatrixAtOffset(v, 0, 0);
     // newB <- Qb * newB
     b->productQ('L', 'N', newB);
@@ -355,7 +358,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   b = newB;
 }
 
-template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivot) {
+template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
 
   if (rank() == 0) {
@@ -374,7 +377,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
   {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
-    kA = a->modifiedGramSchmidt( &ra, epsilon, initialPivot);
+    kA = a->modifiedGramSchmidt( &ra, epsilon, initialPivotA);
     if (kA==0) {
       clear();
       return;
@@ -384,7 +387,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
-    kB = b->modifiedGramSchmidt( &rb, epsilon, initialPivot);
+    kB = b->modifiedGramSchmidt( &rb, epsilon, initialPivotB);
     if (kB==0) {
       clear();
       return;
@@ -542,9 +545,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     }
   }
   // Find if the QR factorisation can be accelerated using orthogonality information
-  int initialPivot=0;
-  if (usedParts[0]->a->getOrtho() && usedParts[0]->b->getOrtho())
-    initialPivot = usedParts[0]->rank();
+  int initialPivotA = usedParts[0]->a->getOrtho() ? usedParts[0]->rank() : 0;
+  int initialPivotB = usedParts[0]->b->getOrtho() ? usedParts[0]->rank() : 0;
 
   ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
   ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
@@ -580,7 +582,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
   // If only one of the parts is non-zero, then the recompression is not necessary
   if (notNullParts > 1 && dotruncate)
-    rk->truncate(approx.recompressionEpsilon, initialPivot);
+    rk->truncate(approx.recompressionEpsilon, initialPivotA, initialPivotB);
 
   return rk;
 }
