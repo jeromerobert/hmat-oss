@@ -130,11 +130,6 @@ template<typename T> void RkMatrix<T>::clear() {
 }
 
 template<typename T>
-void RkMatrix<T>::gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
-  gemv(trans, alpha, &x->data, beta, &y->data);
-}
-
-template<typename T>
 void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
   if (rank() == 0) {
     if (beta != Constants<T>::pone) {

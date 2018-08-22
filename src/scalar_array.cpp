@@ -262,9 +262,9 @@ template<typename T>
 void ScalarArray<T>::gemm(char transA, char transB, T alpha,
                          const ScalarArray<T>* a, const ScalarArray<T>* b,
                          T beta) {
-  int aRows  = (transA == 'N' ? a->rows : a->cols);
-  int n  = (transB == 'N' ? b->cols : b->rows);
-  int k  = (transA == 'N' ? a->cols : a->rows);
+  const int aRows  = (transA == 'N' ? a->rows : a->cols);
+  const int n  = (transB == 'N' ? b->cols : b->rows);
+  const int k  = (transA == 'N' ? a->cols : a->rows);
   assert(a->lda >= (transA == 'N' ? aRows : k));
   assert(b->lda >= (transB == 'N' ? k : n));
   assert(rows == aRows);
@@ -276,8 +276,11 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
     const size_t muls = _m * _n * _k;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), b->lda,
-                    beta, this->ptr(), this->lda);
+  if (n > 1 || transB != 'N')
+    proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), b->lda,
+                      beta, this->ptr(), this->lda);
+  else
+    proxy_cblas::gemv(transA, aRows, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), 1, beta, this->ptr(), 1);
 }
 
 template<typename T>
@@ -797,29 +800,6 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
   HMAT_ASSERT(!info);
   delete[] work;
   return 0;
-}
-
-template<typename T>
-void ScalarArray<T>::gemv(char trans, T alpha,
-                     const ScalarArray<T>* a,
-                     const ScalarArray<T>* x, T beta)
-{
-  assert(this->cols==1);
-  assert(x->cols==1);
-  int matRows = a->rows;
-  int matCols = a->cols;
-  int aLda = a->lda;
-  int64_t ops = (Multipliers<T>::add + Multipliers<T>::mul) * ((int64_t) matRows) * matCols;
-  increment_flops(ops);
-
-  if (trans == 'N') {
-    assert(this->rows == a->rows);
-    assert(x->rows == a->cols);
-  } else {
-    assert(this->rows == a->cols);
-    assert(x->rows == a->rows);
-  }
-  proxy_cblas::gemv(trans, matRows, matCols, alpha, a->const_ptr(), aLda, x->const_ptr(), 1, beta, this->ptr(), 1);
 }
 
 template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec ) {
