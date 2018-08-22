@@ -807,8 +807,8 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   {
     size_t mm = rows;
     size_t n = cols;
-    size_t multiplications = 2*mm*n*n;
-    size_t additions = 2*mm*n*n;
+    size_t multiplications = mm*n*n;
+    size_t additions = mm*n*n;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
   int rank;
