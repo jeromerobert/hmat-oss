@@ -528,25 +528,68 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     return result;
   }
 
-  // Put in first position the Rk matrix with orthogonal panels AND maximum rank
-  // TODO: when coallescing Rk from childs toward parent, it is possible to "merge" Rk from (extra-)diagonal
-  // childs because with non-intersecting rows and cols we will extend orthogonality between separate Rk.
+  // Find if the QR factorisation can be accelerated using orthogonality information
+  int initialPivotA = usedParts[0]->a->getOrtho() ? usedParts[0]->rank() : 0;
+  int initialPivotB = usedParts[0]->b->getOrtho() ? usedParts[0]->rank() : 0;
+
+  // Try to optimize the order of the Rk matrix to maximize initialPivot
   static char *useBestRk = getenv("HMAT_MGS_BESTRK");
   if (useBestRk){
-    int bestRk=-1, bestRank=-1;
-    for (int i=0 ; i<notNullParts ; i++)
-      if (usedParts[i]->a->getOrtho() && usedParts[i]->b->getOrtho() && usedParts[i]->rank() > bestRank) {
-        bestRank = usedParts[i]->rank();
+    // 1st optim: Put in first position the Rk matrix with orthogonal panels AND maximum rank
+    int bestRk=-1, bestGain=-1;
+    for (int i=0 ; i<notNullParts ; i++) {
+      // Roughly, the gain from an initial pivot 'p' in a QR factorisation 'm x n' is to reduce the flops
+      // from 2mn^2 to 2m(n^2-p^2), so the gain grows like p^2 for each panel
+      // hence the gain formula : number of orthogonal panels x rank^2
+      int gain = (usedParts[i]->a->getOrtho() + usedParts[i]->b->getOrtho())*usedParts[i]->rank()*usedParts[i]->rank();
+      if (gain > bestGain) {
+        bestGain = gain;
         bestRk = i;
       }
+    }
     if (bestRk > 0) {
       std::swap(usedParts[0], usedParts[bestRk]) ;
       std::swap(usedAlpha[0], usedAlpha[bestRk]) ;
     }
+    initialPivotA = usedParts[0]->a->getOrtho() ? usedParts[0]->rank() : 0;
+    initialPivotB = usedParts[0]->b->getOrtho() ? usedParts[0]->rank() : 0;
+
+
+    // 2nd optim:
+    // When coallescing Rk from childs toward parent, it is possible to "merge" Rk from (extra-)diagonal
+    // childs because with non-intersecting rows and cols we will extend orthogonality between separate Rk.
+    int best_i1=-1, best_i2=-1, best_rkA=-1, best_rkB=-1;
+    for (int i1=0 ; i1<notNullParts ; i1++)
+      for (int i2=0 ; i2<notNullParts ; i2++)
+        if (i1 != i2) {
+          const RkMatrix<T>* Rk1 = usedParts[i1];
+          const RkMatrix<T>* Rk2 = usedParts[i2];
+          // compute the gain expected from puting Rk1-Rk2 in first position
+          // Orthogonality of Rk2->a is useful only if Rk1->a is ortho AND rows dont intersect (cols for panel b)
+          int rkA = Rk1->a->getOrtho() ? Rk1->rank() + (Rk2->a->getOrtho() && !Rk1->rows->intersects(*Rk2->rows) ? Rk2->rank() : 0) : 0;
+          int rkB = Rk1->b->getOrtho() ? Rk1->rank() + (Rk2->b->getOrtho() && !Rk1->cols->intersects(*Rk2->cols) ? Rk2->rank() : 0) : 0;
+          int gain = rkA*rkA + rkB*rkB ;
+          if (gain > bestGain) {
+            bestGain = gain;
+            best_i1 = i1;
+            best_i2 = i2;
+            best_rkA = rkA;
+            best_rkB = rkB;
+          }
+        }
+
+    if (best_i1 >= 0) {
+      // put i1 in first position, i2 in second
+      std::swap(usedParts[0], usedParts[best_i1]) ;
+      std::swap(usedAlpha[0], usedAlpha[best_i1]) ;
+      if (best_i2==0) best_i2 = best_i1; // handles the case where best_i2 was usedParts[0] which has just been moved
+      std::swap(usedParts[1], usedParts[best_i2]) ;
+      std::swap(usedAlpha[1], usedAlpha[best_i2]) ;
+      initialPivotA = best_rkA;
+      initialPivotB = best_rkB;
+    }
+
   }
-  // Find if the QR factorisation can be accelerated using orthogonality information
-  int initialPivotA = usedParts[0]->a->getOrtho() ? usedParts[0]->rank() : 0;
-  int initialPivotB = usedParts[0]->b->getOrtho() ? usedParts[0]->rank() : 0;
 
   ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
   ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
