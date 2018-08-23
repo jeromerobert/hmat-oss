@@ -280,7 +280,7 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
     proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), b->lda,
                       beta, this->ptr(), this->lda);
   else
-    proxy_cblas::gemv(transA, aRows, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), 1, beta, this->ptr(), 1);
+    proxy_cblas::gemv(transA, a->rows, a->cols, alpha, a->const_ptr(), a->lda, b->const_ptr(), 1, beta, this->ptr(), 1);
 }
 
 template<typename T>
