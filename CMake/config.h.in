@@ -40,6 +40,9 @@
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #cmakedefine HAVE_SYS_RESOURCE_H
 
+/* Define to 1 if you have the <mach/mach_time.h> header file. */
+#cmakedefine HAVE_MACH_MACH_TIME_H
+
 #cmakedefine HAVE_ZGEMM3M
 
 #cmakedefine HAVE_MKL_H

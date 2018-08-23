@@ -86,6 +86,7 @@ check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
 check_include_file("time.h" HAVE_TIME_H)
 check_include_file("sys/resource.h" HAVE_SYS_RESOURCE_H)
 check_include_file("unistd.h" HAVE_UNISTD_H)
+check_include_file("mach/mach_time.h" HAVE_MACH_MACH_TIME_H)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

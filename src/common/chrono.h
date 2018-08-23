@@ -25,6 +25,7 @@
 
 #include "config.h"
 #include <stdint.h>
+#include <math.h>
 
 /* We use the realtime extension of libc */
 #ifdef HAVE_TIME_H
@@ -41,6 +42,9 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#endif
+#ifdef HAVE_MACH_MACH_TIME_H
+#include <mach/mach_time.h>
 #endif
 
 #if defined(_WIN32) && !defined(__MINGW32__)
@@ -68,16 +72,27 @@ inline static Time now() {
       result.tv_sec += 1;
       result.tv_nsec = 0;
   }
-#else
-#ifdef HAVE_LIBRT
+#elif HAVE_LIBRT
   clock_gettime(CLOCK_MONOTONIC, &result);
+#elif defined(HAVE_MACH_MACH_TIME_H) /* Version MacOS */
+  static double timeConvert = 0.0;
+  if ( timeConvert == 0.0 )
+  {
+    mach_timebase_info_data_t timeBase;
+    (void)mach_timebase_info( &timeBase );
+    timeConvert = (double)timeBase.numer /
+        (double)timeBase.denom /
+        1000000000.0;
+  }
+  double t = (double)mach_absolute_time( ) * timeConvert;
+  result.tv_sec  = (long)floor(t) ; /* seconds */
+  result.tv_nsec = (long)floor( (t-(double)result.tv_sec)*1.e9 ) ;  /* uSecs */
 #else
   struct rusage temp;
   getrusage(RUSAGE_SELF, &temp);
   result.tv_sec  = (time_t) (temp.ru_utime.tv_sec); /* seconds */
   result.tv_nsec = (long) (1000 * temp.ru_utime.tv_usec);  /* uSecs */
 #endif
-#endif /* _WIN32 */
   return result;
 }
 
