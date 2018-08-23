@@ -42,6 +42,7 @@
 #include "system_types.h"
 #include "common/my_assert.h"
 #include "common/context.hpp"
+#include "common/timeline.hpp"
 #include "lapack_operations.hpp"
 
 #include <cstring> // memset
@@ -746,6 +747,8 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
 
 template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR, int initialPivot) {
   DECLARE_CONTEXT;
+  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
+  Timeline::Task t(useInitPivot ? Timeline::QR_INITPIV : Timeline::QR, rows, cols, initialPivot);
 
   // Initial pivot
   if (initialPivot) {
@@ -881,6 +884,9 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   if (!useInitPivot) initialPivot=0;
   assert(initialPivot>=0 && initialPivot<=cols);
   DECLARE_CONTEXT;
+
+  Timeline::Task t(useInitPivot ? Timeline::MGS_INITPIV : Timeline::MGS, rows, cols, initialPivot);
+
   {
     size_t mm = rows;
     size_t n = cols;

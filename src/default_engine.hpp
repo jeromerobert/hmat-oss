@@ -41,7 +41,7 @@ public:
   void destroy(){}
   // this attribute could be in HMatInterface, it's here to avoid making it friend
   HMatrix<T>* hmat;
-  static int init() { return 0; }
+  static int init();
   static void finalize(){}
   void assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssembly);
   void factorization(hmat_factorization_t);

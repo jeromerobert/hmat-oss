@@ -78,6 +78,7 @@ namespace trace {
         - between 1 and n_workers (included) in parallel regions
    */
   void setNodeIndexFunction(int (*nodeIndexFunc)());
+  int currentNodeIndex();
 
   class Node {
   public:
@@ -143,19 +144,19 @@ public:
   }
 };
 
+#define tracing_set_worker_index_func(f) trace::setNodeIndexFunction(f)
+
 #ifdef HAVE_CONTEXT
 
 // Since 'enable' is not used anywhere, this macro probably does nothing.
 #define DISABLE_CONTEXT_IN_BLOCK DisableContextInBlock dummyDisableContextInBlock
 
-#define tracing_set_worker_index_func(f) trace::setNodeIndexFunction(f)
 #define enter_context(x) trace::Node::enterContext(x)
 #define leave_context() trace::Node::leaveContext()
 #define increment_flops(x) trace::Node::incrementFlops(x)
 #define tracing_dump(x) trace::Node::jsonDumpMain(x)
 
 #else
-#define tracing_set_worker_index_func(f) do {} while (0)
 #define enter_context(x) do { hmat::ignore_unused_arg(x); } while(0)
 #define leave_context()  do {} while(0)
 #define increment_flops(x) do { hmat::ignore_unused_arg(x); } while(0)

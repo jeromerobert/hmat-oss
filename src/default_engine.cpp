@@ -25,6 +25,7 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 #include "hmat/hmat.h"
+#include "common/timeline.hpp"
 
 namespace hmat {
 
@@ -111,6 +112,11 @@ ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgori
   return ctb.build(dls);
 }
 
+template<typename T>
+int DefaultEngine<T>::init(){
+  Timeline::instance().init();
+  return 0;
+}
 
 template<typename T>
 void DefaultEngine<T>::assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssembly) {

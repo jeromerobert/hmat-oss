@@ -31,6 +31,7 @@
 #include "lapack_overloads.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
+#include "common/timeline.hpp"
 
 namespace hmat {
 
@@ -226,6 +227,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     mGSTruncate(epsilon, initialPivotA, initialPivotB);
     return;
   }
+
   /* To recompress an Rk-matrix to Rk-matrix, we need :
       - A = Q_a R_A (QR decomposition)
       - B = Q_b R_b (QR decomposition)
@@ -360,7 +362,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
 template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
-
   if (rank() == 0) {
     assert(!(a || b));
     return;
