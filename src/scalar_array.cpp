@@ -792,7 +792,7 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
   return 0;
 }
 
-template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec ) {
+template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec, double maxNorm ) {
   DECLARE_CONTEXT;
   {
     size_t mm = rows;
@@ -839,6 +839,9 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       norm2_orig[j] = 1.;
       norm2_update[j] = 0.0 ;
     }
+  }
+  if(maxNorm > 0) {
+    relative_epsilon = maxNorm;
   }
   relative_epsilon *= prec * prec;
 
@@ -908,6 +911,165 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   // Clean up
   delete[] perm;
   /* end of modified Gram-Schmidt */
+  return rank;
+}
+
+template<typename T> int ScalarArray<T>::tiledModifiedGramSchmidt(ScalarArray<T> *result, double prec, int tileSize ) {
+  DECLARE_CONTEXT;
+
+  const int mm = rows;
+  const int nn = cols;
+
+  ScalarArray<T> rtmp(nn, nn);
+
+  int rank = 0;
+  const int remain = cols % tileSize;
+  const int nTiles = (remain > 0 ? 1 : 0) + cols / tileSize;
+  // If there is a single tile, adjust tileSize
+  if (nTiles == 1 && remain > 0) {
+    tileSize = remain;
+  }
+
+  int tileIndex[nTiles];
+  int tileRanks[nTiles];
+  int tileSizes[nTiles];
+  for(int p = 0; p < nTiles; ++p) {
+    tileIndex[p] = p;
+    tileRanks[p] = 0;
+    tileSizes[p] = tileSize;
+  }
+  if(remain > 0) {
+    tileSizes[nTiles-1] = remain;
+  }
+
+  double maxNorm = -1.0;
+
+  Vector<double> tileNorms2(nTiles);
+  // Initialization: computing column norms and tile norms
+  double maxCol = 0.;
+  double maxTileNorm = 0.;
+  for(int k = 0; k < nTiles; ++k) {
+    for(int p = 0; p < tileSizes[k]; ++p) {
+      const ScalarArray<T> ak(&get(0, k*tileSize+p), rows, 1);
+      const double norm2_ak = ak.normSqr();
+      tileNorms2[k] += norm2_ak;
+      if(norm2_ak > maxCol) {
+        maxCol = norm2_ak;
+      }
+    }
+    if(tileNorms2[k] > maxTileNorm) {
+      maxTileNorm = tileNorms2[k];
+    }
+  }
+  maxNorm = maxCol;
+
+  const double relative_epsilon = maxTileNorm * prec * prec;
+  ScalarArray<T> buffer(rows, tileSize);
+
+  rank = 0;
+  for(int k = 0; k < nTiles; ++k) {
+    // Find the tile with the largest pivot
+    const int pivot = tileNorms2.absoluteMaxIndex(k);
+
+    if(tileNorms2[pivot] < relative_epsilon)
+      break;
+
+    if(pivot != k) {
+      // Swap tiles k and pivot
+      std::swap(tileNorms2[k], tileNorms2[pivot]);
+      std::swap(tileSizes[k], tileSizes[pivot]);
+      std::swap(tileIndex[k], tileIndex[pivot]);
+    }
+
+    // Original tile index
+    const int kk = tileIndex[k];
+    ScalarArray<T> ak(&get(0, kk*tileSize), rows, tileSizes[k]);
+    ScalarArray<T> r(tileSizes[k], tileSizes[k]);
+
+    const int rkk = ak.modifiedGramSchmidt( &r, prec, maxNorm );
+    tileRanks[k] = rkk;
+    if(rkk == 0) {
+      continue;
+    }
+
+    for(int q = 0; q < tileSizes[k]; ++q) {
+      memcpy(&rtmp.get(kk*tileSize, kk*tileSize+q), &r.get(0, q), rkk*sizeof(T));
+    }
+    ak.cols = rkk;
+
+    for(int j = k+1; j < nTiles; ++j) {
+      const int jj = tileIndex[j];
+      ScalarArray<T> Rkj(rkk, tileSizes[j]);
+      ScalarArray<T> aj(&get(0, jj*tileSize), rows, tileSizes[j]);
+
+      // Rkj = ak^* . aj
+      Rkj.gemm('C','N',Constants<T>::pone, &ak, &aj, Constants<T>::pone);
+
+      // Write Rkj in buffer rtmp
+      for(int q = 0; q < tileSizes[j]; ++q) {
+        memcpy(&rtmp.get(kk*tileSize, jj*tileSize+q), &Rkj.get(0, q), rkk*sizeof(T));
+      }
+      const double norm_Rkj2 = Rkj.normSqr();
+
+      // Update column aj
+      aj.gemm('N','N',Constants<T>::mone, &ak, &Rkj , Constants<T>::pone);
+
+      // Update Frobenius norm
+      tileNorms2[j] -= norm_Rkj2;
+    }
+    rank += rkk;
+  }
+
+  /* No 'physical' copies during the orthonormalisation so we do it now.
+     The matrix result is overwritten with the adequate tiles of rtmp according
+     to the permutation obtained.
+     Matrix a is overwritten with the orthonormal matrix composed of the tiles computed.
+     Tiles have been orthonormalised in place so we do not copy the unused columns.
+  */
+  for(int p = 0; p < nTiles; ++p) {
+    tileSizes[p] = tileSize;
+  }
+  if(remain > 0) {
+    tileSizes[nTiles-1] = remain;
+  }
+
+  int jbStart = 0;
+  for(int jb = 0; jb < nTiles; ++jb) {
+    int ibStart = 0;
+    for(int ib = 0; ib < nTiles; ++ib) {
+      for(int p = 0; p < tileSizes[jb]; ++p) {
+         memcpy(&result->get(ibStart, jbStart+p), &rtmp.get(tileIndex[ib]*tileSize, jb*tileSize+p), tileRanks[ib]*sizeof(T));
+      }
+      ibStart += tileRanks[ib];
+    }
+    jbStart += tileSizes[jb];
+  }
+  result->rows = rank;
+
+  T *newMat = new T[mm*rank];
+  if (lda == rows) {
+    int toCol = 0;
+    for(int p = 0; p < nTiles; ++p) {
+      memcpy(&newMat[toCol*mm], &get(0, tileIndex[p]*tileSize), rows*tileRanks[p]*sizeof(T));
+      toCol += tileRanks[p];
+    }
+  } else {
+    int toCol = 0;
+    for(int p = 0; p < nTiles; ++p) {
+      for (int fromCol = tileIndex[p]*tileSize; fromCol < tileIndex[p]*tileSize+tileRanks[p]; ++fromCol, ++toCol) {
+        memcpy(&newMat[toCol*mm], &get(0, fromCol), rows*sizeof(T));
+      }
+    }
+  }
+
+  // a is overwritten by qa
+  delete[] m;
+  m = newMat;
+  lda = mm;
+  rows = mm;
+  cols = rank;
+
+  /* end of blocked Modified Gram-Schmidt */
   return rank;
 }
 

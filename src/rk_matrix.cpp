@@ -176,7 +176,7 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
 }
 
 template<typename T> size_t RkMatrix<T>::compressedSize() {
-    return ((size_t)rows->size()) * rank() + ((size_t)cols->size()) * rank();
+    return ((size_t)rows->size() + cols->size()) * rank();
 }
 
 template<typename T> size_t RkMatrix<T>::uncompressedSize() {
@@ -214,9 +214,17 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     // TODO: shouldn't we 'return' here ? the rest of the code below is an expensive way to apply the epsilon of recompression...
   }
 
-  static char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
-  if (useCUSTOM){
-    mGSTruncate(epsilon);
+  static int gs_block_size = -1;
+  if (gs_block_size < 0) {
+    gs_block_size = 0;
+    const char *useCUSTOM = getenv("HMAT_CUSTOM_RECOMPRESS");
+    if (useCUSTOM != NULL) {
+      gs_block_size = atoi(useCUSTOM);
+    }
+  }
+
+  if (gs_block_size > 0) {
+    mGSTruncate(epsilon, gs_block_size);
     return;
   }
   /* To recompress an Rk-matrix to Rk-matrix, we need :
@@ -329,7 +337,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   b = newB;
 }
 
-template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
+template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, const int nb) {
   DECLARE_CONTEXT;
 
   if (rank() == 0) {
@@ -343,12 +351,11 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   int kA, kB, newK;
 
   int krank = rank();
-
   // Limit scope to automatically destroy ra, rb and matR
   {
     // Gram-Schmidt on a
     ScalarArray<T> ra(krank, krank);
-    kA = a->modifiedGramSchmidt( &ra, epsilon );
+    kA = a->tiledModifiedGramSchmidt( &ra, epsilon, nb );
     if (kA==0) {
       clear();
       return;
@@ -358,7 +365,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
 
     // Gram-Schmidt on b
     ScalarArray<T> rb(krank, krank);
-    kB = b->modifiedGramSchmidt( &rb, epsilon );
+    kB = b->tiledModifiedGramSchmidt( &rb, epsilon, nb );
     if (kB==0) {
       clear();
       return;
@@ -407,7 +414,6 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   */
   ScalarArray<T> *newA = new ScalarArray<T>(a->rows, newK);
   newA->gemm('N', 'N', Constants<T>::pone, a, ur, Constants<T>::zero);
-
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
   newB->gemm('N', 'N', Constants<T>::pone, b, vr, Constants<T>::zero);
 

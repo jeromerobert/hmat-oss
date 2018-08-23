@@ -364,6 +364,10 @@ public:
 
       \param prec is a small parameter describing a relative precision thus
       0 < prec < 1.
+      \param maxNorm is the reference norm used in the stopping criterion. Usually
+      it is the largest 2-norm of the columns. It allows for an orthogonalisation
+      of a columns subset according to the whole matrix largest norm (see blocked below).
+      Unused if negative.
       WARNING: the lowest precision allowed is 1e-6.
       \return rank
 
@@ -371,7 +375,37 @@ public:
       as a product of Householder reflectors. OR/ZU-MQR from LAPACK is NOT
       the way to apply the matrix: one has to use matrix-vector product instead.
   */
-  int modifiedGramSchmidt(ScalarArray<T> *r, double prec );
+  int modifiedGramSchmidt(ScalarArray<T> *r, double prec, double maxNorm );
+
+  /** blocked modified Gram-Schmidt algorithm
+
+      A blocked version of the modified Gram-Schmidt (mGS) algorithm.
+      The matrix is sliced into panels [A1,A2,...,An] with a constant number of columns nb.
+
+      Like the usual mGS algorithm the Frobenius norm of each panel is computed and
+      the method selects the largest panel. This panel A1 is then orthonormalised thanks
+      to the mGS method to produce the QR decomposition A1 = Q1.R11.
+      The remaining panels Aj are updated as
+
+       a) R1j := Q11^H Aj (BLAS 3 operation);
+       b) Aj := Aj - Q1.R1j;
+
+      and the panels norms are updated accordingly. The pivoting strategy is also used
+      at the panel level with a stopping condition similar to the mGS and the method iterates.
+
+      \param prec is a small parameter describing a relative precision thus
+      0 < prec < 1.
+      WARNING: the lowest precision allowed is 1e-6.
+
+      \param nb is the block size used to slice the matrix.
+
+      NB: On exit the orthonormal matrix stored in A is 'full' and not represented
+      as a product of Householder reflectors. OR/ZU-MQR from LAPACK is NOT
+      the way to apply the matrix: one has to use matrix-vector product instead.
+
+      \return rank
+  */
+  int tiledModifiedGramSchmidt(ScalarArray<T> *r, double prec, int tileSize );
 
   /*! \brief B <- B*D or B <- B*D^-1  (or with D on the left).
 
