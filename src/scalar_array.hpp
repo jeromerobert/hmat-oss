@@ -34,6 +34,9 @@
 
 namespace hmat {
 
+// Forward declaration
+template<typename T> class Vector;
+
 /*! \brief Templated dense Matrix type.
 
   The template parameter represents the scalar type of the matrix elements.  The
@@ -41,10 +44,7 @@ namespace hmat {
   @data_types.hpp.
  */
 template<typename T> class ScalarArray {
-  friend class ScalarArray<S_t>; // needed for some methods that manipulate both ScalarArray<T> and ScalarArray<D_t>
-  friend class ScalarArray<D_t>;
-  friend class ScalarArray<C_t>;
-  friend class ScalarArray<Z_t>;
+  friend class ScalarArray<D_t>; // needed for some methods that manipulate both ScalarArray<T> and ScalarArray<D_t>
 
 private:
   /*! True if the matrix owns its memory, ie has to free it upon destruction */
@@ -310,7 +310,7 @@ public:
       \param v
       \return
    */
-  int svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** v) const;
+  int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const;
 
   /** QR matrix decomposition.
 
@@ -416,7 +416,6 @@ public:
     /** \brief Create Vector with column 'col' of existing ScalarArray
      */
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}
-    Vector(const ScalarArray<T> *d, int _col):ScalarArray<T>(*d, 0, d->rows, _col, 1){}
     //~Vector(){}
     /** L2 norm of the vector.
      */

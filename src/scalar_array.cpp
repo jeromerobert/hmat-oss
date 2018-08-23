@@ -689,7 +689,7 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, ScalarArray<double>** sigma, ScalarArray<T>** v) const {
+template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const {
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
 
@@ -697,7 +697,7 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Sc
   int p = std::min(rows, cols);
 
   *u = new ScalarArray<T>(rows, p);
-  *sigma = new ScalarArray<double>(p,1);
+  *sigma = new Vector<double>(p);
   *v = new ScalarArray<T>(p, cols); // We create v in transposed shape (as expected by lapack zgesvd)
 
   assert(lda >= rows);
@@ -860,7 +860,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   rank = 0;
   relative_epsilon = 0.0;
   for(int j=0; j < cols; ++j) {
-    const Vector<T> aj(this, j);
+    const Vector<T> aj(*this, j);
     norm2[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2[j]);
     norm2_orig[j] = norm2[j];
@@ -909,7 +909,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 
       // Normalisation of qj
       r.get(j,j) = sqrt(norm2[j]);
-      Vector<T> aj(this, j);
+      Vector<T> aj(*this, j);
       T coef = Constants<T>::pone / r.get(j,j);
       aj.scale(coef);
 
