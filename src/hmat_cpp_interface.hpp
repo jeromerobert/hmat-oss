@@ -60,9 +60,7 @@ public:
       \f]
    */
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
-  int maxParallelLeaves; ///< max(|L0|)
   bool coarsening; ///< Coarsen the matrix structure after assembly.
-  bool recompress; ////< Recompress the matrix after assembly.
   bool validateNullRowCol; ///< Validate the detection of null rows and columns
   bool validateCompression; ///< Validate the rk-matrices after compression
   bool validationReRun; ///< For blocks above error threshold, re-run the compression algorithm
@@ -75,9 +73,8 @@ private:
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(AcaPlus),  compressionMinLeafSize(100),
                    maxLeafSize(100),
-                   maxParallelLeaves(5000),
                    coarsening(false),
-                   recompress(true), validateNullRowCol(false), validateCompression(false),
+                   validateNullRowCol(false), validateCompression(false),
                    validationReRun(false), dumpTrace(false), validationDump(false), validationErrorThreshold(0.) {
     setParameters();
   }

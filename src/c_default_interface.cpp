@@ -234,9 +234,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
     }
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
-    settings->maxParallelLeaves = settingsCxx.maxParallelLeaves;
     settings->coarsening = settingsCxx.coarsening;
-    settings->recompress = settingsCxx.recompress;
     settings->validateNullRowCol = settingsCxx.validateNullRowCol;
     settings->validateCompression = settingsCxx.validateCompression;
     settings->validationErrorThreshold = settingsCxx.validationErrorThreshold;
@@ -272,9 +270,7 @@ int hmat_set_parameters(hmat_settings_t* settings)
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
     settingsCxx.maxLeafSize = settings->maxLeafSize;
-    settingsCxx.maxParallelLeaves = settings->maxParallelLeaves;
     settingsCxx.coarsening = settings->coarsening;
-    settingsCxx.recompress = settings->recompress;
     settingsCxx.validateNullRowCol = settings->validateNullRowCol;
     settingsCxx.validateCompression = settings->validateCompression;
     settingsCxx.validationErrorThreshold = settings->validationErrorThreshold;

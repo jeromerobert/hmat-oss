@@ -63,7 +63,6 @@ static void setTemplatedParameters(const HMatSettings& s) {
   HMatrix<T>::validationReRun = s.validationReRun;
   HMatrix<T>::validationDump = s.validationDump;
   HMatrix<T>::coarsening = s.coarsening;
-  HMatrix<T>::recompress = s.recompress;
 }
 
 
