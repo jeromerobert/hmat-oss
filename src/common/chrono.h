@@ -72,7 +72,7 @@ inline static Time now() {
       result.tv_sec += 1;
       result.tv_nsec = 0;
   }
-#elif HAVE_LIBRT
+#elif defined(HAVE_LIBRT)
   clock_gettime(CLOCK_MONOTONIC, &result);
 #elif defined(HAVE_MACH_MACH_TIME_H) /* Version MacOS */
   static double timeConvert = 0.0;
