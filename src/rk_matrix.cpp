@@ -32,6 +32,7 @@
 #include "common/context.hpp"
 #include "common/my_assert.h"
 #include "common/timeline.hpp"
+#include "lapack_exception.hpp"
 
 namespace hmat {
 
@@ -255,7 +256,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
       - newB: cols x newK
 
   */
-  int ierr;
   // Matrices created by the SVD
   ScalarArray<T> *u = NULL, *v = NULL;
   Vector<double> *sigma = NULL;
@@ -270,9 +270,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     ScalarArray<T> r(rank(), rank());
     r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
-    // SVD of Ra Rb^t
-    ierr = r.svdDecomposition(&u, &sigma, &v); // TODO use something else than SVD ?
-    HMAT_ASSERT(!ierr);
+    // SVD of Ra Rb^t (allows failure)
+    r.svdDecomposition(&u, &sigma, &v, true); // TODO use something else than SVD ?
   }
 
   // Control of approximation
@@ -327,8 +326,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     a->productQ('L', 'N', newA);
   }
 
+  newA->setOrtho(u->getOrtho());
   delete u;
-  newA->setOrtho(1);
   delete a;
   a = newA;
 
@@ -354,8 +353,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     b->productQ('L', 'N', newB);
   }
 
+  newB->setOrtho(v->getOrtho());
   delete v;
-  newB->setOrtho(1);
   delete b;
   b = newB;
 }
@@ -403,10 +402,9 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
     ScalarArray<T> matR(kA, kB);
     matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
 
-    // SVD
-    int ierr = matR.svdDecomposition(&ur, &sr, &vr);
+    // SVD (allows failure)
+    matR.svdDecomposition(&ur, &sr, &vr, true);
     // On output, ur->rows = kA, vr->rows = kB
-    HMAT_ASSERT(!ierr);
   }
 
   // Remove small singular values and compute square root of sr
@@ -441,10 +439,10 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
   newB->gemm('N', 'N', Constants<T>::pone, b, vr, Constants<T>::zero);
 
+  newA->setOrtho(ur->getOrtho());
+  newB->setOrtho(vr->getOrtho());
   delete ur;
   delete vr;
-  newA->setOrtho(1);
-  newB->setOrtho(1);
 
   delete a;
   a = newA;

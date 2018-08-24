@@ -311,12 +311,18 @@ public:
   void inverse();
   /** Makes an SVD of 'this' with LAPACK.
 
+   If workAroundFailures is true, then the lapack exception thrown by failures in lapack SVD
+   are caught, and a fake result is returned that allows the computation to proceed.
+   If rows<cols, u is identity, sigma is filled with 1, v is 'this^T'
+   If rows>=cols, u is 'this', sigma is filled with 1, v is identity
+   Hence we still have this=U.S.V^T
       \param u
       \param sigma
       \param v
+      \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
       \return
    */
-  int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const;
+  int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures=false) const;
 
   /** QR matrix decomposition.
 

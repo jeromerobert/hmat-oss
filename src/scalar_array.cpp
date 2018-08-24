@@ -704,7 +704,7 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const {
+template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures) const {
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
 
@@ -715,10 +715,13 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
   *sigma = new Vector<double>(p);
   *v = new ScalarArray<T>(p, cols); // We create v in transposed shape (as expected by lapack zgesvd)
 
+  // To be prepared for working around a failure in SVD, I must do a copy of 'this'
+  ScalarArray<T> *a = workAroundFailures ? copy() : NULL;
+
   assert(lda >= rows);
 
   char jobz = 'S';
-  int info;
+  int info=0;
 
   {
     const size_t _m = rows, _n = cols;
@@ -731,17 +734,49 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  if(useGESDD)
-    info = sddCall(jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
-                      (*u)->lda, (*v)->ptr(), (*v)->lda);
-  else
-    info = svdCall(jobz, jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
-                      (*u)->lda, (*v)->ptr(), (*v)->lda);
 
-  (*v)->transpose();
+  try {
+    if(useGESDD)
+      info = sddCall(jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
+                     (*u)->lda, (*v)->ptr(), (*v)->lda);
+    else
+      info = svdCall(jobz, jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
+                     (*u)->lda, (*v)->ptr(), (*v)->lda);
+    (*v)->transpose();
+    (*u)->setOrtho(1);
+    (*v)->setOrtho(1);
+    delete a;
+  } catch(LapackException & e) {
+    // if SVD fails, and if workAroundFailures is set to true, I return a "fake" result that allows
+    // computation to proceed. Otherwise, I stop here.
+    if (!workAroundFailures) throw;
 
-  (*u)->setOrtho(1);
-  (*v)->setOrtho(1);
+    printf("%s overriden...\n", e.what());
+    // If rows<cols, then p==rows, 'u' is square, 'v' has the dimensions of 'this'.
+    // fake 'u' is identity, fake 'v' is 'this^T'
+    if (rows<cols) {
+      for (int i=0 ; i<rows ; i++)
+        for (int j=0 ; j<p ; j++)
+          (*u)->get(i,j) = i==j ? Constants<T>::pone : Constants<T>::zero ;
+      (*u)->setOrtho(1);
+      delete *v;
+      *v = a ;
+      (*v)->transpose();
+    } else {
+      // Otherwise rows>=cols, then p==cols, 'u' has the dimensions of 'this', 'v' is square.
+      // fake 'u' is 'this', fake 'v' is identity
+      delete *u;
+      *u = a ;
+      for (int i=0 ; i<p ; i++)
+        for (int j=0 ; j<cols ; j++)
+          (*v)->get(i,j) = i==j ? Constants<T>::pone : Constants<T>::zero ;
+      (*v)->setOrtho(1);
+    }
+    // Fake 'sigma' is all 1
+    for (int i=0 ; i<p ; i++)
+      (**sigma)[i] = Constants<double>::pone ;
+  }
+
   return info;
 }
 
