@@ -785,11 +785,13 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
   static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
   Timeline::Task t(useInitPivot ? Timeline::QR_INITPIV : Timeline::QR, rows, cols, initialPivot);
 
+  ScalarArray<T> *bK = NULL, *restR = NULL, *a = this; // we need this because if initialPivot>0, we will run the end of the computation on a subset of 'this'
+
   // Initial pivot
   if (initialPivot) {
     // We use the fact that the initial 'initialPivot' are orthogonal
     // We just normalize them and update the columns >= initialPivot using MGS-like approach
-    ScalarArray<T> bK(*this, 0, rows, initialPivot, cols-initialPivot); // All the columns of 'this' after column 'initialPivot'
+    bK = new ScalarArray<T> (*this, 0, rows, initialPivot, cols-initialPivot); // All the columns of 'this' after column 'initialPivot'
     for(int j = 0; j < initialPivot; ++j) {
       // Normalisation of column j
       Vector<T> aj(*this, j);
@@ -804,32 +806,32 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
         ScalarArray<T> aJ(*this, 0, rows, 0, initialPivot); // All the columns of 'this' from 0 to 'initialPivot-1'
         ScalarArray<T> aJ_bK(*resultR, 0, initialPivot, initialPivot, cols-initialPivot); // In 'r': row '0' to 'initialPivot-1', all the columns after column 'initialPivot-1'
         // Compute in 1 operation all the scalar products between a_0,...,a_init-1 and a_init, ..., a_n-1
-        aJ_bK.gemm('C', 'N', Constants<T>::pone, &aJ, &bK, Constants<T>::zero);
+        aJ_bK.gemm('C', 'N', Constants<T>::pone, &aJ, bK, Constants<T>::zero);
         // Update a_init, ..., a_n-1
-        bK.gemm('N', 'N', Constants<T>::mone, &aJ, &aJ_bK, Constants<T>::pone);
+        bK->gemm('N', 'N', Constants<T>::mone, &aJ, &aJ_bK, Constants<T>::pone);
       } else {
         for(int j = 0; j < initialPivot; ++j) {
           Vector<T> aj(*this, j);
           ScalarArray<T> aj_bK(*resultR, j, 1, initialPivot, cols-initialPivot); // In 'r': row 'j', all the columns after column 'initialPivot'
           // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
-          aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
+          aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, bK, Constants<T>::zero);
           // Update a_firstcol, ..., a_n
-          bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+          bK->rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
         }
       }
     }
 
     // then we do qrDecomposition on the remaining columns (without initial pivot)
-    ScalarArray<T> restR(*resultR, initialPivot, cols-initialPivot, initialPivot, cols-initialPivot); // In 'r': all the rows and columns after row/column 'initialPivot'
-    bK.qrDecomposition(&restR);
-    return;
+    restR = new ScalarArray<T> (*resultR, initialPivot, cols-initialPivot, initialPivot, cols-initialPivot); // In 'r': all the rows and columns after row/column 'initialPivot'
+    a = bK;
+    resultR = restR;
   }
 
   //  SUBROUTINE DGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
-  T* tau = (T*) calloc(std::min(rows, cols), sizeof(T));
+  T* tau = (T*) calloc(std::min(a->rows, a->cols), sizeof(T));
   {
-    size_t mm = std::max(rows, cols);
-    size_t n = std::min(rows, cols);
+    size_t mm = std::max(a->rows, a->cols);
+    size_t n = std::min(a->rows, a->cols);
     size_t multiplications = mm * n * n - (n * n * n) / 3 + mm * n + (n * n) / 2 + (29 * n) / 6;
     size_t additions = mm * n * n + (n * n * n) / 3 + 2 * mm * n - (n * n) / 2 + (5 * n) / 6;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
@@ -838,26 +840,30 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
   int workSize;
   T workSize_S;
   // int info = LAPACKE_sgeqrf(LAPACK_COL_MAJOR, rows, cols, m, rows, *tau);
-  info = proxy_lapack::geqrf(rows, cols, ptr(), rows, tau, &workSize_S, -1);
+  info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau, &workSize_S, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_S) + 1;
   T* work = new T[workSize];// TODO Mettre dans la pile ??
   HMAT_ASSERT(work) ;
-  info = proxy_lapack::geqrf(rows, cols, ptr(), rows, tau, work, workSize);
+  info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau, work, workSize);
   delete[] work;
 
   HMAT_ASSERT(!info);
 
   // Copy the 'r' factor in the upper part of resultR
-  for (int col = 0; col < cols; col++) {
+  for (int col = 0; col < a->cols; col++) {
     for (int row = 0; row <= col; row++) {
-      resultR->get(row, col) = get(row, col);
+      resultR->get(row, col) = a->get(row, col);
     }
   }
 
   // Copy tau in the last column of 'this'
-  memcpy(ptr(0, cols-1), tau, sizeof(T)*std::min(rows, cols));
+  memcpy(a->ptr(0, a->cols-1), tau, sizeof(T)*std::min(a->rows, a->cols));
   free(tau);
+
+  // temporary data created if initialPivot>0
+  if (bK) delete(bK);
+  if (restR) delete(restR);
 
   return;
 }
