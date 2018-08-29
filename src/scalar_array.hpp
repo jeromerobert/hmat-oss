@@ -309,6 +309,7 @@ public:
   /*! \brief Compute the inverse of this in place.
    */
   void inverse();
+
   /** Makes an SVD of 'this' with LAPACK.
 
    If workAroundFailures is true, then the lapack exception thrown by failures in lapack SVD
@@ -320,9 +321,21 @@ public:
       \param sigma
       \param v
       \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
-      \return
+      \return 0 for success, lapack error code otherwise.
    */
   int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures=false) const;
+
+  /** Makes an truncated SVD of 'this' with accuracy 'epsilon'.
+
+   'workAroundFailures' has the same meaning as for svdDecomposition().
+
+      \param u
+      \param v
+      \param epsilon the accuracy of the approximation
+      \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
+      \return the rank of the approximation
+   */
+  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false) const;
 
   /** QR matrix decomposition.
 

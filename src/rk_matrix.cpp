@@ -212,7 +212,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // In this case, the calculation of the SVD of the matrix "R_a R_b^t" is more
   // expensive than computing the full SVD matrix. We make then a full matrix conversion,
   // and compress it with RkMatrix::fromMatrix().
-  // TODO: in this case, the epsilon of recompression is not respected
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
     RkMatrix<T>* rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
@@ -256,51 +255,27 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
       - newB: cols x newK
 
   */
-  // Matrices created by the SVD
+
+  // QR decomposition of A and B
+  ScalarArray<T> ra(rank(), rank());
+  a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
+  ScalarArray<T> rb(rank(), rank());
+  b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
+
+  // R <- Ra Rb^t
+  ScalarArray<T> r(rank(), rank());
+  r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+  // truncated SVD of Ra Rb^t (allows failure)
   ScalarArray<T> *u = NULL, *v = NULL;
-  Vector<double> *sigma = NULL;
-  {
-    // QR decomposition of A and B
-    ScalarArray<T> ra(rank(), rank());
-    a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
-    ScalarArray<T> rb(rank(), rank());
-    b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
+  int newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
 
-    // R <- Ra Rb^t
-    ScalarArray<T> r(rank(), rank());
-    r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
-
-    // SVD of Ra Rb^t (allows failure)
-    r.svdDecomposition(&u, &sigma, &v, true); // TODO use something else than SVD ?
-  }
-
-  // Control of approximation
-  int newK = approx.findK(*sigma, epsilon);
-  if (newK == 0)
-  {
-    delete u;
-    delete v;
-    delete sigma;
+  if (newK == 0) {
     clear();
     return;
   }
 
-  // Resize u, sigma, v (not very clean...)
-  u->cols =newK;
-  sigma->rows = newK;
-  v->cols =newK;
-
-  // We put the square root of singular values in sigma
-  for (int i = 0; i < newK; i++) {
-    (*sigma)[i] = sqrt((*sigma)[i]);
-  }
-  // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
-  // we first calculate Utilde * SQRT (SigmaTilde) and VTilde * SQRT(SigmaTilde)
-  u->multiplyWithDiag(sigma);
-  v->multiplyWithDiag(sigma);
-  delete sigma;
-
-  // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
+  // We need to calculate Qa * u
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
 
   if (initialPivotA) {
@@ -312,7 +287,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     ScalarArray<T> sub_a(*a, 0, a->rows, initialPivotA, a->cols-initialPivotA);
     ScalarArray<T> sub_u(*u, initialPivotA, u->rows-initialPivotA, 0, u->cols);
     newA->copyMatrixAtOffset(&sub_u, 0, 0);
-    // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
+    // newA <- Qa * newA (with newA = u)
     sub_a.productQ('L', 'N', newA);
 
     // then add the regular part of the product by Q
@@ -331,7 +306,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   delete a;
   a = newA;
 
-  // newB = Qb * VTilde * SQRT(SigmaTilde)
+  // newB = Qb * v
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
 
   if (initialPivotB) {
@@ -339,7 +314,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     ScalarArray<T> sub_b(*b, 0, b->rows, initialPivotB, b->cols-initialPivotB);
     ScalarArray<T> sub_v(*v, initialPivotB, v->rows-initialPivotB, 0, v->cols);
     newB->copyMatrixAtOffset(&sub_v, 0, 0);
-    // newB <- Qb * newB (et newB = Vtilde * SQRT(SigmaTilde))
+    // newB <- Qb * newB (et newB = v)
     sub_b.productQ('L', 'N', newB);
 
     // then add the regular part of the product by Q
@@ -366,69 +341,47 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
     return;
   }
 
-  ScalarArray<T>* ur = NULL;
-  Vector<double>* sr = NULL;
-  ScalarArray<T>* vr = NULL;
   int kA, kB, newK;
 
   int krank = rank();
 
-  // Limit scope to automatically destroy ra, rb and matR
-  {
-    // Gram-Schmidt on a
-    ScalarArray<T> ra(krank, krank);
-    kA = a->modifiedGramSchmidt( &ra, epsilon, initialPivotA);
-    if (kA==0) {
-      clear();
-      return;
-    }
-    // On input, a0(m,k)
-    // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
-
-    // Gram-Schmidt on b
-    ScalarArray<T> rb(krank, krank);
-    kB = b->modifiedGramSchmidt( &rb, epsilon, initialPivotB);
-    if (kB==0) {
-      clear();
-      return;
-    }
-    // On input, b0(p,k)
-    // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
-
-    // M = a0*b0^T = a*(ra*rb^T)*b^T
-    // We perform an SVD on ra*rb^T:
-    //  (ra*rb^T) = U*S*S*Vt
-    // and M = (a*U*S)*(S*Vt*b^T) = (a*U*S)*(b*(S*Vt)^T)^T
-    ScalarArray<T> matR(kA, kB);
-    matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
-
-    // SVD (allows failure)
-    matR.svdDecomposition(&ur, &sr, &vr, true);
-    // On output, ur->rows = kA, vr->rows = kB
-  }
-
-  // Remove small singular values and compute square root of sr
-  newK = approx.findK(*sr, epsilon);
-  if (newK == 0)
-  {
-    delete ur;
-    delete vr;
-    delete sr;
+  // Gram-Schmidt on a
+  // On input, a0(m,k)
+  // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
+  ScalarArray<T> ra(krank, krank);
+  kA = a->modifiedGramSchmidt( &ra, epsilon, initialPivotA);
+  if (kA==0) {
     clear();
     return;
   }
 
-  assert(newK>0);
-  for(int i = 0; i < newK; ++i) {
-    (*sr)[i] = sqrt((*sr)[i]);
+  // Gram-Schmidt on b
+  // On input, b0(p,k)
+  // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
+  ScalarArray<T> rb(krank, krank);
+  kB = b->modifiedGramSchmidt( &rb, epsilon, initialPivotB);
+  if (kB==0) {
+    clear();
+    return;
   }
-  ur->cols = newK;
-  vr->cols = newK;
-  /* Scaling of ur and vr */
-  ur->multiplyWithDiag(sr);
-  vr->multiplyWithDiag(sr);
 
-  delete sr;
+  // M = a0*b0^T = a*(ra*rb^T)*b^T
+  // We perform an SVD on ra*rb^T:
+  //  (ra*rb^T) = U*S*S*Vt
+  // and M = (a*U*S)*(S*Vt*b^T) = (a*U*S)*(b*(S*Vt)^T)^T
+  ScalarArray<T> matR(kA, kB);
+  matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+  // truncatedSVD (allows failure)
+  ScalarArray<T>* ur = NULL;
+  ScalarArray<T>* vr = NULL;
+  newK = matR.truncatedSvdDecomposition(&ur, &vr, epsilon, true);
+  // On output, ur->rows = kA, vr->rows = kB
+
+  if (newK == 0) {
+    clear();
+    return;
+  }
 
   /* Multiplication by orthogonal matrix Q: no or/un-mqr as
     this comes from Gram-Schmidt procedure not Householder
@@ -938,22 +891,10 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   if (newRKRK) {
     // NEW version
     ScalarArray<T>* ur = NULL;
-    Vector<double>* sr = NULL;
     ScalarArray<T>* vr = NULL;
-    int newK;
-    // SVD tmp = ur.sr.t^vr
-    tmp->svdDecomposition(&ur, &sr, &vr);
-    // Remove small singular values and compute square root of sr
-    newK = approx.findK(*sr, RkMatrix<T>::approx.recompressionEpsilon);
-    //    printf("oldK1=%d oldK2=%d newK=%d\n", r1->rank(), r2->rank(), newK);
+    // truncated SVD tmp = ur.t^vr
+    int newK = tmp->truncatedSvdDecomposition(&ur, &vr, RkMatrix<T>::approx.recompressionEpsilon, true);
     if (newK > 0) {
-      for(int i = 0; i < newK; ++i)
-        (*sr)[i] = sqrt((*sr)[i]);
-      ur->cols = newK;
-      vr->cols = newK;
-      /* Scaling of ur and vr */
-      ur->multiplyWithDiag(sr);
-      vr->multiplyWithDiag(sr);
       /* Now compute newA = a1.ur and newB = b2.vr */
       newA = new ScalarArray<T>(a1->rows, newK);
       if (trans1 == 'C') ur->conjugate();
@@ -963,10 +904,9 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
       if (trans2 == 'C') vr->conjugate();
       newB->gemm('N', 'N', Constants<T>::pone, b2, vr, Constants<T>::zero);
       if (trans2 == 'C') newB->conjugate();
+      delete ur;
+      delete vr;
     }
-    delete ur;
-    delete vr;
-    delete sr;
   } else {
     // OLD version
     if (r1->rank() < r2->rank()) {

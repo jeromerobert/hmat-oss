@@ -704,7 +704,74 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures) const {
+/*! \brief Returns the number of singular values to keep.
+
+     The stop criterion is (assuming that the singular value
+     are in descending order):
+         sigma [k] / SUM (sigma) <epsilon
+     except if env. var. HMAT_L2_CRITERION is set, in which case the criterion is:
+         sigma [k] / sigma[0] <epsilon
+
+     \param sigma table of singular values at least maxK elements.
+     \param epsilon tolerance.
+     \return int the number of singular values to keep.
+ */
+static int findK(Vector<double> &sigma, double epsilon) {
+  assert(epsilon >= 0.);
+  static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
+  double threshold_eigenvalue = 0.0;
+  if (useL2Criterion == NULL) {
+    for (int i = 0; i < sigma.rows; i++) {
+      threshold_eigenvalue += sigma[i];
+    }
+  } else {
+    threshold_eigenvalue = sigma[0];
+  }
+  threshold_eigenvalue *= epsilon;
+  int i = 0;
+  for (i = 0; i < sigma.rows; i++) {
+    if (sigma[i] <= threshold_eigenvalue){
+      break;
+    }
+  }
+  return i;
+}
+
+template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
+  Vector<double>* sigma = NULL;
+
+  svdDecomposition(u, &sigma, v, workAroundFailures);
+
+  // Control of the approximation
+  int newK = findK(*sigma, epsilon);
+
+  if(newK == 0) {
+    delete *u;
+    delete *v;
+    delete sigma;
+    *u = NULL;
+    *v = NULL;
+    return 0;
+  }
+
+  // Resize u, sigma, v (not very clean...)
+  (*u)->cols =newK;
+  sigma->rows = newK;
+  (*v)->cols =newK;
+
+  // We put the square root of singular values in sigma
+  for (int i = 0; i < newK; i++)
+    (*sigma)[i] = sqrt((*sigma)[i]);
+
+  // Apply sigma 'symmetrically' on u and v
+  (*u)->multiplyWithDiag(sigma);
+  (*v)->multiplyWithDiag(sigma);
+  delete sigma;
+
+  return newK;
+}
+
+  template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures) const {
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
 

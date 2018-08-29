@@ -309,34 +309,12 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
   // In the case of non-square matrix, we don't calculate singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
   // necessary here, since k < min (n, p) for M matrix (nxp).
-  int rowCount = m->rows();
-  int colCount = m->cols();
   ScalarArray<T> *u = NULL, *v = NULL;
-  Vector<double>* sigma = NULL;
+
   // TODO compress with something else than SVD
-  int info = m->data.svdDecomposition(&u, &sigma, &v);
-  HMAT_ASSERT(info == 0);
-  // Control of the approximation
-  int k = RkMatrix<T>::approx.findK(*sigma, epsilon);
+  int k = m->data.truncatedSvdDecomposition(&u, &v, epsilon);
 
-  if(k == 0)
-  {
-    delete u;
-    delete v;
-    delete sigma;
-    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
-  }
-
-  ScalarArray<T> matU(*u, 0, rowCount, 0, k);
-  ScalarArray<T>* uTilde = matU.copy();
-  uTilde->multiplyWithDiag(sigma); // TODO: split sigma evenly between u and v to have even norms between the 2
-  ScalarArray<T> matV(*v, 0, colCount, 0, k);
-  ScalarArray<T>* vTilde = matV.copy();
-
-  delete u;
-  delete v;
-  delete sigma;
-  return new RkMatrix<T>(uTilde, m->rows_, vTilde, m->cols_, Svd);
+  return new RkMatrix<T>(u, m->rows_, v, m->cols_, k ? Svd : NoCompression);
 }
 
 
