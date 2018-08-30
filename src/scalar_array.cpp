@@ -849,8 +849,11 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
 
 template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR, int initialPivot) {
   DECLARE_CONTEXT;
+  Timeline::Task t(Timeline::QR, rows, cols, initialPivot);
+
   static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
-  Timeline::Task t(useInitPivot ? Timeline::QR_INITPIV : Timeline::QR, rows, cols, initialPivot);
+  if (!useInitPivot) initialPivot=0;
+  assert(initialPivot>=0 && initialPivot<=cols);
 
   ScalarArray<T> *bK = NULL, *restR = NULL, *a = this; // we need this because if initialPivot>0, we will run the end of the computation on a subset of 'this'
 
@@ -988,12 +991,13 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
 }
 
 template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec, int initialPivot ) {
+  DECLARE_CONTEXT;
+  Timeline::Task t(Timeline::MGS, rows, cols, initialPivot);
+
   static char *useInitPivot = getenv("HMAT_MGS_INITPIV");
   if (!useInitPivot) initialPivot=0;
   assert(initialPivot>=0 && initialPivot<=cols);
-  DECLARE_CONTEXT;
 
-  Timeline::Task t(useInitPivot ? Timeline::MGS_INITPIV : Timeline::MGS, rows, cols, initialPivot);
 
   {
     size_t mm = rows;

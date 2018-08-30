@@ -194,13 +194,6 @@ template<typename T> void RkMatrix<T>::addRand(double epsilon) {
 
 template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
-  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
-  if (!useInitPivot) {
-    initialPivotA=0;
-    initialPivotB=0;
-  }
-  assert(initialPivotA>=0 && initialPivotA<=rank());
-  assert(initialPivotB>=0 && initialPivotB<=rank());
 
   if (rank() == 0) {
     assert(!(a || b));
@@ -278,7 +271,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // We need to calculate Qa * u
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
 
-  if (initialPivotA) {
+  // We need to know if qrDecomposition has used initPivot...
+  // (Not so great, because HMAT_TRUNC_INITPIV is checked at 2 different locations)
+  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
+  if (useInitPivot && initialPivotA) {
     // If there is an initial pivot, we must compute the product by Q in two parts
     // first the column >= initialPivotA, obtained from lapack GETRF, will overwrite newA when calling UNMQR
     // then the first initialPivotA columns, with a classical GEMM, will add the result in newA
@@ -309,7 +305,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // newB = Qb * v
   ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
 
-  if (initialPivotB) {
+  if (useInitPivot && initialPivotB) {
     // create subset of b (columns>=initialPivotB) and v (rows>=initialPivotB)
     ScalarArray<T> sub_b(*b, 0, b->rows, initialPivotB, b->cols-initialPivotB);
     ScalarArray<T> sub_v(*v, initialPivotB, v->rows-initialPivotB, 0, v->cols);
