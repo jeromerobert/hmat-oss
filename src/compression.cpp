@@ -178,13 +178,17 @@ static void updateCol(Vector<T>& colVec, int col, const vector<Vector<T>*>& cols
 
 
 template<typename T> static void findMax(const FullMatrix<T>* m, int& i, int& j) {
-  i = 0;
-  j = 0;
-  double maxNorm = squaredNorm<T>(m->get(i, j));
-  const int cols = m->cols();
-  const int rows = m->rows();
-  for (int col = 0; col < cols; col++) {
-    for (int row = 0; row < rows; row++) {
+  if (m->data.lda == m->data.rows) {
+    // quick path
+    int k = proxy_cblas::i_amax(m->data.rows*m->data.cols, m->data.const_ptr(), 1);
+    i = k % m->data.rows ;
+    j = (k - i) / m->data.rows ;
+  } else {
+    i = 0;
+    j = 0;
+    double maxNorm = 0.;
+    for (int col = 0; col < m->cols(); col++) {
+      int row = proxy_cblas::i_amax(m->data.rows, m->data.const_ptr(0,col), 1);
       const double norm = squaredNorm<T>(m->get(row, col));
       if (norm > maxNorm) {
         i = row;
