@@ -346,9 +346,6 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows(), m->cols());
-  if (RkMatrix<dp_t>::approx.k > 0) {
-    maxK = min(maxK, RkMatrix<dp_t>::approx.k);
-  }
 
   ScalarArray<dp_t> tmpA(m->rows(), maxK);
   ScalarArray<dp_t> tmpB(m->cols(), maxK);
@@ -373,6 +370,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
         vb_nu[j] = m->get(i_nu, j) / delta;
 
       // performs the rank 1 operation m := m - va_nu*vb_nu^T
+      // in order to nullify m->get(i_nu, j_nu) (the previous maximum value)
       m->data.rankOneUpdate(Constants<dp_t>::mone, va_nu, vb_nu);
 
       // Update the estimate norm

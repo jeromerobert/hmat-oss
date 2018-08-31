@@ -47,7 +47,6 @@ class IndexSet;
  */
 class RkApproximationControl {
 public:
-  int k; /// If != 0, fixed-rank approximation
   double assemblyEpsilon; /// Tolerance for the assembly
   double recompressionEpsilon; /// Tolerance for the recompressions
   CompressionMethod method;
@@ -55,21 +54,8 @@ public:
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : k(0), assemblyEpsilon(-1.),
+  RkApproximationControl() : assemblyEpsilon(-1.),
                              recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
-  /** Returns the number of singular values to keep.
-
-       The stop criterion is (assuming that the singular value
-       are in descending order):
-           sigma [k] / SUM (sigma) <epsilon
-       except if env. var. HMAT_L2_CRITERION is set, in which case the criterion is:
-           sigma [k] / sigma[0] <epsilon
-
-       \param sigma table of singular values at least maxK elements.
-       \param epsilon tolerance.
-       \return int the number of singular values to keep.
-   */
-  int findK(Vector<double> &sigma, double epsilon);
 };
 
 

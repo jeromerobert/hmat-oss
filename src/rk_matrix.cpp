@@ -38,34 +38,6 @@ namespace hmat {
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
-int RkApproximationControl::findK(Vector<double> &sigma, double epsilon) {
-  // Control of approximation for fixed approx.k != 0
-  int newK = k;
-  if (newK != 0) {
-    newK = std::min(newK, sigma.rows);
-  } else {
-    assert(epsilon >= 0.);
-    static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
-    double threshold_eigenvalue = 0.0;
-    if (useL2Criterion == NULL) {
-      for (int i = 0; i < sigma.rows; i++) {
-        threshold_eigenvalue += sigma[i];
-      }
-    } else {
-      threshold_eigenvalue = sigma[0];
-    }
-    threshold_eigenvalue *= epsilon;
-    int i = 0;
-    for (i = 0; i < sigma.rows; i++) {
-      if (sigma[i] <= threshold_eigenvalue){
-        break;
-      }
-    }
-    newK = i;
-  }
-  return newK;
-}
-
 
 /** RkMatrix */
 template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _rows,
