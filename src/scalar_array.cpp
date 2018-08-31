@@ -277,6 +277,9 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
   const int aRows  = (transA == 'N' ? a->rows : a->cols);
   const int n  = (transB == 'N' ? b->cols : b->rows);
   const int k  = (transA == 'N' ? a->cols : a->rows);
+  const int tA = (transA == 'N' ? 0 : ( transA == 'T' ? 1 : 2 ));
+  const int tB = (transB == 'N' ? 0 : ( transB == 'T' ? 1 : 2 ));
+  Timeline::Task t(Timeline::BLASGEMM, &rows, &cols, &k, &tA, &tB);
   assert(rows == aRows);
   assert(cols == n);
   assert(k == (transB == 'N' ? b->rows : b->cols));
@@ -849,7 +852,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
 
 template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR, int initialPivot) {
   DECLARE_CONTEXT;
-  Timeline::Task t(Timeline::QR, rows, cols, initialPivot);
+  Timeline::Task t(Timeline::QR, &rows, &cols, &initialPivot);
 
   static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
   if (!useInitPivot) initialPivot=0;
@@ -992,7 +995,7 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
 
 template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec, int initialPivot ) {
   DECLARE_CONTEXT;
-  Timeline::Task t(Timeline::MGS, rows, cols, initialPivot);
+  Timeline::Task t(Timeline::MGS, &rows, &cols, &initialPivot);
 
   static char *useInitPivot = getenv("HMAT_MGS_INITPIV");
   if (!useInitPivot) initialPivot=0;

@@ -20,7 +20,7 @@ class Timeline {
     enum Operation { GEMM, AXPY, SOLVE_UPPER, LLT, LDLT, MDMT, M_DIAG,
                      SOLVE_UPPER_LEFT, ASM, ASM_SYM, SOLVE_LOWER_LEFT,
                      PACK, UNPACK, INIT, PACK_COUNT, EXTRACT_RK, ASSEMBLE_RK,
-                     MGS, QR};
+                     MGS, QR, BLASGEMM};
     class Task {
 #ifdef HMAT_TIMELINE
         char buffer[68]; // 68 bytes = 'op' (4 bytes) + payload (48 bytes max) + 2 timestamps (2x8 bytes)
@@ -54,13 +54,15 @@ class Timeline {
                 timestamp();
             }
         }
-        /** Shortcut API to record a new Task with raw parameters */
-        Task(Operation op, int m=0, int n=0, int k=0):
+        /** Constructor to record a new Task with integers parameters (QR, MGS, BLASGEMM, ...) */
+        Task(Operation op, const int *a=NULL, const int *b=NULL, const int *c=NULL, const int *d=NULL, const int *e=NULL):
           buffer_size(0), timeline_(instance()) {
           if(init(trace::currentNodeIndex()-1, op)) {
-            write(m);
-            write(n);
-            write(k);
+            if (a) write(*a);
+            if (b) write(*b);
+            if (c) write(*c);
+            if (d) write(*d);
+            if (e) write(*e);
             timestamp();
           }
         }
@@ -69,7 +71,7 @@ class Timeline {
     public:
         template<typename T> Task(Operation op, HMatrix<T> * block1,
             HMatrix<T> * block2 = NULL, HMatrix<T> * block3 = NULL){}
-        Task(Operation op, int m=0, int n=0, int k=0) {}
+        Task(Operation op, const int *a=NULL, const int *b=NULL, const int *c=NULL, const int *d=NULL, const int *e=NULL) {}
 #endif
     };
 
