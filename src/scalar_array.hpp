@@ -337,6 +337,17 @@ public:
    */
   int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false) const;
 
+  /*! \brief Orthogonalization between columns of 'this'
+
+    Columns [0, initialPivot[ of 'this' are supposed orthogonals. We normalize them, then we modify the others
+    columns [initialPivot, cols[ to make them orthogonals to these, by removing the colinear
+    components. This routine is part of QR factorization (classical or MGS style) so it modifies
+    and return the R factor as well in 'resultR'. Only the initialPivot first lines of resultR
+    are modified.
+    This is done using blas3 if env. var. HMAT_MGS_BLAS3 is set.
+    */
+  void orthoColumns(ScalarArray<T> *resultR, int initialPivot) ;
+
   /** QR matrix decomposition.
 
     Warning: m is modified!
