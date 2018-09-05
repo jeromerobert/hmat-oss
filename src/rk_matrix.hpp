@@ -287,9 +287,9 @@ public:
 
       There is only 1 type to because we cant modify the data.
    */
-  inline T& get(int i, int j) {
-    HMAT_ASSERT(false); // unable to write a value in an rk matrix
-  }
+//  inline T& get(int i, int j) {
+//    HMAT_ASSERT(false); // unable to write a value in an rk matrix
+//  }
   T get(int i, int j) const ;
 
   /*! \brief Write the RkMatrix data 'a' and 'b' in a stream (FILE*, unix fd, ...)
