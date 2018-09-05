@@ -307,7 +307,7 @@ void gemm(const char transA, const char transB, const int m, const int n, const 
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
 #define _C_T hmat::C_t
 #ifdef HAVE_ZGEMM3M
-  static char* noGemm3m=getenv("HMAT_NO_GEMM3M");
+  static char* noGemm3m=getenv("HMAT_NO_GEMM3M"); // forbids inlining :-(
   if (!noGemm3m)
     cblas_cgemm3m(CblasColMajor, tA, tB, m, n, k, _C(&alpha), _C(a), lda, _C(b), ldb, _C(&beta), _C(c), ldc);
   else
@@ -324,7 +324,7 @@ void gemm(const char transA, const char transB, const int m, const int n, int k,
   // WARNING: &alpha/&beta instead of alpha/beta for complex values
 #define _C_T hmat::Z_t
 #ifdef HAVE_ZGEMM3M
-  static char* noGemm3m=getenv("HMAT_NO_GEMM3M");
+  static char* noGemm3m=getenv("HMAT_NO_GEMM3M"); // forbids inlining :-(
   if (!noGemm3m)
     cblas_zgemm3m(CblasColMajor, tA, tB, m, n, k, _C(&alpha), _C(a), lda, _C(b), ldb, _C(&beta), _C(c), ldc);
   else
