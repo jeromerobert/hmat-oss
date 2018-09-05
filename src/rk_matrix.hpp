@@ -301,7 +301,7 @@ public:
   inline T& get(int i, int j) {
     HMAT_ASSERT(false); // unable to write a value in an rk matrix
   }
-  inline T get(int i, int j) const ;
+  T get(int i, int j) const ;
 
   /*! \brief Write the RkMatrix data 'a' and 'b' in a stream (FILE*, unix fd, ...)
     */
