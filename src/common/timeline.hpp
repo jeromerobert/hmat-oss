@@ -12,8 +12,10 @@ class Timeline {
     std::vector<FILE *> files_;
     bool enabled_;
     bool packEnabled_;
+    bool gemmEnabled_;
+    bool qrEnabled_;
     bool onlyWorker_;
-    Timeline() : enabled_(false), packEnabled_(true) {}
+    Timeline() : enabled_(false), packEnabled_(true), gemmEnabled_(false), qrEnabled_(false) {}
     ~Timeline();
 #endif
     public:
