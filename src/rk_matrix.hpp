@@ -47,7 +47,6 @@ class IndexSet;
  */
 class RkApproximationControl {
 public:
-  int k; /// If != 0, fixed-rank approximation
   double assemblyEpsilon; /// Tolerance for the assembly
   double recompressionEpsilon; /// Tolerance for the recompressions
   CompressionMethod method;
@@ -55,21 +54,8 @@ public:
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : k(0), assemblyEpsilon(-1.),
+  RkApproximationControl() : assemblyEpsilon(-1.),
                              recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
-  /** Returns the number of singular values to keep.
-
-       The stop criterion is (assuming that the singular value
-       are in descending order):
-           sigma [k] / SUM (sigma) <epsilon
-       except if env. var. HMAT_L2_CRITERION is set, in which case the criterion is:
-           sigma [k] / sigma[0] <epsilon
-
-       \param sigma table of singular values at least maxK elements.
-       \param epsilon tolerance.
-       \return int the number of singular values to keep.
-   */
-  int findK(Vector<double> &sigma, double epsilon);
 };
 
 
@@ -142,13 +128,16 @@ public:
   /** Recompress an RkMatrix in place.
 
       @warning The previous rk->a and rk->b are no longer valid after this function.
+      \param initialPivotA/B is the number of orthogonal columns in panels a and b
    */
-  void truncate(double epsilon);
+  void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
   /** Recompress an RkMatrix in place with a modified Gram-Schmidt algorithm.
 
       @warning The previous rk->a and rk->b are no longer valid after this function.
+      \param epsilon is the accuracy of the recompression
+      \param initialPivotA/B is the number of orthogonal columns in panels a and b
    */
-  void mGSTruncate(double epsilon);
+  void mGSTruncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
   /** Add alea to the RkMatrix.
 
    */
@@ -298,9 +287,6 @@ public:
 
       There is only 1 type to because we cant modify the data.
    */
-  inline T& get(int i, int j) {
-    HMAT_ASSERT(false); // unable to write a value in an rk matrix
-  }
   T get(int i, int j) const ;
 
   /*! \brief Write the RkMatrix data 'a' and 'b' in a stream (FILE*, unix fd, ...)

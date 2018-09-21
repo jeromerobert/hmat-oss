@@ -44,6 +44,7 @@ ScalarArray<T>* fromDoubleScalarArray(ScalarArray<typename Types<T>::dp>* d, boo
   for (int j = 0; j < d->cols; ++j)
     for (int i = 0; i < d->rows; ++i)
       result->get(i, j) = T(d->get(i, j));
+  result->setOrtho(d->getOrtho());
   if (del)
     delete d;
   return result;
@@ -69,6 +70,7 @@ FullMatrix<T>* fromDoubleFull(FullMatrix<typename Types<T>::dp>* f) {
   for (int j = 0; j < f->cols(); ++j)
     for (int i = 0; i < f->rows(); ++i)
       result->get(i, j) = T(f->get(i, j));
+  result->data.setOrtho(f->data.getOrtho());
   delete f;
   return result;
 }

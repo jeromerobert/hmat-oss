@@ -178,13 +178,17 @@ static void updateCol(Vector<T>& colVec, int col, const vector<Vector<T>*>& cols
 
 
 template<typename T> static void findMax(const FullMatrix<T>* m, int& i, int& j) {
-  i = 0;
-  j = 0;
-  double maxNorm = squaredNorm<T>(m->get(i, j));
-  const int cols = m->cols();
-  const int rows = m->rows();
-  for (int col = 0; col < cols; col++) {
-    for (int row = 0; row < rows; row++) {
+  if (m->data.lda == m->data.rows) {
+    // quick path
+    int k = proxy_cblas::i_amax(m->data.rows*m->data.cols, m->data.const_ptr(), 1);
+    i = k % m->data.rows ;
+    j = (k - i) / m->data.rows ;
+  } else {
+    i = 0;
+    j = 0;
+    double maxNorm = 0.;
+    for (int col = 0; col < m->cols(); col++) {
+      int row = proxy_cblas::i_amax(m->data.rows, m->data.const_ptr(0,col), 1);
       const double norm = squaredNorm<T>(m->get(row, col));
       if (norm > maxNorm) {
         i = row;
@@ -309,34 +313,12 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
   // In the case of non-square matrix, we don't calculate singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
   // necessary here, since k < min (n, p) for M matrix (nxp).
-  int rowCount = m->rows();
-  int colCount = m->cols();
   ScalarArray<T> *u = NULL, *v = NULL;
-  Vector<double>* sigma = NULL;
+
   // TODO compress with something else than SVD
-  int info = m->data.svdDecomposition(&u, &sigma, &v);
-  HMAT_ASSERT(info == 0);
-  // Control of the approximation
-  int k = RkMatrix<T>::approx.findK(*sigma, epsilon);
+  int k = m->data.truncatedSvdDecomposition(&u, &v, epsilon);
 
-  if(k == 0)
-  {
-    delete u;
-    delete v;
-    delete sigma;
-    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
-  }
-
-  ScalarArray<T> matU(*u, 0, rowCount, 0, k);
-  ScalarArray<T>* uTilde = matU.copy();
-  uTilde->multiplyWithDiag(sigma); // TODO: split sigma evenly between u and v to have even norms between the 2
-  ScalarArray<T> matV(*v, 0, colCount, 0, k);
-  ScalarArray<T>* vTilde = matV.copy();
-
-  delete u;
-  delete v;
-  delete sigma;
-  return new RkMatrix<T>(uTilde, m->rows_, vTilde, m->cols_, Svd);
+  return new RkMatrix<T>(u, m->rows_, v, m->cols_, k ? Svd : NoCompression);
 }
 
 
@@ -364,9 +346,6 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
   const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows(), m->cols());
-  if (RkMatrix<dp_t>::approx.k > 0) {
-    maxK = min(maxK, RkMatrix<dp_t>::approx.k);
-  }
 
   ScalarArray<dp_t> tmpA(m->rows(), maxK);
   ScalarArray<dp_t> tmpB(m->cols(), maxK);
@@ -391,6 +370,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
         vb_nu[j] = m->get(i_nu, j) / delta;
 
       // performs the rank 1 operation m := m - va_nu*vb_nu^T
+      // in order to nullify m->get(i_nu, j_nu) (the previous maximum value)
       m->data.rankOneUpdate(Constants<dp_t>::mone, va_nu, vb_nu);
 
       // Update the estimate norm

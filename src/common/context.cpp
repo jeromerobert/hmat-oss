@@ -34,6 +34,7 @@
 
 namespace trace {
 
+  /* \brief pointer to a function return the worker Id (between 0 and nbWorkers-1) or -1 in a sequential section */
   int (*nodeIndexFunction)() = NULL;
 
   /** \brief Set the function used to get the root index.
@@ -41,7 +42,7 @@ namespace trace {
       \return a number between 0 (not in a parallel region) and the number of
       workers (included).
    */
-  static int currentNodeIndex() {
+  int currentNodeIndex() {
     int res = (nodeIndexFunction ? nodeIndexFunction() : -1) + 1;
     assert(res>=0 && res<MAX_ROOTS);
     return res;

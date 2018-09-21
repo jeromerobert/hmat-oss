@@ -28,7 +28,7 @@
 #pragma once
 
 #include <cstddef>
-
+#include "assert.h"
 #include "data_types.hpp"
 #include "hmat/hmat.h"
 
@@ -52,6 +52,10 @@ private:
 protected:
   /// Fortran style pointer (columnwise)
   T* m;
+  /*! flag for column orthogonality in m[] (it is a pointer because it is copied with m in subsets) */
+  int *is_ortho;
+  /*! True if we own 'is_ortho' (there are cases where we own the flag and not the memory, with the constructor taking a 'T*' as input) */
+  char ownsFlag:1;
 public:
   /// Number of rows
   int rows;
@@ -67,7 +71,7 @@ public:
 
       \param d a ScalarArray
    */
-  ScalarArray(const ScalarArray& d) : ownsMemory(false), m(d.m), rows(d.rows), cols(d.cols), lda(d.lda) {}
+  ScalarArray(const ScalarArray& d) : ownsMemory(false), m(d.m), is_ortho(d.is_ortho), ownsFlag(false), rows(d.rows), cols(d.cols), lda(d.lda) {}
   /** \brief Initialize the matrix with existing data.
 
       In this case the matrix doesn't own the data (the memory is not
@@ -89,7 +93,7 @@ public:
   ScalarArray(int _rows, int _cols);
   /** \brief Initialize the ScalarArray with subset of existing ScalarArray.
    */
-  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+colsOffset*d.lda), rows(rowsSize), cols(colsSize), lda(d.lda){}
+  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+colsOffset*d.lda), is_ortho(d.is_ortho), ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda){}
 
   ~ScalarArray();
 
@@ -201,6 +205,7 @@ public:
    */
   inline T& get(int i=0, int j=0) {
     // here I might modify the data with this
+    setOrtho(0);
     return m[i + ((size_t) lda) * j];
   }
   inline const T& get(int i=0, int j=0) const {
@@ -214,6 +219,7 @@ public:
    */
   inline T* ptr(int i=0, int j=0) const {
     // here I might modify the data with this pointer
+    setOrtho(0);
     return &m[i + ((size_t) lda) * j];
   }
   inline const T * const_ptr(int i=0, int j=0) const {
@@ -303,23 +309,54 @@ public:
   /*! \brief Compute the inverse of this in place.
    */
   void inverse();
+
   /** Makes an SVD of 'this' with LAPACK.
 
+   If workAroundFailures is true, then the lapack exception thrown by failures in lapack SVD
+   are caught, and a fake result is returned that allows the computation to proceed.
+   If rows<cols, u is identity, sigma is filled with 1, v is 'this^T'
+   If rows>=cols, u is 'this', sigma is filled with 1, v is identity
+   Hence we still have this=U.S.V^T
       \param u
       \param sigma
       \param v
-      \return
+      \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
+      \return 0 for success, lapack error code otherwise.
    */
-  int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const;
+  int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures=false) const;
+
+  /** Makes an truncated SVD of 'this' with accuracy 'epsilon'.
+
+   'workAroundFailures' has the same meaning as for svdDecomposition().
+
+      \param u
+      \param v
+      \param epsilon the accuracy of the approximation
+      \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
+      \return the rank of the approximation
+   */
+  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false) const;
+
+  /*! \brief Orthogonalization between columns of 'this'
+
+    Columns [0, initialPivot[ of 'this' are supposed orthogonals. We normalize them, then we modify the others
+    columns [initialPivot, cols[ to make them orthogonals to these, by removing the colinear
+    components. This routine is part of QR factorization (classical or MGS style) so it modifies
+    and return the R factor as well in 'resultR'. Only the initialPivot first lines of resultR
+    are modified.
+    This is done using blas3 if env. var. HMAT_MGS_BLAS3 is set.
+    */
+  void orthoColumns(ScalarArray<T> *resultR, int initialPivot) ;
 
   /** QR matrix decomposition.
 
     Warning: m is modified!
-
-    \param tau
+    tau is now stored in the last column of 'this'
+    \param resultR the R upper triangular bloc (also available in 'this')
+    \param initialPivot the number of initial columns orthogonal in the array
     \return
   */
-  T* qrDecomposition();
+  void qrDecomposition(ScalarArray<T> *resultR, int initialPivot=0);
 
   /** Do the product by Q.
 
@@ -330,11 +367,10 @@ public:
 
       \param side either 'L' or 'R', as in xORMQR
       \param trans either 'N' or 'T' as in xORMQR
-      \param tau as created by \a qrDecomposition
       \param c as in xORMQR
       \return 0 for success
    */
-  int productQ(char side, char trans, T* tau, ScalarArray<T>* c) const;
+  int productQ(char side, char trans, ScalarArray<T>* c) const;
 
 
   /** Multiplication used in RkMatrix::truncate()
@@ -368,16 +404,22 @@ public:
       [a_{perm[0]},...,a_{perm[rank-1]}] = [q_1,...,q_{rank-1}] * [r]
       where [r] is an upper triangular matrix.
 
+      If some columns [0..j] are already orthogonal in A, it can be interesting to use
+      these as pivots (and spare orthogonalisation within these columns). The
+      optionnal parameter initialPivot indicates the number of columns [0..initialPivot-1]
+      orthogonal.
+
       \param prec is a small parameter describing a relative precision thus
       0 < prec < 1.
       WARNING: the lowest precision allowed is 1e-6.
+      \param initialPivot the number of initial columns orthogonal in the array
       \return rank
 
       NB: On exit the orthonormal matrix stored in A is 'full' and not represented
       as a product of Householder reflectors. OR/ZU-MQR from LAPACK is NOT
       the way to apply the matrix: one has to use matrix-vector product instead.
   */
-  int modifiedGramSchmidt(ScalarArray<T> *r, double prec );
+  int modifiedGramSchmidt(ScalarArray<T> *r, double prec, int initialPivot=0 );
 
   /*! \brief B <- B*D or B <- B*D^-1  (or with D on the left).
 
@@ -396,6 +438,25 @@ public:
      \param d  D
   */
   void multiplyWithDiag(const ScalarArray<double>* d) ;
+
+  /*! \brief Computes if 'this' has orthogonal columns
+
+    \return true or false
+    */
+  bool testOrtho() const ;
+
+  /*! \brief Set orthogonality flag
+   */
+  inline void setOrtho(const int flag) const {
+    *is_ortho = flag;
+    static char *test = getenv("HMAT_TEST_ORTHO");
+    if (flag && test) assert(getOrtho() == testOrtho());
+  }
+  /*! \brief Get orthogonality flag
+   */
+  inline int getOrtho() const {
+    return *is_ortho;
+  }
 
 };
 

@@ -122,7 +122,7 @@ public:
  * @param ratio  allows to cut tall and skinny matrices along only one direction:
       if size(rows) < ratio*size(cols), rows is not subdivided.
       if size(cols) < ratio*size(rows), cols is not subdivided.
- * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression
+ * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression (default 20M)
  * @param maxElementsPerAca limit memory size of a bloc with AcaPlus and AcaPartial compression
  */
 class StandardAdmissibilityCondition : public AdmissibilityCondition

@@ -31,39 +31,13 @@
 #include "lapack_overloads.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
+#include "common/timeline.hpp"
+#include "lapack_exception.hpp"
 
 namespace hmat {
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
-int RkApproximationControl::findK(Vector<double> &sigma, double epsilon) {
-  // Control of approximation for fixed approx.k != 0
-  int newK = k;
-  if (newK != 0) {
-    newK = std::min(newK, sigma.rows);
-  } else {
-    assert(epsilon >= 0.);
-    static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
-    double threshold_eigenvalue = 0.0;
-    if (useL2Criterion == NULL) {
-      for (int i = 0; i < sigma.rows; i++) {
-        threshold_eigenvalue += sigma[i];
-      }
-    } else {
-      threshold_eigenvalue = sigma[0];
-    }
-    threshold_eigenvalue *= epsilon;
-    int i = 0;
-    for (i = 0; i < sigma.rows; i++) {
-      if (sigma[i] <= threshold_eigenvalue){
-        break;
-      }
-    }
-    newK = i;
-  }
-  return newK;
-}
-
 
 /** RkMatrix */
 template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _rows,
@@ -190,7 +164,7 @@ template<typename T> void RkMatrix<T>::addRand(double epsilon) {
   return;
 }
 
-template<typename T> void RkMatrix<T>::truncate(double epsilon) {
+template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
 
   if (rank() == 0) {
@@ -203,7 +177,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
   // In this case, the calculation of the SVD of the matrix "R_a R_b^t" is more
   // expensive than computing the full SVD matrix. We make then a full matrix conversion,
   // and compress it with RkMatrix::fromMatrix().
-  // TODO: in this case, the epsilon of recompression is not respected
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
     RkMatrix<T>* rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
@@ -214,11 +187,12 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
     return;
   }
 
-  static char *usedRecomp = getenv("HMAT_RECOMPRESS");
-  if (usedRecomp && strcmp(usedRecomp, "MGS")==0){
-    mGSTruncate(epsilon);
+  static bool usedRecomp = getenv("HMAT_RECOMPRESS") && strcmp(getenv("HMAT_RECOMPRESS"), "MGS") == 0 ;
+  if (usedRecomp){
+    mGSTruncate(epsilon, initialPivotA, initialPivotB);
     return;
   }
+
   /* To recompress an Rk-matrix to Rk-matrix, we need :
       - A = Q_a R_A (QR decomposition)
       - B = Q_b R_b (QR decomposition)
@@ -246,161 +220,136 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon) {
       - newB: cols x newK
 
   */
-  int ierr;
+
   // QR decomposition of A and B
-  T* tauA = a->qrDecomposition(); // A contains Qa and Ra
-  HMAT_ASSERT(tauA);
-  T* tauB = b->qrDecomposition(); // B contains Qb and Rb
-  HMAT_ASSERT(tauB);
+  ScalarArray<T> ra(rank(), rank());
+  a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
+  ScalarArray<T> rb(rank(), rank());
+  b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
 
-  // Matrices created by the SVD
+  // R <- Ra Rb^t
+  ScalarArray<T> r(rank(), rank());
+  r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+  // truncated SVD of Ra Rb^t (allows failure)
   ScalarArray<T> *u = NULL, *v = NULL;
-  Vector<double> *sigma = NULL;
-  {
-    // The scope is to automatically delete rAFull.
-    // For computing Ra*Rb^t, we would like to use directly a BLAS function
-    // because Ra and Rb are triangular matrices.
-    //
-    // However, there is no multiplication of two triangular matrices in BLAS,
-    // left matrix must be converted into full matrix first.
-    ScalarArray<T> rAFull(rank(), rank());
-    for (int col = 0; col < rank(); col++) {
-      for (int row = 0; row <= col; row++) {
-        rAFull.get(row, col) = a->get(row, col);
-      }
-    }
+  int newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
 
-    // Ra <- Ra Rb^t with b upper triangular matrix
-    rAFull.myTrmm(b);
-    // SVD of Ra Rb^t
-    ierr = rAFull.svdDecomposition(&u, &sigma, &v); // TODO use something else than SVD ?
-    HMAT_ASSERT(!ierr);
-  }
-
-  // Control of approximation
-  int newK = approx.findK(*sigma, epsilon);
-  if (newK == 0)
-  {
-    delete u;
-    delete v;
-    delete sigma;
-    free(tauA);
-    free(tauB);
+  if (newK == 0) {
     clear();
     return;
   }
 
-  // Resize u, sigma, v (not very clean...)
-  u->cols =newK;
-  sigma->rows = newK;
-  v->cols =newK;
-
-  // We put the square root of singular values in sigma
-  for (int i = 0; i < newK; i++) {
-    (*sigma)[i] = sqrt((*sigma)[i]);
-  }
-  // TODO why not rather apply SigmaTilde to only a or b, and avoid computing square roots ?
-
-  // We need to calculate Qa * Utilde * SQRT (SigmaTilde)
-  // For that we first calculate Utilde * SQRT (SigmaTilde)
-  u->multiplyWithDiag(sigma);
-
+  // We need to calculate Qa * u
   ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
-  newA->copyMatrixAtOffset(u, 0, 0);
+
+  // We need to know if qrDecomposition has used initPivot...
+  // (Not so great, because HMAT_TRUNC_INITPIV is checked at 2 different locations)
+  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
+  if (useInitPivot && initialPivotA) {
+    // If there is an initial pivot, we must compute the product by Q in two parts
+    // first the column >= initialPivotA, obtained from lapack GETRF, will overwrite newA when calling UNMQR
+    // then the first initialPivotA columns, with a classical GEMM, will add the result in newA
+
+    // create subset of a (columns>=initialPivotA) and u (rows>=initialPivotA)
+    ScalarArray<T> sub_a(*a, 0, a->rows, initialPivotA, a->cols-initialPivotA);
+    ScalarArray<T> sub_u(*u, initialPivotA, u->rows-initialPivotA, 0, u->cols);
+    newA->copyMatrixAtOffset(&sub_u, 0, 0);
+    // newA <- Qa * newA (with newA = u)
+    sub_a.productQ('L', 'N', newA);
+
+    // then add the regular part of the product by Q
+    ScalarArray<T> sub_a2(*a, 0, a->rows, 0, initialPivotA);
+    ScalarArray<T> sub_u2(*u, 0, initialPivotA, 0, u->cols);
+    newA->gemm('N', 'N', Constants<T>::pone, &sub_a2, &sub_u2, Constants<T>::pone);
+  } else {
+    // If no initialPivotA, then no gemm, just a productQ()
+    newA->copyMatrixAtOffset(u, 0, 0);
+    // newA <- Qa * newA
+    a->productQ('L', 'N', newA);
+  }
+
+  newA->setOrtho(u->getOrtho());
   delete u;
-  u = NULL;
-  // newA <- Qa * newA (et newA = Utilde * SQRT(SigmaTilde))
-  a->productQ('L', 'N', tauA, newA);
-  free(tauA);
-
-  // newB = Qb * VTilde * SQRT(SigmaTilde)
-  v->multiplyWithDiag(sigma);
-  ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
-  newB->copyMatrixAtOffset(v, 0, 0);
-  delete v;
-  delete sigma;
-  // newB <- Qb * newB
-  b->productQ('L', 'N', tauB, newB);
-  free(tauB);
-
   delete a;
   a = newA;
+
+  // newB = Qb * v
+  ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
+
+  if (useInitPivot && initialPivotB) {
+    // create subset of b (columns>=initialPivotB) and v (rows>=initialPivotB)
+    ScalarArray<T> sub_b(*b, 0, b->rows, initialPivotB, b->cols-initialPivotB);
+    ScalarArray<T> sub_v(*v, initialPivotB, v->rows-initialPivotB, 0, v->cols);
+    newB->copyMatrixAtOffset(&sub_v, 0, 0);
+    // newB <- Qb * newB (et newB = v)
+    sub_b.productQ('L', 'N', newB);
+
+    // then add the regular part of the product by Q
+    ScalarArray<T> sub_b2(*b, 0, b->rows, 0, initialPivotB);
+    ScalarArray<T> sub_v2(*v, 0, initialPivotB, 0, v->cols);
+    newB->gemm('N', 'N', Constants<T>::pone, &sub_b2, &sub_v2, Constants<T>::pone);
+  } else {
+    // If no initialPivotB, then no gemm, just a productQ()
+    newB->copyMatrixAtOffset(v, 0, 0);
+    // newB <- Qb * newB
+    b->productQ('L', 'N', newB);
+  }
+
+  newB->setOrtho(v->getOrtho());
+  delete v;
   delete b;
   b = newB;
 }
 
-template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
+template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
-
   if (rank() == 0) {
     assert(!(a || b));
     return;
   }
 
-  ScalarArray<T>* ur = NULL;
-  Vector<double>* sr = NULL;
-  ScalarArray<T>* vr = NULL;
   int kA, kB, newK;
 
   int krank = rank();
 
-  // Limit scope to automatically destroy ra, rb and matR
-  {
-    // Gram-Schmidt on a
-    ScalarArray<T> ra(krank, krank);
-    kA = a->modifiedGramSchmidt( &ra, epsilon );
-    if (kA==0) {
-      clear();
-      return;
-    }
-    // On input, a0(m,k)
-    // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
-
-    // Gram-Schmidt on b
-    ScalarArray<T> rb(krank, krank);
-    kB = b->modifiedGramSchmidt( &rb, epsilon );
-    if (kB==0) {
-      clear();
-      return;
-    }
-    // On input, b0(p,k)
-    // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
-
-    // M = a0*b0^T = a*(ra*rb^T)*b^T
-    // We perform an SVD on ra*rb^T:
-    //  (ra*rb^T) = U*S*S*Vt
-    // and M = (a*U*S)*(S*Vt*b^T) = (a*U*S)*(b*(S*Vt)^T)^T
-    ScalarArray<T> matR(kA, kB);
-    matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
-
-    // SVD
-    int ierr = matR.svdDecomposition(&ur, &sr, &vr);
-    // On output, ur->rows = kA, vr->rows = kB
-    HMAT_ASSERT(!ierr);
-  }
-
-  // Remove small singular values and compute square root of sr
-  newK = approx.findK(*sr, epsilon);
-  if (newK == 0)
-  {
-    delete ur;
-    delete vr;
-    delete sr;
+  // Gram-Schmidt on a
+  // On input, a0(m,k)
+  // On output, a(m,kA), ra(kA,k) such that a0 = a * ra
+  ScalarArray<T> ra(krank, krank);
+  kA = a->modifiedGramSchmidt( &ra, epsilon, initialPivotA);
+  if (kA==0) {
     clear();
     return;
   }
 
-  assert(newK>0);
-  for(int i = 0; i < newK; ++i) {
-    (*sr)[i] = sqrt((*sr)[i]);
+  // Gram-Schmidt on b
+  // On input, b0(p,k)
+  // On output, b(p,kB), rb(kB,k) such that b0 = b * rb
+  ScalarArray<T> rb(krank, krank);
+  kB = b->modifiedGramSchmidt( &rb, epsilon, initialPivotB);
+  if (kB==0) {
+    clear();
+    return;
   }
-  ur->cols = newK;
-  vr->cols = newK;
-  /* Scaling of ur and vr */
-  ur->multiplyWithDiag(sr);
-  vr->multiplyWithDiag(sr);
 
-  delete sr;
+  // M = a0*b0^T = a*(ra*rb^T)*b^T
+  // We perform an SVD on ra*rb^T:
+  //  (ra*rb^T) = U*S*S*Vt
+  // and M = (a*U*S)*(S*Vt*b^T) = (a*U*S)*(b*(S*Vt)^T)^T
+  ScalarArray<T> matR(kA, kB);
+  matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+  // truncatedSVD (allows failure)
+  ScalarArray<T>* ur = NULL;
+  ScalarArray<T>* vr = NULL;
+  newK = matR.truncatedSvdDecomposition(&ur, &vr, epsilon, true);
+  // On output, ur->rows = kA, vr->rows = kB
+
+  if (newK == 0) {
+    clear();
+    return;
+  }
 
   /* Multiplication by orthogonal matrix Q: no or/un-mqr as
     this comes from Gram-Schmidt procedure not Householder
@@ -411,6 +360,8 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon) {
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
   newB->gemm('N', 'N', Constants<T>::pone, b, vr, Constants<T>::zero);
 
+  newA->setOrtho(ur->getOrtho());
+  newB->setOrtho(vr->getOrtho());
   delete ur;
   delete vr;
 
@@ -440,6 +391,74 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
   RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
   swap(*tmp);
   delete tmp;
+}
+
+/*! \brief Try to optimize the order of the Rk matrix to maximize initialPivot
+
+  We re-order the Rk matrices in usedParts[] and the associated constants in usedAlpha[]
+  in order to maximize the number of orthogonal columns starting at column 0 in the A and B
+  panels.
+  \param[in] notNullParts number of elements in usedParts[] and usedAlpha[]
+  \param[in,out] usedParts Array of Rk matrices
+  \param[in,out] usedAlpha Array of constants
+  \param[out] initialPivotA Number of orthogonal columns starting at column 0 in panel A
+  \param[out] initialPivotB Number of orthogonal columns starting at column 0 in panel A
+*/
+template<typename T>
+static void optimizeRkArray(int notNullParts, const RkMatrix<T>** usedParts, T *usedAlpha, int &initialPivotA, int &initialPivotB){
+  // 1st optim: Put in first position the Rk matrix with orthogonal panels AND maximum rank
+  int bestRk=-1, bestGain=-1;
+  for (int i=0 ; i<notNullParts ; i++) {
+    // Roughly, the gain from an initial pivot 'p' in a QR factorisation 'm x n' is to reduce the flops
+    // from 2mn^2 to 2m(n^2-p^2), so the gain grows like p^2 for each panel
+    // hence the gain formula : number of orthogonal panels x rank^2
+    int gain = (usedParts[i]->a->getOrtho() + usedParts[i]->b->getOrtho())*usedParts[i]->rank()*usedParts[i]->rank();
+    if (gain > bestGain) {
+      bestGain = gain;
+      bestRk = i;
+    }
+  }
+  if (bestRk > 0) {
+    std::swap(usedParts[0], usedParts[bestRk]) ;
+    std::swap(usedAlpha[0], usedAlpha[bestRk]) ;
+  }
+  initialPivotA = usedParts[0]->a->getOrtho() ? usedParts[0]->rank() : 0;
+  initialPivotB = usedParts[0]->b->getOrtho() ? usedParts[0]->rank() : 0;
+
+  // 2nd optim:
+  // When coallescing Rk from childs toward parent, it is possible to "merge" Rk from (extra-)diagonal
+  // childs because with non-intersecting rows and cols we will extend orthogonality between separate Rk.
+  int best_i1=-1, best_i2=-1, best_rkA=-1, best_rkB=-1;
+  for (int i1=0 ; i1<notNullParts ; i1++)
+    for (int i2=0 ; i2<notNullParts ; i2++)
+      if (i1 != i2) {
+        const RkMatrix<T>* Rk1 = usedParts[i1];
+        const RkMatrix<T>* Rk2 = usedParts[i2];
+        // compute the gain expected from puting Rk1-Rk2 in first position
+        // Orthogonality of Rk2->a is useful only if Rk1->a is ortho AND rows dont intersect (cols for panel b)
+        int rkA = Rk1->a->getOrtho() ? Rk1->rank() + (Rk2->a->getOrtho() && !Rk1->rows->intersects(*Rk2->rows) ? Rk2->rank() : 0) : 0;
+        int rkB = Rk1->b->getOrtho() ? Rk1->rank() + (Rk2->b->getOrtho() && !Rk1->cols->intersects(*Rk2->cols) ? Rk2->rank() : 0) : 0;
+        int gain = rkA*rkA + rkB*rkB ;
+        if (gain > bestGain) {
+          bestGain = gain;
+          best_i1 = i1;
+          best_i2 = i2;
+          best_rkA = rkA;
+          best_rkB = rkB;
+        }
+      }
+
+  if (best_i1 >= 0) {
+    // put i1 in first position, i2 in second
+    std::swap(usedParts[0], usedParts[best_i1]) ;
+    std::swap(usedAlpha[0], usedAlpha[best_i1]) ;
+    if (best_i2==0) best_i2 = best_i1; // handles the case where best_i2 was usedParts[0] which has just been moved
+    std::swap(usedParts[1], usedParts[best_i2]) ;
+    std::swap(usedAlpha[1], usedAlpha[best_i2]) ;
+    initialPivotA = best_rkA;
+    initialPivotB = best_rkB;
+  }
+
 }
 
 template<typename T>
@@ -497,6 +516,15 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     return result;
   }
 
+  // Find if the QR factorisation can be accelerated using orthogonality information
+  int initialPivotA = usedParts[0]->a->getOrtho() ? usedParts[0]->rank() : 0;
+  int initialPivotB = usedParts[0]->b->getOrtho() ? usedParts[0]->rank() : 0;
+
+  // Try to optimize the order of the Rk matrix to maximize initialPivot
+  static char *useBestRk = getenv("HMAT_MGS_BESTRK");
+  if (useBestRk)
+    optimizeRkArray(notNullParts, usedParts, usedAlpha, initialPivotA, initialPivotB);
+
   ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
   ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
   // According to the indices organization, the sub-matrices are
@@ -529,12 +557,13 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   }
   assert(rankOffset==rankTotal);
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
-  if (notNullParts > 1 && dotruncate) {
   // If only one of the parts is non-zero, then the recompression is not necessary
-    rk->truncate(approx.recompressionEpsilon);
-  }
+  if (notNullParts > 1 && dotruncate)
+    rk->truncate(approx.recompressionEpsilon, initialPivotA, initialPivotB);
+
   return rk;
 }
+
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const {
   DECLARE_CONTEXT;
@@ -844,22 +873,10 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   if (newRKRK) {
     // NEW version
     ScalarArray<T>* ur = NULL;
-    Vector<double>* sr = NULL;
     ScalarArray<T>* vr = NULL;
-    int newK;
-    // SVD tmp = ur.sr.t^vr
-    tmp->svdDecomposition(&ur, &sr, &vr);
-    // Remove small singular values and compute square root of sr
-    newK = approx.findK(*sr, RkMatrix<T>::approx.recompressionEpsilon);
-    //    printf("oldK1=%d oldK2=%d newK=%d\n", r1->rank(), r2->rank(), newK);
+    // truncated SVD tmp = ur.t^vr
+    int newK = tmp->truncatedSvdDecomposition(&ur, &vr, RkMatrix<T>::approx.recompressionEpsilon, true);
     if (newK > 0) {
-      for(int i = 0; i < newK; ++i)
-        (*sr)[i] = sqrt((*sr)[i]);
-      ur->cols = newK;
-      vr->cols = newK;
-      /* Scaling of ur and vr */
-      ur->multiplyWithDiag(sr);
-      vr->multiplyWithDiag(sr);
       /* Now compute newA = a1.ur and newB = b2.vr */
       newA = new ScalarArray<T>(a1->rows, newK);
       if (trans1 == 'C') ur->conjugate();
@@ -869,10 +886,9 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
       if (trans2 == 'C') vr->conjugate();
       newB->gemm('N', 'N', Constants<T>::pone, b2, vr, Constants<T>::zero);
       if (trans2 == 'C') newB->conjugate();
+      delete ur;
+      delete vr;
     }
-    delete ur;
-    delete vr;
-    delete sr;
   } else {
     // OLD version
     if (r1->rank() < r2->rank()) {

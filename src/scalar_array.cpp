@@ -42,6 +42,7 @@
 #include "system_types.h"
 #include "common/my_assert.h"
 #include "common/context.hpp"
+#include "common/timeline.hpp"
 #include "lapack_operations.hpp"
 
 #include <cstring> // memset
@@ -89,18 +90,22 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
   if (lda == -1) {
     lda = rows;
   }
+  ownsFlag = true ;
+  is_ortho = (int*)calloc(1, sizeof(int));
   assert(lda >= rows);
 }
 
 template<typename T>
 ScalarArray<T>::ScalarArray(int _rows, int _cols)
-  : ownsMemory(true), rows(_rows), cols(_cols), lda(_rows) {
+  : ownsMemory(true), ownsFlag(true), rows(_rows), cols(_cols), lda(_rows) {
   size_t size = ((size_t) rows) * cols * sizeof(T);
 #ifdef HAVE_JEMALLOC
   m = (T*) je_calloc(size, 1);
 #else
   m = (T*) calloc(size, 1);
 #endif
+  is_ortho = (int*)calloc(1, sizeof(int));
+  setOrtho(1); // buffer filled with 0 is orthogonal
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
 }
@@ -116,11 +121,16 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
 #endif
     m = NULL;
   }
+  if (ownsFlag) {
+    free(is_ortho);
+    is_ortho = NULL;
+  }
 }
 
 template<typename T> void ScalarArray<T>::clear() {
   assert(lda == rows);
   std::fill(m, m + ((size_t) rows) * cols, Constants<T>::zero);
+  setOrtho(1); // we dont use ptr(): buffer filled with 0 is orthogonal
 }
 
 template<typename T> size_t ScalarArray<T>::storedZeros() const {
@@ -164,6 +174,7 @@ template<typename T> void ScalarArray<T>::scale(T alpha) {
       }
     }
   }
+  if (alpha == Constants<T>::zero) setOrtho(1); // buffer filled with 0 is orthogonal
 }
 
 template<typename T> void ScalarArray<T>::transpose() {
@@ -202,6 +213,7 @@ template<typename T> void ScalarArray<T>::conjugate() {
     size_t nm = ((size_t) rows) * cols;
     const size_t block_size_blas = 1 << 30;
     while (nm > block_size_blas) {
+      // We don't use c->ptr() on purpose, because is_ortho is preserved here
       proxy_lapack::lacgv(block_size_blas, m + nm - block_size_blas, 1);
       nm -= block_size_blas;
     }
@@ -229,7 +241,7 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result
       memcpy(result->ptr() + resultOffset, const_ptr() + offset, rows * sizeof(T));
     }
   }
-
+  result->setOrtho(getOrtho());
   return result;
 }
 
@@ -238,7 +250,7 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copyAndTranspose(ScalarArra
     result = new ScalarArray<T>(cols, rows);
 #ifdef HAVE_MKL_IMATCOPY
   if (lda == rows && result->lda == result->rows) {
-    proxy_mkl::omatcopy(rows, cols, m, result->m);
+    proxy_mkl::omatcopy(rows, cols, const_ptr(), result->ptr());
   } else {
 #endif
   for (int i = 0; i < rows; i++) {
@@ -265,8 +277,9 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
   const int aRows  = (transA == 'N' ? a->rows : a->cols);
   const int n  = (transB == 'N' ? b->cols : b->rows);
   const int k  = (transA == 'N' ? a->cols : a->rows);
-  assert(a->lda >= (transA == 'N' ? aRows : k));
-  assert(b->lda >= (transB == 'N' ? k : n));
+  const int tA = (transA == 'N' ? 0 : ( transA == 'T' ? 1 : 2 ));
+  const int tB = (transB == 'N' ? 0 : ( transB == 'T' ? 1 : 2 ));
+  Timeline::Task t(Timeline::BLASGEMM, &rows, &cols, &k, &tA, &tB);
   assert(rows == aRows);
   assert(cols == n);
   assert(k == (transB == 'N' ? b->rows : b->cols));
@@ -296,6 +309,8 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
       && (a->lda == a->rows) && (lda == rows)) {
     size_t size = ((size_t) rows) * cols;
     memcpy(ptr(), a->const_ptr(), size * sizeof(T));
+    // If I copy the whole matrix, I copy this flag
+    setOrtho(a->getOrtho());
     return;
   }
 
@@ -417,14 +432,14 @@ template<typename T> double ScalarArray<T>::norm_abt_Sqr(const ScalarArray<T> &b
   const int k = cols;
   for (int i = 1; i < k; ++i) {
     for (int j = 0; j < i; ++j) {
-      result += real(proxy_cblas_convenience::dot_c(rows, const_ptr() + i*lda, 1, const_ptr() + j*lda, 1) *
-                           proxy_cblas_convenience::dot_c(b.rows, b.const_ptr() + i*b.lda, 1, b.const_ptr() + j*b.lda, 1));
+      result += real(proxy_cblas_convenience::dot_c(rows, const_ptr(0, i), 1, const_ptr(0, j), 1) *
+                     proxy_cblas_convenience::dot_c(b.rows, b.const_ptr(0, i), 1, b.const_ptr(0, j), 1));
     }
   }
   result *= 2.0;
   for (int i = 0; i < k; ++i) {
-    result += real(proxy_cblas_convenience::dot_c(rows, const_ptr() + i*lda, 1, const_ptr() + i*lda, 1) *
-                         proxy_cblas_convenience::dot_c(b.rows, b.const_ptr() + i*b.lda, 1, b.const_ptr() + i*b.lda, 1));
+    result += real(proxy_cblas_convenience::dot_c(rows, const_ptr(0, i), 1, const_ptr(0, i), 1) *
+                   proxy_cblas_convenience::dot_c(b.rows, b.const_ptr(0, i), 1, b.const_ptr(0, i), 1));
   }
   return result;
 }
@@ -692,7 +707,74 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v) const {
+/*! \brief Returns the number of singular values to keep.
+
+     The stop criterion is (assuming that the singular value
+     are in descending order):
+         sigma [k] / SUM (sigma) <epsilon
+     except if env. var. HMAT_L2_CRITERION is set, in which case the criterion is:
+         sigma [k] / sigma[0] <epsilon
+
+     \param sigma table of singular values at least maxK elements.
+     \param epsilon tolerance.
+     \return int the number of singular values to keep.
+ */
+static int findK(Vector<double> &sigma, double epsilon) {
+  assert(epsilon >= 0.);
+  static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
+  double threshold_eigenvalue = 0.0;
+  if (useL2Criterion == NULL) {
+    for (int i = 0; i < sigma.rows; i++) {
+      threshold_eigenvalue += sigma[i];
+    }
+  } else {
+    threshold_eigenvalue = sigma[0];
+  }
+  threshold_eigenvalue *= epsilon;
+  int i = 0;
+  for (i = 0; i < sigma.rows; i++) {
+    if (sigma[i] <= threshold_eigenvalue){
+      break;
+    }
+  }
+  return i;
+}
+
+template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
+  Vector<double>* sigma = NULL;
+
+  svdDecomposition(u, &sigma, v, workAroundFailures);
+
+  // Control of the approximation
+  int newK = findK(*sigma, epsilon);
+
+  if(newK == 0) {
+    delete *u;
+    delete *v;
+    delete sigma;
+    *u = NULL;
+    *v = NULL;
+    return 0;
+  }
+
+  // Resize u, sigma, v (not very clean...)
+  (*u)->cols =newK;
+  sigma->rows = newK;
+  (*v)->cols =newK;
+
+  // We put the square root of singular values in sigma
+  for (int i = 0; i < newK; i++)
+    (*sigma)[i] = sqrt((*sigma)[i]);
+
+  // Apply sigma 'symmetrically' on u and v
+  (*u)->multiplyWithDiag(sigma);
+  (*v)->multiplyWithDiag(sigma);
+  delete sigma;
+
+  return newK;
+}
+
+  template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures) const {
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
 
@@ -703,10 +785,13 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
   *sigma = new Vector<double>(p);
   *v = new ScalarArray<T>(p, cols); // We create v in transposed shape (as expected by lapack zgesvd)
 
+  // To be prepared for working around a failure in SVD, I must do a copy of 'this'
+  ScalarArray<T> *a = workAroundFailures ? copy() : NULL;
+
   assert(lda >= rows);
 
   char jobz = 'S';
-  int info;
+  int info=0;
 
   {
     const size_t _m = rows, _n = cols;
@@ -719,25 +804,115 @@ template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Ve
     size_t muls = 7 * _m * _n * _n + 4 * _n * _n * _n;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  if(useGESDD)
-    info = sddCall(jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
-                      (*u)->lda, (*v)->ptr(), (*v)->lda);
-  else
-    info = svdCall(jobz, jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
-                      (*u)->lda, (*v)->ptr(), (*v)->lda);
 
-  (*v)->transpose();
+  try {
+    if(useGESDD)
+      info = sddCall(jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
+                     (*u)->lda, (*v)->ptr(), (*v)->lda);
+    else
+      info = svdCall(jobz, jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
+                     (*u)->lda, (*v)->ptr(), (*v)->lda);
+    (*v)->transpose();
+    (*u)->setOrtho(1);
+    (*v)->setOrtho(1);
+    delete a;
+  } catch(LapackException & e) {
+    // if SVD fails, and if workAroundFailures is set to true, I return a "fake" result that allows
+    // computation to proceed. Otherwise, I stop here.
+    if (!workAroundFailures) throw;
+
+    printf("%s overriden...\n", e.what());
+    // If rows<cols, then p==rows, 'u' is square, 'v' has the dimensions of 'this'.
+    // fake 'u' is identity, fake 'v' is 'this^T'
+    if (rows<cols) {
+      for (int i=0 ; i<rows ; i++)
+        for (int j=0 ; j<p ; j++)
+          (*u)->get(i,j) = i==j ? Constants<T>::pone : Constants<T>::zero ;
+      (*u)->setOrtho(1);
+      delete *v;
+      *v = a ;
+      (*v)->transpose();
+    } else {
+      // Otherwise rows>=cols, then p==cols, 'u' has the dimensions of 'this', 'v' is square.
+      // fake 'u' is 'this', fake 'v' is identity
+      delete *u;
+      *u = a ;
+      for (int i=0 ; i<p ; i++)
+        for (int j=0 ; j<cols ; j++)
+          (*v)->get(i,j) = i==j ? Constants<T>::pone : Constants<T>::zero ;
+      (*v)->setOrtho(1);
+    }
+    // Fake 'sigma' is all 1
+    for (int i=0 ; i<p ; i++)
+      (**sigma)[i] = Constants<double>::pone ;
+  }
 
   return info;
 }
 
-template<typename T> T* ScalarArray<T>::qrDecomposition() {
+template<typename T> void ScalarArray<T>::orthoColumns(ScalarArray<T> *resultR, int initialPivot) {
   DECLARE_CONTEXT;
+
+  ScalarArray<T> *bK = NULL;
+  // We use the fact that the initial 'initialPivot' are orthogonal
+  // We just normalize them and update the columns >= initialPivot using MGS-like approach
+  bK = new ScalarArray<T> (*this, 0, rows, initialPivot, cols-initialPivot); // All the columns of 'this' after column 'initialPivot'
+  for(int j = 0; j < initialPivot; ++j) {
+    // Normalisation of column j
+    Vector<T> aj(*this, j);
+    resultR->get(j,j) = aj.norm();
+    T coef = Constants<T>::pone / resultR->get(j,j);
+    aj.scale(coef);
+  }
+  // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
+  if (initialPivot<cols) {
+    static char *useBlas3 = getenv("HMAT_MGS_BLAS3");
+    if (useBlas3) {
+      ScalarArray<T> aJ(*this, 0, rows, 0, initialPivot); // All the columns of 'this' from 0 to 'initialPivot-1'
+      ScalarArray<T> aJ_bK(*resultR, 0, initialPivot, initialPivot, cols-initialPivot); // In 'r': row '0' to 'initialPivot-1', all the columns after column 'initialPivot-1'
+      // Compute in 1 operation all the scalar products between a_0,...,a_init-1 and a_init, ..., a_n-1
+      aJ_bK.gemm('C', 'N', Constants<T>::pone, &aJ, bK, Constants<T>::zero);
+      // Update a_init, ..., a_n-1
+      bK->gemm('N', 'N', Constants<T>::mone, &aJ, &aJ_bK, Constants<T>::pone);
+    } else {
+      for(int j = 0; j < initialPivot; ++j) {
+        Vector<T> aj(*this, j);
+        ScalarArray<T> aj_bK(*resultR, j, 1, initialPivot, cols-initialPivot); // In 'r': row 'j', all the columns after column 'initialPivot'
+        // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
+        aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, bK, Constants<T>::zero);
+        // Update a_firstcol, ..., a_n
+        bK->rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+      }
+    }
+  } // if (initialPivot<cols)
+}
+
+template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR, int initialPivot) {
+  DECLARE_CONTEXT;
+  Timeline::Task t(Timeline::QR, &rows, &cols, &initialPivot);
+
+  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
+  if (!useInitPivot) initialPivot=0;
+  assert(initialPivot>=0 && initialPivot<=cols);
+
+  ScalarArray<T> *bK = NULL, *restR = NULL, *a = this; // we need this because if initialPivot>0, we will run the end of the computation on a subset of 'this'
+
+  // Initial pivot
+  if (initialPivot) {
+    // modify the columns [initialPivot, cols[ to make them orthogonals to columns [0, initialPivot[
+    orthoColumns(resultR, initialPivot);
+    // then we do qrDecomposition on the remaining columns (without initial pivot)
+    bK = new ScalarArray<T> (*this, 0, rows, initialPivot, cols-initialPivot); // All the columns of 'this' after column 'initialPivot'
+    restR = new ScalarArray<T> (*resultR, initialPivot, cols-initialPivot, initialPivot, cols-initialPivot); // In 'r': all the rows and columns after row/column 'initialPivot'
+    a = bK;
+    resultR = restR;
+  }
+
   //  SUBROUTINE DGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
-  T* tau = (T*) calloc(std::min(rows, cols), sizeof(T));
+  T* tau = (T*) calloc(std::min(a->rows, a->cols), sizeof(T));
   {
-    size_t mm = std::max(rows, cols);
-    size_t n = std::min(rows, cols);
+    size_t mm = std::max(a->rows, a->cols);
+    size_t n = std::min(a->rows, a->cols);
     size_t multiplications = mm * n * n - (n * n * n) / 3 + mm * n + (n * n) / 2 + (29 * n) / 6;
     size_t additions = mm * n * n + (n * n * n) / 3 + 2 * mm * n - (n * n) / 2 + (5 * n) / 6;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
@@ -746,16 +921,32 @@ template<typename T> T* ScalarArray<T>::qrDecomposition() {
   int workSize;
   T workSize_S;
   // int info = LAPACKE_sgeqrf(LAPACK_COL_MAJOR, rows, cols, m, rows, *tau);
-  info = proxy_lapack::geqrf(rows, cols, ptr(), rows, tau, &workSize_S, -1);
+  info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau, &workSize_S, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_S) + 1;
   T* work = new T[workSize];// TODO Mettre dans la pile ??
   HMAT_ASSERT(work) ;
-  info = proxy_lapack::geqrf(rows, cols, ptr(), rows, tau, work, workSize);
+  info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau, work, workSize);
   delete[] work;
 
   HMAT_ASSERT(!info);
-  return tau;
+
+  // Copy the 'r' factor in the upper part of resultR
+  for (int col = 0; col < a->cols; col++) {
+    for (int row = 0; row <= col; row++) {
+      resultR->get(row, col) = a->get(row, col);
+    }
+  }
+
+  // Copy tau in the last column of 'this'
+  memcpy(a->ptr(0, a->cols-1), tau, sizeof(T)*std::min(a->rows, a->cols));
+  free(tau);
+
+  // temporary data created if initialPivot>0
+  if (bK) delete(bK);
+  if (restR) delete(restR);
+
+  return;
 }
 
 // aFull <- aFull.bTri^t with aFull=this and bTri upper triangular matrix
@@ -779,7 +970,7 @@ void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
 }
 
 template<typename T>
-int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) const {
+int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   DECLARE_CONTEXT;
   assert((side == 'L') ? rows == c->rows : rows == c->cols);
   int info;
@@ -791,6 +982,14 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
     size_t adds = 2 * _m * _n * _k - _n * _k * _k + _n * _k;
     increment_flops(Multipliers<T>::mul * muls + Multipliers<T>::add * adds);
   }
+
+  // In qrDecomposition(), tau is stored in the last column of 'this'
+  // it is not valid to work with 'tau' inside the array 'a' because zunmqr modifies 'a'
+  // during computation. So we work on a copy of tau.
+  T tau[std::min(rows, cols)];
+  memcpy(tau, const_ptr(0, cols-1), sizeof(T)*std::min(rows, cols));
+
+  // We don't use c->ptr() on purpose, because c->is_ortho is preserved here (Q is orthogonal)
   info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, &workSize_req, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_req) + 1;
@@ -802,8 +1001,15 @@ int ScalarArray<T>::productQ(char side, char trans, T* tau, ScalarArray<T>* c) c
   return 0;
 }
 
-template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec ) {
+template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec, int initialPivot ) {
   DECLARE_CONTEXT;
+  Timeline::Task t(Timeline::MGS, &rows, &cols, &initialPivot);
+
+  static char *useInitPivot = getenv("HMAT_MGS_INITPIV");
+  if (!useInitPivot) initialPivot=0;
+  assert(initialPivot>=0 && initialPivot<=cols);
+
+
   {
     size_t mm = rows;
     size_t n = cols;
@@ -811,7 +1017,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     size_t additions = mm*n*n;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
-  int rank;
+  int rank=0;
   double relative_epsilon;
   static const double LOWEST_EPSILON = 1.0e-6;
 
@@ -831,15 +1037,29 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     prec = LOWEST_EPSILON;
   }
 
+  // Apply Modified Gram-Schmidt process with column pivoting to the 'initialPivot' first columns,
+  // where the j-th pivot is column j
+  // No stopping criterion here. Since these columns come from another recompression, we assume
+  // they are all kept.
+  // With this approach, we can use blas3 (more computationnaly efficient) but we do a classical
+  // (not a "modified") Gram Schmidt algorithm, which is known to be numerically unstable
+  // So expect to lose on final accuracy of hmat
+
+  // Initial pivot
+  if (initialPivot) {
+    // modify the columns [initialPivot, cols[ to make them orthogonals to columns [0, initialPivot[
+    orthoColumns(&r, initialPivot);
+    rank = initialPivot;
+  }
+
   // Init.
   Vector<double> norm2(cols); // Norm^2 of the columns of 'this' during computation
   Vector<double> norm2_orig(cols); // Norm^2 of the original columns of 'this'
   Vector<double> norm2_update(cols); // Norm^2 of the columns of 'this' normalized (will be 1. at the beginning, then decrease)
   // The actual norm^2 of column j during computation (before it is finally normalized) will be norm2[j] = norm2_orig[j] * norm2_update[j]
   // The choice of the pivot will be based on norm2_update[] or norm2[]
-  rank = 0;
   relative_epsilon = 0.0;
-  for(int j=0; j < cols; ++j) {
+  for(int j=rank; j < cols; ++j) {
     const Vector<T> aj(*this, j);
     norm2[j] = aj.normSqr();
     relative_epsilon = std::max(relative_epsilon, norm2[j]);
@@ -853,7 +1073,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   relative_epsilon *= prec * prec;
 
   // Modified Gram-Schmidt process with column pivoting
-  for(int j = 0; j < cols; ++j) {
+  for(int j = rank; j < cols; ++j) {
     // Find the largest pivot
     int pivot = norm2.absoluteMaxIndex(j);
     double pivmax = norm2[pivot];
@@ -863,6 +1083,10 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       pivot = norm2_update.absoluteMaxIndex(j);
       pivmax = norm2_update[pivot];
       relative_epsilon = prec * prec;
+    }
+    if (j<initialPivot) {
+      pivot = j;
+      pivmax = 1.;
     }
 
     // Stopping criterion
@@ -895,14 +1119,15 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
       if (j<cols-1) {
-        ScalarArray<T> bK(*this, 0, rows, j+1, cols-j-1); // All the columns of 'this' after column 'j'
-        ScalarArray<T> aj_bK(r, j, 1, j+1, cols-j-1); // In 'r': row 'j', all the columns after column 'j'
-        // Compute in 1 operation all the scalar products between aj and a_j+1, ..., a_n
+        int firstcol=std::max(j+1, initialPivot) ;
+        ScalarArray<T> bK(*this, 0, rows, firstcol, cols-firstcol); // All the columns of 'this' after column 'firstcol'
+        ScalarArray<T> aj_bK(r, j, 1, firstcol, cols-firstcol); // In 'r': row 'j', all the columns after column 'firstcol'
+        // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
         aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
-        // Update a_j+1, ..., a_n
+        // Update a_firstcol, ..., a_n
         bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
         // Update the norms
-        for(int k = j + 1; k < cols; ++k) {
+        for(int k = firstcol; k < cols; ++k) {
           double rjk = std::abs(r.get(j,k));
           norm2[k] -= rjk * rjk;
           norm2_update[k] -= rjk * rjk / norm2_orig[k];
@@ -910,7 +1135,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       }
     } else
       break;
-  }
+  } // for(int j = rank;
 
   // Update matrix dimensions
   cols = rank;
@@ -921,6 +1146,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     // Copy the column j of r into the column perm[j] of result (only 'rank' rows)
     memcpy(result->ptr(0, perm[j]), r.const_ptr(0, j), result->rows*sizeof(T));
   }
+  setOrtho(1);
   // Clean up
   delete[] perm;
   /* end of modified Gram-Schmidt */
@@ -955,7 +1181,7 @@ void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inv
   } else { // column j is multiplied by d[j] or 1/d[j]
     for (int j = 0; j < cols; j++) {
       T diag_val = inverse ? Constants<T>::pone / d->get(j,0) : d->get(j);
-      proxy_cblas::scal(rows, diag_val, &get(0,j), 1);
+      proxy_cblas::scal(rows, diag_val, ptr(0,j), 1);
     }
   }
 }
@@ -974,6 +1200,35 @@ void ScalarArray<T>::multiplyWithDiag(const ScalarArray<double>* d) {
     T diag_val = T(d->get(j));
     proxy_cblas::scal(rows, diag_val, m+j*lda, 1); // We don't use ptr() on purpose, because is_ortho is preserved here
   }
+}
+
+template<typename T>
+bool ScalarArray<T>::testOrtho() const {
+  static char *test = getenv("HMAT_TEST_ORTHO");
+  // code % 2 == 0 means we are in simple precision (real or complex)
+  static double machine_accuracy = Constants<T>::code % 2 == 0 ? 1.19e-7 : 1.11e-16 ;
+  static double test_accuracy = Constants<T>::code % 2 == 0 ? 1.e-3 : 1.e-7 ;
+  static double ratioMax=0.;
+  double ref = norm();
+  if (ref==0.) return true;
+  ScalarArray<T> *sp = new ScalarArray<T>(cols, cols);
+  // Compute the scalar product sp = X^H.X
+  sp->gemm('C', 'N', Constants<T>::pone, this, this, Constants<T>::zero);
+  // Nullify the diagonal elements
+  for (int i=0 ; i<cols ; i++)
+    sp->get(i,i) = Constants<T>::zero;
+  // The norm of the rest should be below 'epsilon x norm of this' to have orthogonality and return true
+  double res = sp->norm();
+  delete sp;
+  if (test) {
+    double ratio = res/ref/machine_accuracy/sqrt((double)rows);
+    if (ratio > ratioMax) {
+      ratioMax = ratio;
+      printf("testOrtho[%dx%d] test=%d get=%d        res=%g ref=%g res/ref=%g ratio=%g ratioMax=%g\n",
+             rows, cols, (res < ref * test_accuracy), getOrtho(), res, ref, res/ref, ratio, ratioMax);
+    }
+  }
+  return (res < ref * test_accuracy);
 }
 
 template<typename T>
