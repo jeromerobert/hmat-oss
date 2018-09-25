@@ -852,7 +852,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   // NEW version :
   // Other solution: once we have the small matrix tmp=t^b1.a2, we can do a recompression on it for low cost
   // using SVD + truncation. This also removes the choice above, since tmp=U.S.V is then applied on both sides
-  // This version isn't default, it can be activated by setting env. var. HMAT_NEW_RKRK
+  // This version is default, it can be deactivated by setting env. var. HMAT_OLD_RKRK
   // With this version, orthogonality is lost on both panel.
 
   ScalarArray<T>* tmp = new ScalarArray<T>(r1->rank(), r2->rank());
@@ -869,8 +869,8 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   }
 
   ScalarArray<T> *newA=NULL, *newB=NULL;
-  static char *newRKRK = getenv("HMAT_NEW_RKRK"); // Option to use the NEW version, with SVD-in-the-middle
-  if (newRKRK) {
+  static char *oldRKRK = getenv("HMAT_OLD_RKRK"); // Option to use the OLD version, without SVD-in-the-middle
+  if (!oldRKRK) {
     // NEW version
     ScalarArray<T>* ur = NULL;
     ScalarArray<T>* vr = NULL;
