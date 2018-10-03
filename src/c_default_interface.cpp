@@ -163,13 +163,11 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
 
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
-    p->max_svd_elements = 5000000; // 5 Millions: no SVD/ACAfull for blocks larger than 2200x2200
-    p->max_aca_elements = 0;
 }
 
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {
-    hmat::StandardAdmissibilityCondition * r = new hmat::StandardAdmissibilityCondition(
-         p->eta, 0.0, p->max_svd_elements, p->max_aca_elements);
+    hmat::StandardAdmissibilityCondition * r =
+         new hmat::StandardAdmissibilityCondition(p->eta, 0.0);
     return reinterpret_cast<hmat_admissibility_t*>(r);
 }
 

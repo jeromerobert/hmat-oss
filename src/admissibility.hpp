@@ -59,11 +59,11 @@ public:
       is too large to perform compression, if it is low rank; in this case, recursion
       is performed.
       Note: stopRecursion and forceRecursion must not both return true.
-
+      \param elemSize the size of the element of the matrix (i.e. sizeof(T))
     \return true  if the block is too large to perform compression
    */
-  virtual bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
-      (void)rows, (void)cols; // unused
+  virtual bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t elemSize) const {
+      (void)rows, (void)cols, (void)elemSize; // unused
       return false;
   }
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
@@ -122,22 +122,15 @@ public:
  * @param ratio  allows to cut tall and skinny matrices along only one direction:
       if size(rows) < ratio*size(cols), rows is not subdivided.
       if size(cols) < ratio*size(rows), cols is not subdivided.
- * @param maxElementsPerBlock limit memory size of a bloc with AcaFull and Svd compression (default 20M)
- * @param maxElementsPerAca limit memory size of a bloc with AcaPlus and AcaPartial compression
  */
 class StandardAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
-  StandardAdmissibilityCondition(double eta, double ratio = 0, size_t maxElementsPerBlock_ = 20000000,
-                                 size_t maxElementsPerBlockAca = 0);
+  StandardAdmissibilityCondition(double eta, double ratio = 0);
   // Returns true if block is admissible (Hackbusch condition)
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true when there is less than 2 rows or cols
   bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
-  // If compression algorithm is ACA+ or ACA partial, returns true when block size > maxElementsPerBlockAca_
-  // For other compression algorithms, returns true when block size > maxElementsPerBlock.
-  // Note that forceRecursion() calls stopRecursion() to ensure that both do not return true.
-  bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true when there is less than 2 rows or cols
   bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
   std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
@@ -150,8 +143,6 @@ public:
 protected:
   double eta_;
   double ratio_;
-  size_t maxElementsPerBlock_;
-  size_t maxElementsPerBlockAca_;
 };
 
 class AlwaysAdmissibilityCondition : public AdmissibilityCondition {

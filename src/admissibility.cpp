@@ -24,9 +24,6 @@
 #include "cluster_tree.hpp"
 
 #include "common/my_assert.h"
-#include "hmat_cpp_interface.hpp"
-
-#include <cmath>
 #include <sstream>
 #include <algorithm>
 
@@ -38,22 +35,8 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
   return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
 }
 
-StandardAdmissibilityCondition::StandardAdmissibilityCondition(
-    double eta, double ratio, size_t maxElementsPerBlock, size_t maxElementsPerBlockRows):
-    eta_(eta), ratio_(ratio), maxElementsPerBlock_(maxElementsPerBlock),
-    maxElementsPerBlockAca_(maxElementsPerBlockRows)
-{
-    if(maxElementsPerBlockAca_ == 0) {
-#ifdef HMAT_32BITS
-        maxElementsPerBlockAca_ = std::numeric_limits<int>::max();
-#else
-      // 2^34 = 16 G elements = 256 Gbytes in Z_t = a square block of 131k x 131k
-      // But this is the size of the *full* block. If the square block has rank 'r', it will store
-      // two arrays of 2^17.r elements
-      maxElementsPerBlockAca_ = 17179869184L;
-#endif
-    }
-}
+StandardAdmissibilityCondition::StandardAdmissibilityCondition(double eta, double ratio):
+    eta_(eta), ratio_(ratio) {}
 
 std::pair<bool, bool>
 StandardAdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
@@ -80,26 +63,6 @@ StandardAdmissibilityCondition::forceFull(const ClusterTree& rows, const Cluster
 {
     // If there is less than 2 rows or cols, compression is useless
     return (rows.data.size() < 2 || cols.data.size() < 2);
-}
-
-bool
-StandardAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const
-{
-    if (stopRecursion(rows, cols))
-        return false;
-    // If the block is too large for current algorithm compression, split it
-    CompressionMethod m = HMatSettings::getInstance().compressionMethod;
-    bool isFullAlgo = !(m == AcaPartial || m == AcaPlus);
-    size_t elements = ((size_t) rows.data.size()) * cols.data.size();
-    if(isFullAlgo && elements > maxElementsPerBlock_)
-        return true;
-
-    // TODO: we may not be low rank for example if rows or cols is a large span cluster
-    if(!isFullAlgo && elements > maxElementsPerBlockAca_)
-        return true;
-
-    // Otherwise, do not force split
-    return false;
 }
 
 bool
