@@ -165,7 +165,7 @@ public:
     std::string str() const;
     bool isLowRank(const ClusterTree&, const ClusterTree&) const;
     std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree&) const;
-    bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+    bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t elemSize) const;
     bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
     /** @Brief Let this admissibility condition always create full blocks */
     void never(bool n) { never_ = n; }

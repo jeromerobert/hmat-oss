@@ -136,7 +136,7 @@ std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterT
     return split_rows_cols_;
 }
 
-bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
+bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t) const {
     size_t block_size = ((size_t)rows.data.size()) * cols.data.size();
     if(rows.father == NULL) {
         assert(cols.father == NULL);
