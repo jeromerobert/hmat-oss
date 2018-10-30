@@ -1801,30 +1801,28 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularLeft(b, unitriangular, lowerStored);
+  } else if(!b->isLeaf()) {
+    // B isn't a leaf, then so is L
+    assert(this->isLeaf());
+    // Evaluate B, solve by column, and restore in the matrix
+    // TODO: check if it's not too bad
+    FullMatrix<T> bFull(b->rows(), b->cols());
+    b->evalPart(&bFull, b->rows(), b->cols());
+    this->solveUpperTriangularLeft(&bFull, unitriangular, lowerStored);
+    b->clear();
+    b->axpy(Constants<T>::pone, &bFull);
+  } else if(b->isNull()) {
+    // nothing to do
   } else {
-    // if B is a leaf, the resolve is done by column
-    if (b->isLeaf()) {
-      HMatrix * bSubset = b->subset(lowerStored ? this->rows() : this->cols(), b->cols());
-      if (bSubset->isFullMatrix()) {
-        this->solveUpperTriangularLeft(bSubset->full(), unitriangular, lowerStored);
-      } else if(!bSubset->isNull()){
-        assert(b->isRkMatrix());
-        this->solveUpperTriangularLeft(bSubset->rk()->a, unitriangular, lowerStored);
-      }
-      if(b != bSubset)
-          delete bSubset;
+    HMatrix * bSubset = b->subset(lowerStored ? this->rows() : this->cols(), b->cols());
+    if (bSubset->isFullMatrix()) {
+      this->solveUpperTriangularLeft(bSubset->full(), unitriangular, lowerStored);
     } else {
-      // B isn't a leaf, then so is L
-      assert(this->isLeaf());
-      // Evaluate B, solve by column, and restore in the matrix
-      // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
-      b->evalPart(bFull, b->rows(), b->cols());
-      this->solveUpperTriangularLeft(bFull, unitriangular, lowerStored);
-      b->clear();
-      b->axpy(Constants<T>::pone, bFull);
-      delete bFull;
+      assert(b->isRkMatrix());
+      this->solveUpperTriangularLeft(bSubset->rk()->a, unitriangular, lowerStored);
     }
+    if(b != bSubset)
+        delete bSubset;
   }
 }
 
