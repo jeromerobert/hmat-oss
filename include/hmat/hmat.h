@@ -803,6 +803,14 @@ hmat
     int (*dump_info)(hmat_matrix_t *hmatrix, char* prefix);
 
     /**
+     * @brief Get cluster trees
+     * \param hmatrix A hmatrix
+     * \param rows if not NULL, will contain a pointer to rows cluster tree
+     * \param cols if not NULL, will contain a pointer to cols cluster tree
+     */
+    int (*get_cluster_trees)(hmat_matrix_t* hmatrix, const hmat_cluster_tree_t ** rows, const hmat_cluster_tree_t ** cols);
+
+    /**
      * @brief Replace the cluster tree in a hmatrix
      * The provided cluster trees must be compatible with the structure of
      * the matrix.

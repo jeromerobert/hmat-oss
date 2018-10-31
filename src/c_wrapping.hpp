@@ -309,6 +309,17 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
 
 
 template<typename T, template <typename> class E>
+int get_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t ** rows, const hmat_cluster_tree_t ** cols) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
+  if (rows)
+    *rows = static_cast<const hmat_cluster_tree_t*>(static_cast<const void*>(hmat->engine().hmat->rowsTree()));
+  if (cols)
+    *cols = static_cast<const hmat_cluster_tree_t*>(static_cast<const void*>(hmat->engine().hmat->colsTree()));
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*) holder;
@@ -463,6 +474,7 @@ static void createCInterface(hmat_interface_t * i)
     i->internal = NULL;
     i->get_info  = hmat_get_info<T, E>;
     i->dump_info = hmat_dump_info<T, E>;
+    i->get_cluster_trees = get_cluster_trees<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
     i->own_cluster_trees = own_cluster_trees<T, E>;
     i->extract_diagonal = extract_diagonal<T, E>;
