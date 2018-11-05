@@ -322,6 +322,9 @@ public:
     return approximateRank_;
   }
 
+  void approximateRank(int a)  {
+    approximateRank_ = a;
+  }
   /** Set a matrix to 0.
    */
   void clear();
