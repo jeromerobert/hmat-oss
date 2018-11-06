@@ -180,6 +180,7 @@ template <typename T> class UncompressedValues: public UncompressedValuesBase<T,
 
     void getRkValues();
 
+public:
     void getLeafValues() {
         if (this->matrix_->isNull()) {
             getNullValues();
