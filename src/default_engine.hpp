@@ -48,8 +48,6 @@ public:
   void inverse();
   void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
   void gemm(char transA, char transB, T alpha, const DefaultEngine<T> & a, const DefaultEngine<T>& b, T beta);
-  void addIdentity(T alpha);
-  void scale(T alpha);
   void addRand(double epsilon);
   void solve(ScalarArray<T>& b, hmat_factorization_t) const;
   void solve(DefaultEngine<T>& b, hmat_factorization_t) const;
@@ -58,7 +56,6 @@ public:
   void transpose();
   void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f);
   void createPostcriptFile(const std::string& filename) const;
-  double norm() const;
   void progress(hmat_progress_t * p){ progress_ = p; }
   HMatrix<T> * data() const { return hmat; }
   void info(hmat_info_t & i) const { hmat->info(i); }

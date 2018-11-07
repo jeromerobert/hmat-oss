@@ -166,16 +166,6 @@ void DefaultEngine<T>::gemm(char transA, char transB, T alpha,
 }
 
 template<typename T>
-void DefaultEngine<T>::addIdentity(T alpha) {
-  hmat->addIdentity(alpha);
-}
-
-template<typename T>
-void DefaultEngine<T>::scale(T alpha) {
-  hmat->scale(alpha);
-}
-
-template<typename T>
 void DefaultEngine<T>::addRand(double epsilon) {
   hmat->addRand(epsilon);
 }
@@ -215,10 +205,6 @@ void DefaultEngine<T>::solveLower(ScalarArray<T>& b, hmat_factorization_t t, boo
 template<typename T>
 void DefaultEngine<T>::createPostcriptFile(const std::string& filename) const {
     hmat->createPostcriptFile(filename);
-}
-
-template<typename T> double DefaultEngine<T>::norm() const {
-    return sqrt(hmat->normSqr());
 }
 
 template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result, bool structOnly) const {
