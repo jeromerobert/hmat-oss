@@ -209,8 +209,16 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::read(){
                     Types<T>::TYPE, type);
     factorization_ = hmat_factorization_t(readValue<int>());
     ClusterTree * rows = readClusterTree();
+    // There is no easy way for reader to know that a Tree parsing is over.
+    // We call readFunc_ with 0 size after reading all Tree instances.
+    // This is harmless for casual readers, and may be needed for advanced usages.
+    // First argument could be NULL, but this may trigger an assertion in debug
+    // mode, so use a non-NULL pointer instead.
+    readFunc_(&factorization_, 0, userData_);
     ClusterTree * cols = readClusterTree();
+    readFunc_(&factorization_, 0, userData_);
     HMatrix<T> * r = readTree<HMatrix<T> >(NULL);
+    readFunc_(&factorization_, 0, userData_);
     r->setClusterTrees(rows, cols);
     r->ownClusterTrees(true, true);
     return r;
@@ -339,6 +347,8 @@ void MatrixDataUnmarshaller<T>::read(HMatrix<T> * matrix){
             }
         }
     }
+    // Comment in MatrixStructUnmarshaller<T>::read explains why readFunc_ is called there
+    readFunc_(&stack, 0, userData_);
 }
 
 // Templates declaration
