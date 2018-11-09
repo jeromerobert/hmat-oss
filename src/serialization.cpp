@@ -269,7 +269,7 @@ void MatrixDataMarshaller<T>::write(const HMatrix<T> * matrix){
         if(m->isLeaf()) {
             writeLeaf(m);
         } else {
-            for(int i = 0; i < m->nrChild(); i++) {
+            for(int i = m->nrChild() - 1; i >= 0; --i) {
                 if(m->getChild(i) != NULL && !m->getChild(i)->isVoid())
                     stack.push_back(m->getChild(i));
             }
@@ -333,7 +333,7 @@ void MatrixDataUnmarshaller<T>::read(HMatrix<T> * matrix){
         if(m->isLeaf()) {
             readLeaf(m);
         } else {
-            for(int i = 0; i < m->nrChild(); i++) {
+            for(int i = m->nrChild() - 1; i >= 0; --i) {
                 if(m->getChild(i) != NULL && !m->getChild(i)->isVoid())
                     stack.push_back(m->getChild(i));
             }
