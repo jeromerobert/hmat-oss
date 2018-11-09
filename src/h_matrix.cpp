@@ -571,7 +571,7 @@ void HMatrix<T>::scale(T alpha) {
 }
 
 template<typename T>
-bool HMatrix<T>::coarsen(HMatrix<T>* upper) {
+bool HMatrix<T>::coarsen(HMatrix<T>* upper, bool force) {
   // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
   // This is done if the memory of the resulting leaf is less than the sum of the initial
   // leaves. Note that this operation could be used hierarchically.
@@ -596,7 +596,7 @@ bool HMatrix<T>::coarsen(HMatrix<T>* upper) {
     RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
     RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild());
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
-    if (elements < childrenElements) {
+    if (force || elements < childrenElements) {
       // Replace 'this' by the new Rk matrix
       for (int i = 0; i < this->nrChild(); i++)
         this->removeChild(i);
