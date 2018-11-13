@@ -82,7 +82,8 @@ StandardAdmissibilityCondition::isLowRank(const ClusterTree& rows, const Cluster
   }
 
   const double min_diameter = std::min(rows_bbox->diameter(), cols_bbox->diameter());
-  return min_diameter > 0.0 && min_diameter <= eta_ * rows_bbox->distanceTo(*cols_bbox);
+  return (min_diameter > 0.0 && min_diameter <= eta_ * rows_bbox->distanceTo(*cols_bbox))
+      || ((rows.isLeaf() || cols.isLeaf()) && !(cols.data == rows.data));
 }
 
 void
