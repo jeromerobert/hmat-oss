@@ -179,11 +179,12 @@ public:
      If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
      This is done if the memory of the resulting leaf is less than the sum of the initial
      leaves. Note that this operation could be used hierarchically.
+     \param epsilon the truncate epsilon
      \param upper the symmetric of 'this', when building a non-sym matrix with a sym content
      \param force if true the block is kept coarsened even if it's larger
      \return true if all leaves are rk (i.e. if coarsening was tryed, not if it succeded)
    */
-  bool coarsen(HMatrix<T>* upper = NULL, bool force=false) ;
+  bool coarsen(double epsilon, HMatrix<T>* upper = NULL, bool force=false) ;
   /*! \brief HMatrix assembly.
    */
   void assemble(Assembly<T>& f, const AllocationObserver & = AllocationObserver());

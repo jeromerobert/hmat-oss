@@ -729,7 +729,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
         assert(method == AcaPartial || method == AcaPlus);
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
         if(stratumRk->rank() > 0) {
-            RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, false);
+            RkMatrix<dp_t>* sumRk = rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, -1);
             delete rk;
             delete stratumRk;
             rk = sumRk;

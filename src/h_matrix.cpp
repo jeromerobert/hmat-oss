@@ -306,7 +306,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     }
     assembledRecurse();
     if (coarsening)
-      coarsen();
+      coarsen(RkMatrix<T>::approx.recompressionEpsilon);
   }
 }
 
@@ -376,7 +376,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
         }
         upper->assembledRecurse();
         if (coarsening)
-          coarsen(upper);
+          coarsen(RkMatrix<T>::approx.recompressionEpsilon, upper);
       }
     }
     assembledRecurse();
@@ -571,7 +571,7 @@ void HMatrix<T>::scale(T alpha) {
 }
 
 template<typename T>
-bool HMatrix<T>::coarsen(HMatrix<T>* upper, bool force) {
+bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
   // If all children are Rk leaves, then we try to merge them into a single Rk-leaf.
   // This is done if the memory of the resulting leaf is less than the sum of the initial
   // leaves. Note that this operation could be used hierarchically.
@@ -594,7 +594,7 @@ bool HMatrix<T>::coarsen(HMatrix<T>* upper, bool force) {
   if (allRkLeaves) {
     std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
     RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-    RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild());
+    RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild(), epsilon);
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
     if (force || elements < childrenElements) {
       // Replace 'this' by the new Rk matrix
@@ -737,7 +737,8 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     vector<const RkMatrix<T>*> rkLeaves;
                     if(listAllRk(x, rkLeaves)) {
                         vector<T> alphas(rkLeaves.size(), alpha);
-                        RkMatrix<T>* tmp = rk()->formattedAddParts(&alphas[0], &rkLeaves[0], rkLeaves.size());
+                        RkMatrix<T>* tmp = rk()->formattedAddParts(&alphas[0], &rkLeaves[0],
+                            rkLeaves.size(), RkMatrix<T>::approx.recompressionEpsilon);
                         delete rk();
                         rk(tmp);
                     } else {

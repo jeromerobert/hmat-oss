@@ -388,7 +388,7 @@ template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
-  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
+  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1, approx.recompressionEpsilon);
   swap(*tmp);
   delete tmp;
 }
@@ -463,7 +463,7 @@ static void optimizeRkArray(int notNullParts, const RkMatrix<T>** usedParts, T *
 
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
-                                            const int n, const bool dotruncate) const {
+                                            const int n, double epsilon) const {
   // TODO check if formattedAddParts() actually uses sometimes this 'alpha' parameter (or is it always 1 ?)
   DECLARE_CONTEXT;
 
@@ -558,8 +558,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   assert(rankOffset==rankTotal);
   RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
   // If only one of the parts is non-zero, then the recompression is not necessary
-  if (notNullParts > 1 && dotruncate)
-    rk->truncate(approx.recompressionEpsilon, initialPivotA, initialPivotB);
+  if (notNullParts > 1 && epsilon >= 0)
+    rk->truncate(epsilon, initialPivotA, initialPivotB);
 
   return rk;
 }
@@ -1014,7 +1014,8 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     } // i loop
     // Reconstruction of C by adding the parts
     std::vector<T> alphaV(nbRows * nbCols, Constants<T>::pone);
-    RkMatrix<T>* rk = formattedAddParts(&alphaV[0], (const RkMatrix<T>**) subRks, nbRows * nbCols);
+    RkMatrix<T>* rk = formattedAddParts(&alphaV[0], (const RkMatrix<T>**) subRks,
+        nbRows * nbCols, approx.recompressionEpsilon);
     swap(*rk);
     for (int i = 0; i < nbRows * nbCols; i++) {
       delete subRks[i];
