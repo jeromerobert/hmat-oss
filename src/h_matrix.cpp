@@ -482,7 +482,7 @@ template<typename T> double HMatrix<T>::normSqr() const {
   if (rows()->size() == 0 || cols()->size() == 0) {
     return result;
   }
-  if (this->isLeaf() && !isNull()) {
+  if (this->isLeaf() && isAssembled() && !isNull()) {
     if (isRkMatrix()) {
       result = rk()->normSqr();
     } else {
