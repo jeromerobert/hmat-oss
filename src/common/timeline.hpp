@@ -96,6 +96,7 @@ class Timeline {
         static Timeline instance;
         return instance;
     }
+    void flush();
 };
 
 }

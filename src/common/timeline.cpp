@@ -78,4 +78,10 @@ Timeline::~Timeline() {
     for(int i = 0; i < files_.size(); i++)
         fclose(files_[i]);
 }
+
+void Timeline::flush() {
+    for(int i = 0; i < files_.size(); i++)
+        fflush(files_[i]);
+}
+
 }
