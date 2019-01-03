@@ -170,8 +170,8 @@ public:
       \param epsilon truncate epsilon (negative value disable truncate)
       \return truncate(*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  RkMatrix<T>* formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts, const int n,
-                                 double epsilon) const;
+  void formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts, const int n,
+                                 double epsilon);
   /** Adds a list of MatrixXd (solid matrices) to RkMatrix.
 
       In this function, MatrixXd may cover a portion of
@@ -184,7 +184,7 @@ public:
       \param n Number of matrices to add
       \return truncate (*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  RkMatrix<T>* formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const;
+  void formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n);
 
   /*! \brief Add a product of HMatrix to an RkMatrix
      */

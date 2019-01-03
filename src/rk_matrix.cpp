@@ -382,15 +382,11 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
-  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1);
-  swap(*tmp);
-  delete tmp;
+  formattedAddParts(&alpha, &mat, 1);
 }
 
 template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
-  RkMatrix<T>* tmp = formattedAddParts(&alpha, &mat, 1, approx.recompressionEpsilon);
-  swap(*tmp);
-  delete tmp;
+  formattedAddParts(&alpha, &mat, 1, approx.recompressionEpsilon);
 }
 
 /*! \brief Try to optimize the order of the Rk matrix to maximize initialPivot
@@ -462,8 +458,8 @@ static void optimizeRkArray(int notNullParts, const RkMatrix<T>** usedParts, T *
 }
 
 template<typename T>
-RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
-                                            const int n, double epsilon) const {
+void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
+                                    const int n, double epsilon) {
   // TODO check if formattedAddParts() actually uses sometimes this 'alpha' parameter (or is it always 1 ?)
   DECLARE_CONTEXT;
 
@@ -499,7 +495,7 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   }
 
   if(notNullParts == 0)
-    return new RkMatrix<T>(NULL, rows, NULL, cols, minMethod);
+    return;
 
   // In case the sum of the ranks of the sub-matrices is greater than
   // the matrix size, it is more efficient to put everything in a
@@ -509,11 +505,11 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
     fullParts[0] = NULL ;
     for (int i = rank() ? 1 : 0 ; i < notNullParts; i++) // exclude usedParts[0] if it is 'this'
       fullParts[i] = usedParts[i]->eval();
-    RkMatrix<T>* result = formattedAddParts(usedAlpha, fullParts, notNullParts);
+    formattedAddParts(usedAlpha, fullParts, notNullParts);
     for (int i = 0; i < notNullParts; i++)
       delete fullParts[i];
     delete[] fullParts;
-    return result;
+    return;
   }
 
   // Find if the QR factorisation can be accelerated using orthogonality information
@@ -525,8 +521,6 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   if (useBestRk)
     optimizeRkArray(notNullParts, usedParts, usedAlpha, initialPivotA, initialPivotB);
 
-  ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
-  ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
   // According to the indices organization, the sub-matrices are
   // contiguous blocks in the "big" matrix whose columns offset is
   //      kOffset = usedParts[0]->k + ... + usedParts[i-1]->k
@@ -535,37 +529,50 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* c
   // rows size
   //      usedParts[i]->rows->size x usedParts[i]->k (rows x columns)
   // Same for columns.
+
+  // concatenate a(i) then b(i) to limite memory usage
+  ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
   int rankOffset = 0;
   for (int i = 0; i < notNullParts; i++) {
-
     // Copy 'a' at position rowOffset, kOffset
     int rowOffset = usedParts[i]->rows->offset() - rows->offset();
     resultA->copyMatrixAtOffset(usedParts[i]->a, rowOffset, rankOffset);
-
     // Scaling the matrix already in place inside resultA
     if (usedAlpha[i] != Constants<T>::pone) {
       ScalarArray<T> tmp(*resultA, rowOffset, usedParts[i]->a->rows, rankOffset, usedParts[i]->a->cols);
       tmp.scale(usedAlpha[i]);
     }
-
-    // Copy 'b' at position colOffset, kOffset
-    int colOffset = usedParts[i]->cols->offset() - cols->offset();
-    resultB->copyMatrixAtOffset(usedParts[i]->b, colOffset, rankOffset);
-
     // Update the rank offset
     rankOffset += usedParts[i]->rank();
   }
   assert(rankOffset==rankTotal);
-  RkMatrix<T>* rk = new RkMatrix<T>(resultA, rows, resultB, cols, minMethod);
+
+  if(a != NULL)
+    delete a;
+  a = resultA;
+
+  ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
+  rankOffset = 0;
+  for (int i = 0; i < notNullParts; i++) {
+    // Copy 'b' at position colOffset, kOffset
+    int colOffset = usedParts[i]->cols->offset() - cols->offset();
+    resultB->copyMatrixAtOffset(usedParts[i]->b, colOffset, rankOffset);
+    // Update the rank offset
+    rankOffset += usedParts[i]->b->cols;
+  }
+
+  if(b != NULL)
+    delete b;
+  b = resultB;
+
+  assert(rankOffset==rankTotal);
   // If only one of the parts is non-zero, then the recompression is not necessary
   if (notNullParts > 1 && epsilon >= 0)
-    rk->truncate(epsilon, initialPivotA, initialPivotB);
-
-  return rk;
+    truncate(epsilon, initialPivotA, initialPivotB);
 }
 
 template<typename T>
-RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) const {
+void RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) {
   DECLARE_CONTEXT;
   FullMatrix<T>* me = eval();
   HMAT_ASSERT(me);
@@ -589,7 +596,8 @@ RkMatrix<T>* RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>*
   }
   RkMatrix<T>* result = truncatedSvd(me, RkMatrix<T>::approx.recompressionEpsilon); // TODO compress with something else than SVD
   delete me;
-  return result;
+  swap(*result);
+  delete result;
 }
 
 
@@ -1014,13 +1022,11 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     } // i loop
     // Reconstruction of C by adding the parts
     std::vector<T> alphaV(nbRows * nbCols, Constants<T>::pone);
-    RkMatrix<T>* rk = formattedAddParts(&alphaV[0], (const RkMatrix<T>**) subRks,
+    formattedAddParts(&alphaV[0], (const RkMatrix<T>**) subRks,
         nbRows * nbCols, approx.recompressionEpsilon);
-    swap(*rk);
     for (int i = 0; i < nbRows * nbCols; i++) {
       delete subRks[i];
     }
-    delete rk;
   } else {
     RkMatrix<T>* rk = NULL;
     // One of the product matrix is a leaf

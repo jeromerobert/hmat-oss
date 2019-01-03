@@ -593,8 +593,8 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
   }
   if (allRkLeaves) {
     std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
-    RkMatrix<T> dummy(NULL, rows(), NULL, cols(), NoCompression);
-    RkMatrix<T>* candidate = dummy.formattedAddParts(&alpha[0], childrenArray, this->nrChild(), epsilon);
+    RkMatrix<T> * candidate = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
+    candidate->formattedAddParts(&alpha[0], childrenArray, this->nrChild(), epsilon);
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
     if (force || elements < childrenElements) {
       // Replace 'this' by the new Rk matrix
@@ -732,15 +732,12 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
                 if(x->isRkMatrix()) {
                     rk()->axpy(alpha, x->rk());
-                    rank_ = rk()->rank();
                 } else if(!x->isLeaf()){
                     vector<const RkMatrix<T>*> rkLeaves;
                     if(listAllRk(x, rkLeaves)) {
                         vector<T> alphas(rkLeaves.size(), alpha);
-                        RkMatrix<T>* tmp = rk()->formattedAddParts(&alphas[0], &rkLeaves[0],
+                        rk()->formattedAddParts(&alphas[0], &rkLeaves[0],
                             rkLeaves.size(), RkMatrix<T>::approx.recompressionEpsilon);
-                        delete rk();
-                        rk(tmp);
                     } else {
                         // x has contains both full and Rk matrices, this is not
                         // supported yet.
@@ -748,10 +745,10 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                     }
                 } else {
                     FullMatrix<T>* f=x->full();
-                    RkMatrix<T>* tmp = rk()->formattedAddParts(&alpha, &f, 1);
-                    delete rk();
-                    rk(tmp);
+                    rk()->formattedAddParts(&alpha, &f, 1);
+
                 }
+                rank_ = rk()->rank();
             } else {
                 if(full() == NULL)
                     full(new FullMatrix<T>(rows(), cols()));
