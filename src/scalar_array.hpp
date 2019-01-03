@@ -34,6 +34,16 @@
 
 namespace hmat {
 
+struct ScalarArrayMemoryTracer {
+  static ScalarArrayMemoryTracer * instance;
+  virtual void allocate(size_t)=0;
+  virtual void free(size_t)=0;
+  virtual void end(const std::string &)=0;
+  virtual void start(size_t)=0;
+  virtual void report()=0;
+  virtual ~ScalarArrayMemoryTracer() {}
+};
+
 // Forward declaration
 template<typename T> class Vector;
 

@@ -99,6 +99,7 @@ template<typename T>
 ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
   : ownsMemory(true), ownsFlag(true), rows(_rows), cols(_cols), lda(_rows) {
   size_t size = sizeof(T) * rows * cols;
+  ScalarArrayMemoryTracer::instance->allocate(size);
   void * p;
 #ifdef HAVE_JEMALLOC
   p = initzero ? je_calloc(size, 1) : je_malloc(size);
@@ -121,6 +122,7 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
 #else
     free(m);
 #endif
+    ScalarArrayMemoryTracer::instance->free(size);
     m = NULL;
   }
   if (ownsFlag) {
@@ -1273,4 +1275,6 @@ template class Vector<S_t>;
 template class Vector<D_t>;
 template class Vector<C_t>;
 template class Vector<Z_t>;
+
+ScalarArrayMemoryTracer * ScalarArrayMemoryTracer::instance;
 }  // end namespace hmat
