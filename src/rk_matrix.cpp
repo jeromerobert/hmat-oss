@@ -374,8 +374,8 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
 // Swap members with members from another instance.
 template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
 {
-  assert(rows == other.rows);
-  assert(cols == other.cols);
+  assert(*rows == *other.rows);
+  assert(*cols == *other.cols);
   std::swap(a, other.a);
   std::swap(b, other.b);
   std::swap(method, other.method);
@@ -1043,7 +1043,12 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
       }
     }
     if(rk) {
-      axpy(alpha, rk);
+      if(rank() == 0) {
+        // save memory by not allocating a temporary Rk
+        rk->scale(alpha);
+        swap(*rk);
+      } else
+        axpy(alpha, rk);
       delete rk;
     }
   }
