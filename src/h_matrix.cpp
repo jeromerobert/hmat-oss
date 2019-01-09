@@ -796,8 +796,8 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
   DECLARE_CONTEXT;
   // this += alpha * b
   assert(b);
-  assert(b->rows->isSuperSet(*rows()));
-  assert(b->cols->isSuperSet(*cols()));
+  assert(b->rows->intersects(*rows()));
+  assert(b->cols->intersects(*cols()));
 
   if (b->rank() == 0 || rows()->size() == 0 || cols()->size() == 0) {
     return;
