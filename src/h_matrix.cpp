@@ -2343,7 +2343,7 @@ template<typename T> std::string HMatrix<T>::toString() const {
             "], pointer=" << (void*)this << ", leaves=" << leaves.size() <<
             ", assembled=" << isAssembled() << ", assembledLeaves=" << nbAssembled <<
             ", nullFull=" << nbNullFull << ", nullRk=" << nbNullRk <<
-            ", diagNorm=" << diagNorm << ")";
+            ", rank=" << rank_ << ", diagNorm=" << diagNorm << ")";
     return sstm.str();
 }
 
