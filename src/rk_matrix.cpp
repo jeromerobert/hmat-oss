@@ -221,20 +221,24 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
   */
 
-  // QR decomposition of A and B
-  ScalarArray<T> ra(rank(), rank());
-  a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
-  ScalarArray<T> rb(rank(), rank());
-  b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
-
-  // R <- Ra Rb^t
-  ScalarArray<T> r(rank(), rank());
-  r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
-
   // truncated SVD of Ra Rb^t (allows failure)
   ScalarArray<T> *u = NULL, *v = NULL;
-  int newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
+  int newK;
+  // context block to release ra, rb, r ASAP
+  {
+    // QR decomposition of A and B
+    ScalarArray<T> ra(rank(), rank());
+    a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
+    ScalarArray<T> rb(rank(), rank());
+    b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
 
+    // R <- Ra Rb^t
+    ScalarArray<T> r(rank(), rank());
+    r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+
+    // truncated SVD of Ra Rb^t (allows failure)
+    newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
+  }
   if (newK == 0) {
     clear();
     return;
