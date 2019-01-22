@@ -213,18 +213,6 @@ public:
     \param colOffset the column offset
    */
   void copyMatrixAtOffset(const FullMatrix<T>* a, int rowOffset, int colOffset);
-  /*! Copy a matrix A into 'this' at offset (rowOffset, colOffset) (indices start at 0).
-
-    In this function, only copy a sub-matrix of size (rowsToCopy, colsToCopy).
-
-    \param a the matrix A
-    \param rowOffset the row offset
-    \param colOffset the column offset
-    \param rowsToCopy number of rows to copy
-    \param colsToCopy number of columns to copy
-   */
-  void copyMatrixAtOffset(const FullMatrix<T>* a, int rowOffset, int colOffset,
-                          int rowsToCopy, int colsToCopy);
   /*! \brief this += alpha * A
 
     \param a the Matrix A

@@ -320,18 +320,6 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
   }
 }
 
-template<typename T>
-void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
-                                       int rowOffset, int colOffset,
-                                       int rowsToCopy, int colsToCopy) { // NOT USED
-  assert(rowOffset + rowsToCopy <= rows);
-  assert(colOffset + colsToCopy <= cols);
-  for (int col = 0; col < colsToCopy; col++) {
-    proxy_cblas::copy(rowsToCopy, a->const_ptr() + col * a->lda, 1,
-                (ptr() + rowOffset + ((colOffset + col) * lda)), 1);
-  }
-}
-
 template<typename T> void ScalarArray<T>::addRand(double epsilon) {
   DECLARE_CONTEXT;
   if (lda == rows) {

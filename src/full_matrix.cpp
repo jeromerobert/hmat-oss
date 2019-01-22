@@ -375,13 +375,6 @@ void FullMatrix<T>::copyMatrixAtOffset(const FullMatrix<T>* a,
 }
 
 template<typename T>
-void FullMatrix<T>::copyMatrixAtOffset(const FullMatrix<T>* a,
-                                       int rowOffset, int colOffset,
-                                       int rowsToCopy, int colsToCopy) { // NOT USED
-  data.copyMatrixAtOffset(&a->data, rowOffset, colOffset, rowsToCopy, colsToCopy);
-}
-
-template<typename T>
 void FullMatrix<T>::axpy(T alpha, const FullMatrix<T>* a) {
   data.axpy(alpha, &a->data);
 }
