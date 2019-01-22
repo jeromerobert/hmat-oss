@@ -76,30 +76,6 @@ void axpy(const int n, const hmat::Z_t& alpha, const hmat::Z_t* x, const int inc
 }
 
 template<typename T>
-void copy(const int n, const T* x, const int incx, T* y, const int incy);
-
-inline
-void copy(const int n, const hmat::S_t* x, int incx, hmat::S_t* y, const int incy) {
-  cblas_scopy(n, x, incx, y, incy);
-}
-inline
-void copy(const int n, const hmat::D_t* x, int incx, hmat::D_t* y, const int incy) {
-  cblas_dcopy(n, x, incx, y, incy);
-}
-inline
-void copy(const int n, const hmat::C_t* x, int incx, hmat::C_t* y, const int incy) {
-  #define _C_T hmat::C_t
-  cblas_ccopy(n, _C(x), incx, _C(y), incy);
-  #undef _C_T
-}
-inline
-void copy(const int n, const hmat::Z_t* x, int incx, hmat::Z_t* y, const int incy) {
-  #define _C_T hmat::Z_t
-  cblas_zcopy(n, _C(x), incx, _C(y), incy);
-  #undef _C_T
-}
-
-template<typename T>
 T dot(const int n, const T* x, const int incx, const T* y, const int incy);
 
 inline

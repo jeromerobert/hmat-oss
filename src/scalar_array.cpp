@@ -302,21 +302,18 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
   assert(rowOffset + a->rows <= rows);
   assert(colOffset + a->cols <= cols);
 
-
-  // Use memcpy when copying the whole matrix. This avoids BLAS calls.
-  if ((rowOffset == 0) && (colOffset == 0)
-      && (a->rows == rows) && (a->cols == cols)
-      && (a->lda == a->rows) && (lda == rows)) {
-    size_t size = ((size_t) rows) * cols;
-    memcpy(ptr(), a->const_ptr(), size * sizeof(T));
+  if (rowOffset == 0 && a->rows == rows &&
+      a->lda == a->rows && lda == rows) {
+    memcpy(ptr() + colOffset * lda, a->const_ptr(), sizeof(T) * rows * a->cols);
     // If I copy the whole matrix, I copy this flag
-    setOrtho(a->getOrtho());
-    return;
-  }
-
-  for (int col = 0; col < a->cols; col++) {
-    proxy_cblas::copy(a->rows, a->const_ptr() + col * a->lda, 1,
-                ptr() + rowOffset + ((colOffset + col) * lda), 1);
+    if(a->cols == cols)
+      setOrtho(a->getOrtho());
+  } else {
+    for (int col = 0; col < a->cols; col++) {
+      memcpy(ptr() + rowOffset + (colOffset + col) * lda,
+             a->const_ptr() + col * a->lda,
+             sizeof(T) * a->rows);
+    }
   }
 }
 
