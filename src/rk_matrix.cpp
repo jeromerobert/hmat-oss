@@ -461,6 +461,14 @@ static void optimizeRkArray(int notNullParts, const RkMatrix<T>** usedParts, T *
 
 }
 
+template<typename T> bool allSameRows(const RkMatrix<T>** rks, int n) {
+  for(int i = 1; i < n; i++) {
+    if(!(*rks[0]->rows == *rks[i]->rows))
+      return false;
+  }
+  return true;
+}
+
 template<typename T>
 void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
                                     const int n, double epsilon) {
@@ -534,10 +542,22 @@ void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * p
   //      usedParts[i]->rows->size x usedParts[i]->k (rows x columns)
   // Same for columns.
 
+  // when possible realloc this a & b arrays to limit memory usage and avoid a copy
+  bool useRealloc = usedParts[0] == this && allSameRows(usedParts, notNullParts);
   // concatenate a(i) then b(i) to limite memory usage
-  ScalarArray<T>* resultA = new ScalarArray<T>(rows->size(), rankTotal);
-  int rankOffset = 0;
-  for (int i = 0; i < notNullParts; i++) {
+  ScalarArray<T>* resultA, *resultB;
+  int rankOffset;
+  if(useRealloc) {
+    resultA = a;
+    rankOffset = a->cols;
+    a->resize(rankTotal);
+  }
+  else {
+    rankOffset = 0;
+    resultA = new ScalarArray<T>(rows->size(), rankTotal);
+  }
+
+  for (int i = useRealloc ? 1 : 0; i < notNullParts; i++) {
     // Copy 'a' at position rowOffset, kOffset
     int rowOffset = usedParts[i]->rows->offset() - rows->offset();
     resultA->copyMatrixAtOffset(usedParts[i]->a, rowOffset, rankOffset);
@@ -551,13 +571,21 @@ void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * p
   }
   assert(rankOffset==rankTotal);
 
-  if(a != NULL)
+  if(!useRealloc && a != NULL)
     delete a;
   a = resultA;
 
-  ScalarArray<T>* resultB = new ScalarArray<T>(cols->size(), rankTotal);
-  rankOffset = 0;
-  for (int i = 0; i < notNullParts; i++) {
+  if(useRealloc) {
+    resultB = b;
+    rankOffset = b->cols;
+    b->resize(rankTotal);
+  }
+  else {
+    rankOffset = 0;
+    resultB = new ScalarArray<T>(cols->size(), rankTotal);
+  }
+
+  for (int i = useRealloc ? 1 : 0; i < notNullParts; i++) {
     // Copy 'b' at position colOffset, kOffset
     int colOffset = usedParts[i]->cols->offset() - cols->offset();
     resultB->copyMatrixAtOffset(usedParts[i]->b, colOffset, rankOffset);
@@ -565,7 +593,7 @@ void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * p
     rankOffset += usedParts[i]->b->cols;
   }
 
-  if(b != NULL)
+  if(!useRealloc && b != NULL)
     delete b;
   b = resultB;
 

@@ -150,6 +150,14 @@ public:
     \param colOffset the column offset
    */
   void copyMatrixAtOffset(const ScalarArray<T>* a, int rowOffset, int colOffset);
+
+  /*!
+   * \brief resize Change the number of column.
+   * When increasing the existing values are kept and the added column contains
+   * undertermined values.
+   * \param col_num the new number of columns
+   */
+  void resize(int col_num);
   /*! \brief add term by term a random value
 
     \param epsilon  x *= (1 + a),  a = epsilon*(1.0-2.0*rand()/(double)RAND_MAX)

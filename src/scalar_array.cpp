@@ -127,6 +127,18 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
   }
 }
 
+template<typename T> void ScalarArray<T>::resize(int col_num) {
+  assert(ownsFlag);
+  cols = col_num;
+#ifdef HAVE_JEMALLOC
+  void * p = je_realloc(m, sizeof(T) * rows * cols);
+#else
+  void * p = realloc(m, sizeof(T) * rows * cols);
+#endif
+  m = static_cast<T*>(p);
+  setOrtho(0);
+}
+
 template<typename T> void ScalarArray<T>::clear() {
   assert(lda == rows);
   std::fill(m, m + ((size_t) rows) * cols, Constants<T>::zero);
