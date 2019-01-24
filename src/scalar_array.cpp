@@ -81,6 +81,11 @@
 using std::isnan;
 #endif
 
+extern "C" {
+void mycalloc() {
+
+}
+}
 namespace hmat {
 
 /** ScalarArray */
@@ -101,6 +106,9 @@ ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
   size_t size = sizeof(T) * rows * cols;
   ScalarArrayMemoryTracer::instance->allocate(size);
   void * p;
+  if(initzero)
+    for(int i = 0; i < size / (1024*8); i++)
+      mycalloc();
 #ifdef HAVE_JEMALLOC
   p = initzero ? je_calloc(size, 1) : je_malloc(size);
 #else
