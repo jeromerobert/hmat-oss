@@ -96,16 +96,18 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
 }
 
 template<typename T>
-ScalarArray<T>::ScalarArray(int _rows, int _cols)
+ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
   : ownsMemory(true), ownsFlag(true), rows(_rows), cols(_cols), lda(_rows) {
-  size_t size = ((size_t) rows) * cols * sizeof(T);
+  size_t size = sizeof(T) * rows * cols;
+  void * p;
 #ifdef HAVE_JEMALLOC
-  m = (T*) je_calloc(size, 1);
+  p = initzero ? je_calloc(size, 1) : je_malloc(size);
 #else
-  m = (T*) calloc(size, 1);
+  p = initzero ? calloc(size, 1) : malloc(size);
 #endif
+  m = static_cast<T*>(p);
   is_ortho = (int*)calloc(1, sizeof(int));
-  setOrtho(1); // buffer filled with 0 is orthogonal
+  setOrtho(initzero ? 1 : 0); // buffer filled with 0 is orthogonal
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
 }
@@ -129,6 +131,8 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
 
 template<typename T> void ScalarArray<T>::resize(int col_num) {
   assert(ownsFlag);
+  if(col_num > cols)
+    setOrtho(0);
   cols = col_num;
 #ifdef HAVE_JEMALLOC
   void * p = je_realloc(m, sizeof(T) * rows * cols);
@@ -136,7 +140,6 @@ template<typename T> void ScalarArray<T>::resize(int col_num) {
   void * p = realloc(m, sizeof(T) * rows * cols);
 #endif
   m = static_cast<T*>(p);
-  setOrtho(0);
 }
 
 template<typename T> void ScalarArray<T>::clear() {
@@ -241,7 +244,7 @@ template<typename T> void ScalarArray<T>::conjugate() {
 
 template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result) const {
   if(result == NULL)
-    result = new ScalarArray<T>(rows, cols);
+    result = new ScalarArray<T>(rows, cols, false);
 
   if (lda == rows && result->lda == result->rows) {
     size_t size = ((size_t) rows) * cols * sizeof(T);
@@ -778,9 +781,9 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   // Allocate free space for U, S, V
   int p = std::min(rows, cols);
 
-  *u = new ScalarArray<T>(rows, p);
+  *u = new ScalarArray<T>(rows, p, false);
   *sigma = new Vector<double>(p);
-  *v = new ScalarArray<T>(p, cols); // We create v in transposed shape (as expected by lapack zgesvd)
+  *v = new ScalarArray<T>(p, cols, false); // We create v in transposed shape (as expected by lapack zgesvd)
 
   // To be prepared for working around a failure in SVD, I must do a copy of 'this'
   ScalarArray<T> *a = workAroundFailures ? copy() : NULL;

@@ -90,7 +90,7 @@ public:
       \param _rows indices of the rows
       \param _cols indices of the columns
    */
-  FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols);
+  FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols, bool zeroinit=true);
   ~FullMatrix();
 
   bool isTriUpper() const {

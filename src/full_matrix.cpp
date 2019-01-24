@@ -83,8 +83,8 @@ FullMatrix<T>::FullMatrix(ScalarArray<T> *s, const IndexSet*  _rows, const Index
 }
 
 template<typename T>
-FullMatrix<T>::FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols)
-  : data(_rows->size(), _cols->size()), triUpper_(false), triLower_(false),
+FullMatrix<T>::FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols, bool zeroinit)
+  : data(_rows->size(), _cols->size(), zeroinit), triUpper_(false), triLower_(false),
     rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
   assert(rows_);
   assert(cols_);
@@ -130,7 +130,7 @@ template<typename T> void FullMatrix<T>::transpose() {
 
 template<typename T> FullMatrix<T>* FullMatrix<T>::copy(FullMatrix<T>* result) const {
   if(result == NULL)
-    result = new FullMatrix<T>(rows_, cols_);
+    result = new FullMatrix<T>(rows_, cols_, false);
 
   data.copy(&result->data);
   if (diagonal) {

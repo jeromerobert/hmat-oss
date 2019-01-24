@@ -74,7 +74,7 @@ template<typename T> ScalarArray<T>* RkMatrix<T>::evalArray(ScalarArray<T>* resu
 }
 
 template<typename T> FullMatrix<T>* RkMatrix<T>::eval() const {
-  FullMatrix<T>* result = new FullMatrix<T>(rows, cols);
+  FullMatrix<T>* result = new FullMatrix<T>(rows, cols, false);
   evalArray(&result->data);
   return result;
 }
@@ -895,17 +895,17 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
   // This version is default, it can be deactivated by setting env. var. HMAT_OLD_RKRK
   // With this version, orthogonality is lost on both panel.
 
-  ScalarArray<T>* tmp = new ScalarArray<T>(r1->rank(), r2->rank());
+  ScalarArray<T> tmp(r1->rank(), r2->rank(), false);
   if (trans1 == 'C' && trans2 == 'C') {
-    tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
-    tmp->conjugate();
+    tmp.gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.conjugate();
   } else if (trans1 == 'C') {
-    tmp->gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   } else if (trans2 == 'C') {
-    tmp->gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
-    tmp->conjugate();
+    tmp.gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.conjugate();
   } else {
-    tmp->gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
   }
 
   ScalarArray<T> *newA=NULL, *newB=NULL;
@@ -915,14 +915,14 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     ScalarArray<T>* ur = NULL;
     ScalarArray<T>* vr = NULL;
     // truncated SVD tmp = ur.t^vr
-    int newK = tmp->truncatedSvdDecomposition(&ur, &vr, RkMatrix<T>::approx.recompressionEpsilon, true);
+    int newK = tmp.truncatedSvdDecomposition(&ur, &vr, RkMatrix<T>::approx.recompressionEpsilon, true);
     if (newK > 0) {
       /* Now compute newA = a1.ur and newB = b2.vr */
-      newA = new ScalarArray<T>(a1->rows, newK);
+      newA = new ScalarArray<T>(a1->rows, newK, false);
       if (trans1 == 'C') ur->conjugate();
       newA->gemm('N', 'N', Constants<T>::pone, a1, ur, Constants<T>::zero);
       if (trans1 == 'C') newA->conjugate();
-      newB = new ScalarArray<T>(b2->rows, newK);
+      newB = new ScalarArray<T>(b2->rows, newK, false);
       if (trans2 == 'C') vr->conjugate();
       newB->gemm('N', 'N', Constants<T>::pone, b2, vr, Constants<T>::zero);
       if (trans2 == 'C') newB->conjugate();
@@ -937,22 +937,20 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
       if (trans1 == 'C') newA->conjugate();
       newB = new ScalarArray<T>(b2->rows, r1->rank());
       if (trans2 == 'C') {
-        newB->gemm('N', 'C', Constants<T>::pone, b2, tmp, Constants<T>::zero);
+        newB->gemm('N', 'C', Constants<T>::pone, b2, &tmp, Constants<T>::zero);
         newB->conjugate();
       } else {
-        newB->gemm('N', 'T', Constants<T>::pone, b2, tmp, Constants<T>::zero);
+        newB->gemm('N', 'T', Constants<T>::pone, b2, &tmp, Constants<T>::zero);
       }
     } else { // newA = a1.tmp, newB = b2
       newA = new ScalarArray<T>(a1->rows, r2->rank());
-      if (trans1 == 'C') tmp->conjugate(); // be careful if you re-use tmp after this...
-      newA->gemm('N', 'N', Constants<T>::pone, a1, tmp, Constants<T>::zero);
+      if (trans1 == 'C') tmp.conjugate(); // be careful if you re-use tmp after this...
+      newA->gemm('N', 'N', Constants<T>::pone, a1, &tmp, Constants<T>::zero);
       if (trans1 == 'C') newA->conjugate();
       newB = b2->copy();
       if (trans2 == 'C') newB->conjugate();
     }
   }
-  delete tmp;
-
   CompressionMethod combined = std::min(r1->method, r2->method);
   return new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows), combined);
 }
