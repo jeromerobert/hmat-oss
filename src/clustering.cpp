@@ -179,7 +179,8 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   if (spatialDimension_ < 0) {
     spatialDimension_ = current.data.coordinates()->dimension();
   }
-  // TODO: not good. We should always cut in the largest dimension, not iterating on the dimensions.
+  // If the instance has been initialized with an axisIndex value, we 'loop' on the different axis as we go down the tree
+  // Otherwise, we choose as axis the longest dimension of the bounding box
   if (axisIndex_ < 0) {
     dim = largestDimension(current);
   } else {
