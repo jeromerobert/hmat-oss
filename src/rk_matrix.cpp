@@ -461,9 +461,9 @@ static void optimizeRkArray(int notNullParts, const RkMatrix<T>** usedParts, T *
 
 }
 
-template<typename T> bool allSameRows(const RkMatrix<T>** rks, int n) {
+template<typename T> bool allSame(const RkMatrix<T>** rks, int n) {
   for(int i = 1; i < n; i++) {
-    if(!(*rks[0]->rows == *rks[i]->rows))
+    if(!(*rks[0]->rows == *rks[i]->rows) || !(*rks[0]->cols == *rks[i]->cols))
       return false;
   }
   return true;
@@ -543,7 +543,7 @@ void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * p
   // Same for columns.
 
   // when possible realloc this a & b arrays to limit memory usage and avoid a copy
-  bool useRealloc = usedParts[0] == this && allSameRows(usedParts, notNullParts);
+  bool useRealloc = usedParts[0] == this && allSame(usedParts, notNullParts);
   // concatenate a(i) then b(i) to limite memory usage
   ScalarArray<T>* resultA, *resultB;
   int rankOffset;
