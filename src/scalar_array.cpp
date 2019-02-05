@@ -711,9 +711,9 @@ void ScalarArray<T>::inverse() {
 
      The stop criterion is (assuming that the singular value
      are in descending order):
-         sigma [k] / SUM (sigma) <epsilon
-     except if env. var. HMAT_L2_CRITERION is set, in which case the criterion is:
          sigma [k] / sigma[0] <epsilon
+     except if env. var. HMAT_SUM_CRITERION is set, in which case the criterion is:
+         sigma [k] / SUM (sigma) <epsilon
 
      \param sigma table of singular values at least maxK elements.
      \param epsilon tolerance.
@@ -721,14 +721,14 @@ void ScalarArray<T>::inverse() {
  */
 static int findK(Vector<double> &sigma, double epsilon) {
   assert(epsilon >= 0.);
-  static char *useL2Criterion = getenv("HMAT_L2_CRITERION");
+  static char *useSumCriterion = getenv("HMAT_SUM_CRITERION");
   double threshold_eigenvalue = 0.0;
-  if (useL2Criterion == NULL) {
+  if (useSumCriterion == NULL) {
+    threshold_eigenvalue = sigma[0];
+  } else {
     for (int i = 0; i < sigma.rows; i++) {
       threshold_eigenvalue += sigma[i];
     }
-  } else {
-    threshold_eigenvalue = sigma[0];
   }
   threshold_eigenvalue *= epsilon;
   int i = 0;
