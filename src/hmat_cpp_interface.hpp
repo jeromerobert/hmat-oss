@@ -94,11 +94,6 @@ private:
       This method has to be called for the settings to take effect.
    */
   void setParameters() const;
-  /** Output a textual representation of the settings to out.
-
-      @param out The output stream, std::cout by default.
-   */
-  void printSettings(std::ostream& out = std::cout) const;
 };
 
 DofCoordinates* createCoordinates(double* coord, int dim, int size);

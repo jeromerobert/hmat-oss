@@ -78,33 +78,6 @@ void HMatSettings::setParameters() const {
 }
 
 
-void HMatSettings::printSettings(std::ostream& out) const {
-  std::ios_base::fmtflags savedIosFlags = out.flags();
-  out << std::scientific;
-  out << "Assembly Epsilon           = " << assemblyEpsilon << std::endl;
-  out << "Resolution Epsilon         = " << recompressionEpsilon << std::endl;
-  out << "Compression Min Leaf Size  = " << compressionMinLeafSize << std::endl;
-  out << "Validation Error Threshold = " << validationErrorThreshold << std::endl;
-  switch (compressionMethod) {
-  case Svd:
-    out << "SVD Compression" << std::endl;
-    break;
-  case AcaFull:
-    out << "ACA compression (Full Pivoting)" << std::endl;
-    break;
-  case AcaPartial:
-    out << "ACA compression (Partial Pivoting)" << std::endl;
-    break;
-  case AcaPlus:
-    out << "ACA+ compression" << std::endl;
-    break;
-  case NoCompression:
-    // Should not happen
-    break;
-  }
-  out.flags(savedIosFlags);
-}
-
 ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgorithm& algo) {
   DECLARE_CONTEXT;
 
