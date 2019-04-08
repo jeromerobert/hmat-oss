@@ -72,7 +72,7 @@ private:
    */
   HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
                    compressionMethod(AcaPlus),  compressionMinLeafSize(100),
-                   maxLeafSize(100),
+                   maxLeafSize(200),
                    coarsening(false),
                    validateNullRowCol(false), validateCompression(false),
                    validationReRun(false), dumpTrace(false), validationDump(false), validationErrorThreshold(0.) {
