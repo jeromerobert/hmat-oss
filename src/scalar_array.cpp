@@ -759,10 +759,9 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
     return 0;
   }
 
-  // Resize u, sigma, v (not very clean...)
-  (*u)->cols =newK;
+  (*u)->resize(newK);
   sigma->rows = newK;
-  (*v)->cols =newK;
+  (*v)->resize(newK);
 
   // We put the square root of singular values in sigma
   for (int i = 0; i < newK; i++)
