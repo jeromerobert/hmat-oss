@@ -544,11 +544,12 @@ struct hmat_get_values_context_t {
     int row_size, col_size;
     /**
      * @brief Indirection array for numbering.
+     * Those are pointer to internal data and must not be freed by the caller.
      */
     int * row_indices, * col_indices;
     /**
-     * @brief If true renumber rows and set row_numbering to NULL
-     * Setting this and original_numbering to true is not valid.
+     * @brief If true renumber rows.
+     * This is only supported if row_offset = 0 and row_size = matrix row size.
      */
     int renumber_rows:1;
 };
