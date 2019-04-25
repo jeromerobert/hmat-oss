@@ -174,7 +174,7 @@ template <typename T> class UncompressedBlock:
     }
 
     void getValues() {
-         if (matrix().isNull()) {
+         if (!matrix().isAssembled() || matrix().isNull()) {
             getNullValues();
         } else if (matrix().isRkMatrix()) {
             getRkValues();
