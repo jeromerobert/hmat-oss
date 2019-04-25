@@ -746,6 +746,10 @@ hmat
     */
     int (*gemm)(char trans_a, char trans_b, void* alpha, hmat_matrix_t* hmatrix,
                      hmat_matrix_t* hmatrix_b, void* beta, hmat_matrix_t* hmatrix_c);
+
+    /*! \brief y := y + a * x */
+    int (*axpy)(void* a, hmat_matrix_t* x, hmat_matrix_t* hmatrix_y);
+
     /*! \brief c <- alpha * A * b + beta * c
 
       \param trans_a 'N' or 'T'

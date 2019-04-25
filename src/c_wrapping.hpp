@@ -224,6 +224,15 @@ int gemm(char trans_a, char trans_b, void *alpha, hmat_matrix_t * holder,
 }
 
 template<typename T, template <typename> class E>
+int axpy(void *a, hmat_matrix_t * x, hmat_matrix_t * y) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T, E>* hmat_x = reinterpret_cast<hmat::HMatInterface<T, E>*>(x);
+  hmat::HMatInterface<T, E>* hmat_y = reinterpret_cast<hmat::HMatInterface<T, E>*>(y);
+  hmat_y->engine().hmat->axpy(*((T*)a), hmat_x->engine().hmat);
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
                    void* beta, void* vec_c, int nrhs) {
   DECLARE_CONTEXT;
@@ -489,6 +498,7 @@ static void createCInterface(hmat_interface_t * i)
     i->write_data = write_data<T, E>;
     i->read_data = read_data<T, E>;
     i->apply_on_leaf = apply_on_leaf<T, E>;
+    i->axpy = axpy<T, E>;
 }
 
 }  // end namespace hmat
