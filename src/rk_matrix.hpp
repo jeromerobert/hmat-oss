@@ -138,9 +138,7 @@ public:
       \param initialPivotA/B is the number of orthogonal columns in panels a and b
    */
   void mGSTruncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
-  /** Add alea to the RkMatrix.
-
-   */
+  /** Add randomness to the RkMatrix */
   void addRand(double epsilon);
   /*! \brief Return square of the Frobenius norm of the matrix.
 

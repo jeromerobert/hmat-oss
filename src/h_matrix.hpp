@@ -56,6 +56,8 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 
 /** Default rank value for blocks that dont have an actual computed rank
    */
+// TODO: the meaning/usage of UNINITIALIZED_BLOCK is not clear, it should be reworked
+// or removed
 enum DefaultRank {UNINITIALIZED_BLOCK = -3, NONLEAF_BLOCK = -2, FULL_BLOCK = -1};
 
 /** Settings global to a whole matrix */
@@ -363,7 +365,7 @@ public:
     \warning Do not use. Doesn't work
    */
   void luDecomposition(hmat_progress_t * progress);
-  /* \brief LDL^t decomposition in place
+  /** \brief LDL^t decomposition in place
      \warning this has to be created with the flag lower
      \warning this has to be assembled with assembleSymmetric with onlyLower = true
    */
@@ -405,8 +407,7 @@ public:
   inline bool isFullMatrix() const {
     return rank_ == FULL_BLOCK && full_ != NULL;
   }
-  /* Return the full matrix corresponding to the current leaf
-   */
+  /** Return the full matrix corresponding to the current leaf */
   FullMatrix<T>* getFullMatrix() const {
     assert(isFullMatrix());
     return full_;
@@ -647,7 +648,8 @@ public:
       assert(rank_ >= FULL_BLOCK);
       return rank_ == 0 || (rank_ == FULL_BLOCK && full_ == NULL);
   }
-
+  // TODO: the meaning/usage of UNINITIALIZED_BLOCK is not clear, it should be reworked
+  // or removed
   bool isAssembled() const {
       return rank_ > UNINITIALIZED_BLOCK;
   }
