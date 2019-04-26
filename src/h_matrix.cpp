@@ -844,7 +844,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
     } else if(isFullMatrix()){
        full()->axpy(alpha, subMat);
     } else {
-       assert(full() == NULL);
+       assert(!isAssembled() || full() == NULL);
        full(subMat->copy());
        if(alpha != Constants<T>::pone)
          full()->scale(alpha);
@@ -1205,7 +1205,8 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
 
   this->scale(beta);
 
-  if((a->isLeaf() && a->isNull()) || (b->isLeaf() && b->isNull())) {
+  if((a->isLeaf() && (!a->isAssembled() || a->isNull())) ||
+     (b->isLeaf() && (!b->isAssembled() || b->isNull()))) {
       if(!isAssembled() && this->isLeaf())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
       return;
