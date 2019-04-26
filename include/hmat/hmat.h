@@ -323,8 +323,10 @@ HMAT_API hmat_admissibility_t* hmat_create_admissibility_always(
 
 /**
  * @brief Create an admissibility condiction which set all blocks as full
- * @param max_block_size The maximum acceptable block size in number of values (rows * cols)
+ * @param max_block_size The maximum acceptable block size in number of values (rows * cols).
+ * Use 0 to switch to autodetect.
  * @param min_nr_block The minimum acceptable number of blocks created with this condition
+ * Use 0 to switch to autodetect.
  * @param split_rows Tel whether or not to split rows
  * @param split_cols Tel whether or not to split cols
  */

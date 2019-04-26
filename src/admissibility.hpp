@@ -146,11 +146,19 @@ protected:
 };
 
 class AlwaysAdmissibilityCondition : public AdmissibilityCondition {
+public:
+    struct BlockSizeDetector {
+      virtual void compute(size_t & max_block_size, unsigned int & min_nr_block,
+                           bool never)=0;
+      virtual ~BlockSizeDetector(){};
+    };
+private:
     size_t max_block_size_;
     unsigned int min_nr_block_;
     std::pair<bool, bool> split_rows_cols_;
     mutable size_t max_block_size_impl_;
     bool never_;
+    static BlockSizeDetector * blockSizeDetector_;
 public:
     /**
      * @brief AlwaysAdmissibilityCondition
@@ -169,7 +177,8 @@ public:
     bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
     bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
     /** @Brief Let this admissibility condition always create full blocks */
-    void never(bool n) { never_ = n; }
+    void never(bool n);
+    static void setBlockSizeDetector(BlockSizeDetector * b) { blockSizeDetector_ = b; }
 };
 } //  end namespace hmat
 #endif

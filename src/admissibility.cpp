@@ -114,10 +114,31 @@ void StandardAdmissibilityCondition::setRatio(double ratio) {
 
 StandardAdmissibilityCondition StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY = StandardAdmissibilityCondition(2.0);
 
+struct DefaultBlockSizeDetector: public AlwaysAdmissibilityCondition::BlockSizeDetector {
+  static DefaultBlockSizeDetector& instance()
+  {
+     static DefaultBlockSizeDetector INSTANCE;
+     return INSTANCE;
+  }
+  void compute(size_t & max_block_size, unsigned int & min_nr_block, bool never) {
+    if(never) {
+      if(max_block_size == 0)
+        max_block_size = 1 << 20;
+      if(min_nr_block == 0)
+        min_nr_block = 1;
+    }
+  }
+};
+
+AlwaysAdmissibilityCondition::BlockSizeDetector * AlwaysAdmissibilityCondition::blockSizeDetector_=
+    &DefaultBlockSizeDetector::instance();
+
 AlwaysAdmissibilityCondition::AlwaysAdmissibilityCondition(size_t max_block_size, unsigned int min_block,
                                                            bool row_split, bool col_split):
-    max_block_size_(max_block_size), min_nr_block_(min_block), split_rows_cols_(row_split, col_split), never_(false) {
+    max_block_size_(max_block_size), min_nr_block_(min_block),
+    split_rows_cols_(row_split, col_split), never_(false) {
     HMAT_ASSERT(row_split || col_split);
+    blockSizeDetector_->compute(max_block_size_, min_nr_block_, never_);
 }
 
 std::string AlwaysAdmissibilityCondition::str() const {
@@ -126,6 +147,11 @@ std::string AlwaysAdmissibilityCondition::str() const {
         << " min_nr_block=" << min_nr_block_
         << " split(rows,cols)="  << split_rows_cols_.first << "," << split_rows_cols_.second;
     return oss.str();
+}
+
+void AlwaysAdmissibilityCondition::never(bool n) {
+  never_ = n;
+  blockSizeDetector_->compute(max_block_size_, min_nr_block_, never_);
 }
 
 bool AlwaysAdmissibilityCondition::isLowRank(const ClusterTree&, const ClusterTree&) const {
