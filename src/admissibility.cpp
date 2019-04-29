@@ -136,6 +136,11 @@ std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterT
     std::pair<bool, bool> s = split_rows_cols_;
     s.first = s.first && !r.isLeaf();
     s.second = s.second && !c.isLeaf();
+    if(never_ && s.first && s.second) {
+        // when not compressing, try to do square blocks
+        s.first = r.data.size() * 2 >= c.data.size();
+        s.second = r.data.size() <= 2 * c.data.size();
+    }
     return s;
 }
 
