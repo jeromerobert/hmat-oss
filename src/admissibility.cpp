@@ -138,8 +138,7 @@ std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterT
 
 bool AlwaysAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
     size_t block_size = ((size_t)rows.data.size()) * cols.data.size();
-    if(rows.father == NULL) {
-        assert(cols.father == NULL);
+    if(rows.father == NULL && cols.father == NULL) {
         max_block_size_impl_ = std::min(block_size / min_nr_block_, max_block_size_);
     }
     return never_ && block_size <= max_block_size_impl_;
@@ -147,8 +146,7 @@ bool AlwaysAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const 
 
 bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t) const {
     size_t block_size = ((size_t)rows.data.size()) * cols.data.size();
-    if(rows.father == NULL) {
-        assert(cols.father == NULL);
+    if(rows.father == NULL && cols.father == NULL) {
         max_block_size_impl_ = std::min(block_size / min_nr_block_, max_block_size_);
     }
     return block_size > max_block_size_impl_;
