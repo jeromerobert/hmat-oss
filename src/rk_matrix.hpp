@@ -60,7 +60,8 @@ public:
 
 
 template<typename T> class RkMatrix {
-
+  // Type double precision associated to T
+  typedef typename Types<T>::dp dp_t;
   /**  Swaps members of two RkMatrix instances.
        Since rows and cols are constant, they cannot be swaped and
        the other instance must have the same members.
@@ -83,13 +84,9 @@ public:
   ScalarArray<T>* b;
   CompressionMethod method; /// Method used to compress this RkMatrix
 
-public:
   /// Control of the approximation. See \a RkApproximationControl for more
   /// details.
   static RkApproximationControl approx;
-
-  // Type double precision associated to T
-  typedef typename Types<T>::dp dp_t;
 
   /** Construction of a RkMatrix .
 
