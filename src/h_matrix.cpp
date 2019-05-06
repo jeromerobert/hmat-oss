@@ -772,7 +772,7 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
                 const HMatrix<T>* bChild = x->isLeaf() ? x : x->getChild(i);
                 if (child && bChild)
                     child->axpy(alpha, bChild);
-                // TODO what to do if only 1 of the 2 is NULL ?
+                HMAT_ASSERT(child != NULL || bChild == NULL); // Not supported yet
             }
         }
     } else {
