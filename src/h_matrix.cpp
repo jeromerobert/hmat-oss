@@ -768,13 +768,13 @@ void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
             }
         } else {
             for (int i = 0; i < this->nrChild(); i++) {
-                    HMatrix<T>* child = this->getChild(i);
-                    const HMatrix<T>* bChild = x->isLeaf() ? x : x->getChild(i);
-                    if (child && bChild)
-                        child->axpy(alpha, bChild);
-                    // TODO what to do if only 1 of the 2 is NULL ?
-                }
+                HMatrix<T>* child = this->getChild(i);
+                const HMatrix<T>* bChild = x->isLeaf() ? x : x->getChild(i);
+                if (child && bChild)
+                    child->axpy(alpha, bChild);
+                // TODO what to do if only 1 of the 2 is NULL ?
             }
+        }
     } else {
         if(x->isFullMatrix()) {
             axpy(alpha, x->full());
