@@ -720,74 +720,49 @@ template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<
 /**
  * @brief generic AXPY implementation that dispatch to others or recurse
  */
-template<typename T>
-void HMatrix<T>::axpy(T alpha, const HMatrix<T>* x) {
-    if(x->isLeaf() && x->isNull())
-        return;
-
-    if(*rows() == *x->rows() && *cols() == *x->cols()) {
-        if (this->isLeaf()) {
-            if (isRkMatrix()) {
-                if(!rk())
-                    rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
-                if(x->isRkMatrix()) {
-                    rk()->axpy(alpha, x->rk());
-                } else if(!x->isLeaf()){
-                    vector<const RkMatrix<T>*> rkLeaves;
-                    if(listAllRk(x, rkLeaves)) {
-                        vector<T> alphas(rkLeaves.size(), alpha);
-                        rk()->formattedAddParts(&alphas[0], &rkLeaves[0],
-                            rkLeaves.size(), RkMatrix<T>::approx.recompressionEpsilon);
-                    } else {
-                        // x has contains both full and Rk matrices, this is not
-                        // supported yet.
-                        HMAT_ASSERT(false);
-                    }
-                } else {
-                    FullMatrix<T>* f=x->full();
-                    rk()->formattedAddParts(&alpha, &f, 1);
-
-                }
-                rank_ = rk()->rank();
-            } else {
-                if(full() == NULL)
-                    full(new FullMatrix<T>(rows(), cols()));
-                if(!x->isLeaf()) {
-                    FullMatrix<T> xFull(x->rows(), x->cols());
-                    x->evalPart(&xFull, x->rows(), x->cols());
-                    full()->axpy(alpha, &xFull);
-                } else if(x->isFullMatrix()) {
-                    full()->axpy(alpha, x->full());
-                } else if(x->isRkMatrix()) {
-                    FullMatrix<T> * f = x->rk()->eval();
-                    full()->axpy(alpha, f);
-                    delete f;
-                } else {
-                    HMAT_ASSERT(false);
-                }
-            }
+template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
+  if (x->isLeaf()) {
+    if (x->isNull()) {
+      // nothing to do
+    } else if (x->isFullMatrix())
+      axpy(alpha, x->full());
+    else if (x->isRkMatrix())
+      axpy(alpha, x->rk());
+  } else {
+    HMAT_ASSERT(*rows() == *x->rows());
+    HMAT_ASSERT(*cols() == *x->cols());
+    if (this->isLeaf()) {
+      if (isRkMatrix()) {
+        if (!rk())
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+        vector<const RkMatrix<T> *> rkLeaves;
+        if (listAllRk(x, rkLeaves)) {
+          vector<T> alphas(rkLeaves.size(), alpha);
+          rk()->formattedAddParts(&alphas[0], &rkLeaves[0], rkLeaves.size(),
+                                  RkMatrix<T>::approx.recompressionEpsilon);
         } else {
-            for (int i = 0; i < this->nrChild(); i++) {
-                HMatrix<T>* child = this->getChild(i);
-                const HMatrix<T>* bChild = x->isLeaf() ? x : x->getChild(i);
-                if (child && bChild)
-                    child->axpy(alpha, bChild);
-                HMAT_ASSERT(child != NULL || bChild == NULL); // Not supported yet
-            }
+          // x has contains both full and Rk matrices, this is not
+          // supported yet.
+          HMAT_ASSERT(false);
         }
-    } else {
-        if(x->isFullMatrix()) {
-            axpy(alpha, x->full());
+        rank_ = rk()->rank();
+      } else {
+        if (full() == NULL)
+          full(new FullMatrix<T>(rows(), cols()));
+        FullMatrix<T> xFull(x->rows(), x->cols());
+        x->evalPart(&xFull, x->rows(), x->cols());
+        full()->axpy(alpha, &xFull);
+      }
+    } else
+      for (int i = 0; i < this->nrChild(); i++) {
+        HMatrix<T> *child = this->getChild(i);
+        const HMatrix<T> *bChild = x->isLeaf() ? x : x->getChild(i);
+        if (bChild != NULL) {
+          HMAT_ASSERT(child != NULL); // This may happen but this is not supported yet
+          child->axpy(alpha, bChild);
         }
-        else if(x->isRkMatrix()) {
-            axpy(alpha, x->rk());
-        }
-        else if(x->isLeaf()){
-            // X is an empty leaf, so nothing to do
-        } else {
-            HMAT_ASSERT(false);
-        }
-    }
+      }
+  }
 }
 
 /** @brief AXPY between 'this' an H matrix and a subset of B with B a RkMatrix */
