@@ -731,7 +731,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
         if(stratumRk->rank() > 0) {
             rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, -1);
             delete stratumRk;
-            rk->truncate(stratumRk->approx.assemblyEpsilon);
+            rk->truncate(rk->approx.assemblyEpsilon);
         } else {
             delete stratumRk;
         }
