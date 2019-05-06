@@ -164,6 +164,49 @@ template<typename T> void RkMatrix<T>::addRand(double epsilon) {
   return;
 }
 
+/**
+ * @brief Truncate the A or B block of a RkMatrix.
+ * This is a utilitary function for RkMatrix<T>::truncated and RkMatrix<T>::truncate
+ * @param ab The A or B block to truncate
+ * @param indexSet The index set of the A or B block to truncate (rows for A and cols for B)
+ * @param newK The rank to truncate to (output of the SVD)
+ * @param uv The U or V matrix (output of the SVD)
+ * @return the truncated A or B block
+ */
+template <typename T>
+ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
+                            int newK, ScalarArray<T> *uv,
+                            bool useInitPivot = false, int initialPivot = 0) {
+  // We need to calculate Qa * u
+  ScalarArray<T>* newAB = new ScalarArray<T>(indexSet->size(), newK);
+  if (useInitPivot && initialPivot) {
+    // If there is an initial pivot, we must compute the product by Q in two parts
+    // first the column >= initialPivotA, obtained from lapack GETRF, will overwrite newA when calling UNMQR
+    // then the first initialPivotA columns, with a classical GEMM, will add the result in newA
+
+    // create subset of a (columns>=initialPivotA) and u (rows>=initialPivotA)
+    ScalarArray<T> sub_ab(*ab, 0, ab->rows, initialPivot, ab->cols-initialPivot);
+    ScalarArray<T> sub_uv(* uv, initialPivot,  uv->rows-initialPivot, 0,  uv->cols);
+    newAB->copyMatrixAtOffset(&sub_uv, 0, 0);
+    // newA <- Qa * newA (with newA = u)
+    sub_ab.productQ('L', 'N', newAB);
+
+    // then add the regular part of the product by Q
+    ScalarArray<T> sub_ab2(*ab, 0, ab->rows, 0, initialPivot);
+    ScalarArray<T> sub_uv2(* uv, 0, initialPivot, 0,  uv->cols);
+    newAB->gemm('N', 'N', Constants<T>::pone, &sub_ab2, &sub_uv2, Constants<T>::pone);
+  } else {
+    // If no initialPivotA, then no gemm, just a productQ()
+    newAB->copyMatrixAtOffset( uv, 0, 0);
+    // newA <- Qa * newA
+    ab->productQ('L', 'N', newAB);
+  }
+
+  newAB->setOrtho( uv->getOrtho());
+  delete  uv;
+  return newAB;
+}
+
 template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
 
@@ -243,65 +286,13 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     clear();
     return;
   }
-
-  // We need to calculate Qa * u
-  ScalarArray<T>* newA = new ScalarArray<T>(rows->size(), newK);
-
   // We need to know if qrDecomposition has used initPivot...
   // (Not so great, because HMAT_TRUNC_INITPIV is checked at 2 different locations)
   static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
-  if (useInitPivot && initialPivotA) {
-    // If there is an initial pivot, we must compute the product by Q in two parts
-    // first the column >= initialPivotA, obtained from lapack GETRF, will overwrite newA when calling UNMQR
-    // then the first initialPivotA columns, with a classical GEMM, will add the result in newA
-
-    // create subset of a (columns>=initialPivotA) and u (rows>=initialPivotA)
-    ScalarArray<T> sub_a(*a, 0, a->rows, initialPivotA, a->cols-initialPivotA);
-    ScalarArray<T> sub_u(*u, initialPivotA, u->rows-initialPivotA, 0, u->cols);
-    newA->copyMatrixAtOffset(&sub_u, 0, 0);
-    // newA <- Qa * newA (with newA = u)
-    sub_a.productQ('L', 'N', newA);
-
-    // then add the regular part of the product by Q
-    ScalarArray<T> sub_a2(*a, 0, a->rows, 0, initialPivotA);
-    ScalarArray<T> sub_u2(*u, 0, initialPivotA, 0, u->cols);
-    newA->gemm('N', 'N', Constants<T>::pone, &sub_a2, &sub_u2, Constants<T>::pone);
-  } else {
-    // If no initialPivotA, then no gemm, just a productQ()
-    newA->copyMatrixAtOffset(u, 0, 0);
-    // newA <- Qa * newA
-    a->productQ('L', 'N', newA);
-  }
-
-  newA->setOrtho(u->getOrtho());
-  delete u;
+  ScalarArray<T>* newA = truncatedAB(a, rows, newK, u, useInitPivot, initialPivotA);
   delete a;
   a = newA;
-
-  // newB = Qb * v
-  ScalarArray<T>* newB = new ScalarArray<T>(cols->size(), newK);
-
-  if (useInitPivot && initialPivotB) {
-    // create subset of b (columns>=initialPivotB) and v (rows>=initialPivotB)
-    ScalarArray<T> sub_b(*b, 0, b->rows, initialPivotB, b->cols-initialPivotB);
-    ScalarArray<T> sub_v(*v, initialPivotB, v->rows-initialPivotB, 0, v->cols);
-    newB->copyMatrixAtOffset(&sub_v, 0, 0);
-    // newB <- Qb * newB (et newB = v)
-    sub_b.productQ('L', 'N', newB);
-
-    // then add the regular part of the product by Q
-    ScalarArray<T> sub_b2(*b, 0, b->rows, 0, initialPivotB);
-    ScalarArray<T> sub_v2(*v, 0, initialPivotB, 0, v->cols);
-    newB->gemm('N', 'N', Constants<T>::pone, &sub_b2, &sub_v2, Constants<T>::pone);
-  } else {
-    // If no initialPivotB, then no gemm, just a productQ()
-    newB->copyMatrixAtOffset(v, 0, 0);
-    // newB <- Qb * newB
-    b->productQ('L', 'N', newB);
-  }
-
-  newB->setOrtho(v->getOrtho());
-  delete v;
+  ScalarArray<T>* newB = truncatedAB(b, cols, newK, v, useInitPivot, initialPivotB);
   delete b;
   b = newB;
 }
