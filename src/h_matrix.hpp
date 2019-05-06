@@ -148,6 +148,20 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
 
   /** Only used by internalCopy */
   HMatrix(const MatrixSettings * settings);
+  /** This <- This + alpha * b
+
+      \param alpha
+      \param b
+   */
+  void axpy(T alpha, const RkMatrix<T>* b);
+  /** This <- This + alpha * b
+
+      \param alpha
+      \param b
+      \param rows
+      \param cols
+   */
+  void axpy(T alpha, const FullMatrix<T>* b);
 public:
   /*! \brief Create a HMatrix based on a row and column ClusterTree.
 
@@ -378,20 +392,6 @@ public:
       \param b
    */
   void axpy(T alpha, const HMatrix<T>* b);
-  /** This <- This + alpha * b
-
-      \param alpha
-      \param b
-   */
-  void axpy(T alpha, const RkMatrix<T>* b);
-  /** This <- This + alpha * b
-
-      \param alpha
-      \param b
-      \param rows
-      \param cols
-   */
-  void axpy(T alpha, const FullMatrix<T>* b);
   /** This <- This + alpha * Id
 
       \param alpha

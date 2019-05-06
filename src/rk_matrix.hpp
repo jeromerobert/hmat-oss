@@ -68,7 +68,13 @@ template<typename T> class RkMatrix {
        \param other  other RkMatrix instance.
   */
   void swap(RkMatrix<T>& other);
+  /** Recompress an RkMatrix in place with a modified Gram-Schmidt algorithm.
 
+      @warning The previous rk->a and rk->b are no longer valid after this function.
+      \param epsilon is the accuracy of the recompression
+      \param initialPivotA/B is the number of orthogonal columns in panels a and b
+   */
+  void mGSTruncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
 public:
   const IndexSet *rows;
   const IndexSet *cols;
@@ -131,13 +137,6 @@ public:
       \param initialPivotA/B is the number of orthogonal columns in panels a and b
    */
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
-  /** Recompress an RkMatrix in place with a modified Gram-Schmidt algorithm.
-
-      @warning The previous rk->a and rk->b are no longer valid after this function.
-      \param epsilon is the accuracy of the recompression
-      \param initialPivotA/B is the number of orthogonal columns in panels a and b
-   */
-  void mGSTruncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
   /** Add randomness to the RkMatrix */
   void addRand(double epsilon);
   /*! \brief Return square of the Frobenius norm of the matrix.
