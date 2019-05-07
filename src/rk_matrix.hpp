@@ -116,6 +116,7 @@ public:
        \return pointer to a new matrix with subRows and subCols.
    */
   const RkMatrix* subset(const IndexSet* subRows, const IndexSet* subCols) const;
+  RkMatrix* truncatedSubset(const IndexSet* subRows, const IndexSet* subCols) const;
   /** Returns the compression ratio (stored_elements, total_elements).
    */
   size_t compressedSize();

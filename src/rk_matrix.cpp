@@ -149,6 +149,21 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
   return new RkMatrix<T>(subA, subRows, subB, subCols, method);
 }
 
+template<typename T> RkMatrix<T>* RkMatrix<T>::truncatedSubset(const IndexSet* subRows,
+                                                            const IndexSet* subCols) const {
+  assert(subRows->isSubset(*rows));
+  assert(subCols->isSubset(*cols));
+  RkMatrix<T> * r = new RkMatrix<T>(NULL, subRows, NULL, subCols, method);
+  if(rank() > 0) {
+    r->a = ScalarArray<T>(*a, subRows->offset() - rows->offset(),
+                          subRows->size(), 0, rank()).copy();
+    r->b = ScalarArray<T>(*b, subCols->offset() - cols->offset(),
+                          subCols->size(), 0, rank()).copy();
+    r->truncate(approx.recompressionEpsilon);
+  }
+  return r;
+}
+
 template<typename T> size_t RkMatrix<T>::compressedSize() {
     return ((size_t)rows->size()) * rank() + ((size_t)cols->size()) * rank();
 }
