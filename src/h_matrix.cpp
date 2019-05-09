@@ -190,9 +190,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
                 child->cols_ = withColChild ? cols_->getChild(j) : cols_;
                 assert(child->rows_ != NULL);
                 assert(child->cols_ != NULL);
-                child->rk(new RkMatrix<T>(NULL, &child->rows_->data,
-                                          NULL, &child->cols_->data,
-                                          NoCompression));
+                child->rk(NULL);
                 r->insertChild(i, j, child);
             }
         }
