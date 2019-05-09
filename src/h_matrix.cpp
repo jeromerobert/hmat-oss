@@ -174,6 +174,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     r->rows_ = rows_;
     r->cols_ = cols_;
     r->temporary_ = temporary;
+    r->isLower = isLower;
     if(withRowChild || withColChild) {
         // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
         // we want to go 1 level below data (which is an Rk)
@@ -184,14 +185,18 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
         r->keepSameCols = !withColChild;
         for(int i = 0; i < r->nrChildRow(); i++) {
             for(int j = 0; j < r->nrChildCol(); j++) {
-                HMatrix<T>* child = new HMatrix<T>(localSettings.global);
-                child->temporary_ = temporary;
-                child->rows_ = withRowChild ? rows_->getChild(i) : rows_;
-                child->cols_ = withColChild ? cols_->getChild(j) : cols_;
-                assert(child->rows_ != NULL);
-                assert(child->cols_ != NULL);
-                child->rk(NULL);
-                r->insertChild(i, j, child);
+                if(isLower && i < j)
+                    r->insertChild(i, j, NULL);
+                else {
+                    HMatrix<T>* child = new HMatrix<T>(localSettings.global);
+                    child->temporary_ = temporary;
+                    child->rows_ = withRowChild ? rows_->getChild(i) : rows_;
+                    child->cols_ = withColChild ? cols_->getChild(j) : cols_;
+                    assert(child->rows_ != NULL);
+                    assert(child->cols_ != NULL);
+                    child->rk(NULL);
+                    r->insertChild(i, j, child);
+                }
             }
         }
     }
