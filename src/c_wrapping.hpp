@@ -66,6 +66,9 @@ void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
     hmat::HMatInterface<T, E>* hmat = (hmat::HMatInterface<T, E>*)matrix;
     bool assembleOnly = ctx->factorization == hmat_factorization_none;
     hmat::SymmetryFlag sf = ctx->lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric;
+    if (ctx->lower_symmetric) {
+      HMAT_ASSERT(hmat->engine().hmat->rowsTree() == hmat->engine().hmat->colsTree());
+    }
     if(ctx->assembly != NULL) {
         HMAT_ASSERT(ctx->block_compute == NULL && ctx->advanced_compute == NULL && ctx->simple_compute == NULL);
         hmat::Assembly<T> * cppAssembly = (hmat::Assembly<T> *)ctx->assembly;
