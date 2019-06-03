@@ -1677,36 +1677,29 @@ void HMatrix<T>::inverse() {
 template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, MainOp) const {
   DECLARE_CONTEXT;
-  if (isVoid()) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, unitriangular);
+  } else if(!b->isLeaf()) {
+    // B isn't a leaf, then 'this' is one
+    assert(this->isLeaf());
+    // Evaluate B, solve by column, and restore in the matrix
+    // TODO: check if it's not too bad
+    FullMatrix<T> bFull(b->rows(), b->cols());
+    b->evalPart(&bFull, b->rows(), b->cols());
+    solveLowerTriangularLeft(&bFull, unitriangular);
+    b->clear();
+    b->axpy(Constants<T>::pone, &bFull);
+  } else if(!b->isAssembled() || b->isNull()){
+    // nothing  todo
+  } else if(b->isRkMatrix()) {
+    HMatrix<T> * tmp = b->subset(cols(), b->cols());
+    solveLowerTriangularLeft(tmp->rk()->a, unitriangular);
+    if(tmp != b)
+        delete tmp;
   } else {
-    // if B is a leaf, the resolve is done by column
-    if (b->isLeaf()) {
-      if (b->isFullMatrix()) {
-        this->solveLowerTriangularLeft(b->full(), unitriangular);
-      } else {
-        if (b->isNull()) {
-          return;
-        }
-        assert(b->isRkMatrix());
-        HMatrix<T> * tmp = b->subset(this->cols(), b->cols());
-        this->solveLowerTriangularLeft(tmp->rk()->a, unitriangular);
-        if(tmp != b)
-            delete tmp;
-      }
-    } else {
-      // B isn't a leaf, then 'this' is one
-      assert(this->isLeaf());
-      // Evaluate B, solve by column, and restore in the matrix
-      // TODO: check if it's not too bad
-      FullMatrix<T> bFull(b->rows(), b->cols());
-      b->evalPart(&bFull, b->rows(), b->cols());
-      this->solveLowerTriangularLeft(&bFull, unitriangular);
-      b->clear();
-      b->axpy(Constants<T>::pone, &bFull);
-    }
+    assert(b->isFullMatrix());
+    solveLowerTriangularLeft(b->full(), unitriangular);
   }
 }
 
