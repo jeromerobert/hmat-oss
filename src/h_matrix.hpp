@@ -362,7 +362,7 @@ public:
    * Swap non diagonal blocks and cluster trees.
    * Only used internally.
    */
-  void transposeMeta();
+  void transposeMeta(bool temporaryOnly=false);
   /**
    * Swap Rk or Full blocks around the diagonal
    * Only used internally.
@@ -680,6 +680,9 @@ public:
     }
     assert(isAssembled());
   }
+
+  /** Set the entire subtree as temporary flag */
+  void temporary(bool b);
 
   const ClusterTree * rowsTree() const {
       return rows_;

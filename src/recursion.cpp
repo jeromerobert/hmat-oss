@@ -419,7 +419,7 @@ namespace hmat {
 
   }
 
-  template <typename T, typename Mat> void RecursionMatrix<T, Mat>::transposeMeta() {
+  template <typename T, typename Mat> void RecursionMatrix<T, Mat>::transposeMeta(bool temporaryOnly) {
       if (!me()->isLeaf()) {
           // We cannot not, in general, transpose in-place, so we need a backup of 'children'
           std::vector<Mat*> children_bak(me()->nrChild());
@@ -432,7 +432,7 @@ namespace hmat {
                   me()->getChild(j + i * me()->nrChildCol()) = children_bak[k++];
           for (int i = 0; i < me()->nrChild(); i++)
               if (me()->getChild(i))
-                  me()->getChild(i)->transposeMeta();
+                  me()->getChild(i)->transposeMeta(temporaryOnly);
       }
   }
 }  // end namespace hmat

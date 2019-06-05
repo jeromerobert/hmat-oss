@@ -1382,7 +1382,9 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
   }
 }
 
-template<typename T> void HMatrix<T>::transposeMeta() {
+template<typename T> void HMatrix<T>::transposeMeta(bool temporaryOnly) {
+    if(temporaryOnly && !temporary_)
+      return;
     // called by HMatrix<T>::transpose() and HMatrixHandle<T>::transpose()
     // if the matrix is symmetric, inverting it(Upper/Lower)
     if (isLower || isUpper) {
@@ -1398,7 +1400,7 @@ template<typename T> void HMatrix<T>::transposeMeta() {
     bool tmp = keepSameCols; // can't use swap on bitfield so manual swap...
     keepSameCols = keepSameRows;
     keepSameRows = tmp;
-    RecursionMatrix<T, HMatrix<T> >::transposeMeta();
+    RecursionMatrix<T, HMatrix<T> >::transposeMeta(temporaryOnly);
     swap(rows_, cols_);
 }
 
@@ -2377,6 +2379,16 @@ template<typename T> void HMatrix<T>::rank(int rank) {
     HMAT_ASSERT_MSG(!rk() || rk()->a == NULL || rk()->rank() == rank,
         "HMatrix::rank can only be used on evicted blocks");
     rank_ = rank;
+}
+
+
+template<typename T> void HMatrix<T>::temporary(bool b) {
+  if (!this->isLeaf()) {
+    for (int i=0 ; i<this->nrChild() ; i++)
+      if (this->getChild(i))
+        this->getChild(i)->temporary(b);
+    temporary_ = b;
+  }
 }
 
 // Templates declaration

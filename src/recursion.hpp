@@ -48,7 +48,7 @@ namespace hmat {
     void recursiveInverseNosym() ;
     void recursiveLltDecomposition(hmat_progress_t * progress) ;
     void recursiveSolveUpperTriangularLeft(Mat* b, bool unitriangular, bool lowerStored, MainOp=MainOp_Other) const;
-    void transposeMeta();
+    void transposeMeta(bool temporaryOnly=false);
 
     // https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
     // "me()->" replaces "this->" when calling a method of Mat
