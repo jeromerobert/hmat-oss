@@ -706,6 +706,8 @@ public:
     convert << "HMatrix " << rows()->description() << "x" << cols()->description() ;
     return convert.str();
   }
+
+  void checkSize();
 };
 
 }  // end namespace hmat

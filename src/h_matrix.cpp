@@ -1433,8 +1433,10 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
 }
 
 template<typename T> void HMatrix<T>::transposeMeta(bool temporaryOnly) {
-    if(temporaryOnly && !temporary_)
+    if(temporaryOnly && !temporary_) {
+      checkSize();
       return;
+    }
     // called by HMatrix<T>::transpose() and HMatrixHandle<T>::transpose()
     // if the matrix is symmetric, inverting it(Upper/Lower)
     if (isLower || isUpper) {
@@ -1452,6 +1454,7 @@ template<typename T> void HMatrix<T>::transposeMeta(bool temporaryOnly) {
     keepSameRows = tmp;
     swap(rows_, cols_);
     RecursionMatrix<T, HMatrix<T> >::transposeMeta(temporaryOnly);
+    checkSize();
 }
 
 template <typename T> void HMatrix<T>::transposeData() {
@@ -2417,6 +2420,23 @@ template<typename T> void HMatrix<T>::temporary(bool b) {
   for (int i=0; i<this->nrChild(); i++) {
     if (this->getChild(i))
       this->getChild(i)->temporary(b);
+  }
+}
+template<typename T> void HMatrix<T>::checkSize() {
+  if (!this->isLeaf()) {
+    for (int i=0 ; i<this->nrChild() ; i++)
+      if (this->getChild(i))
+        this->getChild(i)->checkSize();
+  } else if(isRkMatrix() && rk()) {
+    assert(*this->rk()->rows == *this->rows());
+    assert(*this->rk()->cols == *this->cols());
+    if(rk()->a) {
+      assert(this->rk()->a->rows == this->rk()->rows->size());
+      assert(this->rk()->b->rows == this->rk()->cols->size());
+    }
+  } else if(isFullMatrix()){
+    assert(this->full()->rows() == this->rows()->size());
+    assert(this->full()->cols() == this->cols()->size());
   }
 }
 
