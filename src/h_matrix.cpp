@@ -130,6 +130,8 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
     assert(!(forceFull && forceRk));
     if (forceRk || (lowRank && !forceFull))
       rk(NULL);
+    else
+      full(NULL);
     approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
   } else {
     pair<bool, bool> split = admissibilityCondition->splitRowsCols(*rows_, *cols_);
