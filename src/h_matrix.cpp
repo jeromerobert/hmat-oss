@@ -2383,11 +2383,10 @@ template<typename T> void HMatrix<T>::rank(int rank) {
 
 
 template<typename T> void HMatrix<T>::temporary(bool b) {
-  if (!this->isLeaf()) {
-    for (int i=0 ; i<this->nrChild() ; i++)
-      if (this->getChild(i))
-        this->getChild(i)->temporary(b);
-    temporary_ = b;
+  temporary_ = b;
+  for (int i=0; i<this->nrChild(); i++) {
+    if (this->getChild(i))
+      this->getChild(i)->temporary(b);
   }
 }
 
