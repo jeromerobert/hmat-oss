@@ -1536,26 +1536,19 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
   }
 }
 
-template<typename T>
-void HMatrix<T>::clear() {
-  if (isVoid()) {
-    // nothing to do
-  } else if (this->isLeaf()) {
-    if(!isAssembled() || isNull()) {
-      // nothing to do
-    } else if(isRkMatrix()) {
-      rk()->clear();
-    } else {
-      assert(isFullMatrix());
-      delete full_;
-      full_ = NULL;
-    }
-  } else {
+template<typename T> void HMatrix<T>::clear() {
+  if(!this->isLeaf()) {
     for (int i = 0; i < this->nrChild(); i++) {
       HMatrix<T>* child = this->getChild(i);
       if (child)
         child->clear();
     }
+  } else if(isRkMatrix() && rk()) {
+    delete rk();
+    rk(NULL);
+  } else if(isFullMatrix()) {
+    delete full();
+    full(NULL);
   }
 }
 
