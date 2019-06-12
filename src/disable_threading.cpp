@@ -36,6 +36,7 @@
 extern "C" {
 // This function is private in openblas
 int  goto_get_num_procs(void);
+void openblas_set_num_threads(int num_threads);
 }
 #endif
 
