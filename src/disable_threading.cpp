@@ -36,6 +36,11 @@
 extern "C" {
 // This function is private in openblas
 int  goto_get_num_procs(void);
+
+// in case lapack's cblas.h is used instead of the openblas one
+#ifndef HAVE_DECL_OPENBLAS_SET_NUM_THREADS
+void openblas_set_num_threads(int num_threads);
+#endif
 }
 #endif
 
