@@ -427,9 +427,9 @@ namespace hmat {
               children_bak[i] = me()->getChild(i);
           // and finally we fill 'children'
           int k = 0;
-          for (int j = 0; j < me()->nrChildCol(); j++)
-              for (int i = 0; i < me()->nrChildRow(); i++)
-                  me()->getChild(j + i * me()->nrChildCol()) = children_bak[k++];
+          for (int j = 0; j < me()->nrChildRow(); j++)
+              for (int i = 0; i < me()->nrChildCol(); i++)
+                  me()->getChild(j + i * me()->nrChildRow()) = children_bak[k++];
           for (int i = 0; i < me()->nrChild(); i++)
               if (me()->getChild(i))
                   me()->getChild(i)->transposeMeta(temporaryOnly);

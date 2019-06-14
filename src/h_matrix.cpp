@@ -1400,8 +1400,8 @@ template<typename T> void HMatrix<T>::transposeMeta(bool temporaryOnly) {
     bool tmp = keepSameCols; // can't use swap on bitfield so manual swap...
     keepSameCols = keepSameRows;
     keepSameRows = tmp;
-    RecursionMatrix<T, HMatrix<T> >::transposeMeta(temporaryOnly);
     swap(rows_, cols_);
+    RecursionMatrix<T, HMatrix<T> >::transposeMeta(temporaryOnly);
 }
 
 template <typename T> void HMatrix<T>::transposeData() {
