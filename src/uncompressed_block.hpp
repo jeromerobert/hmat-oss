@@ -133,11 +133,14 @@ template <typename T> class UncompressedBlock:
 
     void getNullValues() {
         T *toFill = this->values_;
-        for (int col = 0; col < this->colIndexSet_.size(); col++) {
-            for (int row = 0; row < this->rowIndexSet_.size(); row++) {
-                toFill[row] = Constants<T>::zero;
+        const int rowSize = this->rowIndexSet_.size();
+        if (this->ld() == rowSize) {
+             std::fill(toFill, toFill + ((size_t)rowSize) * this->colIndexSet_.size(), Constants<T>::zero);
+        } else {
+            for (int col = 0; col < this->colIndexSet_.size(); col++) {
+                 std::fill(toFill, toFill + rowSize, Constants<T>::zero);
+                 toFill += this->ld();
             }
-            toFill += this->ld();
         }
     }
 
