@@ -36,11 +36,12 @@ namespace hmat {
  * @see https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
  */
 template <typename T, template <typename> class M, typename I> class UncompressedValuesBase {
+  public:
+    typedef std::vector<std::pair<int, int> >::const_iterator IndiceIt;
   protected:
     const M<T> * matrix_;
     T *values_;
     int valuesLd_;
-    typedef std::vector<std::pair<int, int> >::iterator IndiceIt;
     /**
      * The first element of the pair a number of element to get, using hmat numbering.
      * The second element of the pair is the position of the element in the original query.
@@ -150,7 +151,9 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
 
 /** UncompressedValuesBase specialisation for HMatrix<T> */
 template <typename T> class UncompressedValues: public UncompressedValuesBase<T, HMatrix, UncompressedValues<T> > {
-    typedef std::vector<std::pair<int, int> >::iterator IndiceIt;
+public:
+    typedef typename UncompressedValuesBase<T, HMatrix, UncompressedValues<T> >::IndiceIt IndiceIt;
+private:
     friend class UncompressedValuesBase<T, HMatrix, UncompressedValues<T> >;
     void getValue(IndiceIt r, IndiceIt c, T v) {
         this->values_[r->second + ((size_t)this->valuesLd_) * c->second] = v;
