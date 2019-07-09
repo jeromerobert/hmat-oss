@@ -83,6 +83,8 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
         indices.resize(querySize);
         for(int i = 0; i < querySize; i++) {
             if(hmat_numbering)
+                // FIXME: we use query[i] here but query[i]-1 with !hmat_numbering.
+                // this is not coherent.
                 indices[i].first = query[i];
             else
                 indices[i].first = clusterData.indices_rev()[query[i] - 1];
