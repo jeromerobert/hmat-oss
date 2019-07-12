@@ -694,10 +694,9 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
     rk = compressAcaPartial(block);
     break;
   case AcaPlus:
-    if(block.cols->size() * 100 < block.rows->size())
+    if(block.cols->size() * 100 < block.rows->size() && !block.info.is_guaranteed_null_row && !block.info.is_guaranteed_null_col)
        // ACA+ start with a findMinRow call which will last for hours
        // if the block contains many null rows
-       // TODO: use is_guaranteed_null_row to make compressAcaPlus fast in all cases
        rk = compressAcaPartial(block);
     else
        rk = compressAcaPlus(block);
