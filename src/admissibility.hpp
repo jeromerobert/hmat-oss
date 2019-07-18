@@ -131,6 +131,7 @@ public:
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true when there is less than 2 rows or cols
   bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
+  bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t elemSize) const;
   // Returns true when there is less than 2 rows or cols
   bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
   std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
@@ -139,10 +140,13 @@ public:
   void setEta(double eta);
   double getEta() const;
   void setRatio(double ratio);
+  /** Set max block size in bytes */
+  void setMaxBlockSize(size_t v) { maxBlockSize_ = v; }
   static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;
 protected:
   double eta_;
   double ratio_;
+  size_t maxBlockSize_;
 };
 
 class AlwaysAdmissibilityCondition : public AdmissibilityCondition {

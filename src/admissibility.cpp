@@ -26,6 +26,7 @@
 #include "common/my_assert.h"
 #include <sstream>
 #include <algorithm>
+#include <limits>
 
 namespace hmat {
 
@@ -36,7 +37,7 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
 }
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(double eta, double ratio):
-    eta_(eta), ratio_(ratio) {}
+    eta_(eta), ratio_(ratio), maxBlockSize_(std::numeric_limits<size_t>::max()) {}
 
 std::pair<bool, bool>
 StandardAdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
@@ -56,6 +57,12 @@ StandardAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const Clu
 {
     // If there is less than 2 rows or cols, recursion is useless
     return (rows.data.size() < 2 || cols.data.size() < 2);
+}
+
+bool StandardAdmissibilityCondition::forceRecursion(
+    const ClusterTree& rows, const ClusterTree& cols, size_t elemSize) const
+{
+    return elemSize * rows.data.size() * cols.data.size() > maxBlockSize_;
 }
 
 bool
