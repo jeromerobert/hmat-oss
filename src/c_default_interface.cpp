@@ -161,6 +161,10 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
     return 0;
 }
 
+const int * hmat_cluster_get_indices(hmat_cluster_tree_t *tree) {
+    return reinterpret_cast<ClusterTree*>(tree)->data.indices();
+}
+
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
 }
