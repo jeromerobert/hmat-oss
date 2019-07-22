@@ -292,7 +292,7 @@ HMAT_API int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_
  * @return The original position (before renumbering) of the ith value in the cluster
  * tree (after renumbering). This array must not be freed nor modified by the caller.
  */
-HMAT_API const int * hmat_cluster_get_indices(hmat_cluster_tree_t *tree);
+HMAT_API const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree);
 
 typedef struct {
     /** eta for Hackbusch condition */
