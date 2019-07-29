@@ -56,7 +56,7 @@ public:
   ClusterTree* build(const DofCoordinates& coordinates, int* group_index = NULL) const;
 
 private:
-  void divide_recursive(ClusterTree& current) const;
+  void divide_recursive(ClusterTree& current, int axis) const;
   void clean_recursive(ClusterTree& current) const;
   ClusteringAlgorithm* getAlgorithm(int depth) const;
 
@@ -80,8 +80,13 @@ public:
   /*! \brief  String representation */
   virtual std::string str() const = 0;
 
-  /*! \brief Split cluster node */
-  virtual void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const = 0;
+  /*!
+   * \brief Split cluster node
+   * \param currentAxis the axis used before, to split do the current.
+   * This can be -1 for example at the root or if the algorithm does not split along an axis.
+   * \return the axis of the partition
+   */
+  virtual int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const = 0;
 
   /*! \brief Called by ClusterTreeBuilder::clean_recursive to free data which may be allocated by partition  */
   virtual void clean(ClusterTree&) const {}
@@ -103,9 +108,13 @@ class AxisAlignClusteringAlgorithm : public ClusteringAlgorithm {
 protected:
   void sortByDimension(ClusterTree& node, int dim) const;
   virtual AxisAlignedBoundingBox* getAxisAlignedBoundingbox(const ClusterTree& node) const;
-  int largestDimension(const ClusterTree& node) const;
+  /*!
+   * \brief Return the largest dimension of node which is not toAvoid
+   * \param toAvoid a dimension which should not be chosen as the largest
+   * \param avoidRatio return toAvoid if it's at least avoidRatio longer than the second best
+   */
+  int largestDimension(const ClusterTree& node, int toAvoid = -1, double avoidRatio = 1.2) const;
   double volume(const ClusterTree& node) const;
-  void sort(ClusterTree& current, int axisIndex, int spatialDimension) const;
 };
 
 /*! \brief Creating tree by geometric binary division according to
@@ -123,18 +132,11 @@ protected:
 class GeometricBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
-  explicit GeometricBisectionAlgorithm(int axisIndex = -1)
-    : AxisAlignClusteringAlgorithm(), axisIndex_(axisIndex), spatialDimension_(-1) {}
-
   ClusteringAlgorithm* clone() const { return new GeometricBisectionAlgorithm(*this); }
   std::string str() const { return "GeometricBisectionAlgorithm"; }
 
-  void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+  int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
   void clean(ClusterTree& current) const;
-
-private:
-  mutable int axisIndex_;
-  mutable int spatialDimension_;
 };
 
 /*! \brief Creating tree by median division.
@@ -153,18 +155,11 @@ private:
 class MedianBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
-  explicit MedianBisectionAlgorithm(int axisIndex = -1)
-    : AxisAlignClusteringAlgorithm(), axisIndex_(axisIndex), spatialDimension_(-1) {}
-
   ClusteringAlgorithm* clone() const { return new MedianBisectionAlgorithm(*this); }
   std::string str() const { return "MedianBisectionAlgorithm"; }
 
-  void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+  int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
   void clean(ClusterTree& current) const;
-
-private:
-  mutable int axisIndex_;
-  mutable int spatialDimension_;
 };
 
 /*! \brief Hybrid algorithm.
@@ -178,16 +173,12 @@ class HybridBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
   explicit HybridBisectionAlgorithm(double thresholdRatio = 0.8)
-    : AxisAlignClusteringAlgorithm()
-    , geometricAlgorithm_(0)
-    , medianAlgorithm_(0)
-    , thresholdRatio_(thresholdRatio)
-    {}
+    : thresholdRatio_(thresholdRatio) {}
 
   ClusteringAlgorithm* clone() const { return new HybridBisectionAlgorithm(*this); }
   std::string str() const { return "HybridBisectionAlgorithm"; }
 
-  void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+  int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
   void clean(ClusterTree& current) const;
 
 private:
@@ -208,7 +199,7 @@ public:
     SpanClusteringAlgorithm(const ClusteringAlgorithm &algo, double ratio);
     std::string str() const;
     ClusteringAlgorithm* clone() const;
-    void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+    int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
 };
 
 class VoidClusteringAlgorithm : public ClusteringAlgorithm
@@ -221,7 +212,7 @@ public:
   virtual ~VoidClusteringAlgorithm() { delete algo_; }
   std::string str() const { return "VoidClusteringAlgorithm"; }
 
-  void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+  int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
   void clean(ClusterTree& current) const;
 
 private:
@@ -238,7 +229,7 @@ public:
   virtual ~ShuffleClusteringAlgorithm() { delete algo_; }
   std::string str() const { return "ShuffleClusteringAlgorithm"; }
 
-  void partition(ClusterTree& current, std::vector<ClusterTree*>& children) const;
+  int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
   void clean(ClusterTree& current) const;
   void setMaxLeafSize(int maxLeafSize) { algo_->setMaxLeafSize(maxLeafSize); }
   void setDivider(int divider) const { algo_->setDivider(divider); }

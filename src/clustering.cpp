@@ -100,21 +100,22 @@ const
 }
 
 int
-AxisAlignClusteringAlgorithm::largestDimension(const ClusterTree& node)
+AxisAlignClusteringAlgorithm::largestDimension(const ClusterTree& node, int toAvoid, double avoidRatio)
 const
 {
-  int maxDim = -1;
-  double maxSize = -1.0;
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
-  const int dimension = node.data.coordinates()->dimension();
+  int dimension = node.data.coordinates()->dimension();
+  std::pair<double, int> sizeDim[dimension];
   for (int i = 0; i < dimension; i++) {
-    double size = (bbox->bbMax()[i] - bbox->bbMin()[i]);
-    if (size > maxSize) {
-      maxSize = size;
-      maxDim = i;
-    }
+    sizeDim[i].second = i;
+    sizeDim[i].first = bbox->bbMax()[i] - bbox->bbMin()[i];
   }
-  return maxDim;
+  std::sort(sizeDim, sizeDim + dimension);
+  if(toAvoid < 0 || dimension < 2 || sizeDim[dimension - 1].second != toAvoid ||
+     sizeDim[dimension - 1].first > avoidRatio * sizeDim[dimension - 2].first)
+    return sizeDim[dimension - 1].second;
+  else
+    return sizeDim[dimension - 2].second;
 }
 
 double
@@ -128,21 +129,6 @@ const
     result *= (bbox->bbMax()[dim] - bbox->bbMin()[dim]);
   }
   return result;
-}
-
-void
-AxisAlignClusteringAlgorithm::sort(ClusterTree& current, int axisIndex, int spatialDimension)
-const
-{
-  int dim;
-  if (axisIndex < 0) {
-    dim = largestDimension(current);
-  } else {
-    if (spatialDimension < 0)
-      spatialDimension = current.data.coordinates()->dimension();
-    dim = ((axisIndex + current.depth) % spatialDimension);
-  }
-  sortByDimension(current, dim);
 }
 
 void
@@ -172,20 +158,11 @@ ClusteringAlgorithm::setDivider(int divider) const
   divider_ = divider;
 }
 
-void
-GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+int
+GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children,
+                                       int currentAxis) const
 {
-  int dim;
-  if (spatialDimension_ < 0) {
-    spatialDimension_ = current.data.coordinates()->dimension();
-  }
-  // If the instance has been initialized with an axisIndex value, we 'loop' on the different axis as we go down the tree
-  // Otherwise, we choose as axis the longest dimension of the bounding box
-  if (axisIndex_ < 0) {
-    dim = largestDimension(current);
-  } else {
-    dim = ((axisIndex_ + current.depth) % spatialDimension_);
-  }
+  int dim = largestDimension(current, currentAxis);
   sortByDimension(current, dim);
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(current);
   current.clusteringAlgoData_ = bbox;
@@ -235,6 +212,7 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   }
   // Add the last child
   children.push_back(current.slice(current.data.offset()+ previousIndex, current.data.size() - previousIndex));
+  return dim;
 }
 
 void
@@ -244,10 +222,12 @@ GeometricBisectionAlgorithm::clean(ClusterTree& current) const
   current.clusteringAlgoData_ = NULL;
 }
 
-void
-MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+int
+MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children,
+                                    int currentAxis) const
 {
-  sort(current, axisIndex_, spatialDimension_);
+  int dim = largestDimension(current, currentAxis);
+  sortByDimension(current, dim);
   int previousIndex = 0;
   // Loop on 'divider_' = the number of children created
   for (int i=1 ; i<divider_ ; i++) {
@@ -285,6 +265,7 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   }
   // Add the last child
   children.push_back(current.slice(current.data.offset()+ previousIndex, current.data.size() - previousIndex));
+  return dim;
 }
 
 void
@@ -294,16 +275,17 @@ MedianBisectionAlgorithm::clean(ClusterTree& current) const
   current.clusteringAlgoData_ = NULL;
 }
 
-void
-HybridBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+int
+HybridBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children,
+                                    int currentAxis) const
 {
   // We first split tree node with an MedianBisectionAlgorithm instance, and compute
   // ratios of volume of children node divided by volume of current node.  If any ratio
   // is larger than a given threshold, this splitting is discarded and replaced by
   // a GeometricBisectionAlgorithm instead.
-  medianAlgorithm_.partition(current, children);
+  int dim = medianAlgorithm_.partition(current, children, currentAxis);
   if (children.size() < 2)
-    return;
+    return dim;
   double currentVolume = volume(current);
   double maxVolume = 0.0;
   for (std::vector<ClusterTree*>::const_iterator cit = children.begin(); cit != children.end(); ++cit)
@@ -314,8 +296,9 @@ HybridBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   if (maxVolume > thresholdRatio_*currentVolume)
   {
     children.clear();
-    geometricAlgorithm_.partition(current, children);
+    dim = geometricAlgorithm_.partition(current, children, currentAxis);
   }
+  return dim;
 }
 
 void
@@ -325,16 +308,18 @@ HybridBisectionAlgorithm::clean(ClusterTree& current) const
   geometricAlgorithm_.clean(current);
 }
 
-void
-VoidClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+int
+VoidClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children,
+                                   int currentAxis) const
 {
   if (current.depth % 2 == 0)
   {
-    algo_->partition(current, children);
+    return algo_->partition(current, children, currentAxis);
   } else {
     children.push_back(current.slice(current.data.offset(), current.data.size()));
     for (int i=1 ; i<divider_ ; i++)
       children.push_back(current.slice(current.data.offset() + current.data.size(), 0));
+    return -1; // here partition axis is meaning less
   }
 }
 
@@ -344,14 +329,16 @@ VoidClusteringAlgorithm::clean(ClusterTree& current) const
   algo_->clean(current);
 }
 
-void
-ShuffleClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children) const
+int
+ShuffleClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children,
+                                      int currentAxis) const
 {
-  algo_->partition(current, children);
+  int dim = algo_->partition(current, children, currentAxis);
   ++divider_;
   if (divider_ > toDivider_)
       divider_ = fromDivider_;
   setDivider(divider_);
+  return dim;
 }
 
 void
@@ -380,7 +367,7 @@ ClusterTreeBuilder::build(const DofCoordinates& coordinates, int* group_index) c
   DofData* dofData = new DofData(coordinates, group_index);
   ClusterTree* rootNode = new ClusterTree(dofData);
 
-  divide_recursive(*rootNode);
+  divide_recursive(*rootNode, -1);
   clean_recursive(*rootNode);
   // Update reverse mapping
   int* indices_i2e = rootNode->data.indices();
@@ -437,7 +424,7 @@ ClusterTreeBuilder::addAlgorithm(int depth, const ClusteringAlgorithm& algo)
 }
 
 void
-ClusterTreeBuilder::divide_recursive(ClusterTree& current) const
+ClusterTreeBuilder::divide_recursive(ClusterTree& current, int currentAxis) const
 {
   ClusteringAlgorithm* algo = getAlgorithm(current.depth);
   if (current.data.size() <= algo->getMaxLeafSize())
@@ -445,11 +432,11 @@ ClusterTreeBuilder::divide_recursive(ClusterTree& current) const
 
   // Sort degrees of freedom and partition current node
   std::vector<ClusterTree*> children;
-  algo->partition(current, children);
+  int childrenAxis = algo->partition(current, children, currentAxis);
   for (size_t i = 0; i < children.size(); ++i)
   {
     current.insertChild(i, children[i]);
-    divide_recursive(*children[i]);
+    divide_recursive(*children[i], childrenAxis);
   }
 }
 
@@ -466,8 +453,8 @@ ClusteringAlgorithm* SpanClusteringAlgorithm::clone() const {
     return new SpanClusteringAlgorithm(algo_, ratio_);
 }
 
-void SpanClusteringAlgorithm::partition(
-    ClusterTree& current, std::vector<ClusterTree*>& children) const {
+int SpanClusteringAlgorithm::partition(
+    ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const {
     int offset = current.data.offset();
     int* indices = current.data.indices() + offset;
     const DofCoordinates & coords = *current.data.coordinates();
@@ -487,14 +474,16 @@ void SpanClusteringAlgorithm::partition(
     // Call the delegate algorithm with a temporary cluster
     // containing only small span DOFs.
     ClusterTree * smallSpanCluster = i >= 0 ? current.slice(offset, i + 1) : NULL;
+    int dim = -1;
     if(smallSpanCluster != NULL) {
-        algo_.partition(*smallSpanCluster, children);
+        dim = algo_.partition(*smallSpanCluster, children, currentAxis);
         // avoid dofData_ deletion
         smallSpanCluster->father = smallSpanCluster;
         delete smallSpanCluster;
     }
     if(largeSpanCluster != NULL && !children.empty())
         children.push_back(largeSpanCluster);
+    return dim;
 }
 
 }  // end namespace hmat
