@@ -158,6 +158,7 @@ HMatrix<T>::HMatrix(ClusterTree* _rows, ClusterTree* _cols, const hmat::MatrixSe
   }
   admissibilityCondition->clean(*(rows_));
   admissibilityCondition->clean(*(cols_));
+  assert(!this->isLeaf() || isAssembled());
 }
 
 template<typename T>

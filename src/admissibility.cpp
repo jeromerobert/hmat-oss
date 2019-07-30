@@ -132,8 +132,11 @@ bool AlwaysAdmissibilityCondition::isLowRank(const ClusterTree&, const ClusterTr
     return !never_;
 }
 
-std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterTree&, const ClusterTree&) const {
-    return split_rows_cols_;
+std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterTree& r, const ClusterTree& c) const {
+    std::pair<bool, bool> s = split_rows_cols_;
+    s.first = s.first && !r.isLeaf();
+    s.second = s.second && !c.isLeaf();
+    return s;
 }
 
 bool AlwaysAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
