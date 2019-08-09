@@ -1545,8 +1545,9 @@ template<typename T> void HMatrix<T>::clear() {
       if (child)
         child->clear();
     }
-  } else if(isRkMatrix() && rk()) {
-    delete rk();
+  } else if(isRkMatrix()) {
+    if(rk())
+      delete rk();
     rk(NULL);
   } else if(isFullMatrix()) {
     delete full();
