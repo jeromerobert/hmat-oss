@@ -98,6 +98,12 @@ void JSONDumper::dumpPoints() {
         out_ << "]" << endl;
         delimiter = " ,";
     }
+    for (int i = 0; i < points->numberOfDof(); i++) {
+        for (int dim = 0; dim < dimension; ++dim) {
+            std::cout << points->spanCenter(indices[i], dim) << " "; 
+        }
+        std::cout << endl;
+    }
     // Mapping
     out_ << "  ]," << endl
          << "  \"mapping\": [" << endl
