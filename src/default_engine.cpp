@@ -93,10 +93,10 @@ int DefaultEngine<T>::init(){
 
 template<typename T>
 void DefaultEngine<T>::assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssembly) {
-  if (sym == kLowerSymmetric || hmat->isLower || hmat->isUpper) {
-    hmat->assembleSymmetric(f, NULL, hmat->isLower || hmat->isUpper);
+  if (sym == kLowerSymmetric || this->hmat->isLower || this->hmat->isUpper) {
+    this->hmat->assembleSymmetric(f, NULL, this->hmat->isLower || this->hmat->isUpper);
   } else {
-    hmat->assemble(f);
+    this->hmat->assemble(f);
   }
   if(ownAssembly)
       delete &f;
@@ -107,13 +107,13 @@ void DefaultEngine<T>::factorization(hmat_factorization_t t) {
   switch(t)
   {
   case hmat_factorization_lu:
-      hmat->luDecomposition(progress_);
+      this->hmat->luDecomposition(this->progress_);
       break;
   case hmat_factorization_ldlt:
-      hmat->ldltDecomposition(progress_);
+      this->hmat->ldltDecomposition(this->progress_);
       break;
   case hmat_factorization_llt:
-      hmat->lltDecomposition(progress_);
+      this->hmat->lltDecomposition(this->progress_);
       break;
   default:
       HMAT_ASSERT(false);
@@ -122,38 +122,38 @@ void DefaultEngine<T>::factorization(hmat_factorization_t t) {
 
 template<typename T>
 void DefaultEngine<T>::inverse() {
-  hmat->inverse();
+  this->hmat->inverse();
 }
 
 template<typename T>
 void DefaultEngine<T>::gemv(char trans, T alpha, ScalarArray<T>& x,
                                       T beta, ScalarArray<T>& y) const {
-  hmat->gemv(trans, alpha, &x, beta, &y);
+  this->hmat->gemv(trans, alpha, &x, beta, &y);
 }
 
 template<typename T>
 void DefaultEngine<T>::gemm(char transA, char transB, T alpha,
-                                      const DefaultEngine<T>& a,
-                                      const DefaultEngine<T>& b, T beta) {
-  hmat->gemm(transA, transB, alpha, a.hmat, b.hmat, beta);
+                                      const IEngine<T>& a,
+                                      const IEngine<T>& b, T beta) {
+  this->hmat->gemm(transA, transB, alpha, a.hmat, b.hmat, beta);
 }
 
 template<typename T>
 void DefaultEngine<T>::addRand(double epsilon) {
-  hmat->addRand(epsilon);
+  this->hmat->addRand(epsilon);
 }
 
 template<typename T>
 void DefaultEngine<T>::solve(ScalarArray<T>& b, hmat_factorization_t t) const {
   switch(t) {
   case hmat_factorization_lu:
-      hmat->solve(&b);
+      this->hmat->solve(&b);
       break;
   case hmat_factorization_ldlt:
-      hmat->solveLdlt(&b);
+      this->hmat->solveLdlt(&b);
       break;
   case hmat_factorization_llt:
-      hmat->solveLlt(&b);
+      this->hmat->solveLlt(&b);
       break;
   default:
      // not supported
@@ -162,49 +162,47 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, hmat_factorization_t t) const {
 }
 
 template<typename T>
-void DefaultEngine<T>::solve(DefaultEngine<T>& b, hmat_factorization_t f) const {
-    hmat->solve(b.hmat, f);
+void DefaultEngine<T>::solve(IEngine<T>& b, hmat_factorization_t f) const {
+  this->hmat->solve(b.hmat, f);
 }
 
 template<typename T>
 void DefaultEngine<T>::solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose) const {
   bool unitriangular = (t == hmat_factorization_lu || t == hmat_factorization_ldlt);
   if (transpose)
-    hmat->solveUpperTriangularLeft(&b, unitriangular, true);
+    this->hmat->solveUpperTriangularLeft(&b, unitriangular, true);
   else
-    hmat->solveLowerTriangularLeft(&b, unitriangular);
+    this->hmat->solveLowerTriangularLeft(&b, unitriangular);
 }
 
 template<typename T>
 void DefaultEngine<T>::createPostcriptFile(const std::string& filename) const {
-    hmat->createPostcriptFile(filename);
+  this->hmat->createPostcriptFile(filename);
 }
 
-template<typename T> void DefaultEngine<T>::copy(DefaultEngine<T> & result, bool structOnly) const {
-    result.hmat = hmat->copyStructure();
+template<typename T> void DefaultEngine<T>::copy(IEngine<T> & result, bool structOnly) const {
+    result.hmat = this->hmat->copyStructure();
     if(!structOnly)
-        result.hmat->copy(hmat);
+        result.hmat->copy(this->hmat);
 }
 
 template<typename T> void DefaultEngine<T>::transpose() {
-    hmat->transpose();
+  this->hmat->transpose();
 }
 
 template<typename T> void DefaultEngine<T>::applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f) {
-    hmat->apply_on_leaf(f);
+  this->hmat->apply_on_leaf(f);
 }
 
 }  // end namespace hmat
 
-#include "hmat_cpp_interface.cpp"
-
 namespace hmat {
 
 // Explicit template instantiation
-template class HMatInterface<S_t, DefaultEngine>;
-template class HMatInterface<D_t, DefaultEngine>;
-template class HMatInterface<C_t, DefaultEngine>;
-template class HMatInterface<Z_t, DefaultEngine>;
+template class DefaultEngine<S_t>;
+template class DefaultEngine<D_t>;
+template class DefaultEngine<C_t>;
+template class DefaultEngine<Z_t>;
 
 }  // end namespace hmat
 

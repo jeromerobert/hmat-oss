@@ -26,12 +26,27 @@
  */
 #ifndef HMAT_CPP_INTERFACE_HPP
 #define HMAT_CPP_INTERFACE_HPP
+
+/** C++ interface to the HMatrix library.
+
+    This is the sole entry point to the HMatrix library.
+
+    This interface is templated over the scalar type, T. This type has to be one
+    of {S_t, D_t, C_t, Z_t}, using the standard BLAS notation. For the complex
+    types, the C++ complex<> type is used. It is guaranteed to have the same
+    layout as the equivalent FORTRAN types.
+
+    The user code *has* to call \a HMatInterface<T>::init() before using any
+    other function, and \a HMatInterface<T>::finalize() at the end.
+*/
+
 #include "hmat/hmat.h"
 
 #include "clustering.hpp"
 #include "compression.hpp"
 #include "h_matrix.hpp"
-#include "default_engine.hpp"
+#include "iengine.hpp"
+#include "common/my_assert.h"
 
 namespace hmat {
 
@@ -115,38 +130,13 @@ class DefaultProgress
         void operator=(DefaultProgress const&);
 };
 
-/** C++ interface to the HMatrix library.
-
-    This is the sole entry point to the HMatrix library.
-
-    This interface is templated over the scalar type, T. This type has to be one
-    of {S_t, D_t, C_t, Z_t}, using the standard BLAS notation. For the complex
-    types, the C++ complex<> type is used. It is guaranteed to have the same
-    layout as the equivalent FORTRAN types.
-
-    The user code *has* to call \a HMatInterface<T>::init() before using any
-    other function, and \a HMatInterface<T>::finalize() at the end.
-*/
-template<typename T, template <typename> class E = DefaultEngine>
+    template<typename T>
 class HMatInterface {
- private:
-  static bool initialized; ///< True if the library has been initialized.
-
 private:
-  E<T> engine_;
+  IEngine<T>* engine_;
   hmat_factorization_t factorizationType;
 
 public:
-  /** Initialize the library.
-
-      @warning This *must* be called before using the HMatrix library.
-   */
-  static int init();
-  /** Finalize the library.
-
-      @warning The library cannot be used after this has been called.
-   */
-  static void finalize();
   /** Build a new HMatrix from two cluster sets.
 
       @note The ownership of the two ClusterTree instances (which don't need to
@@ -159,9 +149,12 @@ public:
       @return a new HMatInterface instance.
    */
 
-  HMatInterface(ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
+  HMatInterface(IEngine<T>* engine, ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
                 AdmissibilityCondition * admissibilityCondition =
                 &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
+
+  HMatInterface(IEngine<T>* engine, HMatrix<T>* h, hmat_factorization_t factorization = hmat_factorization_none);
+
   /** Destroy an HMatInterface instance.
 
       @note This destructor is *not* virtual, as this class is not meant to be subclassed.
@@ -225,7 +218,7 @@ public:
       @param b
       @param beta
    */
-  void gemm(char transA, char transB, T alpha, const HMatInterface<T, E>* a, const HMatInterface<T, E>* b, T beta);
+  void gemm(char transA, char transB, T alpha, const HMatInterface<T>* a, const HMatInterface<T>* b, T beta);
   /** Full <- Full x HMatrix product.
 
       This computes the product \f$ C_F \gets \alpha . op(A_F) \times op(B_H) +
@@ -235,10 +228,10 @@ public:
       The meaning of the arguments is as in \a HMatInterface<T>::gemm(), and in
       BLAS.
    */
-  static void gemm(ScalarArray<T>& c, char transA, char transB, T alpha, ScalarArray<T>& a, const HMatInterface<T, E>& b, T beta);
+  static void gemm(ScalarArray<T>& c, char transA, char transB, T alpha, ScalarArray<T>& a, const HMatInterface<T>& b, T beta);
   /** Return a new copy of this.
    */
-  HMatInterface<T, E>* copy(bool structOnly = false) const;
+  HMatInterface<T>* copy(bool structOnly = false) const;
   /** Transpose this in place.
    */
   void transpose();
@@ -251,7 +244,7 @@ public:
 
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */
-  void solve(HMatInterface<T, E>& b) const;
+  void solve(HMatInterface<T>& b) const;
   /** Solve the system \f$op(L) x = b\f$ in place, with L being the lower triangular part of
       an already factorized matrix, and b a ScalarArray.
 
@@ -319,29 +312,31 @@ public:
    */
   void apply_on_leaf(const LeafProcedure<HMatrix<T> >& proc);
 
-  typename E<T>::Settings & engineSettings() { return engine_.settings; }
-
   const ClusterData * rows() const {
-      return engine_.hmat->rows();
+      return engine_->hmat->rows();
   }
 
   const ClusterData * cols() const {
-      return engine_.hmat->cols();
+      return engine_->hmat->cols();
   }
 
-  const E<T> & engine() const {
-      return engine_;
+  const IEngine<T> & engine() const {
+      return *engine_;
+  }
+
+  EngineSettings& engineSettings() {
+    return engine_->GetSettings();
   }
 
   hmat_factorization_t factorization() {
       return factorizationType;
   }
 
-  HMatInterface(HMatrix<T>* h, hmat_factorization_t factorization = hmat_factorization_none);
 private:
   /// Disallow the copy
-  HMatInterface(const HMatInterface<T, E>& o);
+  HMatInterface(const HMatInterface<T>& o);
 };
+
 }  // end namespace hmat
 
 #endif

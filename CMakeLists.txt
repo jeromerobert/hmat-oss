@@ -273,7 +273,7 @@ endif(HMAT_EXPORT_BUILD_DATE AND NOT WIN32)
 
 # Sources
 file(GLOB_RECURSE HMAT_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} src/*.[ch]pp include/*.h)
-list(REMOVE_ITEM HMAT_SOURCES src/hmat_cpp_interface.cpp src/recursion.cpp) # because it is included in default_engine.cpp (and the other *_engine.cpp) and h_matrix.cpp
+list(REMOVE_ITEM HMAT_SOURCES src/recursion.cpp) # because it is included h_matrix.cpp
 
 if(NOT HMAT_TIMELINE)
     list(REMOVE_ITEM HMAT_SOURCES src/common/timeline.cpp)

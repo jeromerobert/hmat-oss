@@ -25,40 +25,36 @@
 #include "h_matrix.hpp"
 #include "uncompressed_block.hpp"
 #include "uncompressed_values.hpp"
+#include "iengine.hpp"
 
 namespace hmat {
 
-class NullSettings {};
-template<typename T> class DefaultEngine
+template<typename T> class DefaultEngine : public IEngine<T>
 {
-  hmat_progress_t * progress_;
+  NullSettings settings;
 public:
+  ~DefaultEngine(){}
   typedef hmat::UncompressedBlock<T> UncompressedBlock;
   typedef hmat::UncompressedValues<T> UncompressedValues;
-  typedef NullSettings Settings;
-  Settings settings;
-  explicit DefaultEngine(HMatrix<T>* m = NULL): hmat(m){}
   void destroy(){}
-  // this attribute could be in HMatInterface, it's here to avoid making it friend
-  HMatrix<T>* hmat;
+  EngineSettings& GetSettings(){ return settings;}
   static int init();
   static void finalize(){}
   void assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssembly);
   void factorization(hmat_factorization_t);
   void inverse();
   void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
-  void gemm(char transA, char transB, T alpha, const DefaultEngine<T> & a, const DefaultEngine<T>& b, T beta);
+  void gemm(char transA, char transB, T alpha, const IEngine<T>& a, const IEngine<T>& b, T beta);
   void addRand(double epsilon);
   void solve(ScalarArray<T>& b, hmat_factorization_t) const;
-  void solve(DefaultEngine<T>& b, hmat_factorization_t) const;
+  void solve(IEngine<T>& b, hmat_factorization_t) const;
   void solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose=false) const;
-  void copy(DefaultEngine<T> & result, bool structOnly) const;
+  void copy(IEngine<T> & result, bool structOnly) const;
   void transpose();
   void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f);
   void createPostcriptFile(const std::string& filename) const;
-  void progress(hmat_progress_t * p){ progress_ = p; }
-  HMatrix<T> * data() const { return hmat; }
-  void info(hmat_info_t & i) const { hmat->info(i); }
+  IEngine<T>* clone() const { return new DefaultEngine();};
+  HMatrix<T> * getHandle() const { return IEngine<T>::hmat; }
 };
 
 }  // end namespace hmat

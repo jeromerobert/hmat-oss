@@ -26,6 +26,7 @@
 #include "assembly.hpp"
 #include "data_types.hpp"
 #include "hmat_cpp_interface.hpp"
+#include "default_engine.hpp"
 #include <cstring>
 #include <iostream>
 #include <cmath>
@@ -120,7 +121,7 @@ double correlationLength(const std::vector<Point>& points) {
 
 template<template<typename> class E>
 int go(const char* pointsFilename) {
-  if (0 != HMatInterface<D_t, E>::init()) return 1;
+  if (0 != E<D_t>::init()) return 1;
 
   HMatSettings& settings = HMatSettings::getInstance();
   settings.compressionMethod = AcaPlus;
@@ -152,7 +153,8 @@ int go(const char* pointsFilename) {
   std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;
   // Either store lower triangular matrix and use LDLt (or LLt) factorization or
   // store full matrix and use LU factorization.
-  HMatInterface<D_t, E> hmat(ct, ct, kNotSymmetric);
+  IEngine<D_t>* engine = new E<D_t>();
+  HMatInterface<D_t> hmat(engine, ct, ct, kNotSymmetric);
   settings.setParameters();
 
   hmat.assemble(f, kLowerSymmetric);
@@ -182,7 +184,7 @@ int go(const char* pointsFilename) {
   std::cout << "||Ax - b|| / ||b|| = " << diffNorm / rhsCopyNorm << std::endl;
 
   delete rhs;
-  HMatInterface<D_t, E>::finalize();
+  E<D_t>::finalize();
   return 0;
 }
 
