@@ -167,6 +167,16 @@ std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterT
         s.first = r.data.size() * 2 >= c.data.size();
         s.second = r.data.size() <= 2 * c.data.size();
     }
+    if(!s.first && !s.second) {
+        // The split_rows_cols_ parameter cannot be honored because we reach a leaf.
+        // So we split the only cluster which can be splitted and ignore split_rows_cols_
+        if(r.isLeaf()) {
+            assert(!c.isLeaf());
+            s.second = true;
+        } else {
+            s.first = true;
+        }
+    }
     return s;
 }
 
