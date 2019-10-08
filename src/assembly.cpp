@@ -103,6 +103,18 @@ void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
   }
 }
 
+template<typename T>
+T SimpleFunction<T>::getElement(const ClusterData* rows, const ClusterData* cols,
+               int rowIndex, int colIndex, void* handle, int stratum) const{
+  (void)stratum; //unused with NDEBUG
+  assert(stratum == -1); // stratum not supported here
+  const int col = *(cols->indices() + cols->offset() + colIndex);
+  const int row = *(rows->indices() + rows->offset() + rowIndex);
+  T elementValue;
+  compute_(userContext_, row, col, &elementValue);
+  return elementValue;
+}
+
 
 template<typename T>
 BlockFunction<T>::BlockFunction(const ClusterData* rowData,
@@ -242,6 +254,30 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
         compute_(&ac);
     }
 }
+
+template<typename T>
+T BlockFunction<T>::getElement(const ClusterData* rows, const ClusterData* cols,
+                       int rowIndex, int colIndex, void* handle, int stratum) const{
+  DECLARE_CONTEXT;
+  assert(handle);
+  T elementValue;
+  if(compute_ == NULL) {
+    assert(stratum == -1); // statum not supported here
+    legacyCompute_(handle, rowIndex, 1, colIndex, 1, &elementValue);
+  } else {
+    struct hmat_block_compute_context_t ac;
+    ac.block = &elementValue;
+    ac.col_count = 1;
+    ac.col_start = colIndex;
+    ac.row_count = 1;
+    ac.row_start = rowIndex;
+    ac.stratum=stratum;
+    ac.user_data=handle;
+    compute_(&ac);
+  }
+  return elementValue;
+}
+
 template<typename T>
 void Function<T>::prepareBlock(const ClusterData*, const ClusterData*,
              hmat_block_info_t * block_info, const AllocationObserver &) const {

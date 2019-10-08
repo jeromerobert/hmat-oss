@@ -127,7 +127,7 @@ public:
   /*! \brief Return a column of a matrix block.
 
     This functions returns a \a Vector representing the column of
-    index \a rowIndex in the subblock defined by its \a rows and \a
+    index \a colIndex in the subblock defined by its \a rows and \a
     cols.
 
     \param rows the rows of the subblock
@@ -141,6 +141,23 @@ public:
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
                       Vector<typename Types<T>::dp>* result, int stratum) const = 0;
+
+    /*! \brief Return an element of a matrix block.
+
+      This functions returns the value element representing the element in the
+      column of index \a colIndex and in the row of index \a rowIndex,
+      in the subblock defined by its \a rows and \a cols.
+
+      \param rows the rows of the subblock
+      \param cols the columns of the subblock
+      \param rowIndex the row index in the subblock
+      \param colIndex the col index in the subblock
+      \param handle the optional handle created by \a AssemblyFunction::prepareBlock()
+      \param stratum the stratum id or -1 for all strata
+      \return the value of the element as a \a T
+    */
+    virtual T getElement(const ClusterData* rows, const ClusterData* cols,
+                        int rowIndex, int colIndex, void* handle, int stratum) const = 0;
 };
 
 /**
@@ -167,6 +184,10 @@ public:
   virtual void getCol(const ClusterData* rows, const ClusterData* cols,
                       int colIndex, void* handle,
                       Vector<typename Types<T>::dp>* result, int stratum) const;
+
+  virtual T getElement(const ClusterData* rows, const ClusterData* cols,
+                      int rowIndex, int colIndex, void* handle, int stratum) const;
+
 };
 
 template<typename T> class BlockFunction : public Function<T> {
@@ -199,6 +220,9 @@ public:
 
   virtual void getCol(const ClusterData* rows, const ClusterData* cols, int colIndex,
                       void* handle, Vector<typename Types<T>::dp>* result, int stratum) const;
+
+  virtual T getElement(const ClusterData* rows, const ClusterData* cols,
+                       int rowIndex, int colIndex, void* handle, int stratum) const;
 };
 
 }  // end namespace hmat
