@@ -32,7 +32,7 @@
 namespace hmat {
 
 enum CompressionMethod {
-  Svd, AcaFull, AcaPartial, AcaPlus, NoCompression
+  Svd, AcaFull, AcaPartial, AcaPlus, NoCompression, AcaRandom
 };
 class IndexSet;
 

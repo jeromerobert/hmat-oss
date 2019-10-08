@@ -41,6 +41,8 @@
 #include "full_matrix.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
+#include "cluster_assembly_function.hpp"
+#include "random_pivot_manager.hpp"
 
 #ifdef _MSC_VER
 // Intel compiler defines isnan in global namespace
@@ -59,121 +61,6 @@ using std::min;
 using std::max;
 
 namespace hmat {
-
-
-/* Convenience class to lighten the getRow() / getCol() / assemble calls
-   and use information from block_info_t to speed up things for sparse and null blocks.
-*/
-template<typename T>
-class ClusterAssemblyFunction {
-  const Function<T>& f;
-
-public:
-  const ClusterData* rows;
-  const ClusterData* cols;
-  hmat_block_info_t info;
-  int stratum;
-  const AllocationObserver & allocationObserver_;
-  ClusterAssemblyFunction(const Function<T>& _f,
-                          const ClusterData* _rows, const ClusterData* _cols,
-                          const AllocationObserver & allocationObserver)
-    : f(_f), rows(_rows), cols(_cols), stratum(-1), allocationObserver_(allocationObserver) {
-    f.prepareBlock(rows, cols, &info, allocationObserver_);
-    assert((info.user_data == NULL) == (info.release_user_data == NULL));
-  }
-  ~ClusterAssemblyFunction() {
-    f.releaseBlock(&info, allocationObserver_);
-  }
-  void getRow(int index, Vector<typename Types<T>::dp>& result) const {
-    if (!HMatrix<T>::validateNullRowCol) {
-      // Normal mode: we compute except if a function is_guaranteed_null_row() is provided and tells it's null
-      if (!info.is_guaranteed_null_row || !info.is_guaranteed_null_row(&info, index, stratum))
-        f.getRow(rows, cols, index, info.user_data, &result, stratum);
-    } else {
-      // Validation mode: we always compute, and if a function is_guaranteed_null_row() tells it's null then we check that
-      f.getRow(rows, cols, index, info.user_data, &result, stratum);
-      if (info.is_guaranteed_null_row && info.is_guaranteed_null_row(&info, index, stratum))
-        assert(result.isZero());
-      // TODO: in validation mode, we could also warn about undetected null rows or columns
-    }
-  }
-  void getCol(int index, Vector<typename Types<T>::dp>& result) const {
-    if (!HMatrix<T>::validateNullRowCol) {
-      // Normal mode: we compute except if a function is_guaranteed_null_col() is provided and tells it's null
-      if (!info.is_guaranteed_null_col || !info.is_guaranteed_null_col(&info, index, stratum))
-        f.getCol(rows, cols, index, info.user_data, &result, stratum);
-    } else {
-      // Validation mode: we always compute, and if a function is_guaranteed_null_col() tells it's null then we check that
-      f.getCol(rows, cols, index, info.user_data, &result, stratum);
-      if (info.is_guaranteed_null_col && info.is_guaranteed_null_col(&info, index, stratum))
-        assert(result.isZero());
-    }
-  }
-  T getElement(int rowIndex, int colIndex) const {
-    T elementValue;
-    if (!HMatrix<T>::validateNullRowCol) {
-      // Normal mode: we compute except if a function is_guaranteed_null_col/row() is provided and tells it's null
-      bool colNotGuaranteedNull =
-          !info.is_guaranteed_null_col || !info.is_guaranteed_null_col(&info, colIndex, stratum);
-      bool rowNotGuaranteedNull =
-          !info.is_guaranteed_null_row || !info.is_guaranteed_null_row(&info, rowIndex, stratum);
-      if (colNotGuaranteedNull && rowNotGuaranteedNull)
-        return f.getElement(rows, cols, rowIndex, colIndex, info.user_data, stratum);
-      return (T) 0;
-    } else {
-      // Validation mode: we always compute, and if a function is_guaranteed_null_col() tells it's null then we check that
-      T result = f.getElement(rows, cols, rowIndex, colIndex, info.user_data, stratum);
-      bool colGuaranteedNull = info.is_guaranteed_null_col && info.is_guaranteed_null_col(&info, colIndex, stratum);
-      bool rowGuaranteedNull = info.is_guaranteed_null_row && info.is_guaranteed_null_row(&info, rowIndex, stratum);
-      if (colGuaranteedNull || rowGuaranteedNull)
-        assert(result == (T) 0);
-      return result;
-    }
-  }
-
-
-  FullMatrix<typename Types<T>::dp>* assemble() const {
-    if(stratum != -1) {
-      ScalarArray<typename Types<T>::dp> *mat = new ScalarArray<typename Types<T>::dp>(rows->size(), cols->size());
-      for(int j = 0 ; j < cols->size(); j++) {
-        Vector<typename Types<T>::dp> vec(*mat, j);
-        getCol(j, vec);
-      }
-      return new FullMatrix<typename Types<T>::dp>(mat, rows, cols);
-    }
-    if (info.block_type != hmat_block_null)
-      return f.assemble(rows, cols, &info, allocationObserver_) ;
-    else
-      // TODO return NULL
-      return new FullMatrix<typename Types<T>::dp>(rows, cols);
-  }
-private:
-  ClusterAssemblyFunction(ClusterAssemblyFunction&o) {} // No copy
-};
-
-template<typename T> double squaredNorm(const T x) {
-  return x * x;
-}
-// Specializations for complex values
-template<> double squaredNorm(const C_t x) {
-// std::norm seems deadfully slow on Intel 15
-#ifdef __INTEL_COMPILER
-  const float x_r = x.real();
-  const float x_i = x.imag();
-  return x_r*x_r + x_i*x_i;
-#else
-  return std::norm(x);
-#endif
-}
-template<> double squaredNorm(const Z_t x) {
-#ifdef __INTEL_COMPILER
-  const double x_r = x.real();
-  const double x_i = x.imag();
-  return x_r*x_r + x_i*x_i;
-#else
-  return std::norm(x);
-#endif
-}
 
 /** \brief Updates a row to reflect its current value in the matrix.
 
@@ -434,7 +321,7 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
+compressAcaPartial(const ClusterAssemblyFunction<T>& block, bool useRandomPivots) {
   typedef typename Types<T>::dp dp_t;
 
   const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
@@ -455,13 +342,14 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
   int J = 0;
   int k = 0;
 
+  RandomPivotManager<T> randomPivotManager(block, useRandomPivots ? max(rowCount, colCount) : 0);
+
   do {
     Vector<dp_t>* bCol = new Vector<dp_t>(block.cols->size());
     // Calculation of row I and its residue
     block.getRow(I, *bCol);
     updateRow(*bCol, I, bCols, aCols, k);
     rowFree[I] = false;
-    rowPivotCount++;
 
     // Find max and argmax of the residue
     double maxNorm2 = 0.;
@@ -471,6 +359,12 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
         maxNorm2 = norm2;
         J = j;
       }
+    }
+
+    Pivot<dp_t > randomOrDefaultPivot = randomPivotManager.GetPivot();
+    if(I!=randomOrDefaultPivot.row && squaredNorm(randomOrDefaultPivot.value) > maxNorm2){
+      I = randomOrDefaultPivot.row;
+      continue;
     }
 
     if ((*bCol)[J] == Constants<dp_t>::zero) {
@@ -490,6 +384,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       Vector<dp_t>* aCol = new Vector<dp_t>(block.rows->size());
       block.getCol(J, *aCol);
       updateCol(*aCol, J, aCols, bCols, k);
+      randomPivotManager.AddUsedPivot(bCol, aCol, I, J);
       colFree[J] = false;
       aCols.push_back(aCol);
 
@@ -517,6 +412,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
       const double ab_norm_2 = aColNorm_2 * bColNorm_2;
       estimateSquaredNorm += ab_norm_2;
       k++;
+      rowPivotCount++;
 
       // Evaluate the stopping criterion
       // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
@@ -543,10 +439,10 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block) {
     }
   } else {
     // If k == 0, block is only made of zeros.
-    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaPartial);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, useRandomPivots ? AcaRandom : AcaPartial);
   }
 
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaPartial);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, useRandomPivots ? AcaRandom : AcaPartial);
 }
 
 
@@ -712,13 +608,16 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
     rk = compressAcaFull(block);
     break;
   case AcaPartial:
-    rk = compressAcaPartial(block);
+    rk = compressAcaPartial(block, false);
+    break;
+  case AcaRandom:
+    rk = compressAcaPartial(block, true);
     break;
   case AcaPlus:
     if(block.cols->size() * 100 < block.rows->size() && !block.info.is_guaranteed_null_row && !block.info.is_guaranteed_null_col)
        // ACA+ start with a findMinRow call which will last for hours
        // if the block contains many null rows
-       rk = compressAcaPartial(block);
+       rk = compressAcaPartial(block, false);
     else
        rk = compressAcaPlus(block);
     break;
@@ -738,7 +637,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
     typedef typename Types<T>::dp dp_t;
     ClusterAssemblyFunction<T> block(f, rows, cols, ao);
     int nloop=-1; // so we assemble only one strata
-    if(block.info.number_of_strata > 1 && (method == AcaPartial || method == AcaPlus)) {
+    if(block.info.number_of_strata > 1 && (method == AcaPartial || method == AcaPlus || method == AcaRandom)) {
         block.stratum = 0;
         // enable strata assembling for AcaPartial & AcaPlus only
         nloop = block.info.number_of_strata;
@@ -746,7 +645,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
     RkMatrix<dp_t>* rk = compressOneStratum(method, block);
     rk->truncate(rk->approx.assemblyEpsilon); // why recompress right after compress ??
     for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
-        assert(method == AcaPartial || method == AcaPlus);
+        assert(method == AcaPartial || method == AcaPlus || method == AcaRandom);
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
         if(stratumRk->rank() > 0) {
             rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, -1);

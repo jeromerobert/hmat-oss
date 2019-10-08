@@ -63,7 +63,8 @@ typedef enum {
   hmat_compress_svd,
   hmat_compress_aca_full,
   hmat_compress_aca_partial,
-  hmat_compress_aca_plus
+  hmat_compress_aca_plus,
+  hmat_compress_aca_random
 } hmat_compress_t;
 
 typedef enum {

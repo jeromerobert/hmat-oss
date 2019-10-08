@@ -96,6 +96,35 @@ template<> struct Types<Z_t> {
   static const ScalarTypes TYPE = Z_TYPE;
 };
 
+template<typename T>
+double squaredNorm(const T x) {
+  return x * x;
+}
+
+// Specializations for complex values
+template<>
+inline double squaredNorm(const C_t x) {
+// std::norm seems deadfully slow on Intel 15
+#ifdef __INTEL_COMPILER
+  const float x_r = x.real();
+const float x_i = x.imag();
+return x_r*x_r + x_i*x_i;
+#else
+  return std::norm(x);
+#endif
+}
+
+template<>
+inline double squaredNorm(const Z_t x) {
+#ifdef __INTEL_COMPILER
+  const double x_r = x.real();
+const double x_i = x.imag();
+return x_r*x_r + x_i*x_i;
+#else
+  return std::norm(x);
+#endif
+}
+
 }  // end namespace hmat
 
 #endif
