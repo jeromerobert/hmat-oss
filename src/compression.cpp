@@ -109,6 +109,27 @@ public:
         assert(result.isZero());
     }
   }
+  T getElement(int rowIndex, int colIndex) const {
+    T elementValue;
+    if (!HMatrix<T>::validateNullRowCol) {
+      // Normal mode: we compute except if a function is_guaranteed_null_col/row() is provided and tells it's null
+      bool colNotGuaranteedNull =
+          !info.is_guaranteed_null_col || !info.is_guaranteed_null_col(&info, colIndex, stratum);
+      bool rowNotGuaranteedNull =
+          !info.is_guaranteed_null_row || !info.is_guaranteed_null_row(&info, rowIndex, stratum);
+      if (colNotGuaranteedNull && rowNotGuaranteedNull)
+        return f.getElement(rows, cols, rowIndex, colIndex, info.user_data, stratum);
+      return (T) 0;
+    } else {
+      // Validation mode: we always compute, and if a function is_guaranteed_null_col() tells it's null then we check that
+      T result = f.getElement(rows, cols, rowIndex, colIndex, info.user_data, stratum);
+      bool colGuaranteedNull = info.is_guaranteed_null_col && info.is_guaranteed_null_col(&info, colIndex, stratum);
+      bool rowGuaranteedNull = info.is_guaranteed_null_row && info.is_guaranteed_null_row(&info, rowIndex, stratum);
+      if (colGuaranteedNull || rowGuaranteedNull)
+        assert(result == (T) 0);
+      return result;
+    }
+  }
 
 
   FullMatrix<typename Types<T>::dp>* assemble() const {
