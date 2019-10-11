@@ -122,8 +122,15 @@ public:
   ClusterData(const DofData* dofData) : IndexSet(0, dofData->size()), dofData_(dofData) {}
   ClusterData(const ClusterData& data) : IndexSet(data), dofData_(data.dofData_) {}
   ClusterData(const ClusterData& data, int offset, int size) : IndexSet(offset, size), dofData_(data.dofData_) {}
-
+  /**
+   * @brief indices()[i] is the index in the original coordinate
+   * array which match the ith point in the underlying hmat/dofData_
+   */
   inline int* indices() const { return dofData_->perm_i2e_; }
+  /**
+   * @brief indices_rev()[i] is the index in the underlying hmat/dofData_
+   * which match the ith point in the original coordinate array
+   */
   inline int* indices_rev() const { return dofData_->perm_e2i_; }
   inline const DofCoordinates* coordinates() const { return dofData_->coordinates_; }
   inline int* group_index() const { return dofData_->group_index_; }
