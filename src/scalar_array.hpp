@@ -445,14 +445,20 @@ public:
   /*! \brief Set orthogonality flag
    */
   inline void setOrtho(const int flag) const {
+#ifdef HMAT_TEST_ORTHO
     *is_ortho = flag;
     static char *test = getenv("HMAT_TEST_ORTHO");
     if (flag && test) assert(getOrtho() == testOrtho());
+#endif
   }
   /*! \brief Get orthogonality flag
    */
   inline int getOrtho() const {
+#ifdef HMAT_TEST_ORTHO
     return *is_ortho;
+#else
+    return false;
+#endif
   }
 
 };
