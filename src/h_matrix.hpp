@@ -168,7 +168,7 @@ public:
     \param _rows The row cluster tree
     \param _cols The column cluster tree
    */
-  HMatrix(ClusterTree* _rows, ClusterTree* _cols, const MatrixSettings * settings,
+  HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const MatrixSettings * settings,
        int depth, SymmetryFlag symmetryFlag = kNotSymmetric,
        AdmissibilityCondition * admissibilityCondition = &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
 
