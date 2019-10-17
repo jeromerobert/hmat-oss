@@ -48,7 +48,10 @@ public:
   bool operator==(const IndexSet& o) const;
   /*! \brief Get the number of indices in this set.
    */
-  inline int size() const { return size_; }
+  inline int size() const {
+    assert(size_ > 0);
+    return size_;
+  }
 
   /*! \brief Get the offset of first index
    */
@@ -120,8 +123,10 @@ class ClusterData : public IndexSet {
 friend class ClusterTree;
 public:
   ClusterData(const DofData* dofData) : IndexSet(0, dofData->size()), dofData_(dofData) {}
-  ClusterData(const ClusterData& data) : IndexSet(data), dofData_(data.dofData_) {}
-  ClusterData(const ClusterData& data, int offset, int size) : IndexSet(offset, size), dofData_(data.dofData_) {}
+  ClusterData(const ClusterData& data) : IndexSet(data), dofData_(data.dofData_) { }
+  ClusterData(const ClusterData& data, int offset, int size) : IndexSet(offset, size), dofData_(data.dofData_) {
+    assert(offset+size <= coordinates()->numberOfDof());
+  }
   /**
    * @brief indices()[i] is the index in the original coordinate
    * array which match the ith point in the underlying hmat/dofData_

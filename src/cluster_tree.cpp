@@ -122,6 +122,8 @@ void ClusterData::moveDoF(int index, ClusterData* right)
   // ... and expand right sibling
   right->offset_ -=  1;
   right->size_ += 1;
+  assert(size_ > 0);
+  assert(right->size_ > 0);
 }
 
 void ClusterData::assertValid() {
@@ -161,7 +163,8 @@ ClusterTree*
 ClusterTree::slice(int offset, int size) const
 {
   assert(offset >= 0);
-  assert(size >= 0);
+  assert(size > 0);
+  assert(offset+size <= data.coordinates()->numberOfDof());
   ClusterTree* result = new ClusterTree(*this);
   result->data.offset_ = offset;
   result->data.size_ = size;

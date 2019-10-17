@@ -109,8 +109,7 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
     isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary_(false),
     ownRowsClusterTree_(false), ownColsClusterTree_(false), localSettings(settings)
 {
-  if (isVoid())
-    return;
+  assert(!isVoid());
   // We would like to create a block of matrix in one of the following case:
   // - rows_->isLeaf() && cols_->isLeaf() : both rows and cols are leaves.
   // - Block is too small to recurse and compress (for performance)
