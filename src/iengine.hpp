@@ -35,8 +35,8 @@ namespace hmat {
     HMatrix<T> *hmat;
 
     virtual void destroy() = 0;
-
-    virtual ~IEngine(){};
+    IEngine(): progress_(NULL) {}
+    virtual ~IEngine(){}
 
     virtual IEngine<T>* clone() const = 0;
 
