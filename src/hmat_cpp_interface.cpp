@@ -36,8 +36,8 @@ namespace hmat {
 
 // HMatInterface
 template<typename T>
-HMatInterface<T>::HMatInterface(IEngine<T>* engine, ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
-                                   AdmissibilityCondition * admissibilityCondition) :
+HMatInterface<T>::HMatInterface(IEngine<T>* engine, const ClusterTree* _rows, const ClusterTree* _cols,
+                                SymmetryFlag sym, AdmissibilityCondition * admissibilityCondition) :
   engine_(engine),factorizationType(hmat_factorization_none)
 {
   DECLARE_CONTEXT;

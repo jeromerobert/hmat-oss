@@ -37,7 +37,8 @@
 namespace
 {
 template<typename T, template <typename> class E>
-hmat_matrix_t * create_empty_hmatrix(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, int lower_sym)
+hmat_matrix_t * create_empty_hmatrix(const hmat_cluster_tree_t* rows_tree,
+  const hmat_cluster_tree_t* cols_tree, int lower_sym)
 {
   DECLARE_CONTEXT;
     hmat::SymmetryFlag sym = (lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
@@ -50,8 +51,8 @@ hmat_matrix_t * create_empty_hmatrix(hmat_cluster_tree_t* rows_tree, hmat_cluste
 
 template<typename T, template <typename> class E>
 hmat_matrix_t * create_empty_hmatrix_admissibility(
-  hmat_cluster_tree_t* rows_tree,
-  hmat_cluster_tree_t* cols_tree, int lower_sym,
+  const hmat_cluster_tree_t* rows_tree,
+  const hmat_cluster_tree_t* cols_tree, int lower_sym,
   hmat_admissibility_t* condition)
 {
   DECLARE_CONTEXT;
@@ -59,8 +60,8 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
     hmat::IEngine<T>* engine = new E<T>();
     return (hmat_matrix_t*) new hmat::HMatInterface<T>(
             engine,
-            static_cast<hmat::ClusterTree*>(static_cast<void*>(rows_tree)),
-            static_cast<hmat::ClusterTree*>(static_cast<void*>(cols_tree)),
+            reinterpret_cast<const hmat::ClusterTree*>(rows_tree),
+            reinterpret_cast<const hmat::ClusterTree*>(cols_tree),
             sym, (hmat::AdmissibilityCondition*)condition);
 }
 
@@ -336,10 +337,12 @@ int get_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t ** rows, 
 }
 
 template<typename T, template <typename> class E>
-int set_cluster_trees(hmat_matrix_t* holder, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols) {
+int set_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t * rows, const hmat_cluster_tree_t * cols) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  hmat->engine().hmat->setClusterTrees((hmat::ClusterTree*)rows, (hmat::ClusterTree*)cols);
+  hmat->engine().hmat->setClusterTrees(
+    reinterpret_cast<const hmat::ClusterTree*>(rows),
+    reinterpret_cast<const hmat::ClusterTree*>(cols));
   return 0;
 }
 

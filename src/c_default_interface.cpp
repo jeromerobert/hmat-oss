@@ -139,15 +139,16 @@ hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int d
     return hmat_create_cluster_tree_generic(&ctx);
 }
 
-void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree) {
+void hmat_delete_cluster_tree(const hmat_cluster_tree_t * tree) {
     delete ((ClusterTree*)tree);
 }
 
-hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree) {
-    return (hmat_cluster_tree_t*)((ClusterTree*)tree)->copy();
+hmat_cluster_tree_t * hmat_copy_cluster_tree(const hmat_cluster_tree_t * tree) {
+    return reinterpret_cast<hmat_cluster_tree_t *>(
+        reinterpret_cast<const ClusterTree*>(tree)->copy());
 }
 
-int hmat_tree_nodes_count(hmat_cluster_tree_t * tree)
+int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree)
 {
     return ((ClusterTree*)tree)->nodesCount();
 }

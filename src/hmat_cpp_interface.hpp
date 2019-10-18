@@ -149,7 +149,7 @@ public:
       @return a new HMatInterface instance.
    */
 
-  HMatInterface(IEngine<T>* engine, ClusterTree* _rows, ClusterTree* _cols, SymmetryFlag sym,
+  HMatInterface(IEngine<T>* engine, const ClusterTree* _rows, const ClusterTree* _cols, SymmetryFlag sym,
                 AdmissibilityCondition * admissibilityCondition =
                 &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
 

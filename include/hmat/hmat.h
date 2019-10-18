@@ -240,9 +240,9 @@ HMAT_API void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb)
 */
 HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int dimension, int size, const hmat_cluster_tree_builder_t* ctb);
 
-HMAT_API void hmat_delete_cluster_tree(hmat_cluster_tree_t * tree);
+HMAT_API void hmat_delete_cluster_tree(const hmat_cluster_tree_t * tree);
 
-HMAT_API hmat_cluster_tree_t * hmat_copy_cluster_tree(hmat_cluster_tree_t * tree);
+HMAT_API hmat_cluster_tree_t * hmat_copy_cluster_tree(const hmat_cluster_tree_t * tree);
 
 struct hmat_cluster_tree_create_context_t {
     /** Spatial dimension */
@@ -269,7 +269,7 @@ HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree_generic(struct hmat_clus
 /*!
  * Return the number of nodes in a cluster tree
  */
-HMAT_API int hmat_tree_nodes_count(hmat_cluster_tree_t * tree);
+HMAT_API int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree);
 
 /** Information on a cluster tree */
 typedef struct
@@ -605,7 +605,8 @@ typedef struct
       \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
       \return an opaque pointer to an HMatrix, or NULL in case of error.
     */
-    hmat_matrix_t* (*create_empty_hmatrix)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree, int lower_symmetric);
+    hmat_matrix_t* (*create_empty_hmatrix)(const hmat_cluster_tree_t* rows_tree,
+        const hmat_cluster_tree_t* cols_tree, int lower_symmetric);
 
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances,
       and specify admissibility condition.
@@ -620,7 +621,7 @@ typedef struct
       \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
       \return an opaque pointer to an HMatrix, or NULL in case of error.
     */
-    hmat_matrix_t* (*create_empty_hmatrix_admissibility)(hmat_cluster_tree_t* rows_tree, hmat_cluster_tree_t* cols_tree,
+    hmat_matrix_t* (*create_empty_hmatrix_admissibility)(const hmat_cluster_tree_t* rows_tree, const hmat_cluster_tree_t* cols_tree,
                                                          int lower_symmetric, hmat_admissibility_t* cond);
 
     /*! Declare that the given HMatrix owns its cluster trees, which means that they will be
@@ -830,7 +831,7 @@ hmat
      * The provided cluster trees must be compatible with the structure of
      * the matrix.
      */
-    int (*set_cluster_trees)(hmat_matrix_t* hmatrix, hmat_cluster_tree_t * rows, hmat_cluster_tree_t * cols);
+    int (*set_cluster_trees)(hmat_matrix_t* hmatrix, const hmat_cluster_tree_t * rows, const hmat_cluster_tree_t * cols);
 
     /**
      * @brief Extract matrix diagonal
