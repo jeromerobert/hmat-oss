@@ -55,6 +55,7 @@ public:
   void createPostcriptFile(const std::string& filename) const;
   IEngine<T>* clone() const { return new DefaultEngine();};
   HMatrix<T> * getHandle() const { return IEngine<T>::hmat; }
+  void scale(T alpha);
 };
 
 }  // end namespace hmat

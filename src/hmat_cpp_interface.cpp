@@ -191,7 +191,7 @@ template<typename T>
 void HMatInterface<T>::scale(T alpha) {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
-  engine_->data()->scale(alpha);
+  engine_->scale(alpha);
 }
 
 template<typename T>

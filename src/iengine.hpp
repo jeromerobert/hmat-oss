@@ -64,8 +64,6 @@ namespace hmat {
 
     void progress(hmat_progress_t *p) { progress_ = p; }
 
-    HMatrix<T> *data() const { return hmat; }
-
     void info(hmat_info_t &i) const { hmat->info(i); }
 
     virtual EngineSettings &GetSettings() = 0;
@@ -75,6 +73,8 @@ namespace hmat {
     virtual void copy(IEngine <T> &result, bool structOnly) const = 0;
 
     virtual void solve(IEngine<T>& b, hmat_factorization_t) const = 0;
+
+    virtual void scale(T alpha) = 0;
   protected:
     hmat_progress_t *progress_;
   };
