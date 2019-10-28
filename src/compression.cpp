@@ -412,7 +412,6 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block, bool useRandomPivots
       const double ab_norm_2 = aColNorm_2 * bColNorm_2;
       estimateSquaredNorm += ab_norm_2;
       k++;
-      rowPivotCount++;
 
       // Evaluate the stopping criterion
       // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
@@ -421,6 +420,7 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block, bool useRandomPivots
         break;
       }
     }
+    rowPivotCount++;
   } while (rowPivotCount < maxK);
 
   ScalarArray<dp_t> *newA, *newB;
