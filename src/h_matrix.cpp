@@ -1132,6 +1132,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
                 delete fullMat;
             }
         }
+        checkZeros();
         return;
     }
 
@@ -1156,6 +1157,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
             rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
         rk()->gemmRk(transA, transB, alpha, a, b, Constants<T>::pone);
         rank_ = rk()->rank();
+        checkZeros();
         return;
     }
 
@@ -1195,6 +1197,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         fullMat->scale(alpha);
       }
     }
+    checkZeros();
 }
 
 template<typename T>
@@ -1202,7 +1205,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
   if(isVoid() || a->isVoid())
       return;
-
+  a->checkZeros();
+  b->checkZeros();
+  if(a->isLeaf() && a->isNull())
+    printf("Useless gemm a=null\n");
+  if(b->isLeaf() && b->isNull())
+    printf("Useless gemm b=null\n");
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
     // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
@@ -1248,6 +1256,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   // Once the scaling is done, beta is reset to 1
   // to avoid an other scaling.
   recursiveGemm(transA, transB, alpha, a, b);
+  checkZeros();
 }
 
 template<typename T>
@@ -1369,6 +1378,11 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
     result = new FullMatrix<T>(aRows, bCols);
     result->gemm(transA, transB, Constants<T>::pone, a->full(), b->full(),
                  Constants<T>::zero);
+    size_t s = static_cast<size_t>(aRows->size()) * bCols->size();
+    if(s < 7000 && result->storedZeros() == s) {
+      delete result;
+      result = NULL;
+    }
   } else if(a->isNull() || b->isNull()) {
     return NULL;
   } else {
@@ -1668,10 +1682,22 @@ void HMatrix<T>::inverse() {
   }
 }
 
+template<typename T> void HMatrix<T>::checkZeros() const {
+  if(!this->isLeaf()) {
+    for(int i = 0; i < this->nrChild(); i++)
+      if(this->getChild(i))
+        this->getChild(i)->checkZeros();
+  } else if(isFullMatrix()) {
+    if(full()->storedZeros() == full()->rows() * full()->cols()) {
+      printf("full block %dx%d full of zeros\n", full()->rows(), full()->cols());
+    }
+  }
+}
 template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, MainOp) const {
   DECLARE_CONTEXT;
   if (isVoid()) return;
+  b->checkZeros();
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, unitriangular);
@@ -1702,6 +1728,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, Mai
       b->axpy(Constants<T>::pone, &bFull);
     }
   }
+  checkZeros();
 }
 
 template<typename T>
@@ -1749,6 +1776,7 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
+  b->checkZeros();
   // The recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularRight(b, unitriangular, lowerStored);
@@ -1801,6 +1829,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
       delete bFull;
     }
   }
+  checkZeros();
 }
 
 /* Resolve U.X=B, solution saved in B, with B Hmat
@@ -1937,7 +1966,7 @@ template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progres
 template<typename T>
 void HMatrix<T>::luDecomposition(hmat_progress_t * progress) {
   DECLARE_CONTEXT;
-
+  checkZeros();
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     assert(isFullMatrix());
@@ -1950,6 +1979,7 @@ void HMatrix<T>::luDecomposition(hmat_progress_t * progress) {
   } else {
     this->recursiveLuDecomposition(progress);
   }
+  checkZeros();
 }
 
 template<typename T>

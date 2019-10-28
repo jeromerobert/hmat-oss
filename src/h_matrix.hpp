@@ -633,6 +633,7 @@ public:
       rank_ = FULL_BLOCK;
   }
 
+  void checkZeros() const;
   bool isNull() const {
       assert(rank_ >= FULL_BLOCK);
       return rank_ == 0 || (rank_ == FULL_BLOCK && full_ == NULL);

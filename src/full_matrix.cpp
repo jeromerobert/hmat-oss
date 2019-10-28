@@ -170,7 +170,10 @@ template<typename T>
 void FullMatrix<T>::gemm(char transA, char transB, T alpha,
                          const FullMatrix<T>* a, const FullMatrix<T>* b,
                          T beta) {
+  assert(b->storedZeros() < b->rows() * b->cols());
+  assert(a->storedZeros() < a->rows() * a->cols());
   data.gemm(transA, transB, alpha, &a->data, &b->data, beta);
+  //assert(storedZeros() < rows() * cols());
 }
 
 template<typename T>
@@ -376,7 +379,11 @@ void FullMatrix<T>::copyMatrixAtOffset(const FullMatrix<T>* a,
 
 template<typename T>
 void FullMatrix<T>::axpy(T alpha, const FullMatrix<T>* a) {
+  assert(a->storedZeros() < a->rows() * a->cols());
+  size_t zb = storedZeros();
+  (void)zb;
   data.axpy(alpha, &a->data);
+  // assert(storedZeros() < rows() * cols());
 }
 
 template<typename T>
