@@ -410,7 +410,7 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
             }
             result.rk_count++;
             result.rk_size += s;
-        } else {
+        } else if(isFullMatrix()){
             result.compressed_size += s;
             result.full_count ++;
             result.full_size += s;
