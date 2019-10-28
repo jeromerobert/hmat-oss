@@ -124,6 +124,16 @@ void ClusterData::moveDoF(int index, ClusterData* right)
   right->size_ += 1;
 }
 
+void ClusterData::assertValid() {
+  unsigned int n = coordinates()->numberOfDof();
+  std::vector<int> ind(indices(), indices()+n);
+  sort(ind.begin(), ind.end());
+  ind.erase(unique(ind.begin(), ind.end()), ind.end());
+  HMAT_ASSERT(ind.size() == n);
+  HMAT_ASSERT(*std::min_element(ind.begin(), ind.end()) == 0);
+  HMAT_ASSERT(*std::max_element(ind.begin(), ind.end()) == n - 1);
+}
+
 ClusterTree::ClusterTree(const DofData* dofData)
   : Tree<ClusterTree>(NULL)
   , data(dofData)

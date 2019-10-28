@@ -136,6 +136,8 @@ public:
   inline int* group_index() const { return dofData_->group_index_; }
   /*! Move a degree of freedom into its right sibling  */
   void moveDoF(int index, ClusterData* right);
+  /** @brief debug method that check the underlying indices arrays are valid */
+  void assertValid();
 
 private:
   const DofData* dofData_;
