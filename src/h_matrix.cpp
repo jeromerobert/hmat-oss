@@ -1207,10 +1207,6 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       return;
   a->checkZeros();
   b->checkZeros();
-  if(a->isLeaf() && a->isNull())
-    printf("Useless gemm a=null\n");
-  if(b->isLeaf() && b->isNull())
-    printf("Useless gemm b=null\n");
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
     // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
