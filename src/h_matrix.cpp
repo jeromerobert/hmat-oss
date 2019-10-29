@@ -1316,17 +1316,14 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
   //  - A F, B F
   if (!a->isLeaf() && b->isFullMatrix()) {
     result = multiplyHFull(transA, transB, a, b->full());
-    HMAT_ASSERT(result);
   } else if (a->isFullMatrix() && !b->isLeaf()) {
     result = multiplyFullH(transA, transB, a->full(), b);
-    HMAT_ASSERT(result);
   } else if (a->isFullMatrix() && b->isFullMatrix()) {
     const IndexSet* aRows = (transA == 'N')? a->rows() : a->cols();
     const IndexSet* bCols = (transB == 'N')? b->cols() : b->rows();
     result = new FullMatrix<T>(aRows, bCols);
     result->gemm(transA, transB, Constants<T>::pone, a->full(), b->full(),
                  Constants<T>::zero);
-    HMAT_ASSERT(result);
   } else if(a->isNull() || b->isNull()) {
     return NULL;
   } else {
