@@ -990,18 +990,24 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     // We modify the columns of f(a) and the rows of f(b)
     makeCompatible<T>(transA != 'N', transB == 'N', a, b, va, vb);
 
-    if (this->isLeaf() && !this->isRkMatrix() && !this->isFullMatrix())
-    {
-      this->full(new FullMatrix<T>(this->rows(), this->cols()));
+    if(this->isLeaf() && !this->isRkMatrix() && this->full() == NULL) {
+	  // C (this) is a null full block. We cannot get the subset of it and we
+	  // don't know yet if we need to allocate it
+	  fullHHGemm(this, transA, transB, alpha, va, vb);
+      if(va != a)
+        delete va;
+      if(vb != b)
+        delete vb;
+      return;
+    } else {
+      // Create vva & vc = the subsets of va & c (=this) that match each other for doing the sum c+f(a).f(b)
+      // We modify the rows of f(a) and the rows of c
+      makeCompatible<T>(transA == 'N', true, va, this, vva, vc);
+
+      // Create vvb & vvc = the subsets of vb & vc that match each other for doing the sum c+f(a).f(b)
+      // We modify the columns of f(b) and the columns of c
+      makeCompatible<T>(transB != 'N', false, vb, vc, vvb, vvc);
     }
-    // Create vva & vc = the subsets of va & c (=this) that match each other for doing the sum c+f(a).f(b)
-    // We modify the rows of f(a) and the rows of c
-    makeCompatible<T>(transA == 'N', true, va, this, vva, vc);
-
-
-    // Create vvb & vvc = the subsets of vb & vc that match each other for doing the sum c+f(a).f(b)
-    // We modify the columns of f(b) and the columns of c
-    makeCompatible<T>(transB != 'N', false, vb, vc, vvb, vvc);
 
     // Delete the intermediate matrices, except if subset() in makecompatible() has returned the original matrix
     if(va != vva && va != a)
@@ -1014,7 +1020,6 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     // writing on a subset of an RkMatrix is not possible without
     // modifying the whole matrix
     assert(!isRkMatrix() || vvc == this);
-
     // Do the product on the matrices that are now compatible
     vvc->leafGemm(transA, transB, alpha, vva, vvb);
 
@@ -1059,6 +1064,39 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     } // if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf())
     else
         uncompatibleGemm(transA, transB, alpha, a, b);
+}
+
+/**
+ * @brief product of 2 H-matrix to a full block.
+ *
+ * Full blocks may be null and it's that case it's not possible to take
+ * a subset from them. We don't want to allocate them before the recursion
+ * because the recursion may show that allocation is not needed. This function
+ * allow to recurse and bypass the uncompatibleGemm method which would create
+ * invalid subset.
+ */
+template<typename T> void fullHHGemm(HMatrix<T> *c, char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b) {
+  assert(c->isLeaf());
+  assert(!c->isRkMatrix());
+  if(!a->isLeaf() && !b->isLeaf()) {
+    for (int i = 0; i < (transA=='N' ? a->nrChildRow() : a->nrChildCol()) ; i++) {
+      for (int j = 0; j < (transB=='N' ? b->nrChildCol() : b->nrChildRow()) ; j++) {
+        const HMatrix<T> *childA, *childB;
+        for (int k = 0; k < (transA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
+          char tA = transA;
+          char tB = transB;
+          childA = a->getChildForGEMM(tA, i, k);
+          childB = b->getChildForGEMM(tB, k, j);
+          if(childA && childB)
+            fullHHGemm(c, tA, tB, alpha, childA, childB);
+        }
+      }
+    }
+  } else if(!(a->isLeaf() && a->isNull()) && !(b->isLeaf() && b->isNull())) {
+    if(c->full() == NULL)
+      c->full(new FullMatrix<T>(c->rows(), c->cols()));
+    c->gemm(transA, transB, alpha, a, b, Constants<T>::pone);
+  }
 }
 
 template<typename T> void
@@ -1118,20 +1156,8 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     }
 
     // a, b are H matrices and 'this' is full
-    if ( this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
-      for (int i = 0; i < (transA=='N' ? a->nrChildRow() : a->nrChildCol()) ; i++) {
-        for (int j = 0; j < (transB=='N' ? b->nrChildCol() : b->nrChildRow()) ; j++) {
-          const HMatrix<T> *childA, *childB;
-          for (int k = 0; k < (transA=='N' ? a->nrChildCol() : a->nrChildRow()) ; k++) {
-            char tA = transA;
-            char tB = transB;
-            childA = a->getChildForGEMM(tA, i, k);
-            childB = b->getChildForGEMM(tB, k, j);
-            if(childA && childB)
-              gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
-          }
-        }
-      }
+    if ( this->isLeaf() && ((!a->isLeaf() && !b->isLeaf()) || isNull()) ) {
+      fullHHGemm(this, transA, transB, alpha, a, b);
       return;
     }
 
@@ -1156,12 +1182,14 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 
     // It's not optimal to concider that the result is a FullMatrix but
     // this is a H*F case and it almost never happen
-    if (isFullMatrix()) {
-      full()->axpy(alpha, fullMat);
-      delete fullMat;
-    } else {
-      full(fullMat);
-      fullMat->scale(alpha);
+    if(fullMat) {
+      if (isFullMatrix()) {
+        full()->axpy(alpha, fullMat);
+        delete fullMat;
+      } else {
+        full(fullMat);
+        fullMat->scale(alpha);
+      }
     }
 }
 
