@@ -1146,12 +1146,12 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
         fullMat = rkMat->eval();
         delete rkMat;
-    } else if(a->isLeaf() || b->isLeaf()){
+    } else if(a->isLeaf() && b->isLeaf() && isFullMatrix()){
+        full()->gemm(transA, transB, alpha, a->full(), b->full(), Constants<T>::pone);
+        return;
+    } else {
       // if a or b is a leaf, it is Full (since Rk have been treated before)
         fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
-    } else {
-        // should not happen anymore
-        HMAT_ASSERT(false);
     }
 
     // It's not optimal to concider that the result is a FullMatrix but
