@@ -1092,7 +1092,7 @@ template<typename T> void fullHHGemm(HMatrix<T> *c, char transA, char transB, T 
         }
       }
     }
-  } else if(!(a->isLeaf() && a->isNull()) && !(b->isLeaf() && b->isNull())) {
+  } else if(!a->isRecursivelyNull() && !b->isRecursivelyNull()) {
     if(c->full() == NULL)
       c->full(new FullMatrix<T>(c->rows(), c->cols()));
     c->gemm(transA, transB, alpha, a, b, Constants<T>::pone);
@@ -1125,8 +1125,10 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
             // a full matrix so as the result.
             assert(a->isFullMatrix() || b->isFullMatrix());
             FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
-            axpy(alpha, fullMat);
-            delete fullMat;
+            if(fullMat) {
+                axpy(alpha, fullMat);
+                delete fullMat;
+            }
         }
         return;
     }
@@ -1256,8 +1258,19 @@ FullMatrix<T>* multiplyFullH(char transM, char transH,
   FullMatrix<T>* resultT = multiplyHFull(transH == 'N' ? 'T' : 'N',
                                          transM == 'N' ? 'T' : 'N',
                                          h, mat);
-  resultT->transpose();
+  if(resultT != NULL)
+    resultT->transpose();
   return resultT;
+}
+
+template<typename T> bool HMatrix<T>::isRecursivelyNull() const {
+  if(this->isLeaf())
+    return isNull();
+  else for(int i = 0; i < this->nrChild(); i++) {
+    if(this->getChild(i) && !this->getChild(i)->isRecursivelyNull())
+      return false;
+  }
+  return true;
 }
 
 template<typename T>
@@ -1266,6 +1279,8 @@ FullMatrix<T>* multiplyHFull(char transH, char transM,
                                          const FullMatrix<T>* mat) {
   assert((transH == 'N' ? h->cols()->size() : h->rows()->size())
            == (transM == 'N' ? mat->rows() : mat->cols()));
+  if(h->isRecursivelyNull())
+    return NULL;
   FullMatrix<T>* result =
     new FullMatrix<T>((transH == 'N' ? h->rows() : h->cols()),
                       (transM == 'N' ? mat->cols_ : mat->rows_));

@@ -648,6 +648,8 @@ public:
       assert(rank_ >= FULL_BLOCK);
       return rank_ == 0 || (rank_ == FULL_BLOCK && full_ == NULL);
   }
+
+  bool isRecursivelyNull() const;
   // TODO: the meaning/usage of UNINITIALIZED_BLOCK is not clear, it should be reworked
   // or removed
   bool isAssembled() const {
