@@ -1097,7 +1097,7 @@ template<typename T> void fullHHGemm(HMatrix<T> *c, char transA, char transB, T 
   } else if(!a->isRecursivelyNull() && !b->isRecursivelyNull()) {
     if(c->full() == NULL)
       c->full(new FullMatrix<T>(c->rows(), c->cols()));
-    c->gemm(transA, transB, alpha, a, b, Constants<T>::pone);
+    c->uncompatibleGemm(transA, transB, alpha, a, b);
   }
 }
 
@@ -1205,6 +1205,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
   if(isVoid() || a->isVoid())
       return;
+  this->checkZeros();
   a->checkZeros();
   b->checkZeros();
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
@@ -1685,7 +1686,7 @@ template<typename T> void HMatrix<T>::checkZeros() const {
         this->getChild(i)->checkZeros();
   } else if(isFullMatrix()) {
     if(full()->storedZeros() == full()->rows() * full()->cols()) {
-      printf("full block %dx%d full of zeros\n", full()->rows(), full()->cols());
+      printf("full block %dx%d full of zeros\n", full()->rows(), full()->cols()); fflush(stdout);
     }
   }
 }

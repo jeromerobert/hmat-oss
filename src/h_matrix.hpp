@@ -141,7 +141,6 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   int rank_;
   /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
   int approximateRank_;
-  void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
@@ -163,6 +162,7 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
    */
   void axpy(T alpha, const FullMatrix<T>* b);
 public:
+  void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   /*! \brief Create a HMatrix based on a row and column ClusterTree.
 
     \param _rows The row cluster tree
