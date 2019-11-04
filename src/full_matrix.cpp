@@ -170,8 +170,8 @@ template<typename T>
 void FullMatrix<T>::gemm(char transA, char transB, T alpha,
                          const FullMatrix<T>* a, const FullMatrix<T>* b,
                          T beta) {
-  assert(b->storedZeros() < b->rows() * b->cols());
-  assert(a->storedZeros() < a->rows() * a->cols());
+  //assert(b->storedZeros() < b->rows() * b->cols());
+  //assert(a->storedZeros() < a->rows() * a->cols());
   data.gemm(transA, transB, alpha, &a->data, &b->data, beta);
   //assert(storedZeros() < rows() * cols());
 }

@@ -1097,7 +1097,14 @@ template<typename T> void fullHHGemm(HMatrix<T> *c, char transA, char transB, T 
   } else if(!a->isRecursivelyNull() && !b->isRecursivelyNull()) {
     if(c->full() == NULL)
       c->full(new FullMatrix<T>(c->rows(), c->cols()));
+    a->checkZeros();
+    b->checkZeros();
     c->uncompatibleGemm(transA, transB, alpha, a, b);
+    if(c->full()->storedZeros() == c->full()->rows() * c->full()->cols()) {
+      printf("fullHHGemm full zero %dx%d\n", c->full()->rows(), c->full()->cols());
+      delete c->full();
+      c->full(NULL);
+    }
   }
 }
 
@@ -1686,6 +1693,7 @@ template<typename T> void HMatrix<T>::checkZeros() const {
         this->getChild(i)->checkZeros();
   } else if(isFullMatrix()) {
     if(full()->storedZeros() == full()->rows() * full()->cols()) {
+      assert(false);
       printf("full block %dx%d full of zeros\n", full()->rows(), full()->cols()); fflush(stdout);
     }
   }
