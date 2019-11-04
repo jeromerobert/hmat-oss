@@ -173,7 +173,7 @@ class HybridBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
   explicit HybridBisectionAlgorithm(double thresholdRatio = 0.8)
-    : thresholdRatio_(thresholdRatio) {}
+    : geometricAlgorithm_(), medianAlgorithm_(), thresholdRatio_(thresholdRatio) {}
 
   ClusteringAlgorithm* clone() const { return new HybridBisectionAlgorithm(*this); }
   std::string str() const { return "HybridBisectionAlgorithm"; }
