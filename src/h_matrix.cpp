@@ -809,11 +809,13 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       // In this case, the matrix has small size
       // then evaluating the Rk-matrix is cheaper
       FullMatrix<T>* rkMat = newRk->eval();
-      if(!isFullMatrix())
-        full(new FullMatrix<T>(rows(), cols()));
-
-      full()->axpy(alpha, rkMat);
-      delete rkMat;
+      if(isFullMatrix()) {
+        full()->axpy(alpha, rkMat);
+        delete rkMat;
+      } else {
+        rkMat->scale(alpha);
+        full(rkMat);
+      }
     }
     if (needResizing) {
       delete newRk;
