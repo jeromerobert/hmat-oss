@@ -394,8 +394,9 @@ namespace hmat {
           // Update b[j,k] j<i with the contribution of the solutions just computed b[i,k]
           for (int j=0 ; j<i ; j++) {
             const Mat* u_ji = (lowerStored ? me()->get(i, j) : me()->get(j, i));
-            b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji, b->get(i,k),
-                              Constants<T>::pone, mainOp);
+            if(u_ji)
+              b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji,
+                                b->get(i,k), Constants<T>::pone, mainOp);
           }
         }
       }
