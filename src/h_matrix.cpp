@@ -290,10 +290,12 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     f.assemble(localSettings, *rows_, *cols_, isRkMatrix(), m, assembledRk, ao);
     HMAT_ASSERT(m == NULL || assembledRk == NULL);
     if(assembledRk) {
+        assert(isRkMatrix());
         if(rk_)
             delete rk_;
         rk(assembledRk);
     } else {
+        assert(!isRkMatrix());
         if(full_)
             delete full_;
         full(m);
