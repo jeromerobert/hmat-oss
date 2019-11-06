@@ -629,6 +629,7 @@ public:
   }
 
   void full(FullMatrix<T> * m) {
+      assert(rank_ < 0);
       full_ = m;
       rank_ = FULL_BLOCK;
   }

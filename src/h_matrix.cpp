@@ -798,9 +798,11 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       || b->cols->isStrictSuperSet(*cols());
     const RkMatrix<T>* newRk = b;
     if (needResizing) {
-      newRk = b->subset(rows(), cols());
+      newRk = b->truncatedSubset(rows(), cols());
     }
-    if (isRkMatrix()) {
+    if(newRk->rank() == 0) {
+      // nothing to do
+    } else if (isRkMatrix()) {
       if(!rk())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
       rk()->axpy(alpha, newRk);
@@ -845,8 +847,15 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
       rk()->axpy(alpha, subMat);
       rank_ = rk()->rank();
     } else if(isFullMatrix()){
+      if(subMat->storedZeros() < static_cast<size_t>(subMat->rows() * subMat->cols()))
+       // silently ignore 0 blocks because it' won't propagate new 0 blocks
        full()->axpy(alpha, subMat);
     } else {
+       if(subMat->storedZeros() == static_cast<size_t>(subMat->rows() * subMat->cols())) {
+         printf("HMatrix<T>::axpy null sub full block %dx%d\n", subMat->rows(), subMat->cols());
+         delete subMat;
+         return;
+       }
        assert(!isAssembled() || full() == NULL);
        full(subMat->copy());
        if(alpha != Constants<T>::pone)
@@ -991,11 +1000,18 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     // Create va & vb = the subsets of a & b that match each other for doing the product f(a).f(b)
     // We modify the columns of f(a) and the rows of f(b)
     makeCompatible<T>(transA != 'N', transB == 'N', a, b, va, vb);
-
     if(this->isLeaf() && !this->isRkMatrix() && this->full() == NULL) {
-	  // C (this) is a null full block. We cannot get the subset of it and we
-	  // don't know yet if we need to allocate it
-	  fullHHGemm(this, transA, transB, alpha, va, vb);
+      if(va->isLeaf() && va->isFullMatrix() && va->full()->storedZeros() == va->full()->rows() * va->full()->cols()) {
+        printf("::uncompatibleGemm va is full null %dx%d\n", va->full()->rows(), va->full()->cols());
+        return;
+      }
+      if(vb->isLeaf() && vb->isFullMatrix() && vb->full()->storedZeros() == vb->full()->rows() * vb->full()->cols()) {
+        printf("::uncompatibleGemm vb is full null %dx%d\n", vb->full()->rows(), vb->full()->cols());
+        return;
+      }
+      // C (this) is a null full block. We cannot get the subset of it and we
+      // don't know yet if we need to allocate it
+      fullHHGemm(this, transA, transB, alpha, va, vb);
       if(va != a)
         delete va;
       if(vb != b)
@@ -1019,11 +1035,21 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     if(vc != vvc && vc != this)
         delete vc;
 
+    bool bypass = false;
+    if(vva->isLeaf() && vva->isFullMatrix() && vva->full()->storedZeros() == vva->full()->rows() * vva->full()->cols()) {
+      printf("::uncompatibleGemm vva is full null %dx%d\n", vva->full()->rows(), vva->full()->cols());
+      bypass = true;
+    }
+    if(vvb->isLeaf() && vvb->isFullMatrix() && vvb->full()->storedZeros() == vvb->full()->rows() * vvb->full()->cols()) {
+      printf("::uncompatibleGemm vvb is full null %dx%d\n", vvb->full()->rows(), vvb->full()->cols());
+      bypass = true;
+    }
     // writing on a subset of an RkMatrix is not possible without
     // modifying the whole matrix
     assert(!isRkMatrix() || vvc == this);
     // Do the product on the matrices that are now compatible
-    vvc->leafGemm(transA, transB, alpha, vva, vvb);
+    if(!bypass)
+      vvc->leafGemm(transA, transB, alpha, vva, vvb);
 
     // Delete the temporary matrices
     if(vva != a)
@@ -1100,8 +1126,8 @@ template<typename T> void fullHHGemm(HMatrix<T> *c, char transA, char transB, T 
     a->checkZeros();
     b->checkZeros();
     c->uncompatibleGemm(transA, transB, alpha, a, b);
-    if(c->full()->storedZeros() == c->full()->rows() * c->full()->cols()) {
-      printf("fullHHGemm full zero %dx%d\n", c->full()->rows(), c->full()->cols());
+    if(c->full()->storedZeros() == static_cast<size_t>(c->full()->rows()) * c->full()->cols()) {
+      printf("fullHHGemm full zero size=%dx%d leaf=%dx%d\n", c->full()->rows(), c->full()->cols(), c->rowsTree()->isLeaf(), c->colsTree()->isLeaf());
       delete c->full();
       c->full(NULL);
     }
@@ -1116,7 +1142,8 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 
     // One of the matrices is a leaf
     assert(this->isLeaf() || a->isLeaf() || b->isLeaf());
-
+    a->checkZeros();
+    b->checkZeros();
     // the resulting matrix is not a leaf.
     if (!this->isLeaf()) {
         // If the resulting matrix is subdivided then at least one of the matrices of the product is a leaf.
@@ -1189,6 +1216,8 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         full()->gemm(transA, transB, alpha, a->full(), b->full(), Constants<T>::pone);
         return;
     } else {
+      a->checkZeros();
+      b->checkZeros();
       // if a or b is a leaf, it is Full (since Rk have been treated before)
         fullMat = HMatrix<T>::multiplyFullMatrix(transA, transB, a, b);
     }
@@ -1204,7 +1233,6 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         fullMat->scale(alpha);
       }
     }
-    checkZeros();
 }
 
 template<typename T>
@@ -1294,6 +1322,8 @@ FullMatrix<T>* multiplyHFull(char transH, char transM,
                                          const FullMatrix<T>* mat) {
   assert((transH == 'N' ? h->cols()->size() : h->rows()->size())
            == (transM == 'N' ? mat->rows() : mat->cols()));
+  h->checkZeros();
+  assert(mat->storedZeros() < mat->rows() * mat->cols());
   if(h->isRecursivelyNull())
     return NULL;
   FullMatrix<T>* result =
@@ -1308,6 +1338,11 @@ FullMatrix<T>* multiplyHFull(char transH, char transM,
     }
     h->gemv(transH, Constants<T>::pone, matT, Constants<T>::zero, result);
     delete matT;
+  }
+  if(result->storedZeros() == static_cast<size_t>(result->rows()) * result->cols()) {
+    printf("multiplyHFull null block found %dx%d\n", result->rows(), result->cols());
+    delete result;
+    return NULL;
   }
   return result;
 }
@@ -1383,7 +1418,8 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
     result->gemm(transA, transB, Constants<T>::pone, a->full(), b->full(),
                  Constants<T>::zero);
     size_t s = static_cast<size_t>(aRows->size()) * bCols->size();
-    if(s < 7000 && result->storedZeros() == s) {
+    if(result->storedZeros() == s) {
+      printf("::multiplyFullMatrix full zero block %dx%d\n", aRows->size(), bCols->size());
       delete result;
       result = NULL;
     }
@@ -1782,6 +1818,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   b->checkZeros();
+  checkZeros();
   // The recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularRight(b, unitriangular, lowerStored);
