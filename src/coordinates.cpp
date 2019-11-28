@@ -103,7 +103,6 @@ DofCoordinates::~DofCoordinates()
 }
 
 int DofCoordinates::size() const {
-    HMAT_ASSERT(spanOffsets_ == NULL);
     return size_;
 }
 
