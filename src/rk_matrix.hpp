@@ -77,6 +77,8 @@ template<typename T> class RkMatrix {
    */
   void mGSTruncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
 public:
+  /** @brief A hook which can be called at the begining of formatedAddParts */
+  static bool (*formatedAddPartsHook)(RkMatrix<T> * me, const T* alpha, const RkMatrix<T>* const * parts, const int n, double epsilon);
   const IndexSet *rows;
   const IndexSet *cols;
   // A B^t
@@ -163,10 +165,11 @@ public:
       \param units The list RkMatrix adding.
       \param n Number of matrices to add
       \param epsilon truncate epsilon (negative value disable truncate)
+      \param hook true to call formattedAddPartsHook, false to do not call
       \return truncate(*this + parts[0] + parts[1] + ... + parts[n-1])
    */
   void formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts, const int n,
-                                 double epsilon);
+                                 double epsilon, bool hook = true);
   /** Adds a list of MatrixXd (solid matrices) to RkMatrix.
 
       In this function, MatrixXd may cover a portion of

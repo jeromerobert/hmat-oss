@@ -479,7 +479,9 @@ template<typename T> bool allSame(const RkMatrix<T>** rks, int n) {
 
 template<typename T>
 void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
-                                    const int n, double epsilon) {
+                                    const int n, double epsilon, bool hook) {
+  if(hook && formatedAddPartsHook && formatedAddPartsHook(this, alpha, parts, n, epsilon))
+    return;
   // TODO check if formattedAddParts() actually uses sometimes this 'alpha' parameter (or is it always 1 ?)
   DECLARE_CONTEXT;
 
@@ -1129,6 +1131,12 @@ template<typename T> void RkMatrix<T>::writeArray(hmat_iostream writeFunc, void 
   a->writeArray(writeFunc, userData);
   b->writeArray(writeFunc, userData);
 }
+
+template <typename T>
+bool (*RkMatrix<T>::formatedAddPartsHook)(RkMatrix<T> *me, const T *alpha,
+                                               const RkMatrix<T> *const *parts,
+                                               const int n,
+                                               double epsilon) = NULL;
 
 // Templates declaration
 template class RkMatrix<S_t>;
