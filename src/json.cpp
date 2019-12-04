@@ -138,6 +138,8 @@ template<typename T>
 void HMatrixJSONDumper<T>::loopOnChildren(int depth) {
     HMatrix<T> * toLoopOn = current_;
     int last = toLoopOn->nrChild() - 1;
+    while(last >= 0 && NULL == toLoopOn->getChild(last))
+      --last;
     for (int i = 0; i <= last; i++) {
         current_ = toLoopOn->getChild(i);
         if(current_ != NULL) {
