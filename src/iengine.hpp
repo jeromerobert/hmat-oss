@@ -60,8 +60,6 @@ namespace hmat {
 
     virtual void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> > &f) = 0;
 
-    virtual void createPostcriptFile(const std::string &filename) const = 0;
-
     void progress(hmat_progress_t *p) { progress_ = p; }
 
     void info(hmat_info_t &i) const { hmat->info(i); }

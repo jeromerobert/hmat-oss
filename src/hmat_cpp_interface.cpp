@@ -214,12 +214,6 @@ void HMatInterface<T>::info(hmat_info_t & result) const {
 }
 
 template<typename T>
-void HMatInterface<T>::createPostcriptFile(const std::string& filename) const {
-  DECLARE_CONTEXT;
-    engine_->createPostcriptFile(filename);
-}
-
-template<typename T>
 void HMatInterface<T>::dumpTreeToFile(const std::string& filename) const {
   DECLARE_CONTEXT;
   std::ofstream out(filename.c_str());

@@ -271,16 +271,6 @@ public:
    */
   void info(hmat_info_t &) const;
 
-  /** Create a Postscript file representing the HMatrix.
-
-    The result .ps file shows the matrix structure and the compression ratio. In
-    the output, red = full block, green = compressed. The darker the green, the
-    worst the compression ration is. There is saturation at black when the block
-    size is divided by less than 5.
-
-    @param filename output filename.
-   */
-  void createPostcriptFile(const std::string& filename) const;
   /*! \brief Dump some HMatrix metadata to a Python-readable file.
 
     This function create a file that is readable by Python's eval()

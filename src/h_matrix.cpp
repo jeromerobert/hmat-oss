@@ -36,7 +36,6 @@
 #include "rk_matrix.hpp"
 #include "data_types.hpp"
 #include "compression.hpp"
-#include "postscript.hpp"
 #include "recursion.hpp"
 #include "common/context.hpp"
 #include "common/my_assert.h"
@@ -1520,13 +1519,6 @@ template<typename T>
 const ClusterData* HMatrix<T>::cols() const {
   return &(cols_->data);
 }
-
-template<typename T>
-void HMatrix<T>::createPostcriptFile(const std::string& filename) const {
-    PostscriptDumper<T> dumper;
-    dumper.write(this, filename);
-}
-
 
 template<typename T> HMatrix<T>* HMatrix<T>::copy() const {
   HMatrix<T>* M=Zero(this);

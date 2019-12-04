@@ -52,7 +52,6 @@ public:
   void copy(IEngine<T> & result, bool structOnly) const;
   void transpose();
   void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f);
-  void createPostcriptFile(const std::string& filename) const;
   IEngine<T>* clone() const { return new DefaultEngine();};
   HMatrix<T> * getHandle() const { return IEngine<T>::hmat; }
   void scale(T alpha);

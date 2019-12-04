@@ -175,11 +175,6 @@ void DefaultEngine<T>::solveLower(ScalarArray<T>& b, hmat_factorization_t t, boo
     this->hmat->solveLowerTriangularLeft(&b, unitriangular);
 }
 
-template<typename T>
-void DefaultEngine<T>::createPostcriptFile(const std::string& filename) const {
-  this->hmat->createPostcriptFile(filename);
-}
-
 template<typename T> void DefaultEngine<T>::copy(IEngine<T> & result, bool structOnly) const {
     result.hmat = this->hmat->copyStructure();
     if(!structOnly)

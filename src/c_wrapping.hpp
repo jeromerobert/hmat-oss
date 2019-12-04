@@ -315,15 +315,11 @@ template<typename T, template <typename> class E>
 int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  std::string fileps(prefix);
-  fileps += ".ps";
   std::string filejson(prefix);
   filejson += ".json";
-  hmat->createPostcriptFile( fileps );
   hmat->dumpTreeToFile( filejson );
   return 0;
 }
-
 
 template<typename T, template <typename> class E>
 int get_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t ** rows, const hmat_cluster_tree_t ** cols) {

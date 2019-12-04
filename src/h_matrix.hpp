@@ -290,17 +290,6 @@ public:
    */
   static HMatrix<T>* Zero(const HMatrix<T>* h);
 
-  /*! \brief Create a Postscript file representing the HMatrix.
-
-    The result .ps file shows the matrix structure and the compression ratio. In
-    the output, red = full block, green = compressed. The darker the green, the
-    worst the compression ratio is. There is saturation at black when the block
-    size is divided by less than 5.
-
-    \param filename output filename.
-   */
-  void createPostcriptFile(const std::string& filename) const;
-
   /**
    * Used internally for deserialization
    * @see serialization.hpp
