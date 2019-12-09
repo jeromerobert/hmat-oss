@@ -786,7 +786,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       HMatrix<T> * c = this->getChild(i);
       if (c) {
         if(b->rank() < std::min(c->rows()->size(), c->cols()->size()) && b->rank() > 10) {
-          RkMatrix<T> * bc = b->truncatedSubset(c->rows(), c->cols());
+          RkMatrix<T> * bc = b->truncatedSubset(c->rows(), c->cols(), RkMatrix<T>::approx.recompressionEpsilon);
           c->axpy(alpha, bc);
           delete bc;
         }

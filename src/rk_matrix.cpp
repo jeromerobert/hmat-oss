@@ -150,7 +150,8 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::truncatedSubset(const IndexSet* subRows,
-                                                            const IndexSet* subCols) const {
+                                                               const IndexSet* subCols,
+                                                               double epsilon) const {
   assert(subRows->isSubset(*rows));
   assert(subCols->isSubset(*cols));
   RkMatrix<T> * r = new RkMatrix<T>(NULL, subRows, NULL, subCols, method);
@@ -159,7 +160,8 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::truncatedSubset(const IndexSet* s
                           subRows->size(), 0, rank()).copy();
     r->b = ScalarArray<T>(*b, subCols->offset() - cols->offset(),
                           subCols->size(), 0, rank()).copy();
-    r->truncate(approx.recompressionEpsilon);
+    if(epsilon >= 0)
+      r->truncate(epsilon);
   }
   return r;
 }
