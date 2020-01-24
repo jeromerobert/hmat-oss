@@ -188,9 +188,15 @@ template<typename T> void DefaultEngine<T>::transpose() {
 template<typename T> void DefaultEngine<T>::applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f) {
   this->hmat->apply_on_leaf(f);
 }
+
 template<typename T> void DefaultEngine<T>::scale(T alpha) {
   this->hmat->scale(alpha);
 }
+
+template<typename T> void DefaultEngine<T>::info(hmat_info_t &i) const{
+  this->hmat->info(i);
+}
+
 
 }  // end namespace hmat
 

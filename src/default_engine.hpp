@@ -55,6 +55,7 @@ public:
   IEngine<T>* clone() const { return new DefaultEngine();};
   HMatrix<T> * getHandle() const { return IEngine<T>::hmat; }
   void scale(T alpha);
+  void info(hmat_info_t &i) const;
 };
 
 }  // end namespace hmat

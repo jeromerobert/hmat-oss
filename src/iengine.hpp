@@ -62,7 +62,7 @@ namespace hmat {
 
     void progress(hmat_progress_t *p) { progress_ = p; }
 
-    void info(hmat_info_t &i) const { hmat->info(i); }
+    virtual void info(hmat_info_t &i) const =0;
 
     virtual EngineSettings &GetSettings() = 0;
 
