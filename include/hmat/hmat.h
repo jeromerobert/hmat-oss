@@ -273,6 +273,9 @@ HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree_generic(struct hmat_clus
  * Return the number of nodes in a cluster tree
  */
 HMAT_API int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree);
+/*!
+ * Returns the index-th son of a cluster tree root
+ */
 HMAT_API hmat_cluster_tree_t *hmat_cluster_get_son( hmat_cluster_tree_t * tree, int index );
 
 /** Information on a cluster tree */
@@ -562,7 +565,7 @@ struct hmat_get_values_context_t {
      */
     int * row_indices, * col_indices;
     /**
-     * @brief If true renumber rows.
+     * @brief If true renumber rows when getting blocks.
      * This is only supported if row_offset = 0 and row_size = matrix row size.
      */
     int renumber_rows:1;
@@ -799,6 +802,8 @@ hmat
     */
     int (*gemv)(char trans_a, void* alpha, hmat_matrix_t* hmatrix, void* vec_b,
                      void* beta, void* vec_c, int nrhs);
+    /*! \brief Same as gemv, but without renumbering on vec_b and vec_c
+    */
     int (*gemm_scalar)(char trans_a, void* alpha, hmat_matrix_t* hmatrix, void* vec_b,
 		       void* beta, void* vec_c, int nrhs);
     /*! \brief C <- alpha * A * B + beta * C

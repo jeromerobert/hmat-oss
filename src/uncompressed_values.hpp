@@ -76,6 +76,7 @@ template <typename T, template <typename> class M, typename I> class Uncompresse
      * @brief createQuery Convert the C API query to a vector<pair<>> where each pair is
      * <hmat id, original query id>
      * @param query, querySize the C API query
+     * @param hmat_numbering true if query contains id using the hmat internal
      * @param indices the result
      */
     void createQuery(const ClusterData & clusterData, int * query, int querySize,
