@@ -389,3 +389,7 @@ void hmat_tracing_dump(char *filename) {
 hmat_progress_t * hmat_default_progress() {
     return DefaultProgress::getInstance();
 }
+
+void hmat_set_worker_index_function(int (*f)()) {
+  tracing_set_worker_index_func(f);
+}

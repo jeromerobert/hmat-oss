@@ -983,6 +983,14 @@ HMAT_API void hmat_get_build_date(const char**, const char**);
 */
 HMAT_API void hmat_tracing_dump(char *filename) ;
 
+/** \brief Set the function used to get the worker index.
+
+    The function f() must return the worker Id (between 0 and nbWorkers-1) or -1 in a sequential section.
+    This function is used within hmat-oss for timers and traces. It must be set if hmat-oss is called by
+    multiple threads simultaneously.
+*/
+HMAT_API void hmat_set_worker_index_function(int (*f)());
+
 #ifdef __cplusplus
 }
 #endif
