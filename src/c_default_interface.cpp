@@ -158,6 +158,12 @@ int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree)
     return ((ClusterTree*)tree)->nodesCount();
 }
 
+hmat_cluster_tree_t *hmat_cluster_get_son( hmat_cluster_tree_t * tree, int index )
+{
+    ClusterTree *son = reinterpret_cast<ClusterTree*>(tree)->getChild(index);
+    return (hmat_cluster_tree_t*)son;
+}
+
 int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
 {
     ClusterTree* cl          = static_cast<ClusterTree*>((void*) tree);
