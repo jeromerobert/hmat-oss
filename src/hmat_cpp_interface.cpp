@@ -265,6 +265,13 @@ void HMatInterface<T>::apply_on_leaf(const LeafProcedure<HMatrix<T> >& proc){
   engine_->applyOnLeaf(proc);
 }
 
+template<typename T>
+HMatrix<T>* HMatInterface<T>::get( int i, int j ) const {
+    DISABLE_THREADING_IN_BLOCK;
+    DECLARE_CONTEXT;
+    return engine_->hmat->get(i, j);
+}
+
 // Explicit template instantiation
 template class HMatInterface<S_t>;
 template class HMatInterface<D_t>;

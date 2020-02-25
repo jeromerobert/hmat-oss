@@ -718,6 +718,23 @@ typedef struct
       \return 0
     */
     int (*destroy)(hmat_matrix_t* hmatrix);
+
+    /*! \brief Get one of the children of an HMatrix.
+
+      \param hmatrix the main matrix
+      \param i the row coordinate of the child
+      \param j the column coordinate of the child
+      \return 0
+    */
+    hmat_matrix_t * (*get_child)( hmat_matrix_t *hmatrix, int i, int j );
+
+    /*! \brief Destroy a child HMatrix.
+
+      \param hmatrix the child matrix to destroy
+      \return 0
+    */
+    int (*destroy_child)(hmat_matrix_t* hmatrix);
+
     /*! \brief Solve A X = B, with X overwriting B.
 
       In this function, B is a H-matrix

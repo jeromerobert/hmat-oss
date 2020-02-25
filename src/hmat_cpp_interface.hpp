@@ -350,6 +350,12 @@ public:
   hmat_factorization_t factorization() {
       return factorizationType;
   }
+ 
+  HMatrix<T>* get( int i, int j) const;
+
+  void setHMatrix( HMatrix<T> *hmat = NULL) const {
+      engine_->setHMatrix( hmat );
+  }
 
 private:
   /// Disallow the copy

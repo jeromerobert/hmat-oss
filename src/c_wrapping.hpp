@@ -170,6 +170,15 @@ int destroy(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
+int destroy_child(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  hmat->setHMatrix();
+  delete hmat;
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int inverse(hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
   ((hmat::HMatInterface<T>*) holder)->inverse();
@@ -406,6 +415,17 @@ int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nr
 }
 
 template <typename T, template <typename> class E>
+hmat_matrix_t *get_child( hmat_matrix_t *hmatrix, int i, int j ) {
+    DECLARE_CONTEXT;
+    hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)hmatrix;
+
+    hmat::HMatrix<T> *m = hmat->get( i, j );
+    hmat::IEngine<T>* engine = new E<T>();
+    hmat::HMatInterface<T> *r = new hmat::HMatInterface<T>( engine, m, hmat->factorization() );
+    return (hmat_matrix_t*) r;
+}
+
+template <typename T, template <typename> class E>
 int get_block(struct hmat_get_values_context_t *ctx) {
   DECLARE_CONTEXT;
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)ctx->matrix;
@@ -509,6 +529,8 @@ static void createCInterface(hmat_interface_t * i)
     i->create_empty_hmatrix = create_empty_hmatrix<T, E>;
     i->create_empty_hmatrix_admissibility = create_empty_hmatrix_admissibility<T, E>;
     i->destroy = destroy<T, E>;
+    i->get_child = get_child<T, E>;
+    i->destroy_child = destroy_child<T, E>;
     i->factorize = factor<T, E>;
     i->inverse = inverse<T, E>;
     i->finalize = finalize<T, E>;
