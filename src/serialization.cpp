@@ -312,7 +312,9 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         bool diagonal = header & 4;
         // leak check
         assert(!matrix->isAssembled() || matrix->full() == NULL);
-        matrix->full(new FullMatrix<T>(readScalarArray(r->size(), c->size()), r, c));
+        FullMatrix<T> *fmat = new FullMatrix<T>(r, c, true);
+	fmat->data.readArray(readFunc_, userData_);
+	matrix->full( fmat );
         if(pivot) {
             matrix->full()->pivots = (int*) calloc(r->size(), sizeof(int));
             readFunc_(matrix->full()->pivots, r->size() * sizeof(int), userData_);
