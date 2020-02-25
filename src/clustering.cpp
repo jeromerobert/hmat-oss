@@ -347,6 +347,73 @@ ShuffleClusteringAlgorithm::clean(ClusterTree& current) const
   algo_->clean(current);
 }
 
+int
+NTilesRecursiveAlgorithm::subpartition( ClusterTree& father, ClusterTree *current, std::vector<ClusterTree*>& children, int currentAxis ) const
+{
+    int loffset, lsize, roffset, rsize;
+    int offset = current->data.offset();
+    int size   = current->data.size();
+    int ntiles = ( size + tileSize_ - 1 ) / tileSize_;
+    assert( ntiles > 0 );
+
+    if( ntiles == 1 ) {
+	/* Register the leaf as a direct child */
+	children.push_back( father.slice( offset, size ) );
+	return currentAxis;
+    }
+
+    /* Sort the subset */
+    int dim = largestDimension( *current, currentAxis );
+    sortByDimension( *current, dim );
+
+    lsize = tileSize_ * (( ntiles + 1 ) / 2 );
+    
+    loffset = current->data.offset();
+    roffset = loffset + lsize;
+    rsize   = size - lsize;
+    assert( rsize > 0 );
+    
+    ClusterTree *slice;
+    /* Left */
+    slice = current->slice( loffset, lsize );
+    subpartition( father, slice, children, dim );
+    // avoid dofData_ deletion
+    slice->father = slice;
+    clean( *slice );
+    delete slice;
+
+    /* Right */
+    slice = current->slice( roffset, rsize );
+    subpartition( father, slice, children, dim );
+    // avoid dofData_ deletion
+    slice->father = slice;
+    clean( *slice );
+    delete slice;
+
+    return dim;
+}
+
+/* The goal is to create a binary tree with all leaves as children of the root in the final state */
+int
+NTilesRecursiveAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const
+{
+    ClusterTree *slice = current.slice( current.data.offset(), current.data.size() );
+    int dim = subpartition( current, slice, children, currentAxis );
+
+    /* Change the father to avoid deleting the data */
+    slice->father = slice;
+    clean( *slice );
+    delete( slice );
+    return dim;
+}
+
+void
+NTilesRecursiveAlgorithm::clean(ClusterTree& current) const
+{
+  delete static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
+  current.clusteringAlgoData_ = NULL;
+}
+
 ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo)
 {
   algo_.push_front(std::pair<int, ClusteringAlgorithm*>(0, algo.clone()));

@@ -185,6 +185,8 @@ typedef struct hmat_cluster_tree_struct hmat_cluster_tree_t;
 
 /* Median clustering */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_median(void);
+/* NTiles recursive clustering */
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_ntilesrecursive(int nTiles);
 /* Geometric clustering */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_geometric(void);
 /* Hybrid clustering */

@@ -240,6 +240,27 @@ private:
   const int toDivider_;
 };
 
+class NTilesRecursiveAlgorithm : public AxisAlignClusteringAlgorithm
+{
+public:
+    explicit NTilesRecursiveAlgorithm( int tileSize = 1024 )
+	: AxisAlignClusteringAlgorithm(), axisIndex_(-1), spatialDimension_(-1), tileSize_(tileSize) {
+    	setMaxLeafSize( tileSize );
+    }
+
+    ClusteringAlgorithm* clone() const { return new NTilesRecursiveAlgorithm(*this); }
+    std::string str() const { return "NTilesRecursiveAlgorithm"; }
+
+    int subpartition( ClusterTree& father, ClusterTree *current, std::vector<ClusterTree*>& children, int currentAxis ) const;
+    int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
+    void clean(ClusterTree& current) const;
+
+private:
+    mutable int axisIndex_;
+    mutable int spatialDimension_;
+    mutable int tileSize_;
+};
+
 }  // end namespace hmat
 
 #endif  /* _HMAT_CLUSTERING_HPP */

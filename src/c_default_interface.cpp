@@ -37,6 +37,11 @@ hmat_clustering_algorithm_t * hmat_create_clustering_median()
     return (hmat_clustering_algorithm_t*) new MedianBisectionAlgorithm();
 }
 
+hmat_clustering_algorithm_t * hmat_create_clustering_ntilesrecursive(int nTiles)
+{
+    return (hmat_clustering_algorithm_t*) new NTilesRecursiveAlgorithm( nTiles );
+}
+
 hmat_clustering_algorithm_t * hmat_create_clustering_geometric()
 {
     return (hmat_clustering_algorithm_t*) new GeometricBisectionAlgorithm();
