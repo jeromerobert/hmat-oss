@@ -155,8 +155,7 @@ ClusterTree * MatrixStructUnmarshaller<T>::readTreeNode(const ClusterTree * pare
     int size = readValue<int>();
     if(parent == NULL) {
         // this is the root
-        assert(offset == 0);
-        toReturn = new ClusterTree(dofData_);
+        toReturn = new ClusterTree(dofData_, offset, size );
     }
     else
         toReturn = parent->slice(offset, size);

@@ -142,6 +142,14 @@ ClusterTree::ClusterTree(const DofData* dofData)
 {
 }
 
+    ClusterTree::ClusterTree(const DofData* dofData, int offset, int size)
+  : Tree<ClusterTree>(NULL)
+  , data(dofData, offset, size)
+  , clusteringAlgoData_(NULL)
+  , admissibilityAlgoData_(NULL)
+{
+}
+
 ClusterTree::ClusterTree(const ClusterTree& other)
   : Tree<ClusterTree>(NULL)
   , data(other.data)

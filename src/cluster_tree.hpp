@@ -171,6 +171,7 @@ public:
       \param _threshold max number of indices in a leaf. Used for the recursive division.
    */
   explicit ClusterTree(const DofData* dofData);
+    explicit ClusterTree(const DofData* dofData, int offset, int size);
 
   /* Copy constructor */
   ClusterTree(const ClusterTree& other);
