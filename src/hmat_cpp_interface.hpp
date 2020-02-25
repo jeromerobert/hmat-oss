@@ -203,6 +203,7 @@ public:
       @param y
    */
   void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
+  void gemm_scalar(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
   /** Matrix-Matrix product.
 
       This computes \f$ C \gets \alpha . op(A) \times op(B) + \beta C\f$ with A,

@@ -254,6 +254,20 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
 }
 
 template<typename T, template <typename> class E>
+int gemm_scalar( char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
+		 void* beta, void* vec_c, int nrhs ) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
+  const hmat::ClusterData* bData = (trans_a == 'N' ? hmat->cols(): hmat->rows());
+  const hmat::ClusterData* cData = (trans_a == 'N' ? hmat->rows(): hmat->cols());
+  hmat::ScalarArray<T> mb((T*) vec_b, bData->size(), nrhs);
+  hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
+
+  hmat->gemm_scalar(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int trsm( char side, char uplo, char transa, char diag, int m, int n,
 	  void *alpha, hmat_matrix_t *A, int is_b_hmat, void *B )
 {
@@ -501,6 +515,7 @@ static void createCInterface(hmat_interface_t * i)
     i->full_gemm = full_gemm<T, E>;
     i->gemm = gemm<T, E>;
     i->gemv = gemv<T, E>;
+    i->gemm_scalar = gemm_scalar<T, E>;
     i->add_identity = add_identity<T, E>;
     i->init = init<T, E>;
     i->norm = norm<T, E>;

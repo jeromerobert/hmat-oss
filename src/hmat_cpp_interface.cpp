@@ -101,6 +101,14 @@ void HMatInterface<T>::gemv(char trans, T alpha, ScalarArray<T>& x, T beta,
 }
 
 template<typename T>
+void HMatInterface<T>::gemm_scalar(char trans, T alpha, ScalarArray<T>& x,
+				      T beta, ScalarArray<T>& y) const {
+  DISABLE_THREADING_IN_BLOCK;
+  DECLARE_CONTEXT;
+  engine_->gemv( trans, alpha, x, beta, y );
+}
+
+template<typename T>
 void HMatInterface<T>::gemm(char transA, char transB, T alpha,
                             const HMatInterface<T>* a,
                             const HMatInterface<T>* b, T beta) {

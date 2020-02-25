@@ -779,6 +779,8 @@ hmat
     */
     int (*gemv)(char trans_a, void* alpha, hmat_matrix_t* hmatrix, void* vec_b,
                      void* beta, void* vec_c, int nrhs);
+    int (*gemm_scalar)(char trans_a, void* alpha, hmat_matrix_t* hmatrix, void* vec_b,
+		       void* beta, void* vec_c, int nrhs);
     /*! \brief C <- alpha * A * B + beta * C
 
 
