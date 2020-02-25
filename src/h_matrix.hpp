@@ -488,6 +488,12 @@ public:
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
   void solve(HMatrix<T>* b, hmat_factorization_t) const;
+
+  void trsm( char side, char uplo, char trans, char diag, T alpha,
+	     HMatrix<T>* b ) const;
+  void trsm( char side, char uplo, char trans, char diag, T alpha,
+	     ScalarArray<T>* b ) const;
+
   /*! Resolution de This * x = b.
 
     \warning This doit etre factorisee avec \a HMatrix::ldltDecomposition() avant.

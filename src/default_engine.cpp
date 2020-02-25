@@ -139,6 +139,18 @@ void DefaultEngine<T>::gemm(char transA, char transB, T alpha,
 }
 
 template<typename T>
+void DefaultEngine<T>::trsm( char side, char  uplo, char trans, char diag, T alpha,
+			     IEngine<T>& B ) const {
+    this->hmat->trsm( side, uplo, trans, diag, alpha, B.hmat );
+}
+
+template<typename T>
+void DefaultEngine<T>::trsm( char side, char  uplo, char trans, char diag, T alpha,
+			     ScalarArray<T>& B ) const {
+    this->hmat->trsm( side, uplo, trans, diag, alpha, &B );
+}
+
+template<typename T>
 void DefaultEngine<T>::addRand(double epsilon) {
   this->hmat->addRand(epsilon);
 }

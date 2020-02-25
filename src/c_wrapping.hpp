@@ -254,6 +254,25 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
 }
 
 template<typename T, template <typename> class E>
+int trsm( char side, char uplo, char transa, char diag, int m, int n,
+	  void *alpha, hmat_matrix_t *A, int is_b_hmat, void *B )
+{
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmatA = (hmat::HMatInterface<T>*)A;
+
+  if ( is_b_hmat ) {
+      hmat::HMatInterface<T>* hmatB = (hmat::HMatInterface<T>*)B;
+      hmatA->trsm( side, uplo, transa, diag, *((T*)alpha), hmatB );
+  }
+  else {
+      bool isleft = (side == 'l') || (side == 'L');
+      hmat::ScalarArray<T> mB( (T*)B, (isleft ? m : n), (isleft ? n : m ) );
+      hmatA->trsm( side, uplo, transa, diag, *((T*)alpha), mB );
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int add_identity(hmat_matrix_t* holder, void *alpha) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
@@ -508,6 +527,7 @@ static void createCInterface(hmat_interface_t * i)
     i->read_data = read_data<T, E>;
     i->apply_on_leaf = apply_on_leaf<T, E>;
     i->axpy = axpy<T, E>;
+    i->trsm = trsm<T, E>;
 }
 
 }  // end namespace hmat

@@ -50,6 +50,9 @@ namespace hmat {
 
     virtual void gemm(char transA, char transB, T alpha, const IEngine<T>& a, const IEngine<T>& b, T beta) = 0;
 
+    virtual void trsm(char side, char uplo, char trans, char diag, T alpha, IEngine<T>     &B) const = 0;
+    virtual void trsm(char side, char uplo, char trans, char diag, T alpha, ScalarArray<T> &B) const = 0;
+
     virtual void addRand(double epsilon) = 0;
 
     virtual void solve(ScalarArray<T> &b, hmat_factorization_t) const = 0;

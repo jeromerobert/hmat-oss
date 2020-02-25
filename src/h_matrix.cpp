@@ -2156,6 +2156,118 @@ void HMatrix<T>::solve(FullMatrix<T>* b) const {
 }
 
 template<typename T>
+void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
+		       T alpha, HMatrix<T>* B ) const {
+
+    bool upper   = (uplo == 'u') || (uplo == 'U');
+    bool left    = (side == 'l') || (side == 'L');
+    bool unit    = (diag == 'u') || (diag == 'U');
+    bool notrans = (trans == 'n') || (trans == 'N');
+
+    /* Upper case */
+    if ( upper  ) {
+	if ( left ) {
+	    if ( notrans ) {
+		/* LUN */
+		solveUpperTriangularLeft( B, unit, false );
+	    }
+	    else {
+		/* LUT */
+		HMAT_ASSERT_MSG( 0, "ERROR: TRSM LUT case is for now missing !!!" );
+	    }
+	}
+	else {
+	    if ( notrans ) {
+		/* RUN */
+		solveUpperTriangularRight( B, unit, false );
+	    }
+	    else {
+		/* RUT */
+		HMAT_ASSERT_MSG( 0, "ERROR: TRSM RUT case is for now missing !!!" );
+	    }
+	}
+    }
+    else {
+	if ( left ) {
+	    if ( notrans ) {
+		/* LLN */
+		solveLowerTriangularLeft( B, unit );
+	    }
+	    else {
+		/* LLT */
+		solveUpperTriangularLeft( B, unit, true );
+	    }
+	}
+	else {
+	    if ( notrans ) {
+		/* RLN */
+		HMAT_ASSERT_MSG( 0, "ERROR: TRSM RLN case is for now missing !!!" );
+	    }
+	    else {
+		/* RLT */
+		solveUpperTriangularRight( B, unit, true );
+	    }
+	}
+    }
+}
+
+template<typename T>
+void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
+		       T alpha, ScalarArray<T>* B ) const {
+
+    bool upper   = (uplo == 'u') || (uplo == 'U');
+    bool left    = (side == 'l') || (side == 'L');
+    bool unit    = (diag == 'u') || (diag == 'U');
+    bool notrans = (trans == 'n') || (trans == 'N');
+
+    /* Upper case */
+    if ( upper  ) {
+	if ( left ) {
+	    if ( notrans ) {
+		/* LUN */
+		solveUpperTriangularLeft( B, unit, false );
+	    }
+	    else {
+		/* LUT */
+		HMAT_ASSERT_MSG( 0, "ERROR: TRSM LUT case is for now missing !!!" );
+	    }
+	}
+	else {
+	    if ( notrans ) {
+		/* RUN */
+		solveUpperTriangularRight( B, unit, false );
+	    }
+	    else {
+		/* RUT */
+		HMAT_ASSERT_MSG( 0, "ERROR: TRSM RUT case is for now missing !!!" );
+	    }
+	}
+    }
+    else {
+	if ( left ) {
+	    if ( notrans ) {
+		/* LLN */
+		solveLowerTriangularLeft( B, unit );
+	    }
+	    else {
+		/* LLT */
+		solveUpperTriangularLeft( B, unit, true );
+	    }
+	}
+	else {
+	    if ( notrans ) {
+		/* RLN */
+		HMAT_ASSERT_MSG( 0, "ERROR: TRSM RLN case is for now missing !!!" );
+	    }
+	    else {
+		/* RLT */
+		solveUpperTriangularRight( B, unit, true );
+	    }
+	}
+    }
+}
+
+template<typename T>
 void HMatrix<T>::extractDiagonal(T* diag) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;

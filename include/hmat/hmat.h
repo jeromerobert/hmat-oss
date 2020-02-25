@@ -762,6 +762,10 @@ hmat
     /*! \brief y := y + a * x */
     int (*axpy)(void* a, hmat_matrix_t* x, hmat_matrix_t* hmatrix_y);
 
+    /*! \brief solve \alpha A * x */
+    int (*trsm)( char side, char uplo, char transa, char diag, int m, int n,
+		 void *alpha, hmat_matrix_t *A, int is_b_hmat, void *B );
+
     /*! \brief c <- alpha * A * b + beta * c
 
       \param trans_a 'N' or 'T'

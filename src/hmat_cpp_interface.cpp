@@ -111,6 +111,22 @@ void HMatInterface<T>::gemm(char transA, char transB, T alpha,
 }
 
 template<typename T>
+void HMatInterface<T>::trsm( char side, char uplo, char transa, char diag,
+				T alpha, HMatInterface<T>* B ) {
+    DISABLE_THREADING_IN_BLOCK;
+    DECLARE_CONTEXT;
+    engine_->trsm( side, uplo, transa, diag, alpha, *B->engine_ );
+}
+
+template<typename T>
+void HMatInterface<T>::trsm( char side, char uplo, char transa, char diag,
+				T alpha, ScalarArray<T>& B ) {
+    DISABLE_THREADING_IN_BLOCK;
+    DECLARE_CONTEXT;
+    engine_->trsm( side, uplo, transa, diag, alpha, B );
+}
+
+template<typename T>
 void HMatInterface<T>::gemm(ScalarArray<T>& c, char transA, char transB, T alpha,
                             ScalarArray<T>& a, const HMatInterface<T>& b,
                             T beta) {

@@ -219,6 +219,34 @@ public:
       @param beta
    */
   void gemm(char transA, char transB, T alpha, const HMatInterface<T>* a, const HMatInterface<T>* b, T beta);
+  /** Matrix triangular solve.
+
+      This solves \f$ alpha op(A) X = B or X op(A) = B\f$ where B is
+      replaced by X on output.  A is a HMatInterface<T> instance, and
+      B is either an HMatInterface<T> instance, or a ScalarArray<T>.
+      A = this.
+      If transa == 'N' then op(A) = A, if transa == 'T', then op(A) =
+      A^T, and if transa == 'C', then op(A) = A^H as in BLAS.
+      If side == 'L', then \f$ op(A) X = B \f$ is solved, else if 
+      side == 'R', then \f$ X op(A) = B \f$ is solved.
+      If uplo == 'U', then A is upper triangular, else if uplo == 'L',
+      A is lower triangular.
+      If diag == 'U', then A is unit triangular, else A is non unit triangular.
+
+      @note cases LUT, RUT, and RLN are not supported.
+
+      @param side   'L' or 'R'
+      @param uplo   'U' or 'L'
+      @param transA 'N' or 'T' or 'C'
+      @param diag   'U' or 'N'
+      @param alpha
+      @param B
+   */
+  void trsm( char side, char uplo, char transa, char diag,
+	     T alpha, HMatInterface<T>* B );
+  void trsm( char side, char uplo, char transa, char diag,
+	     T alpha, ScalarArray<T>& B );
+
   /** Full <- Full x HMatrix product.
 
       This computes the product \f$ C_F \gets \alpha . op(A_F) \times op(B_H) +
