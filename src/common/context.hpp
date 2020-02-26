@@ -24,8 +24,7 @@
   \ingroup HMatrix
   \brief Context manager used for the tracing functionnality.
 */
-#ifndef _CONTEXT_HPP
-#define _CONTEXT_HPP
+#pragma once
 
 #include "hmat/config.h"
 #include "common/chrono.h"
@@ -185,4 +184,3 @@ public:
 #define DECLARE_CONTEXT Context __reserved_ctx(__func__)
 #endif
 
-#endif

@@ -24,8 +24,7 @@
   \ingroup HMatrix
   \brief Memory Allocation tracking.
 */
-#ifndef _MEMORY_INSTRUMENTATION_H
-#define _MEMORY_INSTRUMENTATION_H
+#pragma once
 #include <string>
 #include <vector>
 #include <stdio.h>
@@ -109,4 +108,3 @@ public:
 };
 }
 
-#endif
