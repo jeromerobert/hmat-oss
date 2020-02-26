@@ -244,9 +244,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
       settings->compressionMethod = hmat_compress_aca_random;
       break;
     default:
-      std::cerr << "Internal error: invalid value for compression method: \"" << settingsCxx.compressionMethod << "\"." << std::endl;
-      std::cerr << "Internal error: using SVD" << std::endl;
-      settings->compressionMethod = hmat_compress_svd;
+      HMAT_ASSERT_MSG(0, "Internal error: invalid value for compression method: %d.\n", settingsCxx.compressionMethod);
       break;
     }
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
@@ -284,8 +282,7 @@ int hmat_set_parameters(hmat_settings_t* settings)
       settingsCxx.compressionMethod = AcaRandom;
       break;
     default:
-      std::cerr << "Invalid value for compression method: \"" << settings->compressionMethod << "\"." << std::endl;
-      rc = 1;
+      HMAT_ASSERT_MSG(0, "Internal error: invalid value for compression method: %d.\n", settings->compressionMethod);
       break;
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
