@@ -306,6 +306,11 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
     const size_t muls = _m * _n * _k;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
+  assert(a->lda >= a->rows);
+  assert(b->lda >= b->rows);
+  assert(a->lda > 0);
+  assert(b->lda > 0);
+
   if (n > 1 || transB != 'N')
     proxy_cblas::gemm(transA, transB, aRows, n, k, alpha, a->const_ptr(), a->lda, b->const_ptr(), b->lda,
                       beta, this->ptr(), this->lda);
