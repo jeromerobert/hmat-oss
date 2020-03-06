@@ -102,7 +102,7 @@ public:
    * @param rows the rows cluster tree
    * @param cols the cols cluster tree
    */
-  virtual bool isInert(const ClusterTree& rows, const ClusterTree& cols) {
+  virtual bool isInert(const ClusterTree& rows, const ClusterTree& cols) const {
       (void)rows, (void)cols; // unused
       return false;
   }
@@ -192,5 +192,57 @@ public:
     void never(bool n);
     static void setBlockSizeDetector(BlockSizeDetector * b) { blockSizeDetector_ = b; }
 };
+
+/**
+ * @brief Class which can be used as a base class to override only some methods.
+ * @param admissibility All methods which are not redefined are delegated to this instance.
+ */
+class ProxyAdmissibilityCondition : public AdmissibilityCondition
+{
+public:
+  explicit ProxyAdmissibilityCondition(AdmissibilityCondition * admissibility) : proxy_(admissibility ? admissibility->clone() : NULL) {}
+  ProxyAdmissibilityCondition * clone() const { return new ProxyAdmissibilityCondition(*this); }
+  ~ProxyAdmissibilityCondition() { delete proxy_; }
+  AdmissibilityCondition * getProxy() const { return proxy_; }
+  void setProxy(AdmissibilityCondition * admissibility) { proxy_ = admissibility; }
+
+  bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->isLowRank(rows, cols);
+  }
+  bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->stopRecursion(rows, cols);
+  }
+  bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t elemSize) const {
+    return proxy_->forceRecursion(rows, cols, elemSize);
+  }
+  bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->forceFull(rows, cols);
+  }
+  bool forceRk(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->forceRk(rows, cols);
+  }
+  std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->splitRowsCols(rows, cols);
+  }
+  bool isInert(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->isInert(rows, cols);
+  }
+  int getApproximateRank(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->getApproximateRank(rows, cols);
+  }
+  void* getData(const ClusterTree& current, bool is_rows) const {
+    return proxy_->getData(current, is_rows);
+  }
+  void clean(const ClusterTree& current) const {
+    return proxy_->clean(current);
+  }
+  std::string str() const {
+    return proxy_->str();
+  }
+
+private:
+  AdmissibilityCondition * proxy_;
+};
+
 } //  end namespace hmat
 #endif
