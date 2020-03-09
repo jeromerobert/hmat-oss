@@ -1004,7 +1004,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   while (!ha->isLeaf())
   {
     if (ha->nrChildRow() >= 2 && ha->nrChildCol() >= 2) {
-      if (ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
+      if (ha->get(0, 0) && ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
       {
         ha = ha->get(1, 1);
         continue;
@@ -1020,7 +1020,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
   while (!hb->isLeaf())
   {
     if (hb->nrChildRow() >= 2 && hb->nrChildCol() >= 2) {
-      if (hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
+      if (hb->get(0, 0) && hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
       {
         hb = hb->get(1, 1);
         continue;
