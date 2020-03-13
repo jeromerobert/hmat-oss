@@ -61,8 +61,9 @@ StandardAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const Clu
 bool
 StandardAdmissibilityCondition::forceFull(const ClusterTree& rows, const ClusterTree& cols) const
 {
+  return true;
     // If there is less than 2 rows or cols, compression is useless
-    return (rows.data.size() < 2 || cols.data.size() < 2);
+    //return (rows.data.size() < 2 || cols.data.size() < 2);
 }
 
 bool
