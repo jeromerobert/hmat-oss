@@ -151,6 +151,11 @@ void DefaultEngine<T>::trsm( char side, char  uplo, char trans, char diag, T alp
 }
 
 template<typename T>
+void DefaultEngine<T>::addIdentity(T alpha) {
+  this->hmat->addIdentity(alpha);
+}
+
+template<typename T>
 void DefaultEngine<T>::addRand(double epsilon) {
   this->hmat->addRand(epsilon);
 }

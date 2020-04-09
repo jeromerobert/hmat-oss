@@ -221,7 +221,7 @@ void HMatInterface<T>::scale(T alpha) {
 template<typename T>
 void HMatInterface<T>::addIdentity(T alpha) {
   DECLARE_CONTEXT;
-  engine_->hmat->addIdentity(alpha);
+  engine_->addIdentity(alpha);
 }
 
 template<typename T>
