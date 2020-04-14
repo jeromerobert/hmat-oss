@@ -861,12 +861,18 @@ template<typename T>
 void HMatrix<T>::addIdentity(T alpha)
 {
   if (this->isLeaf()) {
+    if (isNull()) {
+      HMAT_ASSERT(!this->isRkMatrix());
+      full(new FullMatrix<T>(rows(), cols()));
+    }
     if (isFullMatrix()) {
       FullMatrix<T> * b = full();
       assert(b->rows() == b->cols());
       for (int i = 0; i < b->rows(); i++) {
           b->get(i, i) += alpha;
       }
+    } else {
+      HMAT_ASSERT(false);
     }
   } else {
     for (int i = 0; i < nrChildRow(); i++)
