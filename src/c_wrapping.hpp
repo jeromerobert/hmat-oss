@@ -33,6 +33,7 @@
 #include "uncompressed_values.hpp"
 #include "serialization.hpp"
 #include "hmat_cpp_interface.hpp"
+#include "disable_threading.hpp"
 
 namespace
 {
@@ -243,6 +244,7 @@ int gemm(char trans_a, char trans_b, void *alpha, hmat_matrix_t * holder,
 template<typename T, template <typename> class E>
 int axpy(void *a, hmat_matrix_t * x, hmat_matrix_t * y) {
   DECLARE_CONTEXT;
+  DISABLE_THREADING_IN_BLOCK;
   hmat::HMatInterface<T>* hmat_x = reinterpret_cast<hmat::HMatInterface<T>*>(x);
   hmat::HMatInterface<T>* hmat_y = reinterpret_cast<hmat::HMatInterface<T>*>(y);
   hmat_y->engine().hmat->axpy(*((T*)a), hmat_x->engine().hmat);
