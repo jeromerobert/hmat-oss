@@ -32,10 +32,11 @@
 #endif
 
 #ifdef OPENBLAS_DISABLE_THREADS
-#include <cblas.h>
 extern "C" {
 // This function is private in openblas
 int  goto_get_num_procs(void);
+// This function is public but we may use netlib's cblas.h header instead of openblas header
+void openblas_set_num_threads(int);
 }
 #endif
 
