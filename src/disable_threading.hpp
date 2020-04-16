@@ -46,7 +46,7 @@ public:
 /** Disable OpenMP and MKL (if available) threading in a block, and restore it
     at the end.
  */
-#define DISABLE_THREADING_IN_BLOCK DisableThreadingInBlock dummyDisableThreadingInBlock
+#define DISABLE_THREADING_IN_BLOCK ::hmat::DisableThreadingInBlock dummyDisableThreadingInBlock
 
 } // end namespace hmat
 
