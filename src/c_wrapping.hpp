@@ -430,6 +430,7 @@ hmat_matrix_t *get_child( hmat_matrix_t *hmatrix, int i, int j ) {
 template <typename T, template <typename> class E>
 int get_block(struct hmat_get_values_context_t *ctx) {
   DECLARE_CONTEXT;
+  DISABLE_THREADING_IN_BLOCK;
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)ctx->matrix;
     hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
     hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
@@ -459,6 +460,7 @@ int get_block(struct hmat_get_values_context_t *ctx) {
 template <typename T, template <typename> class E>
 int get_values(struct hmat_get_values_context_t *ctx) {
   DECLARE_CONTEXT;
+    // No need to call DISABLE_THREADING_IN_BLOCK here, there is no BLAS call
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)ctx->matrix;
     typename E<T>::UncompressedValues view;
     const E<T>& engine = reinterpret_cast<const E<T>&>(hmat->engine());
