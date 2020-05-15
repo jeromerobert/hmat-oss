@@ -999,6 +999,16 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, &workSize_req, -1);
   HMAT_ASSERT(!info);
   workSize = (int) hmat::real(workSize_req) + 1;
+
+  // If the previous call to 'or_un_mqr' does not give us a large enough work
+  // space size, we set the latter to the count of rows or columns of the matrix
+  // depending on the value of 'side'. 
+  if(side == 'L') {
+    workSize = workSize < c->rows ? c->rows : workSize;
+  } else if(side == 'R') {
+    workSize = workSize < c->cols ? c->cols : workSize;
+  }
+
   T* work = new T[workSize];
   HMAT_ASSERT(work);
   info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, work, workSize);
