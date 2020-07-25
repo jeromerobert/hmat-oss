@@ -121,12 +121,10 @@ struct DefaultBlockSizeDetector: public AlwaysAdmissibilityCondition::BlockSizeD
      return INSTANCE;
   }
   void compute(size_t & max_block_size, unsigned int & min_nr_block, bool never) {
-    if(never) {
-      if(max_block_size == 0)
-        max_block_size = 1 << 20;
-      if(min_nr_block == 0)
-        min_nr_block = 1;
-    }
+    if(max_block_size == 0)
+      max_block_size = 1 << 20;
+    if(min_nr_block == 0)
+      min_nr_block = 1;
   }
 };
 
