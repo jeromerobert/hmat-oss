@@ -253,6 +253,7 @@ int main(int argc, char **argv) {
 
   hmat_init_default_interface(&hmat, scalar_type);
   settings.compressionMethod = hmat_compress_aca_plus;
+  settings.acaEpsilon = 1e-5;
 
   hmat_set_parameters(&settings);
   if (0 != hmat.init())
@@ -284,6 +285,7 @@ int main(int argc, char **argv) {
   printf("ClusterTree node count = %d\n", hmat_tree_nodes_count(cluster_tree));
   hmatrix = hmat.create_empty_hmatrix_admissibility(
             cluster_tree, cluster_tree, 0, admissibilityCondition);
+  hmat.set_low_rank_epsilon(hmatrix, 1e-5);
   hmat_delete_admissibility(admissibilityCondition);
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);

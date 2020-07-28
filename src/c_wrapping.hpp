@@ -395,6 +395,14 @@ void own_cluster_trees(hmat_matrix_t* holder, int owns_row, int owns_col)
 }
 
 template<typename T, template <typename> class E>
+void set_low_rank_epsilon(hmat_matrix_t* holder, double epsilon)
+{
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  hmat->engine().hmat->lowRankEpsilon(epsilon);
+}
+
+template<typename T, template <typename> class E>
 int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
 {
   DECLARE_CONTEXT;
@@ -555,6 +563,7 @@ static void createCInterface(hmat_interface_t * i)
     i->get_cluster_trees = get_cluster_trees<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
     i->own_cluster_trees = own_cluster_trees<T, E>;
+    i->set_low_rank_epsilon = set_low_rank_epsilon<T, E>;
     i->extract_diagonal = extract_diagonal<T, E>;
     i->solve_lower_triangular = solve_lower_triangular<T, E>;
     i->assemble_generic = assemble_generic<T, E>;

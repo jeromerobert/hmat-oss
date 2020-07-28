@@ -65,10 +65,10 @@ class ClusteringAlgorithm;
 //TODO remove all global settings
 class HMatSettings: public hmat::MatrixSettings {
 public:
-  double assemblyEpsilon; ///< Tolerance for the assembly.
-  double recompressionEpsilon; ///< Tolerance for the recompression (using SVD)
   CompressionMethod compressionMethod; ///< Compression method
   int compressionMinLeafSize; ///< Force SVD compression if max(rows->n, cols->n) < compressionMinLeafSize
+  double acaEpsilon; ///< Tolerance for the compression
+  double coarseningEpsilon; ///< Tolerance for the coarsening
   /** \f$\eta\f$ in the admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
       \f[
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
@@ -85,8 +85,8 @@ public:
 private:
   /** This constructor sets the default values.
    */
-  HMatSettings() : assemblyEpsilon(1e-4), recompressionEpsilon(1e-4),
-                   compressionMethod(AcaPlus),  compressionMinLeafSize(100),
+  HMatSettings() : compressionMethod(AcaPlus),  compressionMinLeafSize(100),
+                   acaEpsilon(1e-4), coarseningEpsilon(1e-4),
                    maxLeafSize(200),
                    coarsening(false),
                    validateNullRowCol(false), validateCompression(false),
@@ -164,8 +164,7 @@ public:
 
       This builds an HMatrix using a provided AssemblyFunction. The compression
       method is determined by \a HMatSettings::compressionMethod, and the
-      tolerance by \a HMatSettings::assemblyEpsilon. A recompression is done
-      when \a HMatSettings::recompress is true.
+      tolerance by \a HMatSettings::acaEpsilon.
 
       @param f The assembly function used to compute various matrix sub-parts
       @param sym If kLowerSymmetric, compute only the lower triangular matrix, and transpose

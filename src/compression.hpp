@@ -57,8 +57,8 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double eps);
 */
 template<typename T>
 RkMatrix<typename Types<T>::dp>*
-compress(CompressionMethod method, const Function<T>& f,
-         const ClusterData* rows, const ClusterData* cols,
+compress(CompressionMethod method, double compressionEpsilon, const Function<T>& f,
+         const ClusterData* rows, const ClusterData* cols, double epsilon,
          const AllocationObserver & = AllocationObserver());
 
 }  // end namespace hmat

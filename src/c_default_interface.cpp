@@ -225,8 +225,6 @@ void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
 void hmat_get_parameters(hmat_settings_t* settings)
 {
     HMatSettings& settingsCxx = HMatSettings::getInstance();
-    settings->assemblyEpsilon = settingsCxx.assemblyEpsilon;
-    settings->recompressionEpsilon = settingsCxx.recompressionEpsilon;
     switch (settingsCxx.compressionMethod) {
     case Svd:
       settings->compressionMethod = hmat_compress_svd;
@@ -248,6 +246,8 @@ void hmat_get_parameters(hmat_settings_t* settings)
       break;
     }
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
+    settings->coarseningEpsilon = settingsCxx.coarseningEpsilon;
+    settings->acaEpsilon = settingsCxx.acaEpsilon;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->coarsening = settingsCxx.coarsening;
     settings->validateNullRowCol = settingsCxx.validateNullRowCol;
@@ -263,8 +263,6 @@ int hmat_set_parameters(hmat_settings_t* settings)
     HMAT_ASSERT(settings != NULL);
     int rc = 0;
     HMatSettings& settingsCxx = HMatSettings::getInstance();
-    settingsCxx.assemblyEpsilon = settings->assemblyEpsilon;
-    settingsCxx.recompressionEpsilon = settings->recompressionEpsilon;
     switch (settings->compressionMethod) {
     case hmat_compress_svd:
       settingsCxx.compressionMethod = Svd;
@@ -286,6 +284,8 @@ int hmat_set_parameters(hmat_settings_t* settings)
       break;
     }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
+    settingsCxx.coarseningEpsilon = settings->coarseningEpsilon;
+    settingsCxx.acaEpsilon = settings->acaEpsilon;
     settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.coarsening = settings->coarsening;
     settingsCxx.validateNullRowCol = settings->validateNullRowCol;

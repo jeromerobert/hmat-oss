@@ -393,12 +393,12 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
   std::swap(method, other.method);
 }
 
-template<typename T> void RkMatrix<T>::axpy(T alpha, const FullMatrix<T>* mat) {
-  formattedAddParts(&alpha, &mat, 1);
+template<typename T> void RkMatrix<T>::axpy(double epsilon, T alpha, const FullMatrix<T>* mat) {
+  formattedAddParts(epsilon, &alpha, &mat, 1);
 }
 
-template<typename T> void RkMatrix<T>::axpy(T alpha, const RkMatrix<T>* mat) {
-  formattedAddParts(&alpha, &mat, 1, approx.recompressionEpsilon);
+template<typename T> void RkMatrix<T>::axpy(double epsilon, T alpha, const RkMatrix<T>* mat) {
+  formattedAddParts(epsilon, &alpha, &mat, 1);
 }
 
 /*! \brief Try to optimize the order of the Rk matrix to maximize initialPivot
@@ -478,9 +478,9 @@ template<typename T> bool allSame(const RkMatrix<T>** rks, int n) {
 }
 
 template<typename T>
-void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts,
-                                    const int n, double epsilon, bool hook) {
-  if(hook && formatedAddPartsHook && formatedAddPartsHook(this, alpha, parts, n, epsilon))
+void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatrix<T>* const * parts,
+                                    const int n, bool hook) {
+  if(hook && formatedAddPartsHook && formatedAddPartsHook(this, epsilon, alpha, parts, n))
     return;
   // TODO check if formattedAddParts() actually uses sometimes this 'alpha' parameter (or is it always 1 ?)
   DECLARE_CONTEXT;
@@ -527,7 +527,7 @@ void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * p
     fullParts[0] = NULL ;
     for (int i = rank() ? 1 : 0 ; i < notNullParts; i++) // exclude usedParts[0] if it is 'this'
       fullParts[i] = usedParts[i]->eval();
-    formattedAddParts(usedAlpha, fullParts, notNullParts);
+    formattedAddParts(epsilon, usedAlpha, fullParts, notNullParts);
     for (int i = 0; i < notNullParts; i++)
       delete fullParts[i];
     delete[] fullParts;
@@ -614,7 +614,7 @@ void RkMatrix<T>::formattedAddParts(const T* alpha, const RkMatrix<T>* const * p
 }
 
 template<typename T>
-void RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n) {
+void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const FullMatrix<T>* const * parts, int n) {
   DECLARE_CONTEXT;
   FullMatrix<T>* me = eval();
   HMAT_ASSERT(me);
@@ -636,7 +636,7 @@ void RkMatrix<T>::formattedAddParts(const T* alpha, const FullMatrix<T>* const *
     ScalarArray<T> sub(me->data, rowOffset, maxRow, colOffset, maxCol);
     sub.axpy(alpha[i], &parts[i]->data);
   }
-  RkMatrix<T>* result = truncatedSvd(me, RkMatrix<T>::approx.recompressionEpsilon); // TODO compress with something else than SVD
+  RkMatrix<T>* result = truncatedSvd(me, epsilon); // TODO compress with something else than SVD
   delete me;
   swap(*result);
   delete result;
@@ -876,7 +876,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
 
 template<typename T>
 RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
-                                       const RkMatrix<T>* r1, const RkMatrix<T>* r2) {
+                                       const RkMatrix<T>* r1, const RkMatrix<T>* r2, double epsilon) {
   DECLARE_CONTEXT;
   assert(((trans1 == 'N') ? *r1->cols : *r1->rows) == ((trans2 == 'N') ? *r2->rows : *r2->cols));
   // It is possible to do the computation differently, yielding a
@@ -925,7 +925,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     ScalarArray<T>* ur = NULL;
     ScalarArray<T>* vr = NULL;
     // truncated SVD tmp = ur.t^vr
-    int newK = tmp.truncatedSvdDecomposition(&ur, &vr, RkMatrix<T>::approx.recompressionEpsilon, true);
+    int newK = tmp.truncatedSvdDecomposition(&ur, &vr, epsilon, true);
     if (newK > 0) {
       /* Now compute newA = a1.ur and newB = b2.vr */
       newA = new ScalarArray<T>(a1->rows, newK, false);
@@ -992,7 +992,7 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
   delete diag;
 }
 
-template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
+template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char transHB,
                                               T alpha, const HMatrix<T>* ha, const HMatrix<T>* hb, T beta) {
   DECLARE_CONTEXT;
   // TODO: remove this limitation, if needed.
@@ -1055,15 +1055,15 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
               const IndexSet* subCols = (transHB == 'N' ? b_kj->cols() : b_kj->rows());
               subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
             }
-            subRks[i + j * nbRows]->gemmRk(transHA, transHB, alpha, a_ik, b_kj, beta);
+            subRks[i + j * nbRows]->gemmRk(epsilon, transHA, transHB, alpha, a_ik, b_kj, beta);
           }
         } // k loop
       } // j loop
     } // i loop
     // Reconstruction of C by adding the parts
     std::vector<T> alphaV(nbRows * nbCols, Constants<T>::pone);
-    formattedAddParts(&alphaV[0], (const RkMatrix<T>**) subRks,
-        nbRows * nbCols, approx.recompressionEpsilon);
+    formattedAddParts(epsilon, &alphaV[0], (const RkMatrix<T>**) subRks,
+        nbRows * nbCols);
     for (int i = 0; i < nbRows * nbCols; i++) {
       delete subRks[i];
     }
@@ -1073,12 +1073,12 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
     if ((ha->isLeaf() && ha->isNull()) || (hb->isLeaf() && hb->isNull())) {
       // Nothing to do
     } else if (ha->isRkMatrix() || hb->isRkMatrix()) {
-      rk = HMatrix<T>::multiplyRkMatrix(transHA, transHB, ha, hb);
+      rk = HMatrix<T>::multiplyRkMatrix(epsilon, transHA, transHB, ha, hb);
     } else {
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = truncatedSvd(fullMat, RkMatrix<T>::approx.recompressionEpsilon); // TODO compress with something else than SVD
+        rk = truncatedSvd(fullMat, epsilon); // TODO compress with something else than SVD
         delete fullMat;
       }
     }
@@ -1088,7 +1088,7 @@ template<typename T> void RkMatrix<T>::gemmRk(char transHA, char transHB,
         rk->scale(alpha);
         swap(*rk);
       } else
-        axpy(alpha, rk);
+        axpy(epsilon, alpha, rk);
       delete rk;
     }
   }
@@ -1133,10 +1133,9 @@ template<typename T> void RkMatrix<T>::writeArray(hmat_iostream writeFunc, void 
 }
 
 template <typename T>
-bool (*RkMatrix<T>::formatedAddPartsHook)(RkMatrix<T> *me, const T *alpha,
+bool (*RkMatrix<T>::formatedAddPartsHook)(RkMatrix<T> *me, double epsilon, const T *alpha,
                                                const RkMatrix<T> *const *parts,
-                                               const int n,
-                                               double epsilon) = NULL;
+                                               const int n) = NULL;
 
 // Templates declaration
 template class RkMatrix<S_t>;

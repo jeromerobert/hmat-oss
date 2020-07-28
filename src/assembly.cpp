@@ -42,6 +42,7 @@ void AssemblyFunction<T, F>::assemble(const LocalSettings &,
                                      bool admissible,
                                      FullMatrix<T> *&fullMatrix,
                                      RkMatrix<T> *&rkMatrix,
+                                     double epsilon,
                                      const AllocationObserver & allocationObserver) {
     if (admissible) {
       // Always compress the smallest blocks using an SVD. Small blocks tend to have
@@ -51,7 +52,8 @@ void AssemblyFunction<T, F>::assemble(const LocalSettings &,
       if (std::max(rows.data.size(), cols.data.size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
         method = Svd;
       }
-      rkMatrix = fromDoubleRk<T>(compress<T>(method, function_, &rows.data, &cols.data, allocationObserver));
+      double acaEpsilon = RkMatrix<T>::approx.acaEpsilon;
+      rkMatrix = fromDoubleRk<T>(compress<T>(method, acaEpsilon, function_, &rows.data, &cols.data, epsilon, allocationObserver));
     } else if (rows.data.size() && cols.data.size()) {
       fullMatrix = fromDoubleFull<T>(function_.assemble(&(rows.data), &(cols.data), NULL, allocationObserver));
     }

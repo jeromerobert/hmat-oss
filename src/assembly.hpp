@@ -61,7 +61,7 @@ public:
                           const ClusterTree & rows, const ClusterTree & cols,
                           bool admissible,
                           FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
-                          const AllocationObserver & = AllocationObserver()) = 0;
+                          double epsilon, const AllocationObserver & = AllocationObserver()) = 0;
     virtual ~Assembly(){};
 };
 
@@ -75,7 +75,7 @@ public:
                           const ClusterTree & rows, const ClusterTree & cols,
                           bool admissible,
                           FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
-                          const AllocationObserver & = AllocationObserver());
+                          double epsilon, const AllocationObserver & = AllocationObserver());
 protected:
     const F<T> function_;
 };

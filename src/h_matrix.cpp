@@ -104,7 +104,7 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
                     int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<HMatrix<T> >(NULL, _depth), RecursionMatrix<T, HMatrix<T> >(),
     rows_(_rows), cols_(_cols), rk_(NULL),
-    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
+    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK), epsilon_(1e-4),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary_(false),
     ownRowsClusterTree_(false), ownColsClusterTree_(false), localSettings(settings)
@@ -164,6 +164,7 @@ template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
+    epsilon_(-1.0), /* invalid value to ensure that caller sets it afterwards */
     isUpper(false), isLower(false), isTriUpper(false), isTriLower(false),
     keepSameRows(true), keepSameCols(true), temporary_(false), ownRowsClusterTree_(false),
     ownColsClusterTree_(false), localSettings(settings)
@@ -174,6 +175,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     r->rows_ = rows_;
     r->cols_ = cols_;
     r->temporary_ = temporary;
+    r->epsilon_ = epsilon_;
     if(withRowChild || withColChild) {
         // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
         // we want to go 1 level below data (which is an Rk)
@@ -188,8 +190,10 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
                 child->temporary_ = temporary;
                 child->rows_ = withRowChild ? rows_->getChild(i) : rows_;
                 child->cols_ = withColChild ? cols_->getChild(j) : cols_;
+                child->epsilon_ = epsilon_;
                 assert(child->rows_ != NULL);
                 assert(child->cols_ != NULL);
+                assert(child->epsilon_ > 0);
                 child->rk(NULL);
                 r->insertChild(i, j, child);
             }
@@ -204,6 +208,7 @@ template<typename T> HMatrix<T>* HMatrix<T>::internalCopy(
     r->temporary_ = true;
     r->rows_ = rows;
     r->cols_ = cols;
+    r->epsilon_ = epsilon_;
     return r;
 }
 
@@ -286,7 +291,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     // if not we keep the matrix.
     FullMatrix<T> * m = NULL;
     RkMatrix<T>* assembledRk = NULL;
-    f.assemble(localSettings, *rows_, *cols_, isRkMatrix(), m, assembledRk, ao);
+    f.assemble(localSettings, *rows_, *cols_, isRkMatrix(), m, assembledRk, epsilon_, ao);
     HMAT_ASSERT(m == NULL || assembledRk == NULL);
     if(assembledRk) {
         assert(isRkMatrix());
@@ -308,7 +313,7 @@ void HMatrix<T>::assemble(Assembly<T>& f, const AllocationObserver & ao) {
     }
     assembledRecurse();
     if (coarsening)
-      coarsen(RkMatrix<T>::approx.recompressionEpsilon);
+      coarsen(RkMatrix<T>::approx.coarseningEpsilon);
   }
 }
 
@@ -378,7 +383,7 @@ void HMatrix<T>::assembleSymmetric(Assembly<T>& f,
         }
         upper->assembledRecurse();
         if (coarsening)
-          coarsen(RkMatrix<T>::approx.recompressionEpsilon, upper);
+          coarsen(RkMatrix<T>::approx.coarseningEpsilon, upper);
       }
     }
     assembledRecurse();
@@ -596,7 +601,7 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
   if (allRkLeaves) {
     std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
     RkMatrix<T> * candidate = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
-    candidate->formattedAddParts(&alpha[0], childrenArray, this->nrChild(), epsilon);
+    candidate->formattedAddParts(epsilon, &alpha[0], childrenArray, this->nrChild());
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
     if (force || elements < childrenElements) {
       // Replace 'this' by the new Rk matrix
@@ -740,8 +745,7 @@ template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
         vector<const RkMatrix<T> *> rkLeaves;
         if (listAllRk(x, rkLeaves)) {
           vector<T> alphas(rkLeaves.size(), alpha);
-          rk()->formattedAddParts(&alphas[0], &rkLeaves[0], rkLeaves.size(),
-                                  RkMatrix<T>::approx.recompressionEpsilon);
+          rk()->formattedAddParts(epsilon_, &alphas[0], &rkLeaves[0], rkLeaves.size());
         } else {
           // x has contains both full and Rk matrices, this is not
           // supported yet.
@@ -786,7 +790,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       HMatrix<T> * c = this->getChild(i);
       if (c) {
         if(b->rank() < std::min(c->rows()->size(), c->cols()->size()) && b->rank() > 10) {
-          RkMatrix<T> * bc = b->truncatedSubset(c->rows(), c->cols(), RkMatrix<T>::approx.recompressionEpsilon);
+          RkMatrix<T> * bc = b->truncatedSubset(c->rows(), c->cols(), c->lowRankEpsilon());
           c->axpy(alpha, bc);
           delete bc;
         }
@@ -804,7 +808,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     if (isRkMatrix()) {
       if(!rk())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
-      rk()->axpy(alpha, newRk);
+      rk()->axpy(epsilon_, alpha, newRk);
       rank_ = rk()->rank();
     } else {
       // In this case, the matrix has small size
@@ -843,7 +847,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
     if (isRkMatrix()) {
       if(!rk())
         rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
-      rk()->axpy(alpha, subMat);
+      rk()->axpy(epsilon_, alpha, subMat);
       rank_ = rk()->rank();
     } else if(isFullMatrix()){
        full()->axpy(alpha, subMat);
@@ -1126,7 +1130,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
                     || (b->isRkMatrix() && b->isNull())) {
                 return;
             }
-            RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
+            RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(epsilon_, transA, transB, a, b);
             axpy(alpha, rkMat);
             delete rkMat;
         } else {
@@ -1161,7 +1165,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         assert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
         if(rk() == NULL)
             rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
-        rk()->gemmRk(transA, transB, alpha, a, b, Constants<T>::pone);
+        rk()->gemmRk(epsilon_, transA, transB, alpha, a, b, Constants<T>::pone);
         rank_ = rk()->rank();
         return;
     }
@@ -1180,7 +1184,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
                 || (b->isRkMatrix() && b->isNull())) {
             return;
         }
-        RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(transA, transB, a, b);
+        RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(epsilon_, transA, transB, a, b);
         fullMat = rkMat->eval();
         delete rkMat;
     } else if(a->isLeaf() && b->isLeaf() && isFullMatrix()){
@@ -1307,7 +1311,7 @@ FullMatrix<T>* multiplyHFull(char transH, char transM,
 }
 
 template<typename T>
-RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b){
+RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(double epsilon, char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b){
   // We know that one of the matrices is a RkMatrix
   assert(a->isRkMatrix() || b->isRkMatrix());
   RkMatrix<T> *rk = NULL;
@@ -1334,7 +1338,7 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(char transA, char transB, const HMatri
     HMAT_ASSERT(rk);
   }
   else if (a->isRkMatrix() && b->isRkMatrix()) {
-    rk = RkMatrix<T>::multiplyRkRk(transA, transB, a->rk(), b->rk());
+    rk = RkMatrix<T>::multiplyRkRk(transA, transB, a->rk(), b->rk(), epsilon);
     HMAT_ASSERT(rk);
   }
   else if (a->isRkMatrix() && b->isFullMatrix()) {
@@ -1576,6 +1580,18 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
         } else {
           assert(!this->getChild(i));
       }
+    }
+  }
+}
+
+template<typename T>
+void HMatrix<T>::lowRankEpsilon(double epsilon) {
+  epsilon_ = epsilon;
+  if(!this->isLeaf()) {
+    for (int i = 0; i < this->nrChild(); i++) {
+      HMatrix<T>* child = this->getChild(i);
+      if (child)
+        child->lowRankEpsilon(epsilon);
     }
   }
 }
@@ -1993,7 +2009,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       assert(*m->cols() == *d->rows());
       assert(*m_copy->rk()->cols == *d->rows());
       m_copy->multiplyWithDiag(d); // right multiplication by D
-      RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
+      RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk(), epsilon_);
       delete m_copy;
 
       this->axpy(Constants<T>::mone, rkMat);
@@ -2028,7 +2044,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         HMatrix<T>* m_copy = m->copy();
         m_copy->multiplyWithDiag(d);
 
-        RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk());
+        RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk(), epsilon_);
         FullMatrix<T>* fullMat = rkMat->eval();
         delete m_copy;
         delete rkMat;

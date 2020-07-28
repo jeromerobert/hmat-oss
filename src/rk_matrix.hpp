@@ -47,15 +47,17 @@ class IndexSet;
  */
 class RkApproximationControl {
 public:
-  double assemblyEpsilon; /// Tolerance for the assembly
-  double recompressionEpsilon; /// Tolerance for the recompressions
   CompressionMethod method;
+  double acaEpsilon; /// Tolerance for the compression method
+  double coarseningEpsilon; /// Tolerance for the coarsening
   int compressionMinLeafSize;
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : assemblyEpsilon(-1.),
-                             recompressionEpsilon(-1.), method(Svd), compressionMinLeafSize(100) {}
+  RkApproximationControl() : method(Svd),
+                             acaEpsilon(-1.),
+                             coarseningEpsilon(-1.),
+                             compressionMinLeafSize(100) {}
 };
 
 
@@ -78,7 +80,7 @@ template<typename T> class RkMatrix {
   void mGSTruncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
 public:
   /** @brief A hook which can be called at the begining of formatedAddParts */
-  static bool (*formatedAddPartsHook)(RkMatrix<T> * me, const T* alpha, const RkMatrix<T>* const * parts, const int n, double epsilon);
+  static bool (*formatedAddPartsHook)(RkMatrix<T> * me, double epsilon, const T* alpha, const RkMatrix<T>* const * parts, const int n);
   const IndexSet *rows;
   const IndexSet *cols;
   // A B^t
@@ -149,13 +151,13 @@ public:
       \param alpha
       \param mat
    */
-  void axpy(T alpha, const FullMatrix<T>* mat);
+  void axpy(double epsilon, T alpha, const FullMatrix<T>* mat);
   /** this <- this + alpha * mat
 
       \param alpha
       \param mat
    */
-  void axpy(T alpha, const RkMatrix<T>* mat);
+  void axpy(double epsilon, T alpha, const RkMatrix<T>* mat);
   /** Adds a list of RkMatrix to a RkMatrix.
 
       In this function, RkMatrix may include some
@@ -168,8 +170,8 @@ public:
       \param hook true to call formattedAddPartsHook, false to do not call
       \return truncate(*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  void formattedAddParts(const T* alpha, const RkMatrix<T>* const * parts, const int n,
-                                 double epsilon, bool hook = true);
+  void formattedAddParts(double epsilon, const T* alpha, const RkMatrix<T>* const * parts, const int n,
+                                 bool hook = true);
   /** Adds a list of MatrixXd (solid matrices) to RkMatrix.
 
       In this function, MatrixXd may cover a portion of
@@ -182,11 +184,11 @@ public:
       \param n Number of matrices to add
       \return truncate (*this + parts[0] + parts[1] + ... + parts[n-1])
    */
-  void formattedAddParts(const T* alpha, const FullMatrix<T>* const * parts, int n);
+  void formattedAddParts(double epsilon, const T* alpha, const FullMatrix<T>* const * parts, int n);
 
   /*! \brief Add a product of HMatrix to an RkMatrix
      */
-  void gemmRk(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);
+  void gemmRk(double epsilon, char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);
 
   /** Multiplication by a scalar.
 
@@ -265,7 +267,7 @@ public:
        \param b
        \return A * B
   */
-  static RkMatrix<T>* multiplyRkRk(char transA, char transB, const RkMatrix<T>* a, const RkMatrix<T>* b);
+  static RkMatrix<T>* multiplyRkRk(char transA, char transB, const RkMatrix<T>* a, const RkMatrix<T>* b, double epsilon);
   /*! \brief in situ multiplication of the matrix by the diagonal of the matrix given as argument
 
      \param d D matrix which we just considered the diagonal

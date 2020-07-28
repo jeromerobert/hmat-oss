@@ -640,6 +640,13 @@ typedef struct
     */
     void (*own_cluster_trees)(hmat_matrix_t* hmatrix, int owns_row, int owns_col);
 
+    /*! Set threshold for low-rank recompressions.
+
+      \param hmatrix HMatrix
+      \param epsilon Threshold for low-rank recompressions
+    */
+    void (*set_low_rank_epsilon)(hmat_matrix_t* hmatrix, double epsilon);
+
     /*! Assemble a HMatrix.
 
       \param hmatrix The matrix to be assembled.
@@ -928,13 +935,13 @@ HMAT_API void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t typ
 
 typedef struct
 {
-  /*! \brief Tolerance for the assembly. */
-  double assemblyEpsilon;
-  /*! \brief Tolerance for the recompression (using SVD) */
-  double recompressionEpsilon;
   int compressionMethod;
   /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
-   int compressionMinLeafSize;
+  int compressionMinLeafSize;
+  /*! \brief Tolerance for the compression */
+  double acaEpsilon;
+  /*! \brief Tolerance for coarsening */
+  double coarseningEpsilon;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
   int maxLeafSize;
   /*! \brief Coarsen the matrix structure after assembly. */

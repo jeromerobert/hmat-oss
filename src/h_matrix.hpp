@@ -141,6 +141,8 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   int rank_;
   /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
   int approximateRank_;
+  /// epsilon used for SVD truncations
+  double epsilon_;
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
@@ -332,6 +334,17 @@ public:
   void approximateRank(int a)  {
     approximateRank_ = a;
   }
+
+  /*! \brief Return low rank epsilon
+   */
+  double lowRankEpsilon() {
+    return epsilon_;
+  }
+
+  /** Recursively set low-rank epsilon member
+   */
+  void lowRankEpsilon(double epsilon);
+
   /** Set a matrix to 0.
    */
   void clear();
@@ -415,7 +428,7 @@ public:
       \param a A
       \param b B
    */
-  static RkMatrix<T>* multiplyRkMatrix(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b);
+  static RkMatrix<T>* multiplyRkMatrix(double epsilon, char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b);
   /** Multiplication de deux HMatrix dont au moins une est une matrice pleine,
       et aucune n'est une RkMatrix.
 

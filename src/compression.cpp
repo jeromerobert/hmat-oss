@@ -232,12 +232,12 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressSvd(const ClusterAssemblyFunction<T>& block) {
+compressSvd(const ClusterAssemblyFunction<T>& block, double compressionEpsilon) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = block.assemble();
-  RkMatrix<dp_t>* result = truncatedSvd(m, RkMatrix<T>::approx.assemblyEpsilon);
+  RkMatrix<dp_t>* result = truncatedSvd(m, compressionEpsilon);
   delete m;
   return result;
 }
@@ -245,13 +245,12 @@ compressSvd(const ClusterAssemblyFunction<T>& block) {
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaFull(const ClusterAssemblyFunction<T>& block) {
+compressAcaFull(const ClusterAssemblyFunction<T>& block, double compressionEpsilon) {
   DECLARE_CONTEXT;
   typedef typename Types<T>::dp dp_t;
   // TODO: use ClusterAssemblyFunction to optimize with blockinfo_t
   FullMatrix<dp_t>* m = block.assemble();
 
-  const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
   int maxK = min(m->rows(), m->cols());
 
@@ -299,9 +298,9 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
       estimateSquaredNorm += ab_norm_2;
 
       // Evaluate the stopping criterion
-      // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
-      // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-      if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
+      // ||a_nu|| ||b_nu|| < compressionEpsilon * ||S_nu||
+      // <=> ||a_nu||^2 ||b_nu||^2 < compressionEpsilon^2 ||S_nu||^2
+      if (ab_norm_2 < compressionEpsilon * compressionEpsilon * estimateSquaredNorm) {
         break;
       }
     }
@@ -321,10 +320,9 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block) {
 
 template<typename T>
 static RkMatrix<typename Types<T>::dp>*
-compressAcaPartial(const ClusterAssemblyFunction<T>& block, bool useRandomPivots) {
+compressAcaPartial(const ClusterAssemblyFunction<T>& block, double compressionEpsilon, bool useRandomPivots) {
   typedef typename Types<T>::dp dp_t;
 
-  const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
 
   const int rowCount = block.rows->size();
@@ -414,9 +412,9 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block, bool useRandomPivots
       k++;
 
       // Evaluate the stopping criterion
-      // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
-      // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-      if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
+      // ||a_nu|| ||b_nu|| < compressionEpsilon * ||S_nu||
+      // <=> ||a_nu||^2 ||b_nu||^2 < compressionEpsilon^2 ||S_nu||^2
+      if (ab_norm_2 < compressionEpsilon * compressionEpsilon * estimateSquaredNorm) {
         break;
       }
     }
@@ -447,9 +445,8 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block, bool useRandomPivots
 
 
 template<typename T>
-static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFunction<T>& block) {
+static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFunction<T>& block, double compressionEpsilon) {
   typedef typename Types<T>::dp dp_t;
-  const double epsilon = RkMatrix<dp_t>::approx.assemblyEpsilon;
   double estimateSquaredNorm = 0;
   int i_ref, j_ref;
   int rowCount = block.rows->size(), colCount = block.cols->size();
@@ -525,9 +522,9 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
     k++;
 
     // Evaluate the stopping criterion
-    // ||a_nu|| ||b_nu|| < epsilon * ||S_nu||
-    // <=> ||a_nu||^2 ||b_nu||^2 < epsilon^2 ||S_nu||^2
-    if (ab_norm_2 < epsilon * epsilon * estimateSquaredNorm) {
+    // ||a_nu|| ||b_nu|| < compressionEpsilon * ||S_nu||
+    // <=> ||a_nu||^2 ||b_nu||^2 < compressionEpsilon^2 ||S_nu||^2
+    if (ab_norm_2 < compressionEpsilon * compressionEpsilon * estimateSquaredNorm) {
       break;
     }
 
@@ -597,29 +594,30 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
 
 template<typename T>
 RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod method,
+                                                           double compressionEpsilon,
                                                            const ClusterAssemblyFunction<T>& block) {
   typedef typename Types<T>::dp dp_t;
   RkMatrix<dp_t>* rk = NULL;
   switch (method) {
   case Svd:
-    rk = compressSvd(block);
+    rk = compressSvd(block, compressionEpsilon);
     break;
   case AcaFull:
-    rk = compressAcaFull(block);
+    rk = compressAcaFull(block, compressionEpsilon);
     break;
   case AcaPartial:
-    rk = compressAcaPartial(block, false);
+    rk = compressAcaPartial(block, compressionEpsilon, false);
     break;
   case AcaRandom:
-    rk = compressAcaPartial(block, true);
+    rk = compressAcaPartial(block, compressionEpsilon, true);
     break;
   case AcaPlus:
     if(block.cols->size() * 100 < block.rows->size() && !block.info.is_guaranteed_null_row && !block.info.is_guaranteed_null_col)
        // ACA+ start with a findMinRow call which will last for hours
        // if the block contains many null rows
-       rk = compressAcaPartial(block, false);
+       rk = compressAcaPartial(block, compressionEpsilon, false);
     else
-       rk = compressAcaPlus(block);
+       rk = compressAcaPlus(block, compressionEpsilon);
     break;
   case NoCompression:
     // Must not happen
@@ -631,9 +629,9 @@ RkMatrix<typename Types<T>::dp>* compressWithoutValidation(CompressionMethod met
 }
 
 template<typename T> RkMatrix<typename Types<T>::dp>* compress(
-    CompressionMethod method, const Function<T>& f,
+    CompressionMethod method, double compressionEpsilon, const Function<T>& f,
     const ClusterData* rows, const ClusterData* cols,
-    const AllocationObserver & ao) {
+    double epsilon, const AllocationObserver & ao) {
     typedef typename Types<T>::dp dp_t;
     ClusterAssemblyFunction<T> block(f, rows, cols, ao);
     int nloop=-1; // so we assemble only one strata
@@ -642,26 +640,23 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
         // enable strata assembling for AcaPartial & AcaPlus only
         nloop = block.info.number_of_strata;
     }
-    RkMatrix<dp_t>* rk = compressOneStratum(method, block);
-    rk->truncate(rk->approx.assemblyEpsilon); // why recompress right after compress ??
+    RkMatrix<dp_t>* rk = compressOneStratum(method, compressionEpsilon, block);
+    rk->truncate(epsilon);
     for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
         assert(method == AcaPartial || method == AcaPlus || method == AcaRandom);
-        RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
+        RkMatrix<dp_t>* stratumRk = compressOneStratum(method, compressionEpsilon, block);
         if(stratumRk->rank() > 0) {
-            rk->formattedAddParts(&Constants<dp_t>::pone, &stratumRk, 1, -1);
-            delete stratumRk;
-            rk->truncate(rk->approx.assemblyEpsilon);
-        } else {
-            delete stratumRk;
+            rk->formattedAddParts(epsilon, &Constants<dp_t>::pone, &stratumRk, 1);
         }
+        delete stratumRk;
     }
     return rk;
 }
 
 template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
-    CompressionMethod method, ClusterAssemblyFunction<T> & block) {
+    CompressionMethod method, double compressionEpsilon, ClusterAssemblyFunction<T> & block) {
   typedef typename Types<T>::dp dp_t;
-  RkMatrix<dp_t>* rk = compressWithoutValidation(method, block);
+  RkMatrix<dp_t>* rk = compressWithoutValidation(method, compressionEpsilon, block);
 
   if (HMatrix<T>::validateCompression) {
     FullMatrix<dp_t>* full = block.assemble();
@@ -692,7 +687,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
         // Call compression a 2nd time, for debugging with gdb the work of the compression algorithm...
         RkMatrix<dp_t>* rk_bis = NULL;
 
-        rk_bis = compressWithoutValidation(method, block);
+        rk_bis = compressWithoutValidation(method, compressionEpsilon, block);
         delete rk_bis ;
       }
 
@@ -723,10 +718,10 @@ template RkMatrix<D_t>* truncatedSvd(FullMatrix<D_t>* m, double eps);
 template RkMatrix<C_t>* truncatedSvd(FullMatrix<C_t>* m, double eps);
 template RkMatrix<Z_t>* truncatedSvd(FullMatrix<Z_t>* m, double eps);
 
-template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
-template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
-template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
-template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, const Function<Z_t>& f, const ClusterData* rows, const ClusterData* cols, const AllocationObserver &);
+template RkMatrix<Types<S_t>::dp>* compress<S_t>(CompressionMethod method, double compressionEpsilon, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
+template RkMatrix<Types<D_t>::dp>* compress<D_t>(CompressionMethod method, double compressionEpsilon, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
+template RkMatrix<Types<C_t>::dp>* compress<C_t>(CompressionMethod method, double compressionEpsilon, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
+template RkMatrix<Types<Z_t>::dp>* compress<Z_t>(CompressionMethod method, double compressionEpsilon, const Function<Z_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
 
 }  // end namespace hmat
 
