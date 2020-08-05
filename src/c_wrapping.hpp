@@ -102,56 +102,6 @@ void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
 }
 
 template<typename T, template <typename> class E>
-int assemble(hmat_matrix_t * holder,
-                              void* user_context,
-                              hmat_prepare_func_t prepare,
-                              hmat_compute_func_t compute,
-                              int lower_symmetric) {
-  DECLARE_CONTEXT;
-    hmat_assemble_context_t ctx;
-    hmat_assemble_context_init(&ctx);
-    ctx.user_context = user_context;
-    ctx.prepare = prepare;
-    ctx.block_compute = compute;
-    ctx.lower_symmetric = lower_symmetric;
-    assemble_generic<T, E>(holder, &ctx);
-    return 0;
-}
-
-template<typename T, template <typename> class E>
-int assemble_factor(hmat_matrix_t * holder,
-                              void* user_context,
-                              hmat_prepare_func_t prepare,
-                              hmat_compute_func_t compute,
-                              int lower_symmetric, hmat_factorization_t f_type) {
-  DECLARE_CONTEXT;
-    hmat_assemble_context_t ctx;
-    hmat_assemble_context_init(&ctx);
-    ctx.user_context = user_context;
-    ctx.prepare = prepare;
-    ctx.block_compute = compute;
-    ctx.lower_symmetric = lower_symmetric;
-    ctx.factorization = f_type;
-    assemble_generic<T, E>(holder, &ctx);
-    return 0;
-}
-
-template<typename T, template <typename> class E>
-int assemble_simple_interaction(hmat_matrix_t * holder,
-                          void* user_context,
-                          hmat_interaction_func_t compute,
-                          int lower_symmetric) {
-  DECLARE_CONTEXT;
-    hmat_assemble_context_t ctx;
-    hmat_assemble_context_init(&ctx);
-    ctx.user_context = user_context;
-    ctx.simple_compute = compute;
-    ctx.lower_symmetric = lower_symmetric;
-    assemble_generic<T, E>(holder, &ctx);
-    return 0;
-}
-
-template<typename T, template <typename> class E>
 hmat_matrix_t* copy(hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
   return (hmat_matrix_t*) ((hmat::HMatInterface<T>*) holder)->copy();
@@ -540,9 +490,6 @@ template<typename T, template <typename> class E>
 static void createCInterface(hmat_interface_t * i)
 {
   DECLARE_CONTEXT;
-    i->assemble = assemble<T, E>;
-    i->assemble_factorize = assemble_factor<T, E>;
-    i->assemble_simple_interaction = assemble_simple_interaction<T, E>;
     i->copy = copy<T, E>;
     i->copy_struct = copy_struct<T, E>;
     i->create_empty_hmatrix = create_empty_hmatrix<T, E>;
@@ -550,7 +497,6 @@ static void createCInterface(hmat_interface_t * i)
     i->destroy = destroy<T, E>;
     i->get_child = get_child<T, E>;
     i->destroy_child = destroy_child<T, E>;
-    i->factorize = factor<T, E>;
     i->inverse = inverse<T, E>;
     i->finalize = finalize<T, E>;
     i->full_gemm = full_gemm<T, E>;

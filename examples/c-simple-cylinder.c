@@ -126,7 +126,6 @@ int main(int argc, char **argv) {
   hmat_interface_t hmat;
   hmat_value_t type;
   hmat_info_t mat_info;
-  int rc;
   problem_data_t problem_data;
   hmat_admissibility_t * admissibilityCondition = hmat_create_admissibility_standard(3.0);
 
@@ -189,25 +188,21 @@ int main(int argc, char **argv) {
   hmat_delete_admissibility(admissibilityCondition);
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
-  if (type == HMAT_SIMPLE_PRECISION || type == HMAT_DOUBLE_PRECISION)
-    rc = hmat.assemble_simple_interaction(hmatrix, &problem_data, interaction_real, 0);
-  else
-    rc = hmat.assemble_simple_interaction(hmatrix, &problem_data, interaction_complex, 0);
-  if (rc) {
-    fprintf(stderr, "Error in assembly, return code is %d, exiting...\n", rc);
-    hmat.finalize();
-    return rc;
-  }
+  hmat_assemble_context_t ctx_assemble;
+  hmat_assemble_context_init(&ctx_assemble);
+  ctx_assemble.user_context = &problem_data;
+  ctx_assemble.simple_compute = (type == HMAT_SIMPLE_PRECISION || type == HMAT_DOUBLE_PRECISION)
+    ? interaction_real : interaction_complex;
+  ctx_assemble.lower_symmetric = 0;
+  hmat.assemble_generic(hmatrix, &ctx_assemble);
 
-  rc = hmat.factorize(hmatrix, hmat_factorization_lu);
-  if (rc) {
-    fprintf(stderr, "Error in factor, return code is %d, exiting...\n", rc);
-    hmat.finalize();
-    return rc;
-  }
+  hmat_factorization_context_t ctx_facto;
+  hmat_factorization_context_init(&ctx_facto);
+  ctx_facto.factorization = hmat_factorization_lu;
+  hmat.factorize_generic(hmatrix, &ctx_facto);
 
   hmat.destroy(hmatrix);
   hmat_delete_cluster_tree(cluster_tree);
   hmat.finalize();
-  return rc;
+  return 0;
 }

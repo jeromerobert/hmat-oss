@@ -216,7 +216,6 @@ int main(int argc, char **argv) {
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t * hmatrix;
   int kLowerSymmetric = 1; /* =0 if not Symmetric */
-  int rc;
 
   problem_data_t problem_data;
   double l;
@@ -300,23 +299,21 @@ int main(int argc, char **argv) {
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
 
   fprintf(stdout,"Assembly...");
-  rc = hmat.assemble_simple_interaction(hmatrix, &problem_data, interaction_real, kLowerSymmetric);
-  if (rc) {
-    fprintf(stderr, "Error in assembly, return code is %d, exiting...\n", rc);
-    hmat.finalize();
-    return rc;
-  }
+  hmat_assemble_context_t ctx_assemble;
+  hmat_assemble_context_init(&ctx_assemble);
+  ctx_assemble.user_context = &problem_data;
+  ctx_assemble.simple_compute = interaction_real;
+  ctx_assemble.lower_symmetric = kLowerSymmetric;
+  hmat.assemble_generic(hmatrix, &ctx_assemble);
   fprintf(stdout, "done.\n");
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix size = %ld, uncompressed size = %ld\n", mat_info.compressed_size, mat_info.uncompressed_size);
 
   fprintf(stdout,"Factorisation...");
-  rc = hmat.factorize(hmatrix, hmat_factorization_llt);
-  if (rc) {
-    fprintf(stderr, "Error in factorisation, return code is %d, exiting...\n", rc);
-    hmat.finalize();
-    return rc;
-  }
+  hmat_factorization_context_t ctx_facto;
+  hmat_factorization_context_init(&ctx_facto);
+  ctx_facto.factorization = hmat_factorization_llt;
+  hmat.factorize_generic(hmatrix, &ctx_facto);
   fprintf(stdout, "done.\n");
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix size = %ld, uncompressed size = %ld\n", mat_info.compressed_size, mat_info.uncompressed_size);

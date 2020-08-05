@@ -219,7 +219,6 @@ int main(int argc, char **argv) {
   hmat_clustering_algorithm_t* clustering, * clustering_algo;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t* hmatrix;
-  int rc;
   problem_data_t problem_data;
   hmat_admissibility_t * admissibilityCondition = hmat_create_admissibility_standard(3.0);
 
@@ -289,19 +288,18 @@ int main(int argc, char **argv) {
   hmat_delete_admissibility(admissibilityCondition);
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
-  rc = hmat.assemble(hmatrix, &problem_data, prepare_hmat, compute_hmat, 0);
-  if (rc) {
-    fprintf(stderr, "Error in assembly, return code is %d, exiting...\n", rc);
-    hmat.finalize();
-    return rc;
-  }
+  hmat_assemble_context_t ctx_assemble;
+  hmat_assemble_context_init(&ctx_assemble);
+  ctx_assemble.user_context = &problem_data;
+  ctx_assemble.prepare = prepare_hmat;
+  ctx_assemble.block_compute = compute_hmat;
+  ctx_assemble.lower_symmetric = 0;
+  hmat.assemble_generic(hmatrix, &ctx_assemble);
 
-  rc = hmat.factorize(hmatrix, hmat_factorization_lu);
-  if (rc) {
-    fprintf(stderr, "Error in factor, return code is %d, exiting...\n", rc);
-    hmat.finalize();
-    return rc;
-  }
+  hmat_factorization_context_t ctx_facto;
+  hmat_factorization_context_init(&ctx_facto);
+  ctx_facto.factorization = hmat_factorization_lu;
+  hmat.factorize_generic(hmatrix, &ctx_facto);
 
   hmat.destroy(hmatrix);
   hmat_delete_cluster_tree(cluster_tree);

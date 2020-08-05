@@ -641,46 +641,6 @@ typedef struct
     */
     void (*set_low_rank_epsilon)(hmat_matrix_t* hmatrix, double epsilon);
 
-    /*! Assemble a HMatrix.
-
-      \param hmatrix The matrix to be assembled.
-      \param user_context The user context to pass to the prepare function.
-      \param prepare The prepare function as given in \a HMatOperations.
-      \param compute The compute function as given in \a HMatOperations.
-      \param free_data The free function as given in \a HMatOperations.
-      \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
-      \return 0 for success.
-    */
-    int (*assemble)(hmat_matrix_t* hmatrix, void* user_context, hmat_prepare_func_t prepare,
-                         hmat_compute_func_t compute, int lower_symmetric);
-
-    /*! Assemble a HMatrix then factorize it.
-
-      \param hmatrix The matrix to be assembled.
-      \param user_context The user context to pass to the prepare function.
-      \param prepare The prepare function as given in \a HMatOperations.
-      \param compute The compute function as given in \a HMatOperations.
-      \param free_data The free function as given in \a HMatOperations.
-      \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
-      \return 0 for success.
-    */
-    int (*assemble_factorize)(hmat_matrix_t* hmatrix, void* user_context, hmat_prepare_func_t prepare,
-                         hmat_compute_func_t compute, int lower_symmetric, hmat_factorization_t);
-
-    /*! Assemble a HMatrix.  This is a simplified interface, a single function is provided to
-      compute matrix terms.
-
-      \param hmatrix The matrix to be assembled.
-      \param user_context The user context to pass to the compute function.
-      \param compute The compute function
-      \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
-      \return 0 for success.
-    */
-    int (*assemble_simple_interaction)(hmat_matrix_t* hmatrix,
-                                            void* user_context,
-                                            hmat_interaction_func_t compute,
-                                            int lower_symmetric);
-
     /*! Assemble a HMatrix */
     void (*assemble_generic)(hmat_matrix_t* matrix, hmat_assemble_context_t * context);
 
@@ -706,12 +666,6 @@ typedef struct
       \return 0
     */
     int (*inverse)(hmat_matrix_t* hmatrix);
-    /*! \brief Factor a HMatrix in place.
-
-      \param hmatrix the matrix to factor
-      \return 0 for success
-    */
-    int (*factorize)(hmat_matrix_t *hmatrix, hmat_factorization_t);
 
     /*! Factorize a HMatrix */
     void (*factorize_generic)(hmat_matrix_t* matrix, hmat_factorization_context_t * context);
