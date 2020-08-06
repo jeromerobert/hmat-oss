@@ -337,13 +337,13 @@ public:
 
   /*! \brief Return low rank epsilon
    */
-  double lowRankEpsilon() {
+  double lowRankEpsilon() const {
     return epsilon_;
   }
 
   /** Recursively set low-rank epsilon member
    */
-  void lowRankEpsilon(double epsilon);
+  void lowRankEpsilon(double epsilon, bool recursive = true);
 
   /** Set a matrix to 0.
    */

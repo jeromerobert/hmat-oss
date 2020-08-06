@@ -1585,9 +1585,9 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
 }
 
 template<typename T>
-void HMatrix<T>::lowRankEpsilon(double epsilon) {
+void HMatrix<T>::lowRankEpsilon(double epsilon, bool recursive) {
   epsilon_ = epsilon;
-  if(!this->isLeaf()) {
+  if(recursive && !this->isLeaf()) {
     for (int i = 0; i < this->nrChild(); i++) {
       HMatrix<T>* child = this->getChild(i);
       if (child)
