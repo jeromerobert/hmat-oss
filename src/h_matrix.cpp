@@ -1521,6 +1521,25 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
 }
 
 template<typename T>
+void HMatrix<T>::truncate() {
+  if (this->isLeaf()) {
+    if (this->isRkMatrix()) {
+      if (rk()) {
+        rk()->truncate(epsilon_);
+        rank_ = rk()->rank();
+      }
+    }
+  } else {
+    for (int i = 0; i < this->nrChild(); i++) {
+      HMatrix<T>* child = this->getChild(i);
+      if (child) {
+        child->truncate();
+      }
+    }
+  }
+}
+
+template<typename T>
 const ClusterData* HMatrix<T>::rows() const {
   return &(rows_->data);
 }
@@ -2497,24 +2516,6 @@ template<typename T> std::string HMatrix<T>::toString() const {
 }
 
 template<typename T>
-void EpsilonTruncate<T>::visit(HMatrix<T>* node, const Visit order) const {
-  if (order != tree_leaf || !node->isRkMatrix()) return;
-  RkMatrix<T> * rk = node->rk();
-  rk->truncate(epsilon_);
-  // Update rank
-  node->rk(rk);
-}
-
-template<typename T>
-void LeafEpsilonTruncate<T>::apply(HMatrix<T>* node) const {
-  if (!node->isRkMatrix()) return;
-  RkMatrix<T> * rk = node->rk();
-  rk->truncate(epsilon_);
-  // Update rank
-  node->rk(rk);
-}
-
-template<typename T>
 HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, int appoxRank, char bitfield) {
     HMatrix<T> * m = new HMatrix<T>(settings);
     m->rank_ = rank;
@@ -2571,16 +2572,6 @@ template void restoreVectorOrder(ScalarArray<S_t>* v, int* indices);
 template void restoreVectorOrder(ScalarArray<D_t>* v, int* indices);
 template void restoreVectorOrder(ScalarArray<C_t>* v, int* indices);
 template void restoreVectorOrder(ScalarArray<Z_t>* v, int* indices);
-
-template class EpsilonTruncate<S_t>;
-template class EpsilonTruncate<D_t>;
-template class EpsilonTruncate<C_t>;
-template class EpsilonTruncate<Z_t>;
-
-template class LeafEpsilonTruncate<S_t>;
-template class LeafEpsilonTruncate<D_t>;
-template class LeafEpsilonTruncate<C_t>;
-template class LeafEpsilonTruncate<Z_t>;
 
 }  // end namespace hmat
 

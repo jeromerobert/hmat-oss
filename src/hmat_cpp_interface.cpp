@@ -235,6 +235,13 @@ void HMatInterface<T>::scale(T alpha) {
 }
 
 template<typename T>
+void HMatInterface<T>::truncate() {
+  DISABLE_THREADING_IN_BLOCK;
+  DECLARE_CONTEXT;
+  engine_->hmat->truncate();
+}
+
+template<typename T>
 void HMatInterface<T>::addIdentity(T alpha) {
   DECLARE_CONTEXT;
   engine_->addIdentity(alpha);

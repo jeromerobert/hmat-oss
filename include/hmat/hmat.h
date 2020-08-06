@@ -582,9 +582,6 @@ typedef struct
 /* Delete a procedure */
 HMAT_API void hmat_delete_procedure(hmat_procedure_t* proc);
 
-/* Create a procedure to truncate Rk matrices */
-HMAT_API hmat_procedure_t* hmat_create_procedure_epsilon_truncate(hmat_value_t type, double epsilon);
-
 /* Opaque pointer */
 typedef struct
 {
@@ -595,9 +592,6 @@ typedef struct
 
 /* Delete a leaf procedure */
 HMAT_API void hmat_delete_leaf_procedure(hmat_leaf_procedure_t* proc);
-
-/* Create a procedure to truncate Rk matrices */
-HMAT_API hmat_leaf_procedure_t* hmat_create_leaf_procedure_epsilon_truncate(hmat_value_t type, double epsilon);
 
 typedef struct
 {
@@ -775,6 +769,13 @@ hmat
       \param hmatrix
     */
     int (*scale)(void * alpha, hmat_matrix_t *hmatrix);
+    /*! \brief Recompress all Rk matrices to their respective epsilon_ values.
+
+      This function is useful only after epsilon_ values have been modified.
+
+      \param hmatrix
+    */
+    int (*truncate)(hmat_matrix_t *hmatrix);
     /*! \brief C <- alpha * A * B + beta * C
 
       \param trans_a 'N' or 'T'

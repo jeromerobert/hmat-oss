@@ -286,6 +286,10 @@ public:
    */
   void scale(T alpha);
 
+  /** Recompress all Rk matrices to their respective epsilon_ values.
+   */
+  void truncate();
+
   /** this <- this + alpha * Id
    */
   void addIdentity(T alpha);

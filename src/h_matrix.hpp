@@ -96,25 +96,6 @@ template<typename T> void restoreVectorOrder(ScalarArray<T>* v, int *indices);
 
 template<typename T> class HMatrix;
 
-/** Class to truncate Rk matrices.
- */
-template<typename T>
-class EpsilonTruncate : public TreeProcedure<HMatrix<T> > {
-private:
-  double epsilon_;
-public:
-  explicit EpsilonTruncate(double epsilon) : epsilon_(epsilon) {}
-  void visit(HMatrix<T> * node, const Visit order) const;
-};
-template<typename T>
-class LeafEpsilonTruncate : public LeafProcedure<HMatrix<T> > {
-private:
-  double epsilon_;
-public:
-  explicit LeafEpsilonTruncate(double epsilon) : epsilon_(epsilon) {}
-  void apply(HMatrix<T> * node) const;
-};
-
 /*! \brief The HMatrix class, representing a HMatrix.
 
   It is a tree of arity arity(ClusterTree)^2, 4 in most cases.
@@ -376,6 +357,11 @@ public:
     \param o
    */
   void copyAndTranspose(const HMatrix<T>* o);
+
+  /*! \brief Truncate Rk matrices with respect to their respective epsilon_
+   */
+  void truncate();
+
   /*! \brief LU decomposition in place.
 
     \warning Do not use. Doesn't work

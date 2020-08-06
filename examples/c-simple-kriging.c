@@ -389,10 +389,9 @@ int main(int argc, char **argv) {
 
   hmat.get_info(hmatrix, &mat_info);
   printf("Rk size = %ld\n", mat_info.compressed_size);
-  hmat_procedure_t* trunc = hmat_create_procedure_epsilon_truncate(type, 1.e-2);
+  hmat.set_low_rank_epsilon(hmatrix, 1.e-2);
   fprintf(stdout,"Post-process Rk-matrices...");
-  hmat.walk(hmatrix, trunc);
-  hmat_delete_procedure(trunc);
+  hmat.truncate(hmatrix);
   fprintf(stdout, "done.\n");
   hmat.get_info(hmatrix, &mat_info);
   printf("Rk size = %ld\n", mat_info.compressed_size);

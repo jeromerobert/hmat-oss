@@ -325,6 +325,13 @@ int scale(void *alpha, hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
+int truncate(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT;
+  ((hmat::HMatInterface<T>*)holder)->truncate();
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int solve_mat(hmat_matrix_t* hmat, hmat_matrix_t* hmatB) {
   DECLARE_CONTEXT;
   ((hmat::HMatInterface<T>*)hmat)->solve(*(hmat::HMatInterface<T>*)hmatB);
@@ -578,6 +585,7 @@ static void createCInterface(hmat_interface_t * i)
     i->apply_on_leaf = apply_on_leaf<T, E>;
     i->axpy = axpy<T, E>;
     i->trsm = trsm<T, E>;
+    i->truncate = truncate<T, E>;
 }
 
 }  // end namespace hmat
