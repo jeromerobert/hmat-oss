@@ -490,7 +490,7 @@ template <typename T, template <typename> class E>
 int walk(hmat_matrix_t* holder, hmat_procedure_t* proc) {
   DECLARE_CONTEXT;
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *) holder;
-    hmat::TreeProcedure<hmat::HMatrix<T> > *functor = (hmat::TreeProcedure<hmat::HMatrix<T> > *) proc;
+    hmat::TreeProcedure<hmat::HMatrix<T> > *functor = (hmat::TreeProcedure<hmat::HMatrix<T> > *) proc->internal;
     hmat->walk(functor);
     return 0;
 }
