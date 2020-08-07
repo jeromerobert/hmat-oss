@@ -41,13 +41,11 @@ template<typename T> RkApproximationControl RkMatrix<T>::approx;
 
 /** RkMatrix */
 template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _rows,
-                                           ScalarArray<T>* _b, const IndexSet* _cols,
-                                           CompressionMethod _method)
+                                           ScalarArray<T>* _b, const IndexSet* _cols)
   : rows(_rows),
     cols(_cols),
     a(_a),
-    b(_b),
-    method(_method)
+    b(_b)
 {
 
   // We make a special case for empty matrices.
@@ -146,7 +144,7 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
     subA = new ScalarArray<T>(*a, rowsOffset, subRows->size(), 0, rank());
     subB = new ScalarArray<T>(*b, colsOffset, subCols->size(), 0, rank());
   }
-  return new RkMatrix<T>(subA, subRows, subB, subCols, method);
+  return new RkMatrix<T>(subA, subRows, subB, subCols);
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::truncatedSubset(const IndexSet* subRows,
@@ -154,7 +152,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::truncatedSubset(const IndexSet* s
                                                                double epsilon) const {
   assert(subRows->isSubset(*rows));
   assert(subCols->isSubset(*cols));
-  RkMatrix<T> * r = new RkMatrix<T>(NULL, subRows, NULL, subCols, method);
+  RkMatrix<T> * r = new RkMatrix<T>(NULL, subRows, NULL, subCols);
   if(rank() > 0) {
     r->a = ScalarArray<T>(*a, subRows->offset() - rows->offset(),
                           subRows->size(), 0, rank()).copy();
@@ -390,7 +388,6 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
   assert(*cols == *other.cols);
   std::swap(a, other.a);
   std::swap(b, other.b);
-  std::swap(method, other.method);
 }
 
 template<typename T> void RkMatrix<T>::axpy(double epsilon, T alpha, const FullMatrix<T>* mat) {
@@ -500,7 +497,6 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
     rankTotal += rank();
   }
 
-  CompressionMethod minMethod = method;
   for (int i = 0; i < n; i++) {
     // exclude the NULL and 0-rank matrices
     if (!parts[i] || parts[i]->rank() == 0 || parts[i]->rows->size() == 0 || parts[i]->cols->size() == 0 || alpha[i]==Constants<T>::zero)
@@ -510,7 +506,6 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
     assert(parts[i]->cols->isSubset(*cols));
     // Add this Rk to the list
     rankTotal += parts[i]->rank();
-    minMethod = std::min(minMethod, parts[i]->method);
     usedAlpha[notNullParts] = alpha[i] ;
     usedParts[notNullParts] = parts[i] ;
     notNullParts++;
@@ -653,7 +648,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   const IndexSet *mCols = ((transM == 'N')? m->cols_ : m->rows_);
 
   if(rk->rank() == 0) {
-      return new RkMatrix<T>(NULL, rkRows, NULL, mCols, NoCompression);
+      return new RkMatrix<T>(NULL, rkRows, NULL, mCols);
   }
   // If transM is 'N' and transR is 'N', we compute
   //  A * B^T * M ==> newA = A, newB = M^T * B
@@ -705,7 +700,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
       delete conjB;
     }
   }
-  RkMatrix<T>* result = new RkMatrix<T>(newA, rkRows, newB, mCols, rk->method);
+  RkMatrix<T>* result = new RkMatrix<T>(newA, rkRows, newB, mCols);
   return result;
 }
 
@@ -752,7 +747,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
   } else {
     newA->gemm(transM, 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
   }
-  RkMatrix<T>* result = new RkMatrix<T>(newA, mRows, newB, rkCols, rk->method);
+  RkMatrix<T>* result = new RkMatrix<T>(newA, mRows, newB, rkCols);
   return result;
 }
 
@@ -817,7 +812,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transR, char transH,
       newB->conjugate();
     }
   }
-  RkMatrix<T>* result = new RkMatrix<T>(newA, rkRows, newB, newCols, rk->method);
+  RkMatrix<T>* result = new RkMatrix<T>(newA, rkRows, newB, newCols);
   return result;
 }
 
@@ -829,7 +824,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   if (rk->rank() == 0) {
     const IndexSet* newRows = ((transH == 'N') ? h-> rows() : h->cols());
     const IndexSet* newCols = ((transR == 'N') ? rk->cols : rk->rows);
-    return new RkMatrix<T>(NULL, newRows, NULL, newCols, rk->method);
+    return new RkMatrix<T>(NULL, newRows, NULL, newCols);
   }
 
   // If transH is 'N' and transR is 'N', we compute
@@ -870,7 +865,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   } else {
     h->gemv(transH, Constants<T>::pone, a, Constants<T>::zero, newA);
   }
-  RkMatrix<T>* result = new RkMatrix<T>(newA, newRows, newB, rkCols, rk->method);
+  RkMatrix<T>* result = new RkMatrix<T>(newA, newRows, newB, rkCols);
   return result;
 }
 
@@ -961,8 +956,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
       if (trans2 == 'C') newB->conjugate();
     }
   }
-  CompressionMethod combined = std::min(r1->method, r2->method);
-  return new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows), combined);
+  return new RkMatrix<T>(newA, ((trans1 == 'N') ? r1->rows : r1->cols), newB, ((trans2 == 'N') ? r2->cols : r2->rows));
 }
 
 template<typename T>
@@ -1053,7 +1047,7 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
             if (subRks[i + j * nbRows]==NULL) {
               const IndexSet* subRows = (transHA == 'N' ? a_ik->rows() : a_ik->cols());
               const IndexSet* subCols = (transHB == 'N' ? b_kj->cols() : b_kj->rows());
-              subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols, NoCompression);
+              subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols);
             }
             subRks[i + j * nbRows]->gemmRk(epsilon, transHA, transHB, alpha, a_ik, b_kj, beta);
           }
@@ -1104,7 +1098,7 @@ template<typename T> void RkMatrix<T>::copy(const RkMatrix<T>* o) {
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::copy() const {
-  RkMatrix<T> *result = new RkMatrix<T>(NULL, rows, NULL, cols, this->method);
+  RkMatrix<T> *result = new RkMatrix<T>(NULL, rows, NULL, cols);
   result->copy(this);
   return result;
 }

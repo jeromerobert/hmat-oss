@@ -297,7 +297,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         if(rank > 0) {
             ScalarArray<T> * a = readScalarArray(r->size(), rank);
             ScalarArray<T> * b = readScalarArray(c->size(), rank);
-            matrix->rk(new RkMatrix<T>(a, r, b, c, Svd));
+            matrix->rk(new RkMatrix<T>(a, r, b, c));
             int orth;
             readFunc_(&orth, sizeof(int), userData_);
             matrix->rk()->a->setOrtho(orth);

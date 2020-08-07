@@ -89,8 +89,7 @@ template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* 
   RkMatrix<T>* result = new RkMatrix<T>(fromDoubleScalarArray<T>(rk->a),
                                         rk->rows,
                                         fromDoubleScalarArray<T>(rk->b),
-                                        rk->cols,
-                                        rk->method);
+                                        rk->cols);
   rk->a = NULL; // because rk->a and rk->b have allready been deleted in fromDoubleScalarArray
   rk->b = NULL;
   delete rk;

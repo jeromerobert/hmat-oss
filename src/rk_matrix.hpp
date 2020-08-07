@@ -86,7 +86,6 @@ public:
   // A B^t
   ScalarArray<T>* a;
   ScalarArray<T>* b;
-  CompressionMethod method; /// Method used to compress this RkMatrix
 
   /// Control of the approximation. See \a RkApproximationControl for more
   /// details.
@@ -104,8 +103,7 @@ public:
        \param _cols indices of the columns (of size k)
    */
   RkMatrix(ScalarArray<T>* _a, const IndexSet* _rows,
-           ScalarArray<T>* _b, const IndexSet* _cols,
-           CompressionMethod _method);
+           ScalarArray<T>* _b, const IndexSet* _cols);
   ~RkMatrix();
 
   int rank() const {

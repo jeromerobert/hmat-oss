@@ -216,7 +216,7 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
   DECLARE_CONTEXT;
 
   if (m->isZero()) {
-    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_, NoCompression);
+    return new RkMatrix<T>(NULL, m->rows_, NULL, m->cols_);
   }
   // In the case of non-square matrix, we don't calculate singular vectors
   // bigger than the minimum dimension of the matrix. However this is not
@@ -224,9 +224,9 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
   ScalarArray<T> *u = NULL, *v = NULL;
 
   // TODO compress with something else than SVD
-  int k = m->data.truncatedSvdDecomposition(&u, &v, epsilon);
+  m->data.truncatedSvdDecomposition(&u, &v, epsilon);
 
-  return new RkMatrix<T>(u, m->rows_, v, m->cols_, k ? Svd : NoCompression);
+  return new RkMatrix<T>(u, m->rows_, v, m->cols_);
 }
 
 
@@ -308,13 +308,13 @@ compressAcaFull(const ClusterAssemblyFunction<T>& block, double compressionEpsil
   delete m;
 
   if (nu == 0) {
-    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaFull);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols);
   }
 
   tmpA.cols=nu; // resize tmpA and tmpB for the copy
   tmpB.cols=nu;
 
-  return new RkMatrix<dp_t>(tmpA.copy(), block.rows, tmpB.copy(), block.cols, AcaFull);
+  return new RkMatrix<dp_t>(tmpA.copy(), block.rows, tmpB.copy(), block.cols);
 }
 
 
@@ -437,10 +437,10 @@ compressAcaPartial(const ClusterAssemblyFunction<T>& block, double compressionEp
     }
   } else {
     // If k == 0, block is only made of zeros.
-    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, useRandomPivots ? AcaRandom : AcaPartial);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols);
   }
 
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, useRandomPivots ? AcaRandom : AcaPartial);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols);
 }
 
 
@@ -458,7 +458,7 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
   j_ref = findCol(block, colFree, aRef);
   if (j_ref == -1) {
 	// The block is completely zero.
-    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols, AcaPlus);
+    return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols);
   }
 
   // The reference row is chosen such that it intersects the reference
@@ -587,7 +587,7 @@ static RkMatrix<typename Types<T>::dp>* compressAcaPlus(const ClusterAssemblyFun
     delete bCols[i];
     bCols[i] = NULL;
   }
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols, AcaPlus);
+  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols);
 }
 
 #include <iostream>

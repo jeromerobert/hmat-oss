@@ -247,7 +247,7 @@ HMatrix<T>* HMatrix<T>::Zero(const HMatrix<T>* o) {
   h->keepSameCols = o->keepSameCols;
   h->rank_ = o->rank_ >= 0 ? 0 : o->rank_;
   if (h->rank_==0)
-    h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols(), NoCompression));
+    h->rk(new RkMatrix<T>(NULL, h->rows(), NULL, h->cols()));
   h->approximateRank_ = o->approximateRank_;
   if(!o->isLeaf()){
     for (int i = 0; i < o->nrChild(); ++i) {
@@ -600,7 +600,7 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
   }
   if (allRkLeaves) {
     std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
-    RkMatrix<T> * candidate = new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression);
+    RkMatrix<T> * candidate = new RkMatrix<T>(NULL, rows(), NULL, cols());
     candidate->formattedAddParts(epsilon, &alpha[0], childrenArray, this->nrChild());
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
     if (force || elements < childrenElements) {
@@ -741,7 +741,7 @@ template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
     if (this->isLeaf()) {
       if (isRkMatrix()) {
         if (!rk())
-          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
         vector<const RkMatrix<T> *> rkLeaves;
         if (listAllRk(x, rkLeaves)) {
           vector<T> alphas(rkLeaves.size(), alpha);
@@ -807,7 +807,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     }
     if (isRkMatrix()) {
       if(!rk())
-          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
       rk()->axpy(lowRankEpsilon(), alpha, newRk);
       rank_ = rk()->rank();
     } else {
@@ -846,7 +846,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
     const FullMatrix<T>* subMat = b->subset(rows(), cols());
     if (isRkMatrix()) {
       if(!rk())
-        rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+        rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
       rk()->axpy(lowRankEpsilon(), alpha, subMat);
       rank_ = rk()->rank();
     } else if(isFullMatrix()){
@@ -1164,7 +1164,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         assert(*rows() == (transA == 'N' ? *a->rows() : *a->cols()));
         assert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
         if(rk() == NULL)
-            rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+            rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
         rk()->gemmRk(lowRankEpsilon(), transA, transB, alpha, a, b, Constants<T>::pone);
         rank_ = rk()->rank();
         return;
@@ -1252,7 +1252,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if((a->isLeaf() && (!a->isAssembled() || a->isNull())) ||
      (b->isLeaf() && (!b->isAssembled() || b->isNull()))) {
       if(!isAssembled() && this->isLeaf())
-          rk(new RkMatrix<T>(NULL, rows(), NULL, cols(), NoCompression));
+          rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
       return;
   }
 
@@ -1350,7 +1350,7 @@ RkMatrix<T>* HMatrix<T>::multiplyRkMatrix(double epsilon, char transA, char tran
     HMAT_ASSERT(rk);
   } else if(a->isNull() || b->isNull()) {
     return new RkMatrix<T>(NULL, transA ? a->cols() : a->rows(),
-                           NULL, transB ? b->rows() : b->cols(), NoCompression);
+                           NULL, transB ? b->rows() : b->cols());
   } else {
     // None of the above cases, impossible.
     HMAT_ASSERT(false);
@@ -1581,7 +1581,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
       assert(!isAssembled() || isNull());
       full(o->full()->copy());
     } else if (o->isRkMatrix() && !rk()) {
-      rk(new RkMatrix<T>(NULL, o->rk()->rows, NULL, o->rk()->cols, o->rk()->method));
+      rk(new RkMatrix<T>(NULL, o->rk()->rows, NULL, o->rk()->cols));
     }
     assert((isRkMatrix() == o->isRkMatrix())
            && (isFullMatrix() == o->isFullMatrix()));
@@ -2479,7 +2479,7 @@ template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const Scalar
         return;
     delete rk_;
     rk(new RkMatrix<T>(a == NULL ? NULL : a->copy(), rows(),
-                       b == NULL ? NULL : b->copy(), cols(), Svd));
+                       b == NULL ? NULL : b->copy(), cols()));
 }
 
 template<typename T> std::string HMatrix<T>::toString() const {
