@@ -527,7 +527,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
     fullParts[0] = NULL ;
     for (int i = rank() ? 1 : 0 ; i < notNullParts; i++) // exclude usedParts[0] if it is 'this'
       fullParts[i] = usedParts[i]->eval();
-    formattedAddParts(epsilon, usedAlpha, fullParts, notNullParts);
+    formattedAddParts(std::abs(epsilon), usedAlpha, fullParts, notNullParts);
     for (int i = 0; i < notNullParts; i++)
       delete fullParts[i];
     delete[] fullParts;
