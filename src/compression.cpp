@@ -646,7 +646,8 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compress(
         assert(method == AcaPartial || method == AcaPlus || method == AcaRandom);
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, compressionEpsilon, block);
         if(stratumRk->rank() > 0) {
-            rk->formattedAddParts(epsilon, &Constants<dp_t>::pone, &stratumRk, 1);
+            rk->formattedAddParts(-1.0, &Constants<dp_t>::pone, &stratumRk, 1);
+            rk->truncate(epsilon);
         }
         delete stratumRk;
     }
