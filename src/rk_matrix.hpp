@@ -47,16 +47,12 @@ class IndexSet;
  */
 class RkApproximationControl {
 public:
-  CompressionMethod method;
-  double acaEpsilon; /// Tolerance for the compression method
   double coarseningEpsilon; /// Tolerance for the coarsening
   int compressionMinLeafSize;
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : method(Svd),
-                             acaEpsilon(-1.),
-                             coarseningEpsilon(-1.),
+  RkApproximationControl() : coarseningEpsilon(-1.),
                              compressionMinLeafSize(100) {}
 };
 

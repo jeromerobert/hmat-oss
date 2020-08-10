@@ -251,8 +251,6 @@ int main(int argc, char **argv) {
   }
 
   hmat_init_default_interface(&hmat, scalar_type);
-  settings.compressionMethod = hmat_compress_aca_plus;
-  settings.acaEpsilon = 1e-5;
 
   hmat_set_parameters(&settings);
   if (0 != hmat.init())
@@ -290,11 +288,13 @@ int main(int argc, char **argv) {
   printf("HMatrix node count = %d\n", mat_info.nr_block_clusters);
   hmat_assemble_context_t ctx_assemble;
   hmat_assemble_context_init(&ctx_assemble);
+  ctx_assemble.compression = hmat_create_compression_aca_plus(1e-5);
   ctx_assemble.user_context = &problem_data;
   ctx_assemble.prepare = prepare_hmat;
   ctx_assemble.block_compute = compute_hmat;
   ctx_assemble.lower_symmetric = 0;
   hmat.assemble_generic(hmatrix, &ctx_assemble);
+  hmat_delete_compression(ctx_assemble.compression);
 
   hmat_factorization_context_t ctx_facto;
   hmat_factorization_context_init(&ctx_facto);

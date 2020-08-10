@@ -37,6 +37,7 @@ template<typename T> class RkMatrix;
 template<typename T> class Function;
 template<typename T> class BlockFunction;
 template<typename T> class SimpleFunction;
+class CompressionAlgorithm;
 
 
 /** Allow to be notified when the prepareBlock method need to allocate memory */
@@ -70,7 +71,8 @@ public:
  */
 template<typename T, template <typename> class F> class AssemblyFunction: public Assembly<T> {
 public:
-    AssemblyFunction(const F<T> function): function_(function) {}
+    AssemblyFunction(const F<T> function, const CompressionAlgorithm* compression);
+    virtual ~AssemblyFunction() {delete compression_;}
     virtual void assemble(const LocalSettings & settings,
                           const ClusterTree & rows, const ClusterTree & cols,
                           bool admissible,
@@ -78,6 +80,7 @@ public:
                           double epsilon, const AllocationObserver & = AllocationObserver());
 protected:
     const F<T> function_;
+    const CompressionAlgorithm* compression_;
 };
 
 /** Abstract base class representing an assembly function.

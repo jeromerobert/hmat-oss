@@ -62,6 +62,8 @@ void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
     if (ctx->lower_symmetric) {
       HMAT_ASSERT(hmat->engine().hmat->rowsTree() == hmat->engine().hmat->colsTree());
     }
+    HMAT_ASSERT_MSG(ctx->compression, "No compression algorithm defined in hmat_assemble_context_t");
+    hmat::CompressionAlgorithm* compression = (hmat::CompressionAlgorithm*)ctx->compression;
     if(ctx->assembly != NULL) {
         HMAT_ASSERT(ctx->block_compute == NULL && ctx->advanced_compute == NULL && ctx->simple_compute == NULL);
         hmat::Assembly<T> * cppAssembly = (hmat::Assembly<T> *)ctx->assembly;
@@ -69,17 +71,16 @@ void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
     } else if(ctx->block_compute != NULL || ctx->advanced_compute != NULL) {
         HMAT_ASSERT(ctx->simple_compute == NULL && ctx->assembly == NULL);
         HMAT_ASSERT(ctx->prepare != NULL);
+        hmat::BlockFunction<T> blockFunction(hmat->rows(), hmat->cols(),
+            ctx->user_context, ctx->prepare, ctx->block_compute, ctx->advanced_compute);
         hmat::AssemblyFunction<T, hmat::BlockFunction> * f =
-            new hmat::AssemblyFunction<T, hmat::BlockFunction> (
-            hmat::BlockFunction<T>(hmat->rows(), hmat->cols(),
-            ctx->user_context, ctx->prepare,
-            ctx->block_compute, ctx->advanced_compute));
+            new hmat::AssemblyFunction<T, hmat::BlockFunction>(blockFunction, compression);
         hmat->assemble(*f, sf, true, ctx->progress, true);
     } else if(ctx->simple_compute != NULL) {
         HMAT_ASSERT(ctx->block_compute == NULL && ctx->advanced_compute == NULL && ctx->assembly == NULL);
         hmat::AssemblyFunction<T, hmat::SimpleFunction> * f =
             new hmat::AssemblyFunction<T, hmat::SimpleFunction>(
-            hmat::SimpleFunction<T>(ctx->simple_compute, ctx->user_context));
+            hmat::SimpleFunction<T>(ctx->simple_compute, ctx->user_context), compression);
         hmat->assemble(*f, sf, true, ctx->progress, true);
     } else
       HMAT_ASSERT_MSG(0, "No valid assembly method in assemble_generic()");

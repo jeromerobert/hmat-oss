@@ -124,7 +124,6 @@ int go(const char* pointsFilename) {
   if (0 != E<D_t>::init()) return 1;
 
   HMatSettings& settings = HMatSettings::getInstance();
-  settings.compressionMethod = AcaPlus;
   settings.setParameters();
 
   std::cout << "Load points...";
@@ -147,7 +146,7 @@ int go(const char* pointsFilename) {
   rhsCopy.copyMatrixAtOffset(rhs, 0, 0);
   KrigingFunction kriginFunction(coord, l);
   AssemblyFunction<D_t, SimpleFunction> f(
-      SimpleFunction<D_t>(&KrigingFunction::compute, &kriginFunction));
+      SimpleFunction<D_t>(&KrigingFunction::compute, &kriginFunction), new CompressionAcaPlus(1e-4));
 
   ClusterTree* ct = createClusterTree(coord);
   std::cout << "ClusterTree node count = " << ct->nodesCount() << std::endl;

@@ -343,6 +343,19 @@ HMAT_API hmat_admissibility_t* hmat_create_admissibility_never(
 /* Delete admissibility condition */
 HMAT_API void hmat_delete_admissibility(hmat_admissibility_t * cond);
 
+/* Opaque pointer */
+typedef struct hmat_compression_algorithm_struct hmat_compression_algorithm_t;
+
+/* Create a procedure to compress matrix blocks */
+HMAT_API hmat_compression_algorithm_t* hmat_create_compression_svd(double epsilon);
+HMAT_API hmat_compression_algorithm_t* hmat_create_compression_aca_full(double epsilon);
+HMAT_API hmat_compression_algorithm_t* hmat_create_compression_aca_partial(double epsilon);
+HMAT_API hmat_compression_algorithm_t* hmat_create_compression_aca_plus(double epsilon);
+HMAT_API hmat_compression_algorithm_t* hmat_create_compression_aca_random(double epsilon);
+
+/* Delete a compression algorithm */
+HMAT_API void hmat_delete_compression(const hmat_compression_algorithm_t* algo);
+
 /** Information on the HMatrix */
 typedef struct
 {
@@ -525,6 +538,9 @@ typedef struct {
       * Context should be passed to hmat_block_info_t.user_data.
       */
     hmat_prepare_func_t prepare;
+
+    /** Compression algorithm (created by calling an hmat_create_compression_* function, or NULL for no compression) **/
+    const hmat_compression_algorithm_t * compression;
 
     /** Copy left lower values to the upper right of the matrix */
     int lower_symmetric;
@@ -876,11 +892,8 @@ HMAT_API void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t typ
 
 typedef struct
 {
-  int compressionMethod;
   /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
   int compressionMinLeafSize;
-  /*! \brief Tolerance for the compression */
-  double acaEpsilon;
   /*! \brief Tolerance for coarsening */
   double coarseningEpsilon;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */

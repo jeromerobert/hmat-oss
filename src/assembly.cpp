@@ -36,6 +36,10 @@
 namespace hmat {
 
 template<typename T, template <typename> class F>
+AssemblyFunction<T, F>::AssemblyFunction(const F<T> function, const CompressionAlgorithm* compression)
+        : function_(function), compression_(compression->clone()) {}
+
+template<typename T, template <typename> class F>
 void AssemblyFunction<T, F>::assemble(const LocalSettings &,
                                      const ClusterTree &rows,
                                      const ClusterTree &cols,
@@ -48,12 +52,13 @@ void AssemblyFunction<T, F>::assemble(const LocalSettings &,
       // Always compress the smallest blocks using an SVD. Small blocks tend to have
       // a bad compression ratio anyways, and the SVD is not very costly in this
       // case.
-      CompressionMethod method = RkMatrix<T>::approx.method;
+      const CompressionAlgorithm* method = compression_;
       if (std::max(rows.data.size(), cols.data.size()) < RkMatrix<T>::approx.compressionMinLeafSize) {
-        method = Svd;
+        method = new CompressionSVD(compression_->getEpsilon());
       }
-      double acaEpsilon = RkMatrix<T>::approx.acaEpsilon;
-      rkMatrix = fromDoubleRk<T>(compress<T>(method, acaEpsilon, function_, &rows.data, &cols.data, epsilon, allocationObserver));
+      rkMatrix = fromDoubleRk<T>(compress<T>(method, function_, &rows.data, &cols.data, epsilon, allocationObserver));
+      if (method != compression_)
+        delete method;
     } else if (rows.data.size() && cols.data.size()) {
       fullMatrix = fromDoubleFull<T>(function_.assemble(&(rows.data), &(cols.data), NULL, allocationObserver));
     }

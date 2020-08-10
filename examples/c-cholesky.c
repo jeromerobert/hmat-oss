@@ -247,7 +247,6 @@ int main(int argc, char **argv) {
   hmat_get_parameters(&settings);
   hmat_init_default_interface(&hmat, type);
 
-  settings.compressionMethod = hmat_compress_aca_plus;
   /*settings->recompress = 0;*/
   /*settings->admissibilityFactor = 3.;*/
 
@@ -304,6 +303,7 @@ int main(int argc, char **argv) {
   fprintf(stdout,"Assembly...");
   hmat_assemble_context_t ctx_assemble;
   hmat_assemble_context_init(&ctx_assemble);
+  ctx_assemble.compression = hmat_create_compression_aca_plus(1e-4);
   ctx_assemble.user_context = &problem_data;
   ctx_assemble.simple_compute = interaction_real;
   ctx_assemble.lower_symmetric = kLowerSymmetric;
@@ -311,6 +311,7 @@ int main(int argc, char **argv) {
   fprintf(stdout, "done.\n");
   hmat.get_info(hmatrix, &mat_info);
   printf("HMatrix size = %ld, uncompressed size = %ld\n", mat_info.compressed_size, mat_info.uncompressed_size);
+  hmat_delete_compression(ctx_assemble.compression);
 
   fprintf(stdout,"Factorisation...");
   hmat_factorization_context_t ctx_facto;

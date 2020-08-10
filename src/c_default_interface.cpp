@@ -225,29 +225,8 @@ void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
 void hmat_get_parameters(hmat_settings_t* settings)
 {
     HMatSettings& settingsCxx = HMatSettings::getInstance();
-    switch (settingsCxx.compressionMethod) {
-    case Svd:
-      settings->compressionMethod = hmat_compress_svd;
-      break;
-    case AcaFull:
-      settings->compressionMethod = hmat_compress_aca_full;
-      break;
-    case AcaPartial:
-      settings->compressionMethod = hmat_compress_aca_partial;
-      break;
-    case AcaPlus:
-      settings->compressionMethod = hmat_compress_aca_plus;
-      break;
-    case AcaRandom:
-      settings->compressionMethod = hmat_compress_aca_random;
-      break;
-    default:
-      HMAT_ASSERT_MSG(0, "Internal error: invalid value for compression method: %d.\n", settingsCxx.compressionMethod);
-      break;
-    }
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->coarseningEpsilon = settingsCxx.coarseningEpsilon;
-    settings->acaEpsilon = settingsCxx.acaEpsilon;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->coarsening = settingsCxx.coarsening;
     settings->validateNullRowCol = settingsCxx.validateNullRowCol;
@@ -263,29 +242,8 @@ int hmat_set_parameters(hmat_settings_t* settings)
     HMAT_ASSERT(settings != NULL);
     int rc = 0;
     HMatSettings& settingsCxx = HMatSettings::getInstance();
-    switch (settings->compressionMethod) {
-    case hmat_compress_svd:
-      settingsCxx.compressionMethod = Svd;
-      break;
-    case hmat_compress_aca_full:
-      settingsCxx.compressionMethod = AcaFull;
-      break;
-    case hmat_compress_aca_partial:
-      settingsCxx.compressionMethod = AcaPartial;
-      break;
-    case hmat_compress_aca_plus:
-      settingsCxx.compressionMethod = AcaPlus;
-      break;
-    case hmat_compress_aca_random:
-      settingsCxx.compressionMethod = AcaRandom;
-      break;
-    default:
-      HMAT_ASSERT_MSG(0, "Internal error: invalid value for compression method: %d.\n", settings->compressionMethod);
-      break;
-    }
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
     settingsCxx.coarseningEpsilon = settings->coarseningEpsilon;
-    settingsCxx.acaEpsilon = settings->acaEpsilon;
     settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.coarsening = settings->coarsening;
     settingsCxx.validateNullRowCol = settings->validateNullRowCol;
@@ -315,6 +273,7 @@ void hmat_get_build_date(const char **date, const char **time)
 }
 
 void hmat_assemble_context_init(hmat_assemble_context_t * context) {
+    context->compression = NULL;
     context->assembly = NULL;
     context->simple_compute = NULL;
     context->block_compute = NULL;
@@ -351,6 +310,30 @@ void hmat_delete_leaf_procedure(hmat_leaf_procedure_t* proc) {
     default: HMAT_ASSERT(false);
     }
     delete proc;
+}
+
+hmat_compression_algorithm_t* hmat_create_compression_svd(double epsilon) {
+    return static_cast<hmat_compression_algorithm_t*>((void*) new hmat::CompressionSVD(epsilon));
+}
+
+hmat_compression_algorithm_t* hmat_create_compression_aca_full(double epsilon) {
+    return static_cast<hmat_compression_algorithm_t*>((void*) new hmat::CompressionAcaFull(epsilon));
+}
+
+hmat_compression_algorithm_t* hmat_create_compression_aca_partial(double epsilon) {
+    return static_cast<hmat_compression_algorithm_t*>((void*) new hmat::CompressionAcaPartial(epsilon));
+}
+
+hmat_compression_algorithm_t* hmat_create_compression_aca_plus(double epsilon) {
+    return static_cast<hmat_compression_algorithm_t*>((void*) new hmat::CompressionAcaPlus(epsilon));
+}
+
+hmat_compression_algorithm_t* hmat_create_compression_aca_random(double epsilon) {
+    return static_cast<hmat_compression_algorithm_t*>((void*) new hmat::CompressionAcaRandom(epsilon));
+}
+
+void hmat_delete_compression(const hmat_compression_algorithm_t* algo) {
+    delete static_cast<hmat::CompressionAlgorithm*>((void*)algo);
 }
 
 void hmat_tracing_dump(char *filename) {

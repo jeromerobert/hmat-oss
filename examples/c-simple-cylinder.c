@@ -156,7 +156,6 @@ int main(int argc, char **argv) {
 
   hmat_get_parameters(&settings);
   hmat_init_default_interface(&hmat, type);
-  settings.compressionMethod = hmat_compress_aca_plus;
 
   hmat_set_parameters(&settings);
   if (0 != hmat.init())
@@ -191,10 +190,12 @@ int main(int argc, char **argv) {
   hmat_assemble_context_t ctx_assemble;
   hmat_assemble_context_init(&ctx_assemble);
   ctx_assemble.user_context = &problem_data;
+  ctx_assemble.compression = hmat_create_compression_aca_plus(1e-5);
   ctx_assemble.simple_compute = (type == HMAT_SIMPLE_PRECISION || type == HMAT_DOUBLE_PRECISION)
     ? interaction_real : interaction_complex;
   ctx_assemble.lower_symmetric = 0;
   hmat.assemble_generic(hmatrix, &ctx_assemble);
+  hmat_delete_compression(ctx_assemble.compression);
 
   hmat_factorization_context_t ctx_facto;
   hmat_factorization_context_init(&ctx_facto);
