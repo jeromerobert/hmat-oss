@@ -38,19 +38,6 @@
 namespace
 {
 template<typename T, template <typename> class E>
-hmat_matrix_t * create_empty_hmatrix(const hmat_cluster_tree_t* rows_tree,
-  const hmat_cluster_tree_t* cols_tree, int lower_sym)
-{
-  DECLARE_CONTEXT;
-    hmat::SymmetryFlag sym = (lower_sym ? hmat::kLowerSymmetric : hmat::kNotSymmetric);
-    hmat::IEngine<T>* engine = new E<T>();
-    return (hmat_matrix_t*) new hmat::HMatInterface<T>(
-            engine,
-            (hmat::ClusterTree*)rows_tree,
-            (hmat::ClusterTree*)cols_tree, sym);
-}
-
-template<typename T, template <typename> class E>
 hmat_matrix_t * create_empty_hmatrix_admissibility(
   const hmat_cluster_tree_t* rows_tree,
   const hmat_cluster_tree_t* cols_tree, int lower_sym,
@@ -492,7 +479,6 @@ static void createCInterface(hmat_interface_t * i)
   DECLARE_CONTEXT;
     i->copy = copy<T, E>;
     i->copy_struct = copy_struct<T, E>;
-    i->create_empty_hmatrix = create_empty_hmatrix<T, E>;
     i->create_empty_hmatrix_admissibility = create_empty_hmatrix_admissibility<T, E>;
     i->destroy = destroy<T, E>;
     i->get_child = get_child<T, E>;

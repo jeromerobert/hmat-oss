@@ -595,22 +595,8 @@ HMAT_API void hmat_delete_leaf_procedure(hmat_leaf_procedure_t* proc);
 
 typedef struct
 {
-    /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances.
-
-      The HMatrix is built on a row and a column tree, that are provided as
-      arguments.
-
-      \param stype the scalar type
-      \param rows_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
-      \param cols_tree a ClusterTree as returned by \a hmat_create_cluster_tree().
-      \param lower_symmetric 1 if the matrix is lower symmetric, 0 otherwise
-      \return an opaque pointer to an HMatrix, or NULL in case of error.
-    */
-    hmat_matrix_t* (*create_empty_hmatrix)(const hmat_cluster_tree_t* rows_tree,
-        const hmat_cluster_tree_t* cols_tree, int lower_symmetric);
-
-    /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances,
-      and specify admissibility condition.
+    /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances
+      and an admissibility condition.
 
       The HMatrix is built on a row and a column tree, that are provided as
       arguments.
