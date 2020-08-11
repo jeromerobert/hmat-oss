@@ -227,15 +227,22 @@ include_directories(${CBLAS_INCLUDE_DIR})
 # ========================
 # Warning flags
 # ========================
-check_cxx_compiler_flag("-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix" HAVE_GCC_WARNING_FLAGS)
-if(HAVE_GCC_WARNING_FLAGS)
-  SET(CMAKE_CXX_FLAGS "-Werror -Wall -Wno-unused-result -Wno-sign-compare -Wno-literal-suffix ${CMAKE_CXX_FLAGS}")
-  SET(CMAKE_C_FLAGS "-Werror -Wall -Wno-sign-compare ${CMAKE_C_FLAGS}")
+check_cxx_compiler_flag("-Werror -Wall" HAVE_COMPILER_WARNING_FLAGS)
+if(HAVE_COMPILER_WARNING_FLAGS)
+    set(CMAKE_CXX_FLAGS "-Werror -Wall ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-Werror -Wall ${CMAKE_C_FLAGS}")
 endif()
-check_cxx_compiler_flag("-Wno-undefined-var-template" DISABLE_CLANG_FALSE_POSITIVES)
-if(DISABLE_CLANG_FALSE_POSITIVES)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-undefined-var-template")
-endif()
+foreach(flag -Wno-unused-result;-Wno-sign-compare;-Wno-literal-suffix;-Wno-undefined-var-template)
+    string(REPLACE "-" "_" varname ${flag})
+    check_cxx_compiler_flag(${flag} CXX${varname})
+    if(CXX${varname})
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+    endif()
+    check_c_compiler_flag(${flag} C${varname})
+    if(C${varname})
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
+    endif()
+endforeach()
 
 # ========================
 # Configuration file
