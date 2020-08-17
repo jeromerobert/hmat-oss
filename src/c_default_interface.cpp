@@ -225,7 +225,6 @@ void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type)
 void hmat_get_parameters(hmat_settings_t* settings)
 {
     HMatSettings& settingsCxx = HMatSettings::getInstance();
-    settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->coarseningEpsilon = settingsCxx.coarseningEpsilon;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
     settings->coarsening = settingsCxx.coarsening;
@@ -242,7 +241,6 @@ int hmat_set_parameters(hmat_settings_t* settings)
     HMAT_ASSERT(settings != NULL);
     int rc = 0;
     HMatSettings& settingsCxx = HMatSettings::getInstance();
-    settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
     settingsCxx.coarseningEpsilon = settings->coarseningEpsilon;
     settingsCxx.maxLeafSize = settings->maxLeafSize;
     settingsCxx.coarsening = settings->coarsening;

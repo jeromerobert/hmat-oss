@@ -48,12 +48,10 @@ class IndexSet;
 class RkApproximationControl {
 public:
   double coarseningEpsilon; /// Tolerance for the coarsening
-  int compressionMinLeafSize;
 
   /** Initialization with impossible values by default
    */
-  RkApproximationControl() : coarseningEpsilon(-1.),
-                             compressionMinLeafSize(100) {}
+  RkApproximationControl() : coarseningEpsilon(-1.) {}
 };
 
 

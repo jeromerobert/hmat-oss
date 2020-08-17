@@ -892,8 +892,6 @@ HMAT_API void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t typ
 
 typedef struct
 {
-  /*! \brief svd compression if max(rows->n, cols->n) < compressionMinLeafSize.*/
-  int compressionMinLeafSize;
   /*! \brief Tolerance for coarsening */
   double coarseningEpsilon;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
