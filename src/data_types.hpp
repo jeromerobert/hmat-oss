@@ -125,6 +125,21 @@ return x_r*x_r + x_i*x_i;
 #endif
 }
 
+template<typename T>
+T conj(const T x) {
+  return x;
+}
+
+template<>
+inline C_t conj(const C_t x) {
+  return std::conj(x);
+}
+
+template<>
+inline Z_t conj(const Z_t x) {
+  return std::conj(x);
+}
+
 }  // end namespace hmat
 
 #endif

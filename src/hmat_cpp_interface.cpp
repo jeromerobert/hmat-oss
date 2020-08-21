@@ -146,11 +146,27 @@ void HMatInterface<T>::gemm(ScalarArray<T>& c, char transA, char transB, T alpha
   if (transA == 'N') {
     a.transpose();
   }
+  if ((transA == 'C') != (transB == 'C')) {
+    a.conjugate();
+  }
   c.transpose();
-  b.gemv(transB == 'N' ? 'T' : 'N', alpha, a, beta, c);
+  if (transB == 'N') {
+    b.gemv('T', alpha, a, beta, c);
+  } else if (transB == 'T') {
+    b.gemv('N', alpha, a, beta, c);
+  } else {
+    c.conjugate();
+    T alphaC = hmat::conj(alpha);
+    T betaC = hmat::conj(beta);
+    b.gemv('N', alphaC, a, betaC, c);
+    c.conjugate();
+  }
   c.transpose();
   if (transA == 'N') {
     a.transpose();
+  }
+  if ((transA == 'C') != (transB == 'C')) {
+    a.conjugate();
   }
 }
 
