@@ -495,7 +495,7 @@ CompressionAcaPartial::compress(const ClusterAssemblyFunction<Z_t>& block) const
 
 template<typename T>
 RkMatrix<typename Types<T>::dp>*
-doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, bool compressionEpsilon) {
+doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compressionEpsilon) {
 
   typedef typename Types<T>::dp dp_t;
   double estimateSquaredNorm = 0;
