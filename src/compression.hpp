@@ -28,6 +28,7 @@
 /** Choice of the compression method.
  */
 #include "assembly.hpp"
+#include "cluster_tree.hpp"
 
 namespace hmat {
 
@@ -71,8 +72,8 @@ public:
     virtual RkMatrix<Types<Z_t>::dp>* compress(const ClusterAssemblyFunction<Z_t>& block) const = 0;
     // Get threshold
     virtual double getEpsilon() const { return epsilon_; }
-    // Tell whether algorithm needs the whole block or works incrementally
-    virtual bool isIncremental() const { return true; }
+    // Tell whether algorithm needs the whole block or works incrementally.
+    virtual bool isIncremental(const ClusterData&, const ClusterData&) const { return true; }
 protected:
     double epsilon_;
 };
@@ -87,7 +88,7 @@ public:
     RkMatrix<Types<D_t>::dp>* compress(const ClusterAssemblyFunction<D_t>& block) const;
     RkMatrix<Types<C_t>::dp>* compress(const ClusterAssemblyFunction<C_t>& block) const;
     RkMatrix<Types<Z_t>::dp>* compress(const ClusterAssemblyFunction<Z_t>& block) const;
-    bool isIncremental() const { return false; }
+    bool isIncremental(const ClusterData&, const ClusterData&) const { return false; }
 };
 
 
@@ -100,7 +101,7 @@ public:
     RkMatrix<Types<D_t>::dp>* compress(const ClusterAssemblyFunction<D_t>& block) const;
     RkMatrix<Types<C_t>::dp>* compress(const ClusterAssemblyFunction<C_t>& block) const;
     RkMatrix<Types<Z_t>::dp>* compress(const ClusterAssemblyFunction<Z_t>& block) const;
-    bool isIncremental() const { return false; }
+    bool isIncremental(const ClusterData&, const ClusterData&) const { return false; }
 };
 
 

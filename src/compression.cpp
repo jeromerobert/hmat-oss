@@ -668,7 +668,7 @@ RkMatrix<typename Types<T>::dp>* compress(
     typedef typename Types<T>::dp dp_t;
     ClusterAssemblyFunction<T> block(f, rows, cols, ao);
     int nloop=-1; // so we assemble only one strata
-    if(block.info.number_of_strata > 1 && method->isIncremental()) {
+    if(block.info.number_of_strata > 1 && method->isIncremental(*rows, *cols)) {
         block.stratum = 0;
         // enable strata assembling for AcaPartial & AcaPlus only
         nloop = block.info.number_of_strata;
@@ -676,7 +676,7 @@ RkMatrix<typename Types<T>::dp>* compress(
     RkMatrix<dp_t>* rk = compressOneStratum(method, block);
     rk->truncate(epsilon);
     for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
-        assert(method->isIncremental());
+        assert(method->isIncremental(*rows, *cols));
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
         if(stratumRk->rank() > 0) {
             // Pass a negative value to tell formattedAddParts to not call truncate()
