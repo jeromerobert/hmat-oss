@@ -122,12 +122,17 @@ protected:
 class CompressionAcaPlus : public CompressionAlgorithm
 {
 public:
-    explicit CompressionAcaPlus(double epsilon) : CompressionAlgorithm(epsilon) {}
+    explicit CompressionAcaPlus(double epsilon) : CompressionAlgorithm(epsilon), delegate_(new CompressionAcaPartial(epsilon)) {}
+    ~CompressionAcaPlus() { delete delegate_; }
     CompressionAcaPlus* clone() const { return new CompressionAcaPlus(epsilon_); }
     RkMatrix<Types<S_t>::dp>* compress(const ClusterAssemblyFunction<S_t>& block) const;
     RkMatrix<Types<D_t>::dp>* compress(const ClusterAssemblyFunction<D_t>& block) const;
     RkMatrix<Types<C_t>::dp>* compress(const ClusterAssemblyFunction<C_t>& block) const;
     RkMatrix<Types<Z_t>::dp>* compress(const ClusterAssemblyFunction<Z_t>& block) const;
+private:
+    // ACA+ start with a findMinRow call which will last for hours
+    // if the block contains many null rows
+    CompressionAcaPartial * delegate_;
 };
 
 

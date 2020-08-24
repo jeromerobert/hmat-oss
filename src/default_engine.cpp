@@ -54,6 +54,7 @@ hmat_progress_t * DefaultProgress::getInstance()
 
 template<typename T>
 static void setTemplatedParameters(const HMatSettings& s) {
+  RkMatrix<T>::approx.compressionMinLeafSize = s.compressionMinLeafSize;
   RkMatrix<T>::approx.coarseningEpsilon = s.coarseningEpsilon;
   HMatrix<T>::validateNullRowCol = s.validateNullRowCol;
   HMatrix<T>::validateCompression = s.validateCompression;

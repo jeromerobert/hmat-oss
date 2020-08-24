@@ -65,6 +65,7 @@ class ClusteringAlgorithm;
 //TODO remove all global settings
 class HMatSettings: public hmat::MatrixSettings {
 public:
+  int compressionMinLeafSize; ///< Force SVD compression if max(rows->n, cols->n) < compressionMinLeafSize
   double acaEpsilon; ///< Tolerance for the compression
   double coarseningEpsilon; ///< Tolerance for the coarsening
   /** \f$\eta\f$ in the admissiblity condition for two clusters \f$\sigma\f$ and \f$\tau\f$:
@@ -83,7 +84,8 @@ public:
 private:
   /** This constructor sets the default values.
    */
-  HMatSettings() : coarseningEpsilon(1e-4),
+  HMatSettings() : compressionMinLeafSize(100),
+                   coarseningEpsilon(1e-4),
                    maxLeafSize(200),
                    coarsening(false),
                    validateNullRowCol(false), validateCompression(false),

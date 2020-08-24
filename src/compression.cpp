@@ -495,7 +495,12 @@ CompressionAcaPartial::compress(const ClusterAssemblyFunction<Z_t>& block) const
 
 template<typename T>
 RkMatrix<typename Types<T>::dp>*
-doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compressionEpsilon) {
+doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compressionEpsilon, const CompressionAlgorithm* delegate) {
+
+  if(block.cols->size() * 100 < block.rows->size() && !block.info.is_guaranteed_null_row && !block.info.is_guaranteed_null_col)
+     // ACA+ start with a findMinRow call which will last for hours
+     // if the block contains many null rows
+     return delegate->compress(block);
 
   typedef typename Types<T>::dp dp_t;
   double estimateSquaredNorm = 0;
@@ -643,19 +648,19 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
 
 RkMatrix<Types<S_t>::dp>*
 CompressionAcaPlus::compress(const ClusterAssemblyFunction<S_t>& block) const {
-    return doCompressionAcaPlus<S_t>(block, epsilon_);
+    return doCompressionAcaPlus<S_t>(block, epsilon_, delegate_);
 }
 RkMatrix<Types<D_t>::dp>*
 CompressionAcaPlus::compress(const ClusterAssemblyFunction<D_t>& block) const {
-    return doCompressionAcaPlus<D_t>(block, epsilon_);
+    return doCompressionAcaPlus<D_t>(block, epsilon_, delegate_);
 }
 RkMatrix<Types<C_t>::dp>*
 CompressionAcaPlus::compress(const ClusterAssemblyFunction<C_t>& block) const {
-    return doCompressionAcaPlus<C_t>(block, epsilon_);
+    return doCompressionAcaPlus<C_t>(block, epsilon_, delegate_);
 }
 RkMatrix<Types<Z_t>::dp>*
 CompressionAcaPlus::compress(const ClusterAssemblyFunction<Z_t>& block) const {
-    return doCompressionAcaPlus<Z_t>(block, epsilon_);
+    return doCompressionAcaPlus<Z_t>(block, epsilon_, delegate_);
 }
 
 #include <iostream>
