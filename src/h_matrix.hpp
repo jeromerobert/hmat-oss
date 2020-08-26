@@ -152,8 +152,8 @@ public:
     \param _cols The column cluster tree
    */
   HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const MatrixSettings * settings,
-       int depth, SymmetryFlag symmetryFlag = kNotSymmetric,
-       AdmissibilityCondition * admissibilityCondition = &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
+       int depth, SymmetryFlag symmetryFlag,
+       AdmissibilityCondition * admissibilityCondition);
 
   /*! \brief Create a copy of this matrix for internal use only.
    * Only copy this node, not the whole tree. The created matrix

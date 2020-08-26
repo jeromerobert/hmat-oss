@@ -149,8 +149,7 @@ public:
    */
 
   HMatInterface(IEngine<T>* engine, const ClusterTree* _rows, const ClusterTree* _cols, SymmetryFlag sym,
-                AdmissibilityCondition * admissibilityCondition =
-                &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
+                AdmissibilityCondition * admissibilityCondition);
 
   HMatInterface(IEngine<T>* engine, HMatrix<T>* h, Factorization factorization = Factorization::NONE);
 

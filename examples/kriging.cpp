@@ -153,7 +153,8 @@ int go(const char* pointsFilename) {
   // Either store lower triangular matrix and use LDLt (or LLt) factorization or
   // store full matrix and use LU factorization.
   IEngine<D_t>* engine = new E<D_t>();
-  HMatInterface<D_t> hmat(engine, ct, ct, kNotSymmetric);
+  StandardAdmissibilityCondition * admissibility = new StandardAdmissibilityCondition(2.0);
+  HMatInterface<D_t> hmat(engine, ct, ct, kNotSymmetric, admissibility);
   settings.setParameters();
 
   hmat.assemble(f, kLowerSymmetric);
@@ -183,6 +184,7 @@ int go(const char* pointsFilename) {
   std::cout << "||Ax - b|| / ||b|| = " << diffNorm / rhsCopyNorm << std::endl;
 
   delete rhs;
+  delete admissibility;
   E<D_t>::finalize();
   return 0;
 }

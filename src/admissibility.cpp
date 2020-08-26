@@ -112,8 +112,6 @@ void StandardAdmissibilityCondition::setRatio(double ratio) {
     ratio_ = ratio;
 }
 
-StandardAdmissibilityCondition StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY = StandardAdmissibilityCondition(2.0);
-
 struct DefaultBlockSizeDetector: public AlwaysAdmissibilityCondition::BlockSizeDetector {
   static DefaultBlockSizeDetector& instance()
   {

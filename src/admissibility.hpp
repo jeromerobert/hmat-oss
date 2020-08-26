@@ -139,7 +139,6 @@ public:
   void setEta(double eta);
   double getEta() const;
   void setRatio(double ratio);
-  static StandardAdmissibilityCondition DEFAULT_ADMISSIBLITY;
 protected:
   double eta_;
   double ratio_;
