@@ -35,6 +35,18 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
   return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
 }
 
+void*
+AdmissibilityCondition::getData(const ClusterTree& current, bool) const
+{
+  void* admissibility_data = current.admissibilityAlgoData_;
+  if (admissibility_data == NULL)
+  {
+    admissibility_data = new AxisAlignedBoundingBox(current.data);
+    current.admissibilityAlgoData_ = admissibility_data;
+  }
+  return admissibility_data;
+}
+
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(double eta, double ratio):
     eta_(eta), ratio_(ratio) {}
 
@@ -68,18 +80,8 @@ StandardAdmissibilityCondition::forceFull(const ClusterTree& rows, const Cluster
 bool
 StandardAdmissibilityCondition::isLowRank(const ClusterTree& rows, const ClusterTree& cols) const
 {
-  AxisAlignedBoundingBox* rows_bbox = static_cast<AxisAlignedBoundingBox*>(rows.admissibilityAlgoData_);
-  if (rows_bbox == NULL)
-  {
-    rows_bbox = new AxisAlignedBoundingBox(rows.data);
-    rows.admissibilityAlgoData_ = rows_bbox;
-  }
-  AxisAlignedBoundingBox* cols_bbox = static_cast<AxisAlignedBoundingBox*>(cols.admissibilityAlgoData_);
-  if (cols_bbox == NULL)
-  {
-    cols_bbox = new AxisAlignedBoundingBox(cols.data);
-    cols.admissibilityAlgoData_ = cols_bbox;
-  }
+  AxisAlignedBoundingBox* rows_bbox = static_cast<AxisAlignedBoundingBox*>(getData(rows, true));
+  AxisAlignedBoundingBox* cols_bbox = static_cast<AxisAlignedBoundingBox*>(getData(cols, false));
 
   const double min_diameter = std::min(rows_bbox->diameter(), cols_bbox->diameter());
   return min_diameter > 0.0 && min_diameter <= eta_ * rows_bbox->distanceTo(*cols_bbox);

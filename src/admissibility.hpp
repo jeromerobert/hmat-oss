@@ -110,6 +110,14 @@ public:
       return 25;
   }
 
+  /**
+   * @brief Get admissibility data of a cluster tree
+   * @param current cluster tree
+   * @param is_rows current is a rows (resp. cols) cluster when is_rows
+        is true (resp. false)
+   */
+  virtual void* getData(const ClusterTree& current, bool is_rows) const;
+
   /*! \brief Clean up data which may be allocated by isLowRank  */
   virtual void clean(const ClusterTree&) const {}
 
