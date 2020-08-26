@@ -38,6 +38,9 @@ class ClusterTree;
 class AdmissibilityCondition
 {
 public:
+  /*! \brief Virtual copy constructor */
+  virtual AdmissibilityCondition * clone() const = 0;
+
   virtual ~AdmissibilityCondition() {}
   /*! \brief Returns true if the block of interaction between 2 nodes has a
       low-rank representation.
@@ -135,6 +138,7 @@ class StandardAdmissibilityCondition : public AdmissibilityCondition
 {
 public:
   StandardAdmissibilityCondition(double eta, double ratio = 0);
+  StandardAdmissibilityCondition * clone() const { return new StandardAdmissibilityCondition(*this); }
   // Returns true if block is admissible (Hackbusch condition)
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true when there is less than 2 rows or cols
@@ -177,6 +181,7 @@ public:
      */
     AlwaysAdmissibilityCondition(size_t max_block_size, unsigned int min_nr_block,
                                  bool split_rows = true, bool split_cols = false);
+    AlwaysAdmissibilityCondition * clone() const { return new AlwaysAdmissibilityCondition(*this); }
     std::string str() const;
     bool isLowRank(const ClusterTree&, const ClusterTree&) const;
     std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree&) const;
