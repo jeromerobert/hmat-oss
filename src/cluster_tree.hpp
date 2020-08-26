@@ -207,6 +207,8 @@ public:
     double distanceToSqr(const AxisAlignedBoundingBox& other) const;
     const double * bbMin() const { return bb_; }
     const double * bbMax() const { return bb_ + dimension_; }
+    void bbMin(const double * bbMin);
+    void bbMax(const double * bbMax);
 };
 
 }  // end namespace hmat

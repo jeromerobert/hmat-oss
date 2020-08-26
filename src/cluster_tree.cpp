@@ -273,5 +273,15 @@ double AxisAlignedBoundingBox::distanceTo(const AxisAlignedBoundingBox& other) c
     return sqrt(distanceToSqr(other));
 }
 
+void AxisAlignedBoundingBox::bbMin(const double * bbMin) {
+    for(int i = 0; i < dimension_; ++i)
+        bb_[i] = bbMin[i];
+}
+
+void AxisAlignedBoundingBox::bbMax(const double * bbMax) {
+    for(int i = 0; i < dimension_; ++i)
+        bb_[i + dimension_] = bbMax[i];
+}
+
 }  // end namespace hmat
 
