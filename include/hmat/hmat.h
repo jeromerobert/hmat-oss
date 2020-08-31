@@ -950,7 +950,7 @@ HMAT_API void hmat_tracing_dump(char *filename) ;
     This function is used within hmat-oss for timers and traces. It must be set if hmat-oss is called by
     multiple threads simultaneously.
 */
-HMAT_API void hmat_set_worker_index_function(int (*f)());
+HMAT_API void hmat_set_worker_index_function(int (*f)(void));
 
 #ifdef __cplusplus
 }
