@@ -93,11 +93,7 @@ void HMatInterface<T>::gemv(char trans, T alpha, ScalarArray<T>& x, T beta,
                             ScalarArray<T>& y) const {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
-  reorderVector(&x, trans == 'N' ? engine_->hmat->cols()->indices() : engine_->hmat->rows()->indices());
-  reorderVector(&y, trans == 'N' ? engine_->hmat->rows()->indices() : engine_->hmat->cols()->indices());
   engine_->gemv(trans, alpha, x, beta, y);
-  restoreVectorOrder(&x, trans == 'N' ? engine_->hmat->cols()->indices() : engine_->hmat->rows()->indices());
-  restoreVectorOrder(&y, trans == 'N' ? engine_->hmat->rows()->indices() : engine_->hmat->cols()->indices());
 }
 
 template<typename T>
@@ -175,9 +171,7 @@ template<typename T>
 void HMatInterface<T>::solve(ScalarArray<T>& b) const {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
-  reorderVector<T>(&b, engine_->hmat->cols()->indices());
   engine_->solve(b, factorizationType);
-  restoreVectorOrder<T>(&b, engine_->hmat->cols()->indices());
 }
 
 template<typename T>
@@ -191,15 +185,7 @@ template<typename T>
 void HMatInterface<T>::solveLower(ScalarArray<T>& b, bool transpose) const {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
-  if (transpose)
-    reorderVector<T>(&b, engine_->hmat->rows()->indices());
-  else
-    reorderVector<T>(&b, engine_->hmat->cols()->indices());
   engine_->solveLower(b, factorizationType, transpose);
-  if (transpose)
-    restoreVectorOrder<T>(&b, engine_->hmat->rows()->indices());
-  else
-    restoreVectorOrder<T>(&b, engine_->hmat->cols()->indices());
 }
 
 template<typename T>

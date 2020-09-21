@@ -156,14 +156,23 @@ int full_gemm(char transA, char transB, int mc, int nc, void* c,
   const hmat::HMatInterface<T>* b = (hmat::HMatInterface<T>*)holder;
   hmat::ScalarArray<T> matC((T*)c, mc, nc);
   hmat::ScalarArray<T>* matA = NULL;
+  const hmat::ClusterData* bDataRows = (transB == 'N' ? b->rows(): b->cols());
+  const hmat::ClusterData* bDataCols = (transB == 'N' ? b->cols(): b->rows());
+  hmat::reorderVector(&matC, bDataCols->indices(), 1);
   if (transA == 'N') {
-    matA = new hmat::ScalarArray<T>((T*)a, mc, transB == 'N' ? b->rows()->size()
-                             : b->cols()->size());
+    matA = new hmat::ScalarArray<T>((T*)a, mc, bDataRows->size());
+    hmat::reorderVector(matA, bDataRows->indices(), 1);
   } else {
-    matA = new hmat::ScalarArray<T>((T*)a, transB == 'N' ? b->rows()->size()
-                             : b->cols()->size(), mc);
+    matA = new hmat::ScalarArray<T>((T*)a, bDataRows->size(), mc);
+    hmat::reorderVector(matA, bDataRows->indices(), 0);
   }
   hmat::HMatInterface<T>::gemm(matC, transA, transB, *((T*)alpha), *matA, *b, *((T*)beta));
+  hmat::restoreVectorOrder(&matC, bDataCols->indices(), 1);
+  if (transA == 'N') {
+      hmat::restoreVectorOrder(matA, bDataRows->indices(), 1);
+  } else {
+      hmat::restoreVectorOrder(matA, bDataRows->indices(), 0);
+  }
   delete matA;
   return 0;
 }
@@ -198,7 +207,11 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
   const hmat::ClusterData* cData = (trans_a == 'N' ? hmat->rows(): hmat->cols());
   hmat::ScalarArray<T> mb((T*) vec_b, bData->size(), nrhs);
   hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
+  hmat::reorderVector(&mb, bData->indices(), 0);
+  hmat::reorderVector(&mc, cData->indices(), 0);
   hmat->gemv(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
+  hmat::restoreVectorOrder(&mb, bData->indices(), 0);
+  hmat::restoreVectorOrder(&mc, cData->indices(), 0);
   return 0;
 }
 
@@ -213,6 +226,96 @@ int gemm_scalar( char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
   hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
 
   hmat->gemm_scalar(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
+  return 0;
+}
+
+inline bool is_trans(char trans) {
+    return trans == 'T' || trans == 'C';
+}
+
+inline bool is_conj(char trans) {
+    return trans == 'J' || trans == 'C';
+}
+
+inline char switch_flag_trans(char trans) {
+    switch (trans) {
+    case 'N': return 'T';
+    case 'T': return 'N';
+    case 'C': return 'J';
+    case 'J': return 'C';
+    default: HMAT_ASSERT(false);
+    }
+}
+
+inline char switch_flag_conj(char trans) {
+    switch (trans) {
+    case 'N': return 'J';
+    case 'T': return 'C';
+    case 'C': return 'T';
+    case 'J': return 'N';
+    default: HMAT_ASSERT(false);
+    }
+}
+
+template<typename T, template <typename> class E>
+int gemm_dense(char trans_b, char trans_x, char side, void* alpha, hmat_matrix_t* holder,
+               void* vec_x, void* beta, void* vec_y, int nrhs) {
+  char trans_y = 'N';
+  T alphaT = *((T*)alpha);
+  T betaT = *((T*)beta);
+  alpha = &alphaT;
+  beta = &betaT;
+  if (side == 'R') {
+      // Y <- alpha X * B + beta Y <=>  Y^t <- alpha B^t X^t + beta Y^t or Y^H <- bar(alpha) B^H * X^H + bar(beta) Y^H
+      if (trans_b == 'C') {
+          trans_b = 'N';
+          trans_x = switch_flag_conj(switch_flag_trans(trans_x));
+          trans_y = 'C';
+          alphaT = hmat::conj(alphaT);
+          betaT = hmat::conj(betaT);
+      } else {
+          trans_b = switch_flag_trans(trans_b);
+          trans_x = switch_flag_trans(trans_x);
+          trans_y = 'T';
+      }
+  }
+
+  DECLARE_CONTEXT;
+  DISABLE_THREADING_IN_BLOCK;
+
+  // Now side='L': op(Y) <- alpha op(B) op(X) + beta op(Y)
+  const hmat::HMatInterface<T>* b = (hmat::HMatInterface<T>*)holder;
+  const hmat::IndexSet* bDataRows = !is_trans(trans_b) ? b->rows(): b->cols();
+  const hmat::IndexSet* bDataCols = !is_trans(trans_b) ? b->cols(): b->rows();
+  hmat::ScalarArray<T>* mx = !is_trans(trans_x) ?
+      new hmat::ScalarArray<T>((T*) vec_x, bDataCols->size(), nrhs) :
+      new hmat::ScalarArray<T>((T*) vec_x, nrhs, bDataCols->size());
+  hmat::ScalarArray<T>* my =  !is_trans(trans_y) ?
+      new hmat::ScalarArray<T>((T*) vec_y, bDataRows->size(), nrhs) :
+      new hmat::ScalarArray<T>((T*) vec_y, nrhs, bDataRows->size());
+
+  // Apply transformations on x and y
+  if (is_trans(trans_x))
+      mx->transpose();
+  if (is_conj(trans_x))
+      mx->conjugate();
+  if (is_trans(trans_y))
+      my->transpose();
+  if (is_conj(trans_y))
+      my->conjugate();
+
+  b->gemv(trans_b, *((T*)alpha), *mx, *((T*)beta), *my);
+
+  // Apply inverse transformations on x and y
+  if (is_trans(trans_x))
+      mx->transpose();
+  if (is_trans(trans_y))
+      my->transpose();
+  if (is_conj(trans_y))
+      my->conjugate();
+
+  delete mx;
+  delete my;
   return 0;
 }
 
@@ -270,6 +373,44 @@ int truncate(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
+int vector_reorder(void* vec_b, const hmat_cluster_tree_t *rows_ct, int rows, const hmat_cluster_tree_t *cols_ct, int cols) {
+  DECLARE_CONTEXT;
+  HMAT_ASSERT_MSG(rows_ct != NULL || rows != 0, "either row cluster tree or rows must be non null");
+  HMAT_ASSERT_MSG(cols_ct != NULL || cols != 0, "either col cluster tree or cols must be non null");
+  const hmat::ClusterTree *clusterTreeRows = reinterpret_cast<const hmat::ClusterTree*>(rows_ct);
+  const hmat::ClusterTree *clusterTreeCols = reinterpret_cast<const hmat::ClusterTree*>(cols_ct);
+  int nrows = clusterTreeRows == NULL ? rows : clusterTreeRows->data.size();
+  int ncols = clusterTreeCols == NULL ? cols : clusterTreeCols->data.size();
+  hmat::ScalarArray<T> mb((T*) vec_b, nrows, ncols);
+  if (clusterTreeRows) {
+    hmat::reorderVector(&mb, clusterTreeRows->data.indices(), 0);
+  }
+  if (clusterTreeCols) {
+    hmat::reorderVector(&mb, clusterTreeCols->data.indices(), 1);
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int vector_restore(void* vec_b, const hmat_cluster_tree_t *rows_ct, int rows, const hmat_cluster_tree_t *cols_ct, int cols) {
+  DECLARE_CONTEXT;
+  HMAT_ASSERT_MSG(rows_ct != NULL || rows != 0, "either row cluster tree or rows must be non null");
+  HMAT_ASSERT_MSG(cols_ct != NULL || cols != 0, "either col cluster tree or cols must be non null");
+  const hmat::ClusterTree *clusterTreeRows = reinterpret_cast<const hmat::ClusterTree*>(rows_ct);
+  const hmat::ClusterTree *clusterTreeCols = reinterpret_cast<const hmat::ClusterTree*>(cols_ct);
+  int nrows = clusterTreeRows == NULL ? rows : clusterTreeRows->data.size();
+  int ncols = clusterTreeCols == NULL ? cols : clusterTreeCols->data.size();
+  hmat::ScalarArray<T> mb((T*) vec_b, nrows, ncols);
+  if (clusterTreeRows) {
+    hmat::restoreVectorOrder(&mb, clusterTreeRows->data.indices(), 0);
+  }
+  if (clusterTreeCols) {
+    hmat::restoreVectorOrder(&mb, clusterTreeCols->data.indices(), 1);
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int solve_mat(hmat_matrix_t* hmat, hmat_matrix_t* hmatB) {
   DECLARE_CONTEXT;
   ((hmat::HMatInterface<T>*)hmat)->solve(*(hmat::HMatInterface<T>*)hmatB);
@@ -278,6 +419,17 @@ int solve_mat(hmat_matrix_t* hmat, hmat_matrix_t* hmatB) {
 
 template<typename T, template <typename> class E>
 int solve_systems(hmat_matrix_t* holder, void* b, int nrhs) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
+  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
+  hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
+  hmat->solve(mb);
+  hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int solve_dense(hmat_matrix_t* holder, void* b, int nrhs) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
   hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
@@ -355,12 +507,30 @@ int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
   hmat->engine().hmat->extractDiagonal(static_cast<T*>(diag));
   hmat::ScalarArray<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), 1);
-  hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices());
+  hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices(), 0);
   return 0;
 }
 
 template<typename T, template <typename> class E>
 int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nrhs)
+{
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
+  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
+  if (transpose)
+    hmat::reorderVector<T>(&mb, hmat->rows()->indices(), 0);
+  else
+    hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
+  hmat->solveLower(mb, transpose);
+  if (transpose)
+    hmat::restoreVectorOrder<T>(&mb, hmat->rows()->indices(), 0);
+  else
+    hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int solve_lower_triangular_dense(hmat_matrix_t* holder, int transpose, void* b, int nrhs)
 {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
@@ -501,6 +671,7 @@ static void createCInterface(hmat_interface_t * i)
     i->scale = scale<T, E>;
     i->solve_mat = solve_mat<T, E>;
     i->solve_systems = solve_systems<T, E>;
+    i->solve_dense = solve_dense<T, E>;
     i->transpose = transpose<T, E>;
     i->internal = NULL;
     i->get_info  = hmat_get_info<T, E>;
@@ -511,6 +682,7 @@ static void createCInterface(hmat_interface_t * i)
     i->set_low_rank_epsilon = set_low_rank_epsilon<T, E>;
     i->extract_diagonal = extract_diagonal<T, E>;
     i->solve_lower_triangular = solve_lower_triangular<T, E>;
+    i->solve_lower_triangular_dense = solve_lower_triangular_dense<T, E>;
     i->assemble_generic = assemble_generic<T, E>;
     i->factorize_generic = factorize_generic<T, E>;
     i->get_values = get_values<T, E>;
@@ -525,6 +697,9 @@ static void createCInterface(hmat_interface_t * i)
     i->trsm = trsm<T, E>;
     i->truncate = truncate<T, E>;
     i->set_progressbar = set_progressbar<T>;
+    i->gemm_dense = gemm_dense<T, E>;
+    i->vector_reorder = vector_reorder<T, E>;
+    i->vector_restore = vector_restore<T, E>;
 }
 
 }  // end namespace hmat

@@ -324,9 +324,13 @@ int main(int argc, char **argv) {
 
   fprintf(stdout,"Solve...");
   if(type == HMAT_SIMPLE_PRECISION){
-    hmat.solve_systems(hmatrix, frhs, nrhs);
+    hmat.vector_reorder(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_dense(hmatrix, frhs, nrhs);
+    hmat.vector_restore(frhs, cluster_tree, 0, NULL, nrhs);
   }else{
-    hmat.solve_systems(hmatrix, drhs, nrhs);
+    hmat.vector_reorder(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_dense(hmatrix, drhs, nrhs);
+    hmat.vector_restore(drhs, cluster_tree, 0, NULL, nrhs);
   }
   fprintf(stdout, "done.\n");
 
@@ -350,9 +354,13 @@ int main(int argc, char **argv) {
   memcpy(drhsCopy3, drhsCopy1, n*sizeof(double));
   fprintf(stdout,"Solve Ly=b...");
   if(type == HMAT_SIMPLE_PRECISION){
-    hmat.solve_lower_triangular(hmatrix, 0, frhs, nrhs);
+    hmat.vector_reorder(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_lower_triangular_dense(hmatrix, 0, frhs, nrhs);
+    hmat.vector_restore(frhs, cluster_tree, 0, NULL, nrhs);
   }else{
-    hmat.solve_lower_triangular(hmatrix, 0, drhs, nrhs);
+    hmat.vector_reorder(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_lower_triangular_dense(hmatrix, 0, drhs, nrhs);
+    hmat.vector_restore(drhs, cluster_tree, 0, NULL, nrhs);
   }
   fprintf(stdout, "done.\n");
 
@@ -360,12 +368,20 @@ int main(int argc, char **argv) {
   diffNorm = 0.;
   if(type == HMAT_SIMPLE_PRECISION){
     float pone=1., zero=0. ;
-    hmat.gemv('N', &pone, hmatrix, frhs, &zero, frhsCopy1, 1);
+    hmat.vector_reorder(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_reorder(frhsCopy1, cluster_tree, 0, NULL, nrhs);
+    hmat.gemm_dense('N', 'N', 'L', &pone, hmatrix, frhs, &zero, frhsCopy1, 1);
+    hmat.vector_restore(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_restore(frhsCopy1, cluster_tree, 0, NULL, nrhs);
     for (i = 0; i < n; i++)
       diffNorm += (frhsCopy1[i] - frhsCopy3[i])*(frhsCopy1[i] - frhsCopy3[i]);
   }else{
     double pone=1., zero=0. ;
-    hmat.gemv('N', &pone, hmatrix, drhs, &zero, drhsCopy1, 1);
+    hmat.vector_reorder(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_reorder(drhsCopy1, cluster_tree, 0, NULL, nrhs);
+    hmat.gemm_dense('N', 'N', 'L', &pone, hmatrix, drhs, &zero, drhsCopy1, 1);
+    hmat.vector_restore(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_restore(drhsCopy1, cluster_tree, 0, NULL, nrhs);
     for (i = 0; i < n; i++)
       diffNorm += (drhsCopy1[i] - drhsCopy3[i])*(drhsCopy1[i] - drhsCopy3[i]);
   }
@@ -375,9 +391,13 @@ int main(int argc, char **argv) {
   memcpy(frhsCopy3, frhs, n*sizeof(float));
   memcpy(drhsCopy3, drhs, n*sizeof(double));
   if(type == HMAT_SIMPLE_PRECISION){
-    hmat.solve_lower_triangular(hmatrix, 1, frhs, nrhs);
+    hmat.vector_reorder(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_lower_triangular_dense(hmatrix, 1, frhs, nrhs);
+    hmat.vector_restore(frhs, cluster_tree, 0, NULL, nrhs);
   }else{
-    hmat.solve_lower_triangular(hmatrix, 1, drhs, nrhs);
+    hmat.vector_reorder(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_lower_triangular_dense(hmatrix, 1, drhs, nrhs);
+    hmat.vector_restore(drhs, cluster_tree, 0, NULL, nrhs);
   }
   fprintf(stdout, "done.\n");
 
@@ -385,12 +405,20 @@ int main(int argc, char **argv) {
   diffNorm = 0.;
   if(type == HMAT_SIMPLE_PRECISION){
     float pone=1., zero=0. ;
-    hmat.gemv('T', &pone, hmatrix, frhs, &zero, frhsCopy1, 1);
+    hmat.vector_reorder(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_reorder(frhsCopy1, cluster_tree, 0, NULL, nrhs);
+    hmat.gemm_dense('T', 'N', 'L', &pone, hmatrix, frhs, &zero, frhsCopy1, 1);
+    hmat.vector_restore(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_restore(frhsCopy1, cluster_tree, 0, NULL, nrhs);
     for (i = 0; i < n; i++)
       diffNorm += (frhsCopy1[i] - frhsCopy3[i])*(frhsCopy1[i] - frhsCopy3[i]);
   }else{
     double pone=1., zero=0. ;
-    hmat.gemv('T', &pone, hmatrix, drhs, &zero, drhsCopy1, 1);
+    hmat.vector_reorder(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_reorder(drhsCopy1, cluster_tree, 0, NULL, nrhs);
+    hmat.gemm_dense('T', 'N', 'L', &pone, hmatrix, drhs, &zero, drhsCopy1, 1);
+    hmat.vector_restore(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.vector_restore(drhsCopy1, cluster_tree, 0, NULL, nrhs);
     for (i = 0; i < n; i++)
       diffNorm += (drhsCopy1[i] - drhsCopy3[i])*(drhsCopy1[i] - drhsCopy3[i]);
   }

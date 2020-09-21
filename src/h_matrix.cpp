@@ -69,35 +69,75 @@ template<typename T> HMatrix<T>::~HMatrix() {
       delete cols_;
 }
 
-template<typename T>
-void reorderVector(ScalarArray<T>* v, int* indices) {
-  DECLARE_CONTEXT;
-  const int n = v->rows;
-  Vector<T> tmp(n);
-  for (int col = 0; col < v->cols; col++) {
-    Vector<T> column(*v, col);
-    for (int i = 0; i < n; i++)
-      tmp[i] = column[indices[i]];
-    tmp.copy(&column);
-  }
-}
-
 
 template<typename T>
-void restoreVectorOrder(ScalarArray<T>* v, int* indices) {
+void reorderVector(ScalarArray<T>* v, int* indices, int axis) {
   DECLARE_CONTEXT;
-  const int n = v->rows;
-  Vector<T> tmp(n);
-
-  for (int col = 0; col < v->cols; col++) {
-    Vector<T> column(*v, col);
-    for (int i = 0; i < n; i++) {
-      tmp[indices[i]] = column[i];
+  if (!indices) return;
+  const int n = axis == 0 ? v->rows : v->cols;
+  // If permutation is identity, do nothing
+  bool identity = true;
+  for (int i = 0; i < n; i++) {
+    if (indices[i] != i) {
+      identity = false;
+      break;
     }
-    tmp.copy(&column);
+  }
+  if (identity) return;
+
+  if (axis == 0) {
+    Vector<T> tmp(n);
+    for (int col = 0; col < v->cols; col++) {
+      Vector<T> column(*v, col);
+      for (int i = 0; i < n; i++)
+        tmp[i] = column[indices[i]];
+      tmp.copy(&column);
+    }
+  } else {
+    ScalarArray<T> tmp(1, n);
+    for (int row = 0; row < v->rows; row++) {
+      ScalarArray<T> column(*v, row, 1, 0, n);
+      for (int i = 0; i < n; i++)
+        tmp.get(0, i) = column.get(0, indices[i]);
+      tmp.copy(&column);
+    }
   }
 }
 
+template<typename T>
+void restoreVectorOrder(ScalarArray<T>* v, int* indices, int axis) {
+  DECLARE_CONTEXT;
+  if (!indices) return;
+  const int n = axis == 0 ? v->rows : v->cols;
+  // If permutation is identity, do nothing
+  bool identity = true;
+  for (int i = 0; i < n; i++) {
+    if (indices[i] != i) {
+      identity = false;
+      break;
+    }
+  }
+  if (identity) return;
+
+  if (axis == 0) {
+    Vector<T> tmp(n);
+    for (int col = 0; col < v->cols; col++) {
+      Vector<T> column(*v, col);
+      for (int i = 0; i < n; i++) {
+        tmp[indices[i]] = column[i];
+      }
+      tmp.copy(&column);
+    }
+  } else {
+    ScalarArray<T> tmp(1, n);
+    for (int row = 0; row < v->rows; row++) {
+      ScalarArray<T> column(*v, row, 1, 0, n);
+      for (int i = 0; i < n; i++)
+        tmp.get(0, indices[i]) = column.get(0, i);
+      tmp.copy(&column);
+    }
+  }
+}
 
 template<typename T>
 HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hmat::MatrixSettings * settings,
@@ -2563,15 +2603,15 @@ template class HMatrix<D_t>;
 template class HMatrix<C_t>;
 template class HMatrix<Z_t>;
 
-template void reorderVector(ScalarArray<S_t>* v, int* indices);
-template void reorderVector(ScalarArray<D_t>* v, int* indices);
-template void reorderVector(ScalarArray<C_t>* v, int* indices);
-template void reorderVector(ScalarArray<Z_t>* v, int* indices);
+template void reorderVector(ScalarArray<S_t>* v, int* indices, int axis);
+template void reorderVector(ScalarArray<D_t>* v, int* indices, int axis);
+template void reorderVector(ScalarArray<C_t>* v, int* indices, int axis);
+template void reorderVector(ScalarArray<Z_t>* v, int* indices, int axis);
 
-template void restoreVectorOrder(ScalarArray<S_t>* v, int* indices);
-template void restoreVectorOrder(ScalarArray<D_t>* v, int* indices);
-template void restoreVectorOrder(ScalarArray<C_t>* v, int* indices);
-template void restoreVectorOrder(ScalarArray<Z_t>* v, int* indices);
+template void restoreVectorOrder(ScalarArray<S_t>* v, int* indices, int axis);
+template void restoreVectorOrder(ScalarArray<D_t>* v, int* indices, int axis);
+template void restoreVectorOrder(ScalarArray<C_t>* v, int* indices, int axis);
+template void restoreVectorOrder(ScalarArray<Z_t>* v, int* indices, int axis);
 
 }  // end namespace hmat
 

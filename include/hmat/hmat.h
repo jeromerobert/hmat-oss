@@ -714,6 +714,20 @@ hmat
       \return 0 for success
     */
     int (*solve_systems)(hmat_matrix_t* hmatrix, void* b, int nrhs);
+    /*! \brief Solve A x = b, with x overwriting b.
+
+      In this function, b is a multi-column vector, with nrhs RHS.
+
+      Functions vector_reorder and vector_restore must be called before
+      and after this function to transform original numbering of b
+      into/from hmat internal numbering.
+
+      \param hmatrix
+      \param b
+      \param nrhs
+      \return 0 for success
+    */
+    int (*solve_dense)(hmat_matrix_t* hmatrix, void* b, int nrhs);
     /*! \brief Transpose an HMatrix in place.
 
        \return 0 for success.
@@ -732,6 +746,28 @@ hmat
       \param hmatrix
     */
     int (*truncate)(hmat_matrix_t *hmatrix);
+    /*! \brief Permute values in a dense array
+
+      \param vec_b values
+      \param rows_ct cluster tree for rows; may be NULL, in which case rows argument must be set to define
+      \param rows when rows_ct is NULL, this argument contains the number of rows, it is required to know data shape.
+         When rows_ct is not NULL, this argument is unused.
+      \param cols_ct cluster tree for cols; may be NULL, in which case cols argument must be set to define
+      \param cols when cols_ct is NULL, this argument contains the number of columns, it is required to know data shape.
+         When cols_ct is not NULL, this argument is unused.
+    */
+    int (*vector_reorder)(void* vec_b, const hmat_cluster_tree_t *rols_ct, int rows, const hmat_cluster_tree_t *cols_ct, int cols);
+    /*! \brief Renumber values back to original numbering
+
+      \param vec_b values
+      \param rows_ct cluster tree for rows; may be NULL, in which case rows argument must be set to define
+      \param rows when rows_ct is NULL, this argument contains the number of rows, it is required to know data shape.
+         When rows_ct is not NULL, this argument is unused.
+      \param cols_ct cluster tree for cols; may be NULL, in which case cols argument must be set to define
+      \param cols when cols_ct is NULL, this argument contains the number of columns, it is required to know data shape.
+         When cols_ct is not NULL, this argument is unused.
+    */
+    int (*vector_restore)(void* vec_b, const hmat_cluster_tree_t *rols_ct, int rows, const hmat_cluster_tree_t *cols_ct, int cols);
     /*! \brief C <- alpha * A * B + beta * C
 
       \param trans_a 'N' or 'T'
@@ -753,7 +789,7 @@ hmat
     int (*trsm)( char side, char uplo, char transa, char diag, int m, int n,
 		 void *alpha, hmat_matrix_t *A, int is_b_hmat, void *B );
 
-    /*! \brief c <- alpha * A * b + beta * c
+    /*! @deprecated \brief c <- alpha * A * b + beta * c
 
       \param trans_a 'N' or 'T'
       \param alpha
@@ -766,11 +802,11 @@ hmat
     */
     int (*gemv)(char trans_a, void* alpha, hmat_matrix_t* hmatrix, void* vec_b,
                      void* beta, void* vec_c, int nrhs);
-    /*! \brief Same as gemv, but without renumbering on vec_b and vec_c
+    /*! @deprecated \brief Same as gemv, but without renumbering on vec_b and vec_c
     */
     int (*gemm_scalar)(char trans_a, void* alpha, hmat_matrix_t* hmatrix, void* vec_b,
 		       void* beta, void* vec_c, int nrhs);
-    /*! \brief C <- alpha * A * B + beta * C
+    /*! @deprecated \brief C <- alpha * A * B + beta * C
 
 
       In this version, a, c: FullMatrix, b: HMatrix.
@@ -788,6 +824,26 @@ hmat
      */
     int (*full_gemm)(char trans_a, char trans_b, int mc, int nc, void* c,
                                void* alpha, void* a, hmat_matrix_t* hmat_b, void* beta);
+    /*! \brief Y <- alpha * op(B) * op(X) + beta * Y if side is 'L'
+            or Y <- alpha * op(X) * op(B) + beta * Y if side is 'R'
+
+      Functions vector_reorder and vector_restore must be called before
+      and after this function to transform original numbering of X and Y
+      into/from hmat internal numbering.
+
+      \param trans_b 'N', 'T' or 'C'
+      \param trans_x 'N', 'T' or 'C'
+      \param side 'L' or 'R'
+      \param alpha
+      \param hmatrix
+      \param vec_x
+      \param beta
+      \param vec_y
+      \param nrhs
+      \return 0 for success
+    */
+    int (*gemm_dense)(char trans_b, char trans_x, char side, void* alpha, hmat_matrix_t* holder,
+                      void* vec_x, void* beta, void* vec_y, int nrhs);
     /*! \brief A <- A + alpha Id
 
       \param hmatrix
@@ -846,6 +902,16 @@ hmat
      * \param nrhs number of right-hand sides
      */
     int (*solve_lower_triangular)(hmat_matrix_t* hmatrix, int transpose, void* b, int nrhs);
+
+    /**
+     * @brief Solve system op(L)*X=B
+       \warning There is no check to ensure that matrix has been factorized.
+     * \param hmatrix A hmatrix
+     * \param transpose if different from 0, transposed matrix is used
+     * \param b  right-hand sides, overwritten by solution X at exit
+     * \param nrhs number of right-hand sides
+     */
+    int (*solve_lower_triangular_dense)(hmat_matrix_t* hmatrix, int transpose, void* b, int nrhs);
 
     /**
      * @brief Extract and uncompress a block of the matrix.

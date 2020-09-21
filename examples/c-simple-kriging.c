@@ -408,9 +408,13 @@ int main(int argc, char **argv) {
 
   fprintf(stdout,"Solve...");
   if(type == HMAT_SIMPLE_PRECISION){
-    hmat.solve_systems(hmatrix, frhs, nrhs);
+    hmat.vector_reorder(frhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_dense(hmatrix, frhs, nrhs);
+    hmat.vector_restore(frhs, cluster_tree, 0, NULL, nrhs);
   }else{
-    hmat.solve_systems(hmatrix, drhs, nrhs);
+    hmat.vector_reorder(drhs, cluster_tree, 0, NULL, nrhs);
+    hmat.solve_dense(hmatrix, drhs, nrhs);
+    hmat.vector_restore(drhs, cluster_tree, 0, NULL, nrhs);
   }
   fprintf(stdout, "done.\n");
 

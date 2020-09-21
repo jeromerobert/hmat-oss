@@ -82,7 +82,7 @@ struct LocalSettings {
      \param indices Array of indices after construction ClusterTree.
 
  */
-template<typename T> void reorderVector(ScalarArray<T>* v, int* indices);
+template<typename T> void reorderVector(ScalarArray<T>* v, int* indices, int axis);
 
 /** Inverse permutation of a vector.
 
@@ -92,7 +92,7 @@ template<typename T> void reorderVector(ScalarArray<T>* v, int* indices);
      \param indices Array of indices after construction ClusterTree.
 
  */
-template<typename T> void restoreVectorOrder(ScalarArray<T>* v, int *indices);
+template<typename T> void restoreVectorOrder(ScalarArray<T>* v, int *indices, int axis);
 
 template<typename T> class HMatrix;
 
