@@ -333,6 +333,12 @@ public:
    */
   void apply_on_leaf(const LeafProcedure<HMatrix<T> >& proc);
 
+  /** Disable the progress bar
+   */
+  void mute(){
+    engine_->progress(NULL);
+  }
+
   const ClusterData * rows() const {
       return engine_->hmat->rows();
   }
