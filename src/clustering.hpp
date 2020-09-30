@@ -244,7 +244,7 @@ class NTilesRecursiveAlgorithm : public AxisAlignClusteringAlgorithm
 {
 public:
     explicit NTilesRecursiveAlgorithm( int tileSize = 1024 )
-	: AxisAlignClusteringAlgorithm(), axisIndex_(-1), spatialDimension_(-1), tileSize_(tileSize) {
+        : AxisAlignClusteringAlgorithm(), tileSize_(tileSize) {
     	setMaxLeafSize( tileSize );
     }
 
@@ -256,8 +256,6 @@ public:
     void clean(ClusterTree& current) const;
 
 private:
-    mutable int axisIndex_;
-    mutable int spatialDimension_;
     mutable int tileSize_;
 };
 
