@@ -34,6 +34,8 @@
 namespace hmat {
 
 /*! \brief Class representing a 3D point.
+
+  Used only in examples (cholesky.cpp and kriging.cpp)
  */
 class Point {
 public:
@@ -162,7 +164,7 @@ public:
   }
 
 private:
-  /// Array
+  /// Array of size size_ * dimension_
   double* v_;
 
   /// Spatial dimension
@@ -175,7 +177,11 @@ private:
   const bool ownsMemory_;
 
   unsigned numberOfDof_;
+
+  // Array of size numberOfDof_, giving the position in spans_[] of each dof definition
   unsigned * spanOffsets_;
+
+  // Array of size spanOffsets_[numberOfDof_-1], giving the position in v_[] of the span of each dof
   unsigned * spans_;
   /**
    * @brief min_x, miny, ..., maxx, maxy, ... for each DOF.
