@@ -125,15 +125,6 @@ int inverse(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
-int mute(hmat_matrix_t* holder)
-{
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  hmat->mute();
-  return 0;
-}
-
-template<typename T, template <typename> class E>
 void factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx) {
     DECLARE_CONTEXT;
     hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
@@ -528,7 +519,6 @@ static void createCInterface(hmat_interface_t * i)
     i->axpy = axpy<T, E>;
     i->trsm = trsm<T, E>;
     i->truncate = truncate<T, E>;
-    i->mute = mute<T, E>;
 }
 
 }  // end namespace hmat

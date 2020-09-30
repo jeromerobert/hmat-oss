@@ -877,11 +877,6 @@ hmat
      */
     int (*apply_on_leaf)(hmat_matrix_t* hmatrix, const hmat_leaf_procedure_t* proc);
 
-    /**
-     * @brief Disable the progress bar
-     */
-    int (*mute)(hmat_matrix_t* holder);
-
     hmat_value_t value_type;
 
     /** For internal use only */
