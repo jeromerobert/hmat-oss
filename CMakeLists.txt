@@ -72,9 +72,9 @@ endif()
 
 include(CheckCXXCompilerFlag)
 # needed for shared_ptr
-check_cxx_compiler_flag("-std=c++98" stdcpp98)
-if(stdcpp98)
-    set(CMAKE_CXX_FLAGS "-std=c++98 ${CMAKE_CXX_FLAGS}")
+check_cxx_compiler_flag("-std=c++11" stdcpp11)
+if(stdcpp11)
+    set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 endif()
 
 # ========================
