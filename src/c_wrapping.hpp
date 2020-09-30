@@ -470,6 +470,11 @@ void write_data(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data
     hmat::MatrixDataMarshaller<T>(writefunc, user_data).write(hmi->engine().hmat);
 }
 
+template <typename T>
+void set_progressbar(hmat_matrix_t * matrix, hmat_progress_t * progress) {
+    reinterpret_cast<hmat::HMatInterface<T> *>(matrix)->progress(progress);
+}
+
 }  // end anonymous namespace
 
 namespace hmat {
@@ -519,6 +524,7 @@ static void createCInterface(hmat_interface_t * i)
     i->axpy = axpy<T, E>;
     i->trsm = trsm<T, E>;
     i->truncate = truncate<T, E>;
+    i->set_progressbar = set_progressbar<T>;
 }
 
 }  // end namespace hmat

@@ -886,6 +886,16 @@ hmat
     void (*write_struct)(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data);
     void (*read_data)(hmat_matrix_t* matrix, hmat_iostream readfunc, void * user_data);
     void (*write_data)(hmat_matrix_t* matrix, hmat_iostream writefunc, void * user_data);
+
+    /**
+     * @brief Set the progress bar associated to a matrix.
+     *
+     * Note that progress bar is also set by assemble_generic and factorize_generic.
+     * @param matrix the matrix whose one want to change the progressbar
+     * @param progress the new progress bar implementation. NULL disable progress
+     * reporting.
+     */
+    void (*set_progressbar)(hmat_matrix_t * matrix, hmat_progress_t * progress);
 }  hmat_interface_t;
 
 HMAT_API void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);

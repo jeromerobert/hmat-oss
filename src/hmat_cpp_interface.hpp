@@ -359,6 +359,9 @@ public:
       engine_->setHMatrix( hmat );
   }
 
+  void progress(hmat_progress_t * progress) {
+      engine_->progress(progress);
+  }
 private:
   /// Disallow the copy
   HMatInterface(const HMatInterface<T>& o);
