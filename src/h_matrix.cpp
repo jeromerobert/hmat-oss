@@ -1430,10 +1430,10 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
 }
 
 template<typename T>
-void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) const {
+void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, Side side, bool inverse) const {
   assert(*d->rows() == *d->cols());
-  assert(left || (*cols() == *d->rows()));
-  assert(!left || (*rows() == *d->cols()));
+  assert(side == Side::LEFT  || (*cols() == *d->rows()));
+  assert(side == Side::RIGHT || (*rows() == *d->cols()));
 
   if (isVoid()) return;
 
@@ -1442,11 +1442,11 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
     if (d->isLeaf()) {
       for (int i=0 ; i<std::min(nrChildRow(), nrChildCol()) ; i++)
         if(get(i,i))
-          get(i,i)->multiplyWithDiag(d, left, inverse);
+          get(i,i)->multiplyWithDiag(d, side, inverse);
       for (int i=0 ; i<nrChildRow() ; i++)
         for (int j=0 ; j<nrChildCol() ; j++)
           if (i!=j && get(i,j)) {
-            get(i,j)->multiplyWithDiag(d, left, inverse);
+            get(i,j)->multiplyWithDiag(d, side, inverse);
           }
       return;
     }
@@ -1454,23 +1454,23 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, bool left, bool inverse) 
     // First the diagonal, then the rest...
     for (int i=0 ; i<std::min(nrChildRow(), nrChildCol()) ; i++)
       if(get(i,i))
-        get(i,i)->multiplyWithDiag(d->get(i,i), left, inverse);
+        get(i,i)->multiplyWithDiag(d->get(i,i), side, inverse);
     for (int i=0 ; i<nrChildRow() ; i++)
       for (int j=0 ; j<nrChildCol() ; j++)
         if (i!=j && get(i,j)) {
-        int k = left ? i : j;
-        get(i,j)->multiplyWithDiag(d->get(k,k), left, inverse);
+        int k = side == Side::LEFT ? i : j;
+        get(i,j)->multiplyWithDiag(d->get(k,k), side, inverse);
         // TODO couldn't we handle this case with the previous one, using getChildForGEMM(d,i,i) that returns 'd' itself when 'd' is a leaf ?
     }
   } else if (isRkMatrix() && !isNull()) {
-    rk()->multiplyWithDiagOrDiagInv(d, inverse, left);
+    rk()->multiplyWithDiagOrDiagInv(d, inverse, side);
   } else if(isFullMatrix()){
     if (d->isFullMatrix()) {
-      full()->multiplyWithDiagOrDiagInv(d->full()->diagonal, inverse, left);
+      full()->multiplyWithDiagOrDiagInv(d->full()->diagonal, inverse, side);
     } else {
       Vector<T> diag(d->rows()->size());
       d->extractDiagonal(diag.ptr());
-      full()->multiplyWithDiagOrDiagInv(&diag, inverse, left);
+      full()->multiplyWithDiagOrDiagInv(&diag, inverse, side);
     }
   } else {
     // this is a null matrix (either full of Rk) so nothing to do
@@ -1751,7 +1751,7 @@ void HMatrix<T>::inverse() {
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, MainOp) const {
+void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Diag unitriangular, MainOp) const {
   DECLARE_CONTEXT;
   if (isVoid()) return;
   // At first, the recursion one (simple case)
@@ -1787,7 +1787,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, Mai
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular) const {
+void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Diag unitriangular) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
@@ -1823,12 +1823,12 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular)
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) const {
+void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, Diag unitriangular) const {
   solveLowerTriangularLeft(&b->data, unitriangular);
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // The recursion one (simple case)
@@ -1889,7 +1889,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bo
    Only called by luDecomposition
  */
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, MainOp) const {
+void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Diag unitriangular, Uplo lowerStored, MainOp) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)
@@ -1908,7 +1908,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
   } else if(b->isNull()) {
     // nothing to do
   } else {
-    HMatrix * bSubset = b->subset(lowerStored ? this->rows() : this->cols(), b->cols());
+    HMatrix * bSubset = b->subset(lowerStored == Uplo::LOWER ? this->rows() : this->cols(), b->cols());
     if (bSubset->isFullMatrix()) {
       this->solveUpperTriangularLeft(bSubset->full(), unitriangular, lowerStored);
     } else {
@@ -1921,7 +1921,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, boo
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Diag unitriangular, Uplo lowerStored) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   if (rows()->size() == 0 || cols()->size() == 0) return;
@@ -1946,9 +1946,9 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Update sub[i] with the contribution of the solutions already computed sub[j]
       for (int j=0 ; j<i ; j++) {
-        const HMatrix<T>* u_ji = (lowerStored ? get(i, j) : get(j, i));
+        const HMatrix<T>* u_ji = (lowerStored == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(lowerStored ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
+          u_ji->gemv(lowerStored == Uplo::LOWER ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
       }
       // Solve the i-th diagonal system
       get(i, i)->solveUpperTriangularRight(&sub[i], unitriangular, lowerStored);
@@ -1957,16 +1957,16 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const {
   solveUpperTriangularRight(&b->data, unitriangular, lowerStored);
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Diag unitriangular, Uplo lowerStored) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
-  assert(rows()->size() == b->rows || !lowerStored);
-  assert(cols()->size() == b->rows || lowerStored);
+  assert(rows()->size() == b->rows || lowerStored == Uplo::UPPER);
+  assert(cols()->size() == b->rows || lowerStored == Uplo::LOWER);
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, unitriangular, lowerStored);
@@ -1984,16 +1984,16 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular,
       get(i, i)->solveUpperTriangularLeft(&sub[i], unitriangular, lowerStored);
       // Update sub[j] j<i with the contribution of the solutions just computed sub[i]
       for (int j=0 ; j<i ; j++) {
-        const HMatrix<T>* u_ji = (lowerStored ? get(i, j) : get(j, i));
+        const HMatrix<T>* u_ji = (lowerStored == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(lowerStored ? 'T' : 'N', Constants<T>::mone, &sub[i], Constants<T>::pone, &sub[j]);
+          u_ji->gemv(lowerStored == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[i], Constants<T>::pone, &sub[j]);
       }
     }
   }
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const {
+void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const {
   solveUpperTriangularLeft(&b->data, unitriangular, lowerStored);
 }
 
@@ -2119,11 +2119,11 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       FullMatrix<T> mTmp(m->rows(), m->cols());
       mTmp.copyMatrixAtOffset(m->full(), 0, 0);
       if (d->isFullMatrix()) {
-        mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
+        mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, Side::RIGHT);
       } else {
         Vector<T> diag(d->cols()->size());
         d->extractDiagonal(diag.ptr());
-        mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
+        mTmp.multiplyWithDiagOrDiagInv(&diag, false, Side::RIGHT);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, m->full(), Constants<T>::pone);
     } else if (!m->isLeaf()){
@@ -2132,11 +2132,11 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       FullMatrix<T> mTmpCopy(m->rows(), m->cols());
       mTmpCopy.copyMatrixAtOffset(&mTmp, 0, 0);
       if (d->isFullMatrix()) {
-        mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, false);
+        mTmp.multiplyWithDiagOrDiagInv(d->full()->diagonal, false, Side::RIGHT);
       } else {
         Vector<T> diag(d->cols()->size());
         d->extractDiagonal(diag.ptr());
-        mTmp.multiplyWithDiagOrDiagInv(&diag, false, false);
+        mTmp.multiplyWithDiagOrDiagInv(&diag, false, Side::RIGHT);
       }
       full()->gemm('N', 'T', Constants<T>::mone, &mTmp, &mTmpCopy, Constants<T>::pone);
     }
@@ -2226,9 +2226,9 @@ void HMatrix<T>::solve(ScalarArray<T>* b) const {
   DECLARE_CONTEXT;
   // Solve (LU) X = b
   // First compute L Y = b
-  this->solveLowerTriangularLeft(b, true);
+  this->solveLowerTriangularLeft(b, Diag::UNIT);
   // Then compute U X = Y
-  this->solveUpperTriangularLeft(b, false, false);
+  this->solveUpperTriangularLeft(b, Diag::NONUNIT, Uplo::UPPER);
 }
 
 template<typename T>
@@ -2242,7 +2242,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 
     bool upper   = (uplo == 'u') || (uplo == 'U');
     bool left    = (side == 'l') || (side == 'L');
-    bool unit    = (diag == 'u') || (diag == 'U');
+    Diag unit    = (diag == 'u' || diag == 'U') ? Diag::UNIT : Diag::NONUNIT;
     bool notrans = (trans == 'n') || (trans == 'N');
 
     /* Upper case */
@@ -2250,7 +2250,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	if ( left ) {
 	    if ( notrans ) {
 		/* LUN */
-		solveUpperTriangularLeft( B, unit, false );
+		solveUpperTriangularLeft( B, unit, Uplo::UPPER );
 	    }
 	    else {
 		/* LUT */
@@ -2260,7 +2260,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	else {
 	    if ( notrans ) {
 		/* RUN */
-		solveUpperTriangularRight( B, unit, false );
+		solveUpperTriangularRight( B, unit, Uplo::UPPER );
 	    }
 	    else {
 		/* RUT */
@@ -2276,7 +2276,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	    }
 	    else {
 		/* LLT */
-		solveUpperTriangularLeft( B, unit, true );
+		solveUpperTriangularLeft( B, unit, Uplo::LOWER );
 	    }
 	}
 	else {
@@ -2286,7 +2286,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	    }
 	    else {
 		/* RLT */
-		solveUpperTriangularRight( B, unit, true );
+		solveUpperTriangularRight( B, unit, Uplo::LOWER );
 	    }
 	}
     }
@@ -2298,7 +2298,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 
     bool upper   = (uplo == 'u') || (uplo == 'U');
     bool left    = (side == 'l') || (side == 'L');
-    bool unit    = (diag == 'u') || (diag == 'U');
+    Diag unit    = (diag == 'u' || diag == 'U') ? Diag::UNIT : Diag::NONUNIT;
     bool notrans = (trans == 'n') || (trans == 'N');
 
     /* Upper case */
@@ -2306,7 +2306,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	if ( left ) {
 	    if ( notrans ) {
 		/* LUN */
-		solveUpperTriangularLeft( B, unit, false );
+		solveUpperTriangularLeft( B, unit, Uplo::UPPER );
 	    }
 	    else {
 		/* LUT */
@@ -2316,7 +2316,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	else {
 	    if ( notrans ) {
 		/* RUN */
-		solveUpperTriangularRight( B, unit, false );
+		solveUpperTriangularRight( B, unit, Uplo::UPPER );
 	    }
 	    else {
 		/* RUT */
@@ -2332,7 +2332,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	    }
 	    else {
 		/* LLT */
-		solveUpperTriangularLeft( B, unit, true );
+		solveUpperTriangularLeft( B, unit, Uplo::LOWER );
 	    }
 	}
 	else {
@@ -2342,7 +2342,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 	    }
 	    else {
 		/* RLT */
-		solveUpperTriangularRight( B, unit, true );
+		solveUpperTriangularRight( B, unit, Uplo::LOWER );
 	    }
 	}
     }
@@ -2378,23 +2378,23 @@ template<typename T> void HMatrix<T>::solve(
     switch(factorizationType) {
     case hmat_factorization_lu:
     /* Solve LX=B, result in B */
-    this->solveLowerTriangularLeft(b, true);
+    this->solveLowerTriangularLeft(b, Diag::UNIT);
     /* Solve UX=B, result in B */
-        this->solveUpperTriangularLeft(b, false, false);
+        this->solveUpperTriangularLeft(b, Diag::NONUNIT, Uplo::UPPER);
         break;
     case hmat_factorization_ldlt:
         /* Solve LX=B, result in B */
-        this->solveLowerTriangularLeft(b, true);
+        this->solveLowerTriangularLeft(b, Diag::UNIT);
         /* Solve DX=B, result in B */
-        b->multiplyWithDiag(this, true, true);
+        b->multiplyWithDiag(this, Side::LEFT, true);
         /* Solve L^tX=B, result in B */
-        this->solveUpperTriangularLeft(b, true, true);
+        this->solveUpperTriangularLeft(b, Diag::UNIT, Uplo::LOWER);
         break;
     case hmat_factorization_llt:
         /* Solve LX=B, result in B */
-        this->solveLowerTriangularLeft(b, false);
+        this->solveLowerTriangularLeft(b, Diag::NONUNIT);
         /* Solve L^tX=B, result in B */
-        this->solveUpperTriangularLeft(b, false, true);
+        this->solveUpperTriangularLeft(b, Diag::NONUNIT, Uplo::UPPER);
         break;
     default:
         HMAT_ASSERT(false);
@@ -2407,12 +2407,12 @@ template<typename T> void HMatrix<T>::solveDiagonal(ScalarArray<T>* b) const {
     if (rows()->size() == 0 || cols()->size() == 0) return;
     if(isFullMatrix() && full()->diagonal) {
       // LDLt
-      b->multiplyWithDiagOrDiagInv(full()->diagonal, true, true); // multiply to the left by the inverse
+      b->multiplyWithDiagOrDiagInv(full()->diagonal, true, Side::LEFT); // multiply to the left by the inverse
     } else {
       // LLt
       Vector<T>* diag = new Vector<T>(cols()->size());
       extractDiagonal(diag->ptr());
-      b->multiplyWithDiagOrDiagInv(diag, true, true); // multiply to the left by the inverse
+      b->multiplyWithDiagOrDiagInv(diag, true, Side::LEFT); // multiply to the left by the inverse
       delete diag;
     }
 }
@@ -2427,13 +2427,13 @@ void HMatrix<T>::solveLdlt(ScalarArray<T>* b) const {
   assertLdlt(this);
   // L*D*L^T * X = B
   // B <- solution of L * Y = B : Y = D*L^T * X
-  this->solveLowerTriangularLeft(b, true);
+  this->solveLowerTriangularLeft(b, Diag::UNIT);
 
   // B <- D^{-1} Y : solution of D*Y = B : Y = L^T * X
   this->solveDiagonal(b);
 
   // B <- solution of L^T X = B :  the solution X we are looking for is stored in B
-  this->solveUpperTriangularLeft(b, true, true);
+  this->solveUpperTriangularLeft(b, Diag::UNIT, Uplo::LOWER);
 }
 
 template<typename T>
@@ -2446,10 +2446,10 @@ void HMatrix<T>::solveLlt(ScalarArray<T>* b) const {
   DECLARE_CONTEXT;
   // L*L^T * X = B
   // B <- solution of L * Y = B : Y = L^T * X
-  this->solveLowerTriangularLeft(b, false);
+  this->solveLowerTriangularLeft(b, Diag::NONUNIT);
 
   // B <- solution of L^T X = B :  the solution X we are looking for is stored in B
-  this->solveUpperTriangularLeft(b, false, true);
+  this->solveUpperTriangularLeft(b, Diag::NONUNIT, Uplo::LOWER);
 }
 
 template<typename T>

@@ -266,9 +266,9 @@ public:
 
      \param d D matrix which we just considered the diagonal
      \param inverse D or D^{-1}
-     \param left multiplication (left = true) or right (left = false) of this by D
+     \param left multiplication (side = Side::LEFT) or right (side = Side::RIGHT) of this by D
   */
-  void multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, bool left = false);
+  void multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, Side side = Side::RIGHT);
   /*! \brief Triggers an assertion if there are NaNs in the RkMatrix.
    */
   void checkNan() const;

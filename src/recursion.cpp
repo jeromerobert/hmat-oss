@@ -64,8 +64,8 @@ namespace hmat {
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
         if (!me()->get(i,k))
           continue;
-        me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, true);
-        me()->get(i,k)->multiplyWithDiag(me()->get(k,k), false, true);
+        me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), Diag::NONUNIT, Uplo::LOWER);
+        me()->get(i,k)->multiplyWithDiag(me()->get(k,k), Side::RIGHT, true);
       }
       // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
@@ -83,7 +83,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularRight(Mat* b, bool unitriangular, bool lowerStored) const {
+  void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularRight(Mat* b, Diag unitriangular, Uplo lowerStored) const {
 
     //  Backward substitution:
     //  [ X11 | X12 ]    [ U11 | U12 ]   [ b11 | b12 ]
@@ -104,9 +104,9 @@ namespace hmat {
           // Update b[k,i] with the contribution of the solutions already computed b[k,j] j<i
           if (!b->get(k, i)) continue;
           for (int j=0 ; j<i ; j++) {
-            const Mat* u_ji = (lowerStored ? me()->get(i, j) : me()->get(j, i));
+            const Mat* u_ji = (lowerStored == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
             if (b->get(k, j) && u_ji)
-              b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), u_ji, Constants<T>::pone);
+              b->get(k, i)->gemm('N', lowerStored == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, b->get(k, j), u_ji, Constants<T>::pone);
           }
           // Solve the i-th diagonal system
           me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), unitriangular, lowerStored);
@@ -186,7 +186,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular, MainOp mainOp) const {
+  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, Diag unitriangular, MainOp mainOp) const {
 
     //  Forward substitution:
     //  [ L11 |  0  ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -263,11 +263,11 @@ namespace hmat {
       // Solve the rest of line k: solve Lkk Uki = Hki and get Uki
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         if (me()->get(k,i))
-          me()->get(k,k)->solveLowerTriangularLeft(me()->get(k,i), true);
+          me()->get(k,k)->solveLowerTriangularLeft(me()->get(k,i), Diag::UNIT);
       // Solve the rest of column k: solve Lik Ukk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         if (me()->get(i,k))
-          me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, false);
+          me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), Diag::NONUNIT, Uplo::UPPER);
       // update the rest of the matrix starting at (k+1, k+1)
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
         if (!me()->get(i,k))
@@ -366,7 +366,7 @@ namespace hmat {
       // Solve the rest of column k: solve Lik tLkk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         if (me()->get(i,k))
-          me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, true);
+          me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), Diag::NONUNIT, Uplo::LOWER);
       // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
         if (!me()->get(i,k))
@@ -381,7 +381,7 @@ namespace hmat {
 
   template<typename T, typename Mat>
   void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft(Mat* b,
-     bool unitriangular, bool lowerStored, MainOp mainOp) const {
+     Diag unitriangular, Uplo lowerStored, MainOp mainOp) const {
 
     //  Backward substitution:
     //  [ U11 | U12 ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -405,9 +405,9 @@ namespace hmat {
           me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored, mainOp);
           // Update b[j,k] j<i with the contribution of the solutions just computed b[i,k]
           for (int j=0 ; j<i ; j++) {
-            const Mat* u_ji = (lowerStored ? me()->get(i, j) : me()->get(j, i));
+            const Mat* u_ji = (lowerStored == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
             if(u_ji && b->get(j,k))
-              b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji,
+              b->get(j,k)->gemm(lowerStored == Uplo::LOWER ? 'T' : 'N', 'N', Constants<T>::mone, u_ji,
                                 b->get(i,k), Constants<T>::pone, mainOp);
           }
         }

@@ -174,8 +174,8 @@ void FullMatrix<T>::gemm(char transA, char transB, T alpha,
 }
 
 template<typename T>
-void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, bool left) {
-  data.multiplyWithDiagOrDiagInv(d, inverse, left);
+void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, Side side) {
+  data.multiplyWithDiagOrDiagInv(d, inverse, side);
 }
 
 template<typename T>
@@ -326,7 +326,7 @@ void FullMatrix<T>::luDecomposition() {
 }
 
 template<typename T>
-void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, bool unitriangular) const {
+void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Diag unitriangular) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
   data.solveLowerTriangularLeft(x, pivots, unitriangular);
@@ -339,14 +339,14 @@ void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, bool unitriangul
 //  the matrix was factorized before.
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
   data.solveUpperTriangularRight(x, unitriangular, lowerStored);
 }
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
   data.solveUpperTriangularLeft(x, unitriangular, lowerStored);

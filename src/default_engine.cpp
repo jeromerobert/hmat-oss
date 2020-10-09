@@ -182,9 +182,9 @@ void DefaultEngine<T>::solve(IEngine<T>& b, hmat_factorization_t f) const {
 
 template<typename T>
 void DefaultEngine<T>::solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose) const {
-  bool unitriangular = (t == hmat_factorization_lu || t == hmat_factorization_ldlt);
+  Diag unitriangular = (t == hmat_factorization_lu || t == hmat_factorization_ldlt) ? Diag::UNIT : Diag::NONUNIT;
   if (transpose)
-    this->hmat->solveUpperTriangularLeft(&b, unitriangular, true);
+    this->hmat->solveUpperTriangularLeft(&b, unitriangular, Uplo::LOWER);
   else
     this->hmat->solveLowerTriangularLeft(&b, unitriangular);
 }

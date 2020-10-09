@@ -970,18 +970,18 @@ size_t RkMatrix<T>::computeRkRkMemorySize(char trans1, char trans2,
 }
 
 template<typename T>
-void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, bool left) {
+void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, Side side) {
   assert(*d->rows() == *d->cols());
-  assert(!left || (*rows == *d->cols()));
-  assert(left  || (*cols == *d->rows()));
+  assert(side == Side::RIGHT || (*rows == *d->cols()));
+  assert(side == Side::LEFT  || (*cols == *d->rows()));
 
   // extracting the diagonal
   Vector<T>* diag = new Vector<T>(d->cols()->size());
   d->extractDiagonal(diag->ptr());
 
-  // left multiplication by d of b (if M<-M*D : left = false) or a (if M<-D*M : left = true)
-  ScalarArray<T>* aOrB = (left ? a : b);
-  aOrB->multiplyWithDiagOrDiagInv(diag, inverse, true);
+  // left multiplication by d of b (if M<-M*D : side = RIGHT) or a (if M<-D*M : side = LEFT)
+  ScalarArray<T>* aOrB = (side == Side::LEFT ? a : b);
+  aOrB->multiplyWithDiagOrDiagInv(diag, inverse, Side::LEFT);
 
   delete diag;
 }

@@ -29,6 +29,10 @@
 
 namespace hmat {
 
+/* Forward declarations */
+enum class Diag;
+enum class Uplo;
+
   /*! \brief Templated hierarchical matrix class.
 
   This class defines recursive algorithms used by H-Matrix.
@@ -41,13 +45,13 @@ namespace hmat {
     RecursionMatrix() {}
     ~RecursionMatrix() {}
     void recursiveLdltDecomposition(hmat_progress_t * progress) ;
-    void recursiveSolveUpperTriangularRight(Mat* b, bool unitriangular, bool lowerStored) const;
+    void recursiveSolveUpperTriangularRight(Mat* b, Diag unitriangular, Uplo lowerStored) const;
     void recursiveMdmtProduct(const Mat* m, const Mat* d);
-    void recursiveSolveLowerTriangularLeft(Mat* b, bool unitriangular, MainOp=MainOp_Other) const;
+    void recursiveSolveLowerTriangularLeft(Mat* b, Diag unitriangular, MainOp=MainOp_Other) const;
     void recursiveLuDecomposition(hmat_progress_t * progress) ;
     void recursiveInverseNosym() ;
     void recursiveLltDecomposition(hmat_progress_t * progress) ;
-    void recursiveSolveUpperTriangularLeft(Mat* b, bool unitriangular, bool lowerStored, MainOp=MainOp_Other) const;
+    void recursiveSolveUpperTriangularLeft(Mat* b, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
     void transposeMeta(bool temporaryOnly=false);
 
     // https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern

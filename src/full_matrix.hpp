@@ -161,7 +161,7 @@ public:
      \param inverse true : B<-B*D^-1, false B<-B*D
      \param left true : B<-D*B, false B<-B*D
   */
-  void multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, bool left = false);
+  void multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, Side side = Side::RIGHT);
   /*! \brief Compute a LU factorization in place.
    */
   void luDecomposition();
@@ -178,7 +178,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* x, bool unitriangular) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* x, Diag unitriangular) const;
   /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -186,7 +186,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by
@@ -194,7 +194,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const;
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
     This function requires the matrix to be factored by

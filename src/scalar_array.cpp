@@ -600,6 +600,20 @@ template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
     throw LapackException("getrf", info);
 }
 
+// Helper functions for solveTriangular
+inline char to_blas(const Side side) {
+    return side == Side::LEFT ? 'L' : 'R';
+}
+
+inline char to_blas(const Uplo uplo) {
+    return uplo == Uplo::LOWER ? 'L' : 'U';
+}
+
+inline char to_blas(const Diag diag) {
+    return diag == Diag::UNIT ? 'U' : 'N';
+}
+
+
 // The following code is very close to that of ZGETRS in LAPACK.
 // However, the resolution here is divided in the two parties.
 
@@ -609,7 +623,7 @@ template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
 // solve LX = (P ^ -1 B), which is done by ZLASWP with
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
-void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bool unitriangular) const {
+void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, Diag unitriangular) const {
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
@@ -618,7 +632,7 @@ void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bo
   }
   if (pivots)
     proxy_lapack::laswp(x->cols, x->ptr(), x->lda, 1, rows, pivots, 1);
-  proxy_cblas::trsm('L', 'L', 'N', unitriangular ? 'U' : 'N', rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
+  proxy_cblas::trsm('L', 'L', 'N', to_blas(unitriangular), rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 // The resolution of the upper triangular system does not need to
@@ -627,7 +641,7 @@ void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bo
 //  the matrix was factorized before.
 
 template<typename T>
-void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
+void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
 
@@ -637,12 +651,12 @@ void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, bool unitriang
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::trsm('R', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
+  proxy_cblas::trsm('R', to_blas(lowerStored), lowerStored == Uplo::LOWER ? 'T' : 'N', to_blas(unitriangular),
     x->rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 template<typename T>
-void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const {
+void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
 
@@ -652,7 +666,7 @@ void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangu
     const size_t muls = _n * _m * (_n + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::trsm('L', lowerStored ? 'L' : 'U', lowerStored ? 'T' : 'N', unitriangular ? 'U' : 'N',
+  proxy_cblas::trsm('L', to_blas(lowerStored), lowerStored == Uplo::LOWER ? 'T' : 'N', to_blas(unitriangular),
     x->rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
@@ -1170,17 +1184,17 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 }
 
 template<typename T>
-void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, bool left) {
+void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, Side side) {
   assert(d);
-  assert(left || (cols == d->rows));
-  assert(!left || (rows == d->rows));
+  assert(side == Side::LEFT  || (cols == d->rows));
+  assert(side == Side::RIGHT || (rows == d->rows));
   assert(d->cols==1);
 
   {
     const size_t _rows = rows, _cols = cols;
     increment_flops(Multipliers<T>::mul * _rows * _cols);
   }
-  if (left) { // line i is multiplied by d[i] or 1/d[i]
+  if (side == Side::LEFT) { // line i is multiplied by d[i] or 1/d[i]
     // TODO: Test with scale to see if it is better.
     if (inverse) {
       ScalarArray<T> *d2 = new ScalarArray<T>(rows,1);

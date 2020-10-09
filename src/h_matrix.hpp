@@ -428,38 +428,38 @@ public:
     \param left run B <- D*B instead of B <- B*D
     \param inverse run B <- B * D^-1
   */
-  void multiplyWithDiag(const HMatrix<T>* d, bool left = false, bool inverse = false) const;
+  void multiplyWithDiag(const HMatrix<T>* d, Side side = Side::RIGHT, bool inverse = false) const;
   /*! \brief Resolution du systeme L X = B, avec this = L, et X = B.
 
     \param b la matrice B en entree, et X en sortie.
    */
-  void solveLowerTriangularLeft(HMatrix<T>* b, bool unitriangular, MainOp=MainOp_Other) const;
+  void solveLowerTriangularLeft(HMatrix<T>* b, Diag unitriangular, MainOp=MainOp_Other) const;
   /*! \brief Resolution du systeme L x = x, avec this = L, et x = b vecteur.
 
     B est un vecteur a plusieurs colonnes, donc une FullMatrix.
 
     \param b Le vecteur b en entree, et x en sortie.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* b, bool unitriangular) const;
-  void solveLowerTriangularLeft(FullMatrix<T>* b, bool unitriangular) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* b, Diag unitriangular) const;
+  void solveLowerTriangularLeft(FullMatrix<T>* b, Diag unitriangular) const;
   /*! Resolution de X U = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularRight(HMatrix<T>* b, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularRight(HMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const;
   /*! Resolution de U X = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularLeft(HMatrix<T>* b, bool unitriangular, bool lowerStored, MainOp=MainOp_Other) const;
+  void solveUpperTriangularLeft(HMatrix<T>* b, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
   /*! Resolution de x U = b, avec U = this, et x = b.
 
     \warning b est un vecteur ligne et non colonne.
 
     \param b Le vecteur b en entree, x en sortie.
    */
-  void solveUpperTriangularRight(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const;
-  void solveUpperTriangularRight(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularRight(ScalarArray<T>* b, Diag unitriangular, Uplo lowerStored) const;
+  void solveUpperTriangularRight(FullMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const;
   /*! Resolution de U x = b, avec U = this, et x = b.
     U peut etre en fait L^T ou L est une matrice stockee inferieurement
     en precisant lowerStored = true
@@ -468,8 +468,8 @@ public:
     \param indice les indices portes par le vecteur
     \param lowerStored indique le stockage de la matrice U ou L^T
   */
-  void solveUpperTriangularLeft(ScalarArray<T>* b, bool unitriangular, bool lowerStored) const;
-  void solveUpperTriangularLeft(FullMatrix<T>* b, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* b, Diag unitriangular, Uplo lowerStored) const;
+  void solveUpperTriangularLeft(FullMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const;
   /*! Solve D x = b, in place with D a diagonal matrix.
 
      \param b Input: B, Output: X

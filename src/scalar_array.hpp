@@ -37,6 +37,28 @@ namespace hmat {
 // Forward declaration
 template<typename T> class Vector;
 
+enum class Factorization {
+    NONE = hmat_factorization_none,
+    LU = hmat_factorization_lu,
+    LDLT = hmat_factorization_ldlt,
+    LLT = hmat_factorization_llt,
+};
+
+enum class Side {
+    LEFT,
+    RIGHT,
+};
+
+enum class Uplo {
+    UPPER,
+    LOWER,
+};
+
+enum class Diag {
+    NONUNIT,
+    UNIT,
+};
+
 /*! \brief Templated dense Matrix type.
 
   The template parameter represents the scalar type of the matrix elements.  The
@@ -274,7 +296,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, bool unitriangular) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, Diag unitriangular) const;
 
   /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
 
@@ -283,7 +305,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularRight(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriangular, Uplo uplo) const;
 
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
@@ -292,7 +314,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularLeft(ScalarArray<T>* x, bool unitriangular, bool lowerStored) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangular, Uplo uplo) const;
 
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
@@ -426,7 +448,7 @@ public:
      \param inverse true : B<-B*D^-1, false B<-B*D
      \param left true : B<-D*B, false B<-B*D
   */
-  void multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, bool left) ;
+  void multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inverse, Side side) ;
 
   /*! \brief B <- B*D
 
