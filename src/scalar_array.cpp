@@ -369,59 +369,44 @@ void ScalarArray<T>::copyMatrixAtOffset(const ScalarArray<T>* a,
   }
 }
 
-template<typename T> void ScalarArray<T>::addRand(double epsilon) {
-  DECLARE_CONTEXT;
-  if (lda == rows) {
-    for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
-      get(i) *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+template<typename T, typename std::enable_if<hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
+void addRandSFINAE(ScalarArray<T>& a, double epsilon) {
+  if (a.lda == a.rows) {
+    for (size_t i = 0; i < ((size_t) a.rows) * a.cols; ++i) {
+      a.get(i) *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
     }
   } else {
-    for (int col = 0; col < cols; ++col) {
-      for (int row = 0; row < rows; ++row) {
-        get(row, col) *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+    for (int col = 0; col < a.cols; ++col) {
+      for (int row = 0; row < a.rows; ++row) {
+        a.get(row, col) *= 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
       }
     }
   }
 }
 
-template<> void ScalarArray<C_t>::addRand(double epsilon) {
-  DECLARE_CONTEXT;
-
-  if (lda == rows) {
-    for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
-      float c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-      float c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-      get(i) *= C_t(c1, c2);
+template<typename T, typename std::enable_if<!hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
+void addRandSFINAE(ScalarArray<T>& a, double epsilon) {
+  if (a.lda == a.rows) {
+    for (size_t i = 0; i < ((size_t) a.rows) * a.cols; ++i) {
+      typename T::value_type c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      typename T::value_type c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+      a.get(i) *= T(c1, c2);
     }
   } else {
-    for (int col = 0; col < cols; ++col) {
-      for (int row = 0; row < rows; ++row) {
-        float c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-        float c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-        get(row, col) *= C_t(c1, c2);
+    for (int col = 0; col < a.cols; ++col) {
+      for (int row = 0; row < a.rows; ++row) {
+        typename T::value_type c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+        typename T::value_type c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
+        a.get(row, col) *= T(c1, c2);
       }
     }
   }
 }
 
-template<> void ScalarArray<Z_t>::addRand(double epsilon) {
+template<typename T>
+void ScalarArray<T>::addRand(double epsilon) {
   DECLARE_CONTEXT;
-
-  if (lda == rows) {
-    for (size_t i = 0; i < ((size_t) rows) * cols; ++i) {
-      double c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-      double c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-      get(i) *= Z_t(c1, c2);
-    }
-  } else {
-    for (int col = 0; col < cols; ++col) {
-      for (int row = 0; row < rows; ++row) {
-        double c1 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-        double c2 = 1.0 + epsilon*(1.0-2.0*rand()/(double)RAND_MAX);
-        get(row, col) *= Z_t(c1, c2);
-      }
-    }
-  }
+  addRandSFINAE<T>(*this, epsilon);
 }
 
 template<typename T>
@@ -548,7 +533,8 @@ template<typename T> size_t ScalarArray<T>::memorySize() const {
    return ((size_t) rows) * cols * sizeof(T);
 }
 
-template<typename T> void checkNanReal(const ScalarArray<T>* m) {
+template<typename T, typename std::enable_if<hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
+void checkNanSFINAE(const ScalarArray<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
       HMAT_ASSERT(!isnan(m->get(row, col)));
@@ -556,7 +542,8 @@ template<typename T> void checkNanReal(const ScalarArray<T>* m) {
   }
 }
 
-template<typename T> void checkNanComplex(const ScalarArray<T>* m) {
+template<typename T, typename std::enable_if<!hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
+void checkNanSFINAE(const ScalarArray<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
       HMAT_ASSERT(!isnan(m->get(row, col).real()));
@@ -565,17 +552,9 @@ template<typename T> void checkNanComplex(const ScalarArray<T>* m) {
   }
 }
 
-template<> void ScalarArray<S_t>::checkNan() const {
-  checkNanReal(this);
-}
-template<> void ScalarArray<D_t>::checkNan() const {
-  checkNanReal(this);
-}
-template<> void ScalarArray<C_t>::checkNan() const {
-  checkNanComplex(this);
-}
-template<> void ScalarArray<Z_t>::checkNan() const {
-  checkNanComplex(this);
+template<typename T>
+void ScalarArray<T>::checkNan() const {
+  checkNanSFINAE<T>(this);
 }
 
 template<typename T> bool ScalarArray<T>::isZero() const {
@@ -649,19 +628,16 @@ public:
     virtual ~InvalidDiagonalException() throw() {}
 };
 
-template<typename T> void assertPositive(const T v, const int j, const char * const where) {
-    if(v == Constants<T>::zero)
-      throw InvalidDiagonalException<T>(v, j, where);
-}
-
-template<> void assertPositive(const S_t v, const int j, const char * const where) {
+template<typename T, typename std::enable_if<hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
+void assertPositive(const T v, const int j, const char * const where) {
     if(!(v > 0))
       throw InvalidDiagonalException<S_t>(v, j, where);
 }
 
-template<> void assertPositive(D_t v, int j, const char * const where) {
-    if(!(v > 0))
-      throw InvalidDiagonalException<D_t>(v, j, where);
+template<typename T, typename std::enable_if<!hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
+void assertPositive(const T v, const int j, const char * const where) {
+    if(v == Constants<T>::zero)
+      throw InvalidDiagonalException<T>(v, j, where);
 }
 
 template<typename T>
