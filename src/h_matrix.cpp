@@ -1813,9 +1813,11 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
       sub.push_back(b->rowsSubset(offset, get(i, i)->cols()->size()));
       offset += get(i, i)->cols()->size();
       // Update sub[i] with the contribution of the solutions already computed sub[j] j<i
-      for (int j=0 ; j<i ; j++)
-        if (get(i,j))
-          get(i, j)->gemv('N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
+      for (int j=0 ; j<i ; j++) {
+        const HMatrix<T>* u_ji = (lowerStored == Uplo::LOWER ? get(i, j) : get(j, i));
+        if (u_ji)
+          u_ji->gemv(lowerStored == Uplo::LOWER ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
+      }
       // Solve the i-th diagonal system
       get(i, i)->solveLowerTriangularLeft(&sub[i], algo, unitriangular, lowerStored);
     }
@@ -1835,24 +1837,22 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularRight(b, algo, unitriangular, lowerStored);
   } else {
-    // if B is a leaf, the resolve is done by row
+    // if B is a leaf, the resolution is done by column
     if (b->isLeaf()) {
       if (b->isFullMatrix()) {
-        b->full()->transpose();
         this->solveUpperTriangularRight(b->full(), algo, unitriangular, lowerStored);
-        b->full()->transpose();
       } else if(!b->isNull() && b->isRkMatrix()){
         // Xa Xb^t U = Ba Bb^t
         //   - Xa = Ba
         //   - Xb^t U = Bb^t
         // Xb is stored without been transposed
-        // it become again a resolution by column of Bb
         HMatrix<T> * tmp;
         if(*rows() == *b->cols())
             tmp = b;
         else
             tmp = b->subset(b->rows(), this->rows());
-        this->solveUpperTriangularRight(tmp->rk()->b, algo, unitriangular, lowerStored);
+        // Replace Xb^t U = Bb^t by U^t Xb = Bb
+        this->solveLowerTriangularLeft(tmp->rk()->b, algo, unitriangular, lowerStored);
         if(tmp != b)
             delete tmp;
       } else {
@@ -1866,9 +1866,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
       // TODO: check if it's not too bad
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
       b->evalPart(bFull, b->rows(), b->cols());
-      bFull->transpose();
       this->solveUpperTriangularRight(bFull, algo, unitriangular, lowerStored);
-      bFull->transpose();
       // int bRows = b->rows()->size();
       // int bCols = b->cols()->size();
       // Vector<T> bRow(bCols);
@@ -1925,22 +1923,16 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   if (rows()->size() == 0 || cols()->size() == 0) return;
-  // B is supposed given in form of a row vector, but transposed
-  // so we can deal it with a subset as usual.
+  // B is given in form of a column vector
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
-    ScalarArray<T>* bCopy = b->copyAndTranspose();
-    full()->solveUpperTriangularRight(bCopy, algo, unitriangular, lowerStored);
-    bCopy->transpose();
-    b->copyMatrixAtOffset(bCopy, 0, 0);
-    delete bCopy;
+    full()->solveUpperTriangularRight(b, algo, unitriangular, lowerStored);
   } else {
-
     int offset(0);
     vector<ScalarArray<T> > sub;
     for (int i=0 ; i<nrChildRow() ; i++) {
-      // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub.push_back(b->rowsSubset(offset, get(i, i)->rows()->size()));
+      // Create sub[i] = a FullMatrix (without copy of data) for the columns in front of the i-th matrix block
+      sub.push_back(ScalarArray<T>(*b, 0, b->rows, offset, get(i, i)->rows()->size()));
       offset += get(i, i)->rows()->size();
     }
     for (int i=0 ; i<nrChildRow() ; i++) {
@@ -1948,7 +1940,7 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (lowerStored == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(lowerStored == Uplo::LOWER ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
+          u_ji->gemv(lowerStored == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
       }
       // Solve the i-th diagonal system
       get(i, i)->solveUpperTriangularRight(&sub[i], algo, unitriangular, lowerStored);
