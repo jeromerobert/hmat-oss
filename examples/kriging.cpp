@@ -165,7 +165,7 @@ int go(const char* pointsFilename) {
 
   std::cout << "done.\nFactorisation...";
 
-  hmat.factorize(hmat_factorization_lu);
+  hmat.factorize(hmat::Factorization::LU);
 
   std::cout << "Resolution...";
   hmat.solve(*rhs);

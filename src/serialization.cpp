@@ -113,9 +113,9 @@ template<typename TR> int MatrixStructMarshaller<T>::writeTree(const TR * tree) 
 }
 
 template<typename T>
-void MatrixStructMarshaller<T>::write(const HMatrix<T> * matrix, hmat_factorization_t factorization){
+void MatrixStructMarshaller<T>::write(const HMatrix<T> * matrix, Factorization factorization){
     writeValue(Types<T>::TYPE);
-    writeValue(factorization);
+    writeValue(convert_factorization_to_int(factorization));
     write(matrix->rowsTree());
     write(matrix->colsTree());
     writeTree(matrix);
@@ -206,7 +206,7 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::read(){
     HMAT_ASSERT_MSG(type == Types<T>::TYPE,
                     "Type mismatch. Unmarshaller type is %d while data type is %d",
                     Types<T>::TYPE, type);
-    factorization_ = hmat_factorization_t(readValue<int>());
+    factorization_ = convert_int_to_factorization(readValue<int>());
     ClusterTree * rows = readClusterTree();
     // There is no easy way for reader to know that a Tree parsing is over.
     // We call readFunc_ with 0 size after reading all Tree instances.

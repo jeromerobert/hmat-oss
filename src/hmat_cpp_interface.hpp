@@ -133,7 +133,7 @@ class DefaultProgress
 class HMatInterface {
 private:
   IEngine<T>* engine_;
-  hmat_factorization_t factorizationType;
+  Factorization factorizationType;
 
 public:
   /** Build a new HMatrix from two cluster sets.
@@ -152,7 +152,7 @@ public:
                 AdmissibilityCondition * admissibilityCondition =
                 &StandardAdmissibilityCondition::DEFAULT_ADMISSIBLITY);
 
-  HMatInterface(IEngine<T>* engine, HMatrix<T>* h, hmat_factorization_t factorization = hmat_factorization_none);
+  HMatInterface(IEngine<T>* engine, HMatrix<T>* h, Factorization factorization = Factorization::NONE);
 
   /** Destroy an HMatInterface instance.
 
@@ -182,7 +182,7 @@ public:
       HMatInterface<T>::assemble()), and if HMatSettings::useLdlt is
       true. Otherwise an LU decomposition is done.
    */
-  void factorize(hmat_factorization_t, hmat_progress_t * progress = DefaultProgress::getInstance());
+  void factorize(Factorization, hmat_progress_t * progress = DefaultProgress::getInstance());
 
   /** Compute the inverse of the HMatrix, in place.
    */
@@ -349,7 +349,7 @@ public:
     return engine_->GetSettings();
   }
 
-  hmat_factorization_t factorization() {
+  Factorization factorization() {
       return factorizationType;
   }
  

@@ -179,137 +179,25 @@ void FullMatrix<T>::multiplyWithDiagOrDiagInv(const Vector<T>* d, bool inverse, 
 }
 
 template<typename T>
-class InvalidDiagonalException: public LapackException {
-    std::string invalidDiagonalMessage_;
-public:
-    InvalidDiagonalException(const T value, const int j, const char * where)
-      : LapackException(where, -1)
-    {
-        std::stringstream sstm;
-        sstm << "In " << where << ", diagonal index "<< j << " has an invalid value " << value;
-        invalidDiagonalMessage_ = sstm.str();
-    }
-
-    virtual const char* what() const throw() {
-        return invalidDiagonalMessage_.c_str();
-    }
-
-    virtual ~InvalidDiagonalException() throw() {}
-};
-
-template<typename T>
 void FullMatrix<T>::ldltDecomposition() {
   // Void matrix
   if (rows() == 0 || cols() == 0) return;
 
-  int n = this->rows();
-  diagonal = new Vector<T>(n);
+  HMAT_ASSERT(rows() == cols());
+  diagonal = new Vector<T>(rows());
   HMAT_ASSERT(diagonal);
-  assert(this->rows() == this->cols()); // We expect a square matrix
-  //TODO : add flops counter
-
-  // Standard LDLt factorization algorithm is:
-  //  diag[j] = A(j,j) - sum_{k < j} L(j,k)^2 diag[k]
-  //  L(i,j) = (A(i,j) - sum_{k < j} (L(i,k)L(j,k)diag[k])) / diag[j]
-  // See for instance http://en.wikipedia.org/wiki/Cholesky_decomposition
-  // An auxiliary array is introduced in order to perform less multiplications,
-  // see  algorithm 1 in http://icl.cs.utk.edu/projectsfiles/plasma/pubs/ICL-UT-11-03.pdf
-  T* v = new T[n];
-  HMAT_ASSERT(v);
-  for (int j = 0; j < n; j++) {
-    for (int i = 0; i < j; i++)
-      v[i] = get(j,i) * get(i,i);
-
-    v[j] = get(j,j);
-    for (int i = 0; i < j; i++)
-      // Do not use the -= operator because it's buggy in the intel compiler
-      v[j] = v[j] - get(j,i) * v[i];
-
-    get(j,j) = v[j];
-    for (int i = 0; i < j; i++)
-      for (int k = j+1; k < n; k++)
-        get(k,j) -= get(k,i) * v[i];
-
-    for (int k = j+1; k < n; k++) {
-      if (v[j] == Constants<T>::zero)
-        throw InvalidDiagonalException<T>(v[j], j, "ldltDecomposition");
-      get(k,j) /= v[j];
-    }
-  }
-
-  for(int i = 0; i < n; i++) {
-    (*diagonal)[i] = get(i,i);
-    get(i,i) = Constants<T>::pone;
-    for (int j = i + 1; j < n; j++)
-      get(i,j) = Constants<T>::zero;
-  }
+  data.ldltDecomposition(*diagonal);
 
   triLower_ = true;
   assert(!isTriUpper());
-  delete[] v;
 }
 
-template<typename T> void assertPositive(const T v, const int j, const char * const where) {
-    if(v == Constants<T>::zero)
-      throw InvalidDiagonalException<T>(v, j, where);
-}
+template<typename T>
+void FullMatrix<T>::lltDecomposition() {
+  // Void matrix
+  if (rows() == 0 || cols() == 0) return;
 
-template<> void assertPositive(const S_t v, const int j, const char * const where) {
-    if(!(v > 0))
-      throw InvalidDiagonalException<S_t>(v, j, where);
-}
-
-template<> void assertPositive(D_t v, int j, const char * const where) {
-    if(!(v > 0))
-      throw InvalidDiagonalException<D_t>(v, j, where);
-}
-
-template<typename T> void FullMatrix<T>::lltDecomposition() {
-    // Void matrix
-    if (rows() == 0 || cols() == 0) return;
-
-  int n = this->rows();
-  assert(this->rows() == this->cols()); // We expect a square matrix
-
-  // Standard LLt factorization algorithm is:
-  //  L(j,j) = sqrt( A(j,j) - sum_{k < j} L(j,k)^2)
-  //  L(i,j) = ( A(i,j) - sum_{k < j} L(i,k)L(j,k) ) / L(j,j)
-
-    // from http://www.netlib.org/lapack/lawnspdf/lawn41.pdf page 120
-  const size_t n2 = (size_t) n*n;
-  const size_t n3 = n2 * n;
-  const size_t muls = n3 / 6 + n2 / 2 + n / 3;
-  const size_t adds = n3 / 6 - n / 6;
-    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
-
-  for (int j = 0; j < n; j++) {
-    for (int k = 0; k < j; k++)
-      get(j,j) -= get(j,k) * get(j,k);
-    assertPositive(get(j, j), j, "lltDecomposition");
-
-    get(j,j) = std::sqrt(get(j,j));
-
-    for (int k = 0; k < j; k++)
-      for (int i = j+1; i < n; i++)
-        get(i,j) -= get(i,k) * get(j,k);
-
-    for (int i = j+1; i < n; i++) {
-      get(i,j) /= get(j,j);
-    }
-  }
-
-  // For real matrices, we could use the lapack version, could be faster
-  // (There is no L.Lt factorisation for complex matrices in lapack)
-  //    int info = proxy_lapack::potrf('L', this->rows(), this->data.m, this->data.lda);
-  //    if(info != 0)
-  //        // throw a pointer to be compliant with the Status class
-  //        throw hmat::LapackException("potrf", info);
-
-  for (int j = 0; j < n; j++) {
-        for(int i = 0; i < j; i++) {
-            get(i,j) = Constants<T>::zero;
-        }
-    }
+  data.lltDecomposition();
 
   triLower_ = true;
   assert(!isTriUpper());
@@ -326,10 +214,24 @@ void FullMatrix<T>::luDecomposition() {
 }
 
 template<typename T>
-void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Diag unitriangular) const {
+FactorizationData<T> FullMatrix<T>::getFactorizationData(Factorization algo) const {
+  FactorizationData<T> result = { algo };
+  if (algo == Factorization::LU) {
+    HMAT_ASSERT(pivots);
+    result.data.pivots = pivots;
+  } else if (algo == Factorization::LDLT) {
+    HMAT_ASSERT(diagonal);
+    result.data.diagonal = diagonal;
+  }
+  return result;
+}
+
+template<typename T>
+void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
-  data.solveLowerTriangularLeft(x, pivots, unitriangular);
+  FactorizationData<T> context = getFactorizationData(algo);
+  data.solveLowerTriangularLeft(x, context, unitriangular, lowerStored);
 }
 
 
@@ -339,25 +241,27 @@ void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Diag unitriangul
 //  the matrix was factorized before.
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* x, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
-  data.solveUpperTriangularRight(x, unitriangular, lowerStored);
+  FactorizationData<T> context = getFactorizationData(algo);
+  data.solveUpperTriangularRight(x, context, unitriangular, lowerStored);
 }
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
-  data.solveUpperTriangularLeft(x, unitriangular, lowerStored);
+  FactorizationData<T> context = getFactorizationData(algo);
+  data.solveUpperTriangularLeft(x, context, unitriangular, lowerStored);
 }
 
 template<typename T>
 void FullMatrix<T>::solve(ScalarArray<T>* x) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
-  assert(pivots);
-  data.solve(x, pivots);
+  FactorizationData<T> context = getFactorizationData(Factorization::LU);
+  data.solve(x, context);
 }
 
 

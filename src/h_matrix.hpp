@@ -433,33 +433,33 @@ public:
 
     \param b la matrice B en entree, et X en sortie.
    */
-  void solveLowerTriangularLeft(HMatrix<T>* b, Diag unitriangular, MainOp=MainOp_Other) const;
+  void solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
   /*! \brief Resolution du systeme L x = x, avec this = L, et x = b vecteur.
 
     B est un vecteur a plusieurs colonnes, donc une FullMatrix.
 
     \param b Le vecteur b en entree, et x en sortie.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* b, Diag unitriangular) const;
-  void solveLowerTriangularLeft(FullMatrix<T>* b, Diag unitriangular) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
+  void solveLowerTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
   /*! Resolution de X U = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularRight(HMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const;
+  void solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
   /*! Resolution de U X = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularLeft(HMatrix<T>* b, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
+  void solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
   /*! Resolution de x U = b, avec U = this, et x = b.
 
     \warning b est un vecteur ligne et non colonne.
 
     \param b Le vecteur b en entree, x en sortie.
    */
-  void solveUpperTriangularRight(ScalarArray<T>* b, Diag unitriangular, Uplo lowerStored) const;
-  void solveUpperTriangularRight(FullMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const;
+  void solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
+  void solveUpperTriangularRight(FullMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
   /*! Resolution de U x = b, avec U = this, et x = b.
     U peut etre en fait L^T ou L est une matrice stockee inferieurement
     en precisant lowerStored = true
@@ -468,8 +468,8 @@ public:
     \param indice les indices portes par le vecteur
     \param lowerStored indique le stockage de la matrice U ou L^T
   */
-  void solveUpperTriangularLeft(ScalarArray<T>* b, Diag unitriangular, Uplo lowerStored) const;
-  void solveUpperTriangularLeft(FullMatrix<T>* b, Diag unitriangular, Uplo lowerStored) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
+  void solveUpperTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
   /*! Solve D x = b, in place with D a diagonal matrix.
 
      \param b Input: B, Output: X
@@ -486,7 +486,7 @@ public:
 
     \warning This doit etre factorisee avec \a HMatrix::luDecomposition() avant.
    */
-  void solve(HMatrix<T>* b, hmat_factorization_t) const;
+  void solve(HMatrix<T>* b, Factorization algo) const;
 
   void trsm( char side, char uplo, char trans, char diag, T alpha,
 	     HMatrix<T>* b ) const;

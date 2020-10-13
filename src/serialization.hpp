@@ -42,7 +42,7 @@ public:
     MatrixStructMarshaller(hmat_iostream writefunc, void * user_data):
         writeFunc_(writefunc), userData_(user_data) {}
 
-    void write(const HMatrix<T> * matrix, hmat_factorization_t factorization = hmat_factorization_none);
+    void write(const HMatrix<T> * matrix, Factorization factorization = Factorization::NONE);
 };
 
 template<typename T> class MatrixStructUnmarshaller {
@@ -56,13 +56,13 @@ template<typename T> class MatrixStructUnmarshaller {
     void * userData_;
     DofData * dofData_;
     MatrixSettings * settings_;
-    hmat_factorization_t factorization_;
+    Factorization factorization_;
 public:
     MatrixStructUnmarshaller(MatrixSettings * settings, hmat_iostream readfunc, void * user_data):
         readFunc_(readfunc), userData_(user_data), settings_(settings),
-        factorization_(hmat_factorization_none){}
+        factorization_(Factorization::NONE){}
     HMatrix<T> * read();
-    hmat_factorization_t factorization() {
+    Factorization factorization() {
         return factorization_;
     }
 };

@@ -42,7 +42,7 @@ namespace hmat {
 
     virtual void assembly(Assembly<T> &f, SymmetryFlag sym, bool ownAssembly) = 0;
 
-    virtual void factorization(hmat_factorization_t) = 0;
+    virtual void factorization(Factorization) = 0;
 
     virtual void inverse() = 0;
 
@@ -56,9 +56,9 @@ namespace hmat {
     virtual void addIdentity(T alpha) = 0;
     virtual void addRand(double epsilon) = 0;
 
-    virtual void solve(ScalarArray<T> &b, hmat_factorization_t) const = 0;
+    virtual void solve(ScalarArray<T> &b, Factorization) const = 0;
 
-    virtual void solveLower(ScalarArray<T> &b, hmat_factorization_t t, bool transpose) const = 0;
+    virtual void solveLower(ScalarArray<T> &b, Factorization t, bool transpose) const = 0;
 
     virtual void transpose() = 0;
 
@@ -74,7 +74,7 @@ namespace hmat {
 
     virtual void copy(IEngine <T> &result, bool structOnly) const = 0;
 
-    virtual void solve(IEngine<T>& b, hmat_factorization_t) const = 0;
+    virtual void solve(IEngine<T>& b, Factorization) const = 0;
 
     virtual void scale(T alpha) = 0;
   protected:

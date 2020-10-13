@@ -100,16 +100,16 @@ void DefaultEngine<T>::assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssemb
 }
 
 template<typename T>
-void DefaultEngine<T>::factorization(hmat_factorization_t t) {
-  switch(t)
+void DefaultEngine<T>::factorization(Factorization algo) {
+  switch(algo)
   {
-  case hmat_factorization_lu:
+  case Factorization::LU:
       this->hmat->luDecomposition(this->progress_);
       break;
-  case hmat_factorization_ldlt:
+  case Factorization::LDLT:
       this->hmat->ldltDecomposition(this->progress_);
       break;
-  case hmat_factorization_llt:
+  case Factorization::LLT:
       this->hmat->lltDecomposition(this->progress_);
       break;
   default:
@@ -158,15 +158,15 @@ void DefaultEngine<T>::addRand(double epsilon) {
 }
 
 template<typename T>
-void DefaultEngine<T>::solve(ScalarArray<T>& b, hmat_factorization_t t) const {
-  switch(t) {
-  case hmat_factorization_lu:
+void DefaultEngine<T>::solve(ScalarArray<T>& b, Factorization algo) const {
+  switch(algo) {
+  case Factorization::LU:
       this->hmat->solve(&b);
       break;
-  case hmat_factorization_ldlt:
+  case Factorization::LDLT:
       this->hmat->solveLdlt(&b);
       break;
-  case hmat_factorization_llt:
+  case Factorization::LLT:
       this->hmat->solveLlt(&b);
       break;
   default:
@@ -176,17 +176,17 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, hmat_factorization_t t) const {
 }
 
 template<typename T>
-void DefaultEngine<T>::solve(IEngine<T>& b, hmat_factorization_t f) const {
+void DefaultEngine<T>::solve(IEngine<T>& b, Factorization f) const {
   this->hmat->solve(b.hmat, f);
 }
 
 template<typename T>
-void DefaultEngine<T>::solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose) const {
-  Diag unitriangular = (t == hmat_factorization_lu || t == hmat_factorization_ldlt) ? Diag::UNIT : Diag::NONUNIT;
+void DefaultEngine<T>::solveLower(ScalarArray<T>& b, Factorization algo, bool transpose) const {
+  Diag unitriangular = (algo == Factorization::LU || algo == Factorization::LDLT) ? Diag::UNIT : Diag::NONUNIT;
   if (transpose)
-    this->hmat->solveUpperTriangularLeft(&b, unitriangular, Uplo::LOWER);
+    this->hmat->solveUpperTriangularLeft(&b, algo, unitriangular, Uplo::LOWER);
   else
-    this->hmat->solveLowerTriangularLeft(&b, unitriangular);
+    this->hmat->solveLowerTriangularLeft(&b, algo, unitriangular, Uplo::LOWER);
 }
 
 template<typename T> void DefaultEngine<T>::copy(IEngine<T> & result, bool structOnly) const {

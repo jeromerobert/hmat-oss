@@ -86,7 +86,7 @@ void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
       HMAT_ASSERT_MSG(0, "No valid assembly method in assemble_generic()");
 
     if(!assembleOnly)
-        hmat->factorize(ctx->factorization, ctx->progress);
+        hmat->factorize(hmat::convert_int_to_factorization(ctx->factorization), ctx->progress);
 }
 
 template<typename T, template <typename> class E>
@@ -128,7 +128,7 @@ template<typename T, template <typename> class E>
 void factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx) {
     DECLARE_CONTEXT;
     hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-    hmat->factorize(ctx->factorization, ctx->progress);
+    hmat->factorize(hmat::convert_int_to_factorization(ctx->factorization), ctx->progress);
 }
 
 template<typename T, template <typename> class E>

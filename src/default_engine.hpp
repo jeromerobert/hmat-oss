@@ -41,7 +41,7 @@ public:
   static int init();
   static void finalize(){}
   void assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssembly);
-  void factorization(hmat_factorization_t);
+  void factorization(Factorization);
   void inverse();
   void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
   void gemm(char transA, char transB, T alpha, const IEngine<T>& a, const IEngine<T>& b, T beta);
@@ -49,9 +49,9 @@ public:
   void trsm(char side, char uplo, char trans, char diag, T alpha, ScalarArray<T> &B) const;
   void addIdentity(T alpha);
   void addRand(double epsilon);
-  void solve(ScalarArray<T>& b, hmat_factorization_t) const;
-  void solve(IEngine<T>& b, hmat_factorization_t) const;
-  void solveLower(ScalarArray<T>& b, hmat_factorization_t t, bool transpose=false) const;
+  void solve(ScalarArray<T>& b, Factorization) const;
+  void solve(IEngine<T>& b, Factorization) const;
+  void solveLower(ScalarArray<T>& b, Factorization t, bool transpose=false) const;
   void copy(IEngine<T> & result, bool structOnly) const;
   void transpose();
   void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f);

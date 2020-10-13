@@ -59,6 +59,23 @@ enum class Diag {
     UNIT,
 };
 
+template<typename T>
+class FactorizationData {
+public:
+    Factorization algo;
+    union {  // This union is not to save space but to show that each
+             // algorithm should define its own auxiliary data.
+        int *pivots;
+        Vector<T> *diagonal;
+    } data;
+};
+
+// Convert from hmat_factorization_t into Factorization
+Factorization convert_int_to_factorization(int);
+
+// Convert from Factorization into hmat_factorization_t
+int convert_factorization_to_int(Factorization);
+
 /*! \brief Templated dense Matrix type.
 
   The template parameter represents the scalar type of the matrix elements.  The
@@ -287,7 +304,15 @@ public:
 
   /*! \brief LU decomposition (in-place)
     */
-  void luDecomposition(int *pivots) ;
+  void luDecomposition(int *pivots);
+
+  /*! \brief LLT decomposition (in-place)
+    */
+  void lltDecomposition();
+
+  /*! \brief LDLT decomposition (in-place)
+    */
+  void ldltDecomposition(Vector<T>& diagonal);
 
   /*! \brief Solve the system L X = B, with B = X on entry, and L = this.
 
@@ -296,7 +321,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, Diag unitriangular) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo uplo) const;
 
   /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
 
@@ -305,7 +330,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriangular, Uplo uplo) const;
+  void solveUpperTriangularRight(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo uplo) const;
 
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
@@ -314,7 +339,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangular, Uplo uplo) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo uplo) const;
 
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
@@ -323,7 +348,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solve(ScalarArray<T>* x, int *pivots) const;
+  void solve(ScalarArray<T>* x, const FactorizationData<T>& context) const;
 
   /*! \brief Compute the inverse of this in place.
    */

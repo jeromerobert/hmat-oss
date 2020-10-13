@@ -38,7 +38,7 @@ namespace hmat {
 template<typename T>
 HMatInterface<T>::HMatInterface(IEngine<T>* engine, const ClusterTree* _rows, const ClusterTree* _cols,
                                 SymmetryFlag sym, AdmissibilityCondition * admissibilityCondition) :
-  engine_(engine),factorizationType(hmat_factorization_none)
+  engine_(engine),factorizationType(Factorization::NONE)
 {
   DECLARE_CONTEXT;
   engine_->hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), 0, sym, admissibilityCondition);
@@ -52,7 +52,7 @@ HMatInterface<T>::~HMatInterface() {
 }
 
 template<typename T>
-HMatInterface<T>::HMatInterface(IEngine<T>* engine, HMatrix<T>* h, hmat_factorization_t factorization):
+HMatInterface<T>::HMatInterface(IEngine<T>* engine, HMatrix<T>* h, Factorization factorization):
   engine_(engine)
 {
   engine_->setHMatrix(h);
@@ -69,7 +69,7 @@ void HMatInterface<T>::assemble(Assembly<T>& f, SymmetryFlag sym, bool,
 }
 
 template<typename T>
-void HMatInterface<T>::factorize(hmat_factorization_t t, hmat_progress_t * progress) {
+void HMatInterface<T>::factorize(Factorization t, hmat_progress_t * progress) {
   DISABLE_THREADING_IN_BLOCK;
   DECLARE_CONTEXT;
   engine_->progress(progress);

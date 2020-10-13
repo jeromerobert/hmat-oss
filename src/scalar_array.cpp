@@ -83,6 +83,36 @@ using std::isnan;
 
 namespace hmat {
 
+Factorization convert_int_to_factorization(int t) {
+    switch (t) {
+    case hmat_factorization_none:
+        return Factorization::NONE;
+    case hmat_factorization_lu:
+        return Factorization::LU;
+    case hmat_factorization_ldlt:
+        return Factorization::LDLT;
+    case hmat_factorization_llt:
+        return Factorization::LLT;
+    default:
+        HMAT_ASSERT(false);
+    }
+}
+
+int convert_factorization_to_int(Factorization f) {
+    switch (f) {
+    case Factorization::NONE:
+        return hmat_factorization_none;
+    case Factorization::LU:
+        return hmat_factorization_lu;
+    case Factorization::LDLT:
+        return hmat_factorization_ldlt;
+    case Factorization::LLT:
+        return hmat_factorization_llt;
+    default:
+        HMAT_ASSERT(false);
+    }
+}
+
 /** ScalarArray */
 template<typename T>
 ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
@@ -600,6 +630,131 @@ template<typename T> void ScalarArray<T>::luDecomposition(int *pivots) {
     throw LapackException("getrf", info);
 }
 
+template<typename T>
+class InvalidDiagonalException: public LapackException {
+    std::string invalidDiagonalMessage_;
+public:
+    InvalidDiagonalException(const T value, const int j, const char * where)
+      : LapackException(where, -1)
+    {
+        std::stringstream sstm;
+        sstm << "In " << where << ", diagonal index "<< j << " has an invalid value " << value;
+        invalidDiagonalMessage_ = sstm.str();
+    }
+
+    virtual const char* what() const throw() {
+        return invalidDiagonalMessage_.c_str();
+    }
+
+    virtual ~InvalidDiagonalException() throw() {}
+};
+
+template<typename T> void assertPositive(const T v, const int j, const char * const where) {
+    if(v == Constants<T>::zero)
+      throw InvalidDiagonalException<T>(v, j, where);
+}
+
+template<> void assertPositive(const S_t v, const int j, const char * const where) {
+    if(!(v > 0))
+      throw InvalidDiagonalException<S_t>(v, j, where);
+}
+
+template<> void assertPositive(D_t v, int j, const char * const where) {
+    if(!(v > 0))
+      throw InvalidDiagonalException<D_t>(v, j, where);
+}
+
+template<typename T>
+void ScalarArray<T>::ldltDecomposition(Vector<T>& diagonal) {
+  assert(rows == cols); // We expect a square matrix
+  //TODO : add flops counter
+
+  // Standard LDLt factorization algorithm is:
+  //  diag[j] = A(j,j) - sum_{k < j} L(j,k)^2 diag[k]
+  //  L(i,j) = (A(i,j) - sum_{k < j} (L(i,k)L(j,k)diag[k])) / diag[j]
+  // See for instance http://en.wikipedia.org/wiki/Cholesky_decomposition
+  // An auxiliary array is introduced in order to perform less multiplications,
+  // see  algorithm 1 in http://icl.cs.utk.edu/projectsfiles/plasma/pubs/ICL-UT-11-03.pdf
+  int n = rows;
+  T* v = new T[n];
+  HMAT_ASSERT(v);
+  for (int j = 0; j < n; j++) {
+    for (int i = 0; i < j; i++)
+      v[i] = get(j,i) * get(i,i);
+
+    v[j] = get(j,j);
+    for (int i = 0; i < j; i++)
+      // Do not use the -= operator because it's buggy in the intel compiler
+      v[j] = v[j] - get(j,i) * v[i];
+
+    get(j,j) = v[j];
+    for (int i = 0; i < j; i++)
+      for (int k = j+1; k < n; k++)
+        get(k,j) -= get(k,i) * v[i];
+
+    for (int k = j+1; k < n; k++) {
+      if (v[j] == Constants<T>::zero)
+        throw InvalidDiagonalException<T>(v[j], j, "ldltDecomposition");
+      get(k,j) /= v[j];
+    }
+  }
+
+  for(int i = 0; i < n; i++) {
+    diagonal[i] = get(i,i);
+    get(i,i) = Constants<T>::pone;
+    for (int j = i + 1; j < n; j++)
+      get(i,j) = Constants<T>::zero;
+  }
+
+  delete[] v;
+}
+
+template<typename T>
+void ScalarArray<T>::lltDecomposition() {
+  assert(rows == cols); // We expect a square matrix
+
+  // Standard LLt factorization algorithm is:
+  //  L(j,j) = sqrt( A(j,j) - sum_{k < j} L(j,k)^2)
+  //  L(i,j) = ( A(i,j) - sum_{k < j} L(i,k)L(j,k) ) / L(j,j)
+
+    // from http://www.netlib.org/lapack/lawnspdf/lawn41.pdf page 120
+  int n = rows;
+  const size_t n2 = (size_t) n*n;
+  const size_t n3 = n2 * n;
+  const size_t muls = n3 / 6 + n2 / 2 + n / 3;
+  const size_t adds = n3 / 6 - n / 6;
+    increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+
+  for (int j = 0; j < n; j++) {
+    for (int k = 0; k < j; k++)
+      get(j,j) -= get(j,k) * get(j,k);
+    assertPositive(get(j, j), j, "lltDecomposition");
+
+    get(j,j) = std::sqrt(get(j,j));
+
+    for (int k = 0; k < j; k++)
+      for (int i = j+1; i < n; i++)
+        get(i,j) -= get(i,k) * get(j,k);
+
+    for (int i = j+1; i < n; i++) {
+      get(i,j) /= get(j,j);
+    }
+  }
+
+  // For real matrices, we could use the lapack version, could be faster
+  // (There is no L.Lt factorisation for complex matrices in lapack)
+  //    int info = proxy_lapack::potrf('L', this->rows(), this->data.m, this->data.lda);
+  //    if(info != 0)
+  //        // throw a pointer to be compliant with the Status class
+  //        throw hmat::LapackException("potrf", info);
+
+  for (int j = 0; j < n; j++) {
+        for(int i = 0; i < j; i++) {
+            get(i,j) = Constants<T>::zero;
+        }
+    }
+}
+
 // Helper functions for solveTriangular
 inline char to_blas(const Side side) {
     return side == Side::LEFT ? 'L' : 'R';
@@ -623,16 +778,16 @@ inline char to_blas(const Diag diag) {
 // solve LX = (P ^ -1 B), which is done by ZLASWP with
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
-void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, Diag unitriangular) const {
+void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo lowerStored) const {
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  if (pivots)
-    proxy_lapack::laswp(x->cols, x->ptr(), x->lda, 1, rows, pivots, 1);
-  proxy_cblas::trsm('L', 'L', 'N', to_blas(unitriangular), rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
+  if (context.algo == Factorization::LU && lowerStored == Uplo::LOWER)
+    proxy_lapack::laswp(x->cols, x->ptr(), x->lda, 1, rows, context.data.pivots, 1);
+  proxy_cblas::trsm('L', to_blas(lowerStored), lowerStored == Uplo::LOWER ? 'N' : 'T', to_blas(unitriangular), rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 // The resolution of the upper triangular system does not need to
@@ -641,7 +796,7 @@ void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, int* pivots, Di
 //  the matrix was factorized before.
 
 template<typename T>
-void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
+void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
 
@@ -656,7 +811,7 @@ void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, Diag unitriang
 }
 
 template<typename T>
-void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangular, Uplo lowerStored) const {
+void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>&, Diag unitriangular, Uplo lowerStored) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
 
@@ -671,7 +826,7 @@ void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Diag unitriangu
 }
 
 template<typename T>
-void ScalarArray<T>::solve(ScalarArray<T>* x, int *pivots) const {
+void ScalarArray<T>::solve(ScalarArray<T>* x, const FactorizationData<T>& context) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
 
@@ -683,7 +838,8 @@ void ScalarArray<T>::solve(ScalarArray<T>* x, int *pivots) const {
     const size_t muls = (n * n - n) * nrhs;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  ierr = proxy_lapack::getrs('N', rows, x->cols, const_ptr(), lda, pivots, x->ptr(), x->rows);
+  HMAT_ASSERT(context.algo == Factorization::LU);
+  ierr = proxy_lapack::getrs('N', rows, x->cols, const_ptr(), lda, context.data.pivots, x->ptr(), x->rows);
   if (ierr)
     throw LapackException("getrs", ierr);
 }
