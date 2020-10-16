@@ -94,12 +94,14 @@ hmat_create_shuffle_clustering(const hmat_clustering_algorithm_t* algo, int from
 hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo)
 {
     struct hmat_cluster_tree_create_context_t ctx;
+    memset(&ctx, 0, sizeof(ctx));
     ctx.coordinates = coord;
     ctx.dimension = dimension;
     ctx.number_of_points = size;
     ctx.number_of_dof = ctx.number_of_points;
     ctx.span_offsets = NULL;
     ctx.spans = NULL;
+    ctx.group_index = NULL;
     ClusterTreeBuilder builder(*reinterpret_cast<ClusteringAlgorithm*>(algo));
     ctx.builder = reinterpret_cast<hmat_cluster_tree_builder_t*>(&builder);
     return hmat_create_cluster_tree_generic(&ctx);
@@ -108,7 +110,7 @@ hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int
 hmat_cluster_tree_t * hmat_create_cluster_tree_generic(struct hmat_cluster_tree_create_context_t * ctx) {
     DofCoordinates dofs(ctx->coordinates, ctx->dimension, ctx->number_of_points, true,
                         ctx->number_of_dof, ctx->span_offsets, ctx->spans);
-    ClusterTree * r = reinterpret_cast<const ClusterTreeBuilder*>(ctx->builder)->build(dofs);
+    ClusterTree * r = reinterpret_cast<const ClusterTreeBuilder*>(ctx->builder)->build(dofs, ctx->group_index);
     return reinterpret_cast<hmat_cluster_tree_t *>(r);
 }
 
@@ -134,12 +136,14 @@ void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb)
 hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int dimension, int size, const hmat_cluster_tree_builder_t* ctb)
 {
     struct hmat_cluster_tree_create_context_t ctx;
+    memset(&ctx, 0, sizeof(ctx));
     ctx.coordinates = coord;
     ctx.dimension = dimension;
     ctx.number_of_points = size;
     ctx.number_of_dof = ctx.number_of_points;
     ctx.span_offsets = NULL;
     ctx.spans = NULL;
+    ctx.group_index = NULL;
     ctx.builder = ctb;
     return hmat_create_cluster_tree_generic(&ctx);
 }

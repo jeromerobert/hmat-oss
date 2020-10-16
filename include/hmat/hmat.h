@@ -263,6 +263,8 @@ struct hmat_cluster_tree_create_context_t {
     unsigned * span_offsets;
     /** The id of the points in each span */
     unsigned * spans;
+    /** Group index of dofs (may be NULL) */
+    int * group_index;
     /** pointer to an opaque ClusterTreeBuilder */
     const hmat_cluster_tree_builder_t* builder;
 };
