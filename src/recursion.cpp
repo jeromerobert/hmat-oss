@@ -103,9 +103,11 @@ namespace hmat {
         for (int i=0 ; i<me()->nrChildRow() ; i++) {
           // Update b[k,i] with the contribution of the solutions already computed b[k,j] j<i
           if (!b->get(k, i)) continue;
-          for (int j=0 ; j<i ; j++)
-            if (b->get(k, j) && (lowerStored ? me()->get(i,j) : me()->get(j,i)))
-              b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), lowerStored ? me()->get(i,j) : me()->get(j,i), Constants<T>::pone);
+          for (int j=0 ; j<i ; j++) {
+            const Mat* u_ji = (lowerStored ? me()->get(i, j) : me()->get(j, i));
+            if (b->get(k, j) && u_ji)
+              b->get(k, i)->gemm('N', lowerStored ? 'T' : 'N', Constants<T>::mone, b->get(k, j), u_ji, Constants<T>::pone);
+          }
           // Solve the i-th diagonal system
           me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), unitriangular, lowerStored);
         }
@@ -260,18 +262,21 @@ namespace hmat {
       me()->get(k,k)->luDecomposition(progress);
       // Solve the rest of line k: solve Lkk Uki = Hki and get Uki
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
-        if (me()->get(k,k) && me()->get(k,i))
+        if (me()->get(k,i))
           me()->get(k,k)->solveLowerTriangularLeft(me()->get(k,i), true);
       // Solve the rest of column k: solve Lik Ukk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
-        if (me()->get(k,k) && me()->get(i,k))
+        if (me()->get(i,k))
           me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, false);
       // update the rest of the matrix starting at (k+1, k+1)
-      for (int i=k+1 ; i<me()->nrChildRow() ; i++)
+      for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
+        if (!me()->get(i,k))
+          continue;
         for (int j=k+1 ; j<me()->nrChildRow() ; j++)
           // Hij <- Hij - Lik Ukj
-          if (me()->get(i,j) && me()->get(i,k) && me()->get(k,j))
-          me()->get(i,j)->gemm('N', 'N', Constants<T>::mone, me()->get(i,k), me()->get(k,j), Constants<T>::pone);
+          if (me()->get(i,j) && me()->get(k,j))
+            me()->get(i,j)->gemm('N', 'N', Constants<T>::mone, me()->get(i,k), me()->get(k,j), Constants<T>::pone);
+      }
     }
 
   }
@@ -360,12 +365,17 @@ namespace hmat {
       me()->get(k,k)->lltDecomposition(progress);
       // Solve the rest of column k: solve Lik tLkk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
-        me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, true);
+        if (me()->get(i,k))
+          me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), false, true);
       // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
-      for (int i=k+1 ; i<me()->nrChildRow() ; i++)
+      for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
+        if (!me()->get(i,k))
+          continue;
         for (int j=k+1 ; j<=i ; j++)
           // Hij <- Hij - Lik tLjk
-          me()->get(i,j)->gemm('N', 'T', Constants<T>::mone, me()->get(i,k), me()->get(j,k), Constants<T>::pone);
+          if (me()->get(i,j) && me()->get(j,k))
+            me()->get(i,j)->gemm('N', 'T', Constants<T>::mone, me()->get(i,k), me()->get(j,k), Constants<T>::pone);
+      }
     }
   }
 
@@ -389,12 +399,14 @@ namespace hmat {
 
       for (int k=0 ; k<b->nrChildCol() ; k++) { // Loop on the column of the RHS
         for (int i=me()->nrChildRow()-1 ; i>=0 ; i--) {
+          if (!me()->get(i,k) || !b->get(i,k))
+            continue;
           // Solve the i-th diagonal system
           me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored, mainOp);
           // Update b[j,k] j<i with the contribution of the solutions just computed b[i,k]
           for (int j=0 ; j<i ; j++) {
             const Mat* u_ji = (lowerStored ? me()->get(i, j) : me()->get(j, i));
-            if(u_ji)
+            if(u_ji && b->get(j,k))
               b->get(j,k)->gemm(lowerStored ? 'T' : 'N', 'N', Constants<T>::mone, u_ji,
                                 b->get(i,k), Constants<T>::pone, mainOp);
           }
