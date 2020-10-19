@@ -399,7 +399,7 @@ namespace hmat {
 
       for (int k=0 ; k<b->nrChildCol() ; k++) { // Loop on the column of the RHS
         for (int i=me()->nrChildRow()-1 ; i>=0 ; i--) {
-          if (!me()->get(i,k) || !b->get(i,k))
+          if (!b->get(i,k))
             continue;
           // Solve the i-th diagonal system
           me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), unitriangular, lowerStored, mainOp);
