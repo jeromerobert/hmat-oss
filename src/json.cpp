@@ -80,34 +80,47 @@ void JSONDumper::nextChild(bool last) {
     nodeInfo_.str("");
 }
 
-void JSONDumper::dumpPoints() {
+static void
+dump_points(std::ostream& out, const std::string name, const DofCoordinates* points) {
     string delimiter;
-    const DofCoordinates* points = rows_->coordinates();
-    const int* indices = rows_->indices();
     const int dimension = points->dimension();
-    out_ << "  \"points\": [" << endl;
+    out << "  \"" << name << "\": [" << endl;
     delimiter = "";
     for (int i = 0; i < points->numberOfDof(); i++) {
-        out_ << "    " << delimiter << "[";
+        out << "    " << delimiter << "[";
         if (dimension > 0) {
-            out_ << points->spanCenter(i, 0);
+            out << points->spanCenter(i, 0);
             for (int dim = 1; dim < dimension; ++dim) {
-                out_ << ", " << points->spanCenter(i, dim);
+                out << ", " << points->spanCenter(i, dim);
             }
         }
-        out_ << "]" << endl;
+        out << "]" << endl;
         delimiter = " ,";
     }
+    out << "  ]," << endl;
+}
+
+static void
+dump_mapping(std::ostream& out, const std::string name, int numberOfDof, const int* indices) {
     // Mapping
-    out_ << "  ]," << endl
-         << "  \"mapping\": [" << endl
-         << "    ";
+    string delimiter;
+    out << "  \"" << name << "\": [" << endl
+        << "    ";
     delimiter = "";
-    for (int i = 0; i < points->numberOfDof(); i++) {
-        out_ << delimiter << indices[i];
+    for (int i = 0; i < numberOfDof; i++) {
+        out << delimiter << indices[i];
         delimiter = " ,";
     }
-    out_ << "]," << endl;
+    out << "]," << endl;
+}
+
+void JSONDumper::dumpPoints() {
+    dump_points(out_, "points", rows_->coordinates());
+    dump_mapping(out_, "mapping", rows_->coordinates()->numberOfDof(), rows_->indices());
+    if (rows_ != cols_) {
+        dump_points(out_, "points_cols", cols_->coordinates());
+        dump_mapping(out_, "mapping_cols", cols_->coordinates()->numberOfDof(), cols_->indices());
+    }
 }
 
 void JSONDumper::dump() {
