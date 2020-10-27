@@ -67,8 +67,9 @@ struct MatrixSettings {
 /** Settings local to a matrix bloc */
 struct LocalSettings {
     const MatrixSettings * global;
-    explicit LocalSettings(const MatrixSettings * s): global(s) {}
-    //TODO add epsilons
+    LocalSettings(const MatrixSettings * s, double epsilon): global(s), epsilon_(epsilon) {}
+    /// epsilon used for SVD truncations
+    double epsilon_;
 };
 
 /** Degrees of freedom permutation of a vector required in HMatrix context.
@@ -122,8 +123,6 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   int rank_;
   /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
   int approximateRank_;
-  /// epsilon used for SVD truncations
-  double epsilon_;
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
@@ -279,7 +278,7 @@ public:
    * Used internally for deserialization
    * @see serialization.hpp
    */
-  static HMatrix<T> * unmarshall(const MatrixSettings * settings, int rank, int rankApprox, char bitfield);
+  static HMatrix<T> * unmarshall(const MatrixSettings * settings, int rank, int rankApprox, char bitfield, double epsilon);
 
   /** Returns a copy of this (with all the structure and data)
        */
@@ -321,7 +320,7 @@ public:
   /*! \brief Return low rank epsilon
    */
   double lowRankEpsilon() const {
-    return epsilon_;
+    return localSettings.epsilon_;
   }
 
   /** Recursively set low-rank epsilon member

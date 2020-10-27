@@ -92,6 +92,7 @@ void MatrixStructMarshaller<T>::writeTreeNode(const HMatrix<T> * m) {
     } else {
         writeValue(UNINITIALIZED_BLOCK);
     }
+    writeValue(m->lowRankEpsilon());
 }
 
 /**
@@ -169,7 +170,8 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::readTreeNode(HMatrix<T> *) {
         return NULL;
     int rankApprox = readValue<int>();
     int rank = readValue<int>();
-    return HMatrix<T>::unmarshall(settings_, rank, rankApprox, bitfield);
+    double epsilon = readValue<double>();
+    return HMatrix<T>::unmarshall(settings_, rank, rankApprox, bitfield, epsilon);
 }
 
 /** Read a scalar value */

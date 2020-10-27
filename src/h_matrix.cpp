@@ -144,10 +144,10 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
                     int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
   : Tree<HMatrix<T> >(NULL, _depth), RecursionMatrix<T, HMatrix<T> >(),
     rows_(_rows), cols_(_cols), rk_(NULL),
-    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK), epsilon_(1e-4),
+    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary_(false),
-    ownRowsClusterTree_(false), ownColsClusterTree_(false), localSettings(settings)
+    ownRowsClusterTree_(false), ownColsClusterTree_(false), localSettings(settings, 1e-4)
 {
   if (isVoid())
     return;
@@ -204,10 +204,9 @@ template<typename T>
 HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
-    epsilon_(-1.0), // invalid value to ensure that caller sets it afterwards
     isUpper(false), isLower(false), isTriUpper(false), isTriLower(false),
     keepSameRows(true), keepSameCols(true), temporary_(false), ownRowsClusterTree_(false),
-    ownColsClusterTree_(false), localSettings(settings)
+    ownColsClusterTree_(false), localSettings(settings, -1.0)
     {}
 
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withRowChild, bool withColChild) const {
@@ -215,7 +214,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
     r->rows_ = rows_;
     r->cols_ = cols_;
     r->temporary_ = temporary;
-    r->epsilon_ = epsilon_;
+    r->localSettings.epsilon_ = localSettings.epsilon_;
     if(withRowChild || withColChild) {
         // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
         // we want to go 1 level below data (which is an Rk)
@@ -230,10 +229,10 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
                 child->temporary_ = temporary;
                 child->rows_ = withRowChild ? rows_->getChild(i) : rows_;
                 child->cols_ = withColChild ? cols_->getChild(j) : cols_;
-                child->epsilon_ = epsilon_;
+                child->localSettings.epsilon_ = localSettings.epsilon_;
                 assert(child->rows_ != NULL);
                 assert(child->cols_ != NULL);
-                assert(child->epsilon_ > 0);
+                assert(child->localSettings.epsilon_ > 0);
                 child->rk(NULL);
                 r->insertChild(i, j, child);
             }
@@ -248,7 +247,7 @@ template<typename T> HMatrix<T>* HMatrix<T>::internalCopy(
     r->temporary_ = true;
     r->rows_ = rows;
     r->cols_ = cols;
-    r->epsilon_ = epsilon_;
+    r->localSettings.epsilon_ = localSettings.epsilon_;
     return r;
 }
 
@@ -1584,7 +1583,7 @@ void HMatrix<T>::truncate() {
   if (this->isLeaf()) {
     if (this->isRkMatrix()) {
       if (rk()) {
-        rk()->truncate(epsilon_);
+        rk()->truncate(localSettings.epsilon_);
         rank_ = rk()->rank();
       }
     }
@@ -1664,7 +1663,7 @@ void HMatrix<T>::copy(const HMatrix<T>* o) {
 
 template<typename T>
 void HMatrix<T>::lowRankEpsilon(double epsilon, bool recursive) {
-  epsilon_ = epsilon;
+  localSettings.epsilon_ = epsilon;
   if(recursive && !this->isLeaf()) {
     for (int i = 0; i < this->nrChild(); i++) {
       HMatrix<T>* child = this->getChild(i);
@@ -2561,7 +2560,7 @@ template<typename T> std::string HMatrix<T>::toString() const {
 }
 
 template<typename T>
-HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, int appoxRank, char bitfield) {
+HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, int approxRank, char bitfield, double epsilon) {
     HMatrix<T> * m = new HMatrix<T>(settings);
     m->rank_ = rank;
     m->isUpper = (bitfield & 1 << 0 ? true : false);
@@ -2570,7 +2569,8 @@ HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, i
     m->isTriLower = (bitfield & 1 << 3 ? true : false);
     m->keepSameRows = (bitfield & 1 << 4 ? true : false);
     m->keepSameCols = (bitfield & 1 << 5 ? true : false);
-    m->approximateRank_ = appoxRank;
+    m->approximateRank_ = approxRank;
+    m->lowRankEpsilon(epsilon, false);
     return m;
 }
 
@@ -2580,9 +2580,9 @@ HMatrix<T>::HMatrix(const ClusterTree * rows, const ClusterTree * cols,
                     std::vector<HMatrix*> & _children):
     Tree<HMatrix<T> >(NULL, 0), rows_(rows), cols_(cols),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK),
-    approximateRank_(UNINITIALIZED_BLOCK), epsilon_(-1.0), isUpper(false), isLower(false),
+    approximateRank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
     keepSameRows(false), keepSameCols(false), temporary_(true), ownRowsClusterTree_(false),
-    ownColsClusterTree_(false), localSettings(_children[0]->localSettings.global) {
+    ownColsClusterTree_(false), localSettings(_children[0]->localSettings.global, -1.0) {
     this->children = _children;
 }
 
