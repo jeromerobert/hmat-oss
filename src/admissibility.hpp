@@ -125,6 +125,17 @@ public:
   virtual void clean(const ClusterTree&) const {}
 
   virtual std::string str() const = 0;
+
+  /**
+   * @brief Set ratio to cut tall and skinny matrices
+   * @param ratio  allows to cut tall and skinny matrices along only one direction:
+      if size(rows) < ratio*size(cols), rows is not subdivided.
+      if size(cols) < ratio*size(rows), cols is not subdivided.
+ */
+  void setRatio(double ratio) { ratio_ = ratio; }
+
+protected:
+  double ratio_;
 };
 
 /**
@@ -145,15 +156,12 @@ public:
   bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true when there is less than 2 rows or cols
   bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
-  std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
   void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
   double getEta() const;
-  void setRatio(double ratio);
 protected:
   double eta_;
-  double ratio_;
 };
 
 class AlwaysAdmissibilityCondition : public AdmissibilityCondition {

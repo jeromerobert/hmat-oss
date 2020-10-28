@@ -32,7 +32,14 @@ namespace hmat {
 std::pair<bool, bool>
 AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
 {
-  return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
+  if (cols.data.size() < ratio_ * rows.data.size() ) {
+    // rows are two times larger than cols so we won't subdivide cols
+    return std::pair<bool, bool>(!rows.isLeaf(), false);
+  } else if (rows.data.size() < ratio_ * cols.data.size() ) {
+    // cols are two times larger than rows so we won't subdivide rows
+    return std::pair<bool, bool>(false, !cols.isLeaf());
+  } else // approximately the same size, we can subdivide both
+    return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
 }
 
 void*
@@ -48,20 +55,7 @@ AdmissibilityCondition::getData(const ClusterTree& current, bool) const
 }
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(double eta, double ratio):
-    eta_(eta), ratio_(ratio) {}
-
-std::pair<bool, bool>
-StandardAdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
-{
-  if (cols.data.size() < ratio_ * rows.data.size() ) {
-    // rows are two times larger than cols so we won't subdivide cols
-    return std::pair<bool, bool>(!rows.isLeaf(), false);
-  } else if (rows.data.size() < ratio_ * cols.data.size() ) {
-    // cols are two times larger than rows so we won't subdivide rows
-    return std::pair<bool, bool>(false, !cols.isLeaf());
-  } else // approximately the same size, we can subdivide both
-  return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
-}
+    eta_(eta) { ratio_ = ratio; }
 
 bool
 StandardAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const
@@ -110,10 +104,6 @@ double StandardAdmissibilityCondition::getEta() const {
     return eta_;
 }
 
-void StandardAdmissibilityCondition::setRatio(double ratio) {
-    ratio_ = ratio;
-}
-
 struct DefaultBlockSizeDetector: public AlwaysAdmissibilityCondition::BlockSizeDetector {
   static DefaultBlockSizeDetector& instance()
   {
@@ -136,6 +126,7 @@ AlwaysAdmissibilityCondition::AlwaysAdmissibilityCondition(size_t max_block_size
     max_block_size_(max_block_size), min_nr_block_(min_block),
     split_rows_cols_(row_split, col_split), never_(false) {
     HMAT_ASSERT(row_split || col_split);
+    ratio_ = 0.5;
     blockSizeDetector_->compute(max_block_size_, min_nr_block_, never_);
 }
 
@@ -160,10 +151,9 @@ std::pair<bool, bool> AlwaysAdmissibilityCondition::splitRowsCols(const ClusterT
     std::pair<bool, bool> s = split_rows_cols_;
     s.first = s.first && !r.isLeaf();
     s.second = s.second && !c.isLeaf();
-    if(never_ && s.first && s.second) {
-        // when not compressing, try to do square blocks
-        s.first = r.data.size() * 2 >= c.data.size();
-        s.second = r.data.size() <= 2 * c.data.size();
+    if(s.first && s.second) {
+        // Try to do square blocks
+        s = AdmissibilityCondition::splitRowsCols(r, c);
     }
     if(!s.first && !s.second) {
         // The split_rows_cols_ parameter cannot be honored because we reach a leaf.

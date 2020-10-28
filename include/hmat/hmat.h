@@ -306,6 +306,8 @@ HMAT_API const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree);
 typedef struct {
     /** eta for Hackbusch condition */
     double eta;
+    /** ratio (in [0, 0.5]) to prevent tall and skinny blocks */
+    double ratio;
 } hmat_admissibility_param_t;
 
 /** Init an hmat_admissibility_param structure with default values */
