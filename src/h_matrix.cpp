@@ -1751,24 +1751,24 @@ void HMatrix<T>::inverse() {
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp) const {
+void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
   DECLARE_CONTEXT;
   if (isVoid()) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
-    this->recursiveSolveLowerTriangularLeft(b, algo, unitriangular, lowerStored);
+    this->recursiveSolveLowerTriangularLeft(b, algo, diag, uplo);
   } else {
     // if B is a leaf, the resolve is done by column
     if (b->isLeaf()) {
       if (b->isFullMatrix()) {
-        this->solveLowerTriangularLeft(b->full(), algo, unitriangular, lowerStored);
+        this->solveLowerTriangularLeft(b->full(), algo, diag, uplo);
       } else {
         if (b->isNull()) {
           return;
         }
         assert(b->isRkMatrix());
         HMatrix<T> * tmp = b->subset(this->cols(), b->cols());
-        this->solveLowerTriangularLeft(tmp->rk()->a, algo, unitriangular, lowerStored);
+        this->solveLowerTriangularLeft(tmp->rk()->a, algo, diag, uplo);
         if(tmp != b)
             delete tmp;
       }
@@ -1779,7 +1779,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
       // TODO: check if it's not too bad
       FullMatrix<T> bFull(b->rows(), b->cols());
       b->evalPart(&bFull, b->rows(), b->cols());
-      this->solveLowerTriangularLeft(&bFull, algo, unitriangular, lowerStored);
+      this->solveLowerTriangularLeft(&bFull, algo, diag, uplo);
       b->clear();
       b->axpy(Constants<T>::pone, &bFull);
     }
@@ -1787,7 +1787,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
@@ -1795,7 +1795,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
     // LAPACK resolution
-    full()->solveLowerTriangularLeft(b, algo, unitriangular, lowerStored);
+    full()->solveLowerTriangularLeft(b, algo, diag, uplo);
   } else {
     //  Forward substitution:
     //  [ L11 |  0  ]    [ X1 ]   [ b1 ]
@@ -1814,33 +1814,33 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
       offset += get(i, i)->cols()->size();
       // Update sub[i] with the contribution of the solutions already computed sub[j] j<i
       for (int j=0 ; j<i ; j++) {
-        const HMatrix<T>* u_ji = (lowerStored == Uplo::LOWER ? get(i, j) : get(j, i));
+        const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(lowerStored == Uplo::LOWER ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
+          u_ji->gemv(uplo == Uplo::LOWER ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
       }
       // Solve the i-th diagonal system
-      get(i, i)->solveLowerTriangularLeft(&sub[i], algo, unitriangular, lowerStored);
+      get(i, i)->solveLowerTriangularLeft(&sub[i], algo, diag, uplo);
     }
   }
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
-  solveLowerTriangularLeft(&b->data, algo, unitriangular, lowerStored);
+void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
+  solveLowerTriangularLeft(&b->data, algo, diag, uplo);
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // The recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
-    this->recursiveSolveUpperTriangularRight(b, algo, unitriangular, lowerStored);
+    this->recursiveSolveUpperTriangularRight(b, algo, diag, uplo);
   } else {
     // if B is a leaf, the resolution is done by column
     if (b->isLeaf()) {
       if (b->isFullMatrix()) {
-        this->solveUpperTriangularRight(b->full(), algo, unitriangular, lowerStored);
+        this->solveUpperTriangularRight(b->full(), algo, diag, uplo);
       } else if(!b->isNull() && b->isRkMatrix()){
         // Xa Xb^t U = Ba Bb^t
         //   - Xa = Ba
@@ -1852,7 +1852,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
         else
             tmp = b->subset(b->rows(), this->rows());
         // Replace Xb^t U = Bb^t by U^t Xb = Bb
-        this->solveLowerTriangularLeft(tmp->rk()->b, algo, unitriangular, lowerStored);
+        this->solveLowerTriangularLeft(tmp->rk()->b, algo, diag, uplo);
         if(tmp != b)
             delete tmp;
       } else {
@@ -1866,7 +1866,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
       // TODO: check if it's not too bad
       FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
       b->evalPart(bFull, b->rows(), b->cols());
-      this->solveUpperTriangularRight(bFull, algo, unitriangular, lowerStored);
+      this->solveUpperTriangularRight(bFull, algo, diag, uplo);
       // int bRows = b->rows()->size();
       // int bCols = b->cols()->size();
       // Vector<T> bRow(bCols);
@@ -1887,12 +1887,12 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
    Only called by luDecomposition
  */
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp) const {
+void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
-    this->recursiveSolveUpperTriangularLeft(b, algo, unitriangular, lowerStored);
+    this->recursiveSolveUpperTriangularLeft(b, algo, diag, uplo);
   } else if(!b->isLeaf()) {
     // B isn't a leaf, then so is L
     assert(this->isLeaf());
@@ -1900,18 +1900,18 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
     // TODO: check if it's not too bad
     FullMatrix<T> bFull(b->rows(), b->cols());
     b->evalPart(&bFull, b->rows(), b->cols());
-    this->solveUpperTriangularLeft(&bFull, algo, unitriangular, lowerStored);
+    this->solveUpperTriangularLeft(&bFull, algo, diag, uplo);
     b->clear();
     b->axpy(Constants<T>::pone, &bFull);
   } else if(b->isNull()) {
     // nothing to do
   } else {
-    HMatrix * bSubset = b->subset(lowerStored == Uplo::LOWER ? this->rows() : this->cols(), b->cols());
+    HMatrix * bSubset = b->subset(uplo == Uplo::LOWER ? this->rows() : this->cols(), b->cols());
     if (bSubset->isFullMatrix()) {
-      this->solveUpperTriangularLeft(bSubset->full(), algo, unitriangular, lowerStored);
+      this->solveUpperTriangularLeft(bSubset->full(), algo, diag, uplo);
     } else {
       assert(b->isRkMatrix());
-      this->solveUpperTriangularLeft(bSubset->rk()->a, algo, unitriangular, lowerStored);
+      this->solveUpperTriangularLeft(bSubset->rk()->a, algo, diag, uplo);
     }
     if(b != bSubset)
         delete bSubset;
@@ -1919,14 +1919,14 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // B is given in form of a column vector
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
-    full()->solveUpperTriangularRight(b, algo, unitriangular, lowerStored);
+    full()->solveUpperTriangularRight(b, algo, diag, uplo);
   } else {
     int offset(0);
     vector<ScalarArray<T> > sub;
@@ -1938,30 +1938,30 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
     for (int i=0 ; i<nrChildRow() ; i++) {
       // Update sub[i] with the contribution of the solutions already computed sub[j]
       for (int j=0 ; j<i ; j++) {
-        const HMatrix<T>* u_ji = (lowerStored == Uplo::LOWER ? get(i, j) : get(j, i));
+        const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(lowerStored == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
+          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
       }
       // Solve the i-th diagonal system
-      get(i, i)->solveUpperTriangularRight(&sub[i], algo, unitriangular, lowerStored);
+      get(i, i)->solveUpperTriangularRight(&sub[i], algo, diag, uplo);
     }
   }
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
-  solveUpperTriangularRight(&b->data, algo, unitriangular, lowerStored);
+void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
+  solveUpperTriangularRight(&b->data, algo, diag, uplo);
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
-  assert(rows()->size() == b->rows || lowerStored == Uplo::UPPER);
-  assert(cols()->size() == b->rows || lowerStored == Uplo::LOWER);
+  assert(rows()->size() == b->rows || uplo == Uplo::UPPER);
+  assert(cols()->size() == b->rows || uplo == Uplo::LOWER);
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
-    full()->solveUpperTriangularLeft(b, algo, unitriangular, lowerStored);
+    full()->solveUpperTriangularLeft(b, algo, diag, uplo);
   } else {
 
     int offset(0);
@@ -1973,20 +1973,20 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo,
     }
     for (int i=nrChildRow()-1 ; i>=0 ; i--) {
       // Solve the i-th diagonal system
-      get(i, i)->solveUpperTriangularLeft(&sub[i], algo, unitriangular, lowerStored);
+      get(i, i)->solveUpperTriangularLeft(&sub[i], algo, diag, uplo);
       // Update sub[j] j<i with the contribution of the solutions just computed sub[i]
       for (int j=0 ; j<i ; j++) {
-        const HMatrix<T>* u_ji = (lowerStored == Uplo::LOWER ? get(i, j) : get(j, i));
+        const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(lowerStored == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[i], Constants<T>::pone, &sub[j]);
+          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[i], Constants<T>::pone, &sub[j]);
       }
     }
   }
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
-  solveUpperTriangularLeft(&b->data, algo, unitriangular, lowerStored);
+void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
+  solveUpperTriangularLeft(&b->data, algo, diag, uplo);
 }
 
 template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progress) {

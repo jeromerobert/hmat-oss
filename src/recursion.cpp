@@ -83,7 +83,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularRight(Mat* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+  void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularRight(Mat* b, Factorization algo, Diag diag, Uplo uplo) const {
 
     //  Backward substitution:
     //  [ X11 | X12 ]    [ U11 | U12 ]   [ b11 | b12 ]
@@ -104,12 +104,12 @@ namespace hmat {
           // Update b[k,i] with the contribution of the solutions already computed b[k,j] j<i
           if (!b->get(k, i)) continue;
           for (int j=0 ; j<i ; j++) {
-            const Mat* u_ji = (lowerStored == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
+            const Mat* u_ji = (uplo == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
             if (b->get(k, j) && u_ji)
-              b->get(k, i)->gemm('N', lowerStored == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, b->get(k, j), u_ji, Constants<T>::pone);
+              b->get(k, i)->gemm('N', uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, b->get(k, j), u_ji, Constants<T>::pone);
           }
           // Solve the i-th diagonal system
-          me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), algo, unitriangular, lowerStored);
+          me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), algo, diag, uplo);
         }
 
     } else if (me()->nrChildRow()>1 && b->nrChildCol()==1 && b->nrChildRow()>1) {
@@ -118,7 +118,7 @@ namespace hmat {
       //  [ --------- ] * [ ----+---- ] = [ --------- ]
       //  [    X21    ]   [  0  | U22 ]   [    b21    ]
       for (int k=0 ; k<b->nrChildRow() ; k++) // loop on the rows of b
-        me()->recursiveSolveUpperTriangularRight(b->get(k,0), algo, unitriangular, lowerStored);
+        me()->recursiveSolveUpperTriangularRight(b->get(k,0), algo, diag, uplo);
 
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularRight: case not yet handled "
@@ -186,7 +186,7 @@ namespace hmat {
   }
 
   template<typename T, typename Mat>
-  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp mainOp) const {
+  void RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft(Mat* b, Factorization algo, Diag diag, Uplo uplo, MainOp mainOp) const {
 
     //  Forward substitution:
     //  [ L11 |  0  ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -211,7 +211,7 @@ namespace hmat {
               b->get(i, k)->gemm('N', 'N', Constants<T>::mone, me()->get(i, j), b->get(j,k),
                                  Constants<T>::pone, mainOp);
           // Solve the i-th diagonal system
-          me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), algo, unitriangular, lowerStored, mainOp);
+          me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), algo, diag, uplo, mainOp);
         }
 
     } else if (me()->nrChildCol()>1 && b->nrChildRow()==1 && b->nrChildCol()>1) {
@@ -220,7 +220,7 @@ namespace hmat {
       //  [ ----+---- ] *  [ X11 | X12 ] = [ b11 | b12 ]
       //  [ L21 | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
-        me()->recursiveSolveLowerTriangularLeft(b->get(0,k), algo, unitriangular, lowerStored, mainOp);
+        me()->recursiveSolveLowerTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft: case not yet handled "
                              "Nr Child A[%d, %d] b[%d, %d] "
@@ -380,7 +380,7 @@ namespace hmat {
 
   template<typename T, typename Mat>
   void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft(Mat* b,
-     Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp mainOp) const {
+     Factorization algo, Diag diag, Uplo uplo, MainOp mainOp) const {
 
     //  Backward substitution:
     //  [ U11 | U12 ]    [ X11 | X12 ]   [ b11 | b12 ]
@@ -401,12 +401,12 @@ namespace hmat {
           if (!b->get(i,k))
             continue;
           // Solve the i-th diagonal system
-          me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), algo, unitriangular, lowerStored, mainOp);
+          me()->get(i, i)->solveUpperTriangularLeft(b->get(i,k), algo, diag, uplo, mainOp);
           // Update b[j,k] j<i with the contribution of the solutions just computed b[i,k]
           for (int j=0 ; j<i ; j++) {
-            const Mat* u_ji = (lowerStored == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
+            const Mat* u_ji = (uplo == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
             if(u_ji && b->get(j,k))
-              b->get(j,k)->gemm(lowerStored == Uplo::LOWER ? 'T' : 'N', 'N', Constants<T>::mone, u_ji,
+              b->get(j,k)->gemm(uplo == Uplo::LOWER ? 'T' : 'N', 'N', Constants<T>::mone, u_ji,
                                 b->get(i,k), Constants<T>::pone, mainOp);
           }
         }
@@ -418,7 +418,7 @@ namespace hmat {
       //  [ ----+---- ] *  [ X11 | X12 ] = [ b11 | b12 ]
       //  [  0  | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
-        me()->recursiveSolveUpperTriangularLeft(b->get(0,k), algo, unitriangular, lowerStored);
+        me()->recursiveSolveUpperTriangularLeft(b->get(0,k), algo, diag, uplo);
 
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft: case not yet handled "

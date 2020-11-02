@@ -778,16 +778,16 @@ inline char to_blas(const Diag diag) {
 // solve LX = (P ^ -1 B), which is done by ZLASWP with
 // the permutation. we used it just like in ZGETRS.
 template<typename T>
-void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo lowerStored) const {
+void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag diag, Uplo uplo) const {
   {
     const size_t _m = rows, _n = x->cols;
     const size_t adds = _n * _m * (_m - 1) / 2;
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  if (context.algo == Factorization::LU && lowerStored == Uplo::LOWER)
+  if (context.algo == Factorization::LU && uplo == Uplo::LOWER)
     proxy_lapack::laswp(x->cols, x->ptr(), x->lda, 1, rows, context.data.pivots, 1);
-  proxy_cblas::trsm('L', to_blas(lowerStored), lowerStored == Uplo::LOWER ? 'N' : 'T', to_blas(unitriangular), rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
+  proxy_cblas::trsm('L', to_blas(uplo), uplo == Uplo::LOWER ? 'N' : 'T', to_blas(diag), rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 // The resolution of the upper triangular system does not need to
@@ -796,7 +796,7 @@ void ScalarArray<T>::solveLowerTriangularLeft(ScalarArray<T>* x, const Factoriza
 //  the matrix was factorized before.
 
 template<typename T>
-void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo lowerStored) const {
+void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, const FactorizationData<T>& context, Diag diag, Uplo uplo) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
 
@@ -806,12 +806,12 @@ void ScalarArray<T>::solveUpperTriangularRight(ScalarArray<T>* x, const Factoriz
     const size_t muls = _n * _m * (_m + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::trsm('R', to_blas(lowerStored), lowerStored == Uplo::LOWER ? 'T' : 'N', to_blas(unitriangular),
+  proxy_cblas::trsm('R', to_blas(uplo), uplo == Uplo::LOWER ? 'T' : 'N', to_blas(diag),
     x->rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 
 template<typename T>
-void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>&, Diag unitriangular, Uplo lowerStored) const {
+void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>&, Diag diag, Uplo uplo) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
 
@@ -821,7 +821,7 @@ void ScalarArray<T>::solveUpperTriangularLeft(ScalarArray<T>* x, const Factoriza
     const size_t muls = _n * _m * (_n + 1) / 2;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
   }
-  proxy_cblas::trsm('L', to_blas(lowerStored), lowerStored == Uplo::LOWER ? 'T' : 'N', to_blas(unitriangular),
+  proxy_cblas::trsm('L', to_blas(uplo), uplo == Uplo::LOWER ? 'T' : 'N', to_blas(diag),
     x->rows, x->cols, Constants<T>::pone, const_ptr(), lda, x->ptr(), x->lda);
 }
 

@@ -182,11 +182,11 @@ void DefaultEngine<T>::solve(IEngine<T>& b, Factorization f) const {
 
 template<typename T>
 void DefaultEngine<T>::solveLower(ScalarArray<T>& b, Factorization algo, bool transpose) const {
-  Diag unitriangular = (algo == Factorization::LU || algo == Factorization::LDLT) ? Diag::UNIT : Diag::NONUNIT;
+  Diag diag = (algo == Factorization::LU || algo == Factorization::LDLT) ? Diag::UNIT : Diag::NONUNIT;
   if (transpose)
-    this->hmat->solveUpperTriangularLeft(&b, algo, unitriangular, Uplo::LOWER);
+    this->hmat->solveUpperTriangularLeft(&b, algo, diag, Uplo::LOWER);
   else
-    this->hmat->solveLowerTriangularLeft(&b, algo, unitriangular, Uplo::LOWER);
+    this->hmat->solveLowerTriangularLeft(&b, algo, diag, Uplo::LOWER);
 }
 
 template<typename T> void DefaultEngine<T>::copy(IEngine<T> & result, bool structOnly) const {

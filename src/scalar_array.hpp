@@ -321,7 +321,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo uplo) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag diag, Uplo uplo) const;
 
   /*! \brief Solve the system X U = B, with B = X on entry, and U = this.
 
@@ -330,7 +330,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularRight(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo uplo) const;
+  void solveUpperTriangularRight(ScalarArray<T>* x, const FactorizationData<T>& context, Diag diag, Uplo uplo) const;
 
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 
@@ -339,7 +339,7 @@ public:
 
     \param x B on entry, the solution on exit.
    */
-  void solveUpperTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag unitriangular, Uplo uplo) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* x, const FactorizationData<T>& context, Diag diag, Uplo uplo) const;
 
   /*! \brief Solve the system U X = B, with B = X on entry, and U = this.
 

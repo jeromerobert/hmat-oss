@@ -227,11 +227,11 @@ FactorizationData<T> FullMatrix<T>::getFactorizationData(Factorization algo) con
 }
 
 template<typename T>
-void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Factorization algo, Diag diag, Uplo uplo) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
   FactorizationData<T> context = getFactorizationData(algo);
-  data.solveLowerTriangularLeft(x, context, unitriangular, lowerStored);
+  data.solveLowerTriangularLeft(x, context, diag, uplo);
 }
 
 
@@ -241,19 +241,19 @@ void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Factorization al
 //  the matrix was factorized before.
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* x, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* x, Factorization algo, Diag diag, Uplo uplo) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
   FactorizationData<T> context = getFactorizationData(algo);
-  data.solveUpperTriangularRight(x, context, unitriangular, lowerStored);
+  data.solveUpperTriangularRight(x, context, diag, uplo);
 }
 
 template<typename T>
-void FullMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Factorization algo, Diag unitriangular, Uplo lowerStored) const {
+void FullMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* x, Factorization algo, Diag diag, Uplo uplo) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
   FactorizationData<T> context = getFactorizationData(algo);
-  data.solveUpperTriangularLeft(x, context, unitriangular, lowerStored);
+  data.solveUpperTriangularLeft(x, context, diag, uplo);
 }
 
 template<typename T>
