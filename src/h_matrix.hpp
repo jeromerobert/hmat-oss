@@ -36,7 +36,7 @@
 
 namespace hmat {
     /** Identify the current user level operation */
-    enum MainOp {MainOp_Other, MainOp_SolveLower, MainOp_SolveUpper, MainOp_GEMM};
+    enum class MainOp {OTHER, SOLVELOWER, SOLVEUPPER, GEMM};
 }
 
 #include "recursion.hpp"
@@ -245,7 +245,7 @@ public:
     \param b the matrix B
     \param beta beta
    */
-  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, MainOp=MainOp_Other);
+  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, MainOp=MainOp::OTHER);
   /*! \brief this <- this - M * D * M^T, where 'this' is symmetric (Lower stored),
       D diagonal
 
@@ -433,7 +433,7 @@ public:
 
     \param b la matrice B en entree, et X en sortie.
    */
-  void solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
+  void solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp::OTHER) const;
   /*! \brief Resolution du systeme L x = x, avec this = L, et x = b vecteur.
 
     B est un vecteur a plusieurs colonnes, donc une FullMatrix.
@@ -451,7 +451,7 @@ public:
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
+  void solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp::OTHER) const;
   /*! Resolution de x U = b, avec U = this, et x = b.
 
     \warning b est un vecteur ligne et non colonne.

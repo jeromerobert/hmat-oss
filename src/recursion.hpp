@@ -27,6 +27,8 @@
 #ifndef RECURSION_HPP
 #define RECURSION_HPP
 
+#include "h_matrix.hpp"
+
 namespace hmat {
 
 /* Forward declarations */
@@ -48,11 +50,11 @@ enum class Factorization;
     void recursiveLdltDecomposition(hmat_progress_t * progress) ;
     void recursiveSolveUpperTriangularRight(Mat* b, Factorization algo, Diag unitriangular, Uplo lowerStored) const;
     void recursiveMdmtProduct(const Mat* m, const Mat* d);
-    void recursiveSolveLowerTriangularLeft(Mat* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
+    void recursiveSolveLowerTriangularLeft(Mat* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp::OTHER) const;
     void recursiveLuDecomposition(hmat_progress_t * progress) ;
     void recursiveInverseNosym() ;
     void recursiveLltDecomposition(hmat_progress_t * progress) ;
-    void recursiveSolveUpperTriangularLeft(Mat* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp_Other) const;
+    void recursiveSolveUpperTriangularLeft(Mat* b, Factorization algo, Diag unitriangular, Uplo lowerStored, MainOp=MainOp::OTHER) const;
     void transposeMeta(bool temporaryOnly=false);
 
     // https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
