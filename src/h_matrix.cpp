@@ -1928,23 +1928,10 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
     assert(this->isFullMatrix());
     full()->solveUpperTriangularRight(b, algo, diag, uplo);
   } else {
-    int offset(0);
-    vector<ScalarArray<T> > sub;
-    for (int i=0 ; i<nrChildRow() ; i++) {
-      // Create sub[i] = a FullMatrix (without copy of data) for the columns in front of the i-th matrix block
-      sub.push_back(ScalarArray<T>(*b, 0, b->rows, offset, get(i, i)->rows()->size()));
-      offset += get(i, i)->rows()->size();
-    }
-    for (int i=0 ; i<nrChildRow() ; i++) {
-      // Update sub[i] with the contribution of the solutions already computed sub[j]
-      for (int j=0 ; j<i ; j++) {
-        const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
-        if (u_ji)
-          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
-      }
-      // Solve the i-th diagonal system
-      get(i, i)->solveUpperTriangularRight(&sub[i], algo, diag, uplo);
-    }
+    // Replace X U = B by U^t X^t = B^t
+    b->transpose();
+    this->solveLowerTriangularLeft(b, algo, diag, uplo);
+    b->transpose();
   }
 }
 
