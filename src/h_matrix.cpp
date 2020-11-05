@@ -1881,41 +1881,6 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
   }
 }
 
-/* Resolve U.X=B, solution saved in B, with B Hmat
-   Only called by luDecomposition
- */
-template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
-  DECLARE_CONTEXT;
-  if (rows()->size() == 0 || cols()->size() == 0) return;
-  // At first, the recursion one (simple case)
-  if (!this->isLeaf() && !b->isLeaf()) {
-    this->recursiveSolveUpperTriangularLeft(b, algo, diag, uplo);
-  } else if(!b->isLeaf()) {
-    // B isn't a leaf, then 'this' is one
-    assert(this->isLeaf());
-    // Evaluate B, solve by column, and restore in the matrix
-    // TODO: check if it's not too bad
-    FullMatrix<T> bFull(b->rows(), b->cols());
-    b->evalPart(&bFull, b->rows(), b->cols());
-    this->solveUpperTriangularLeft(&bFull, algo, diag, uplo);
-    b->clear();
-    b->axpy(Constants<T>::pone, &bFull);
-  } else if(b->isNull()) {
-    // nothing to do
-  } else {
-    if (b->isFullMatrix()) {
-      this->solveUpperTriangularLeft(b->full(), algo, diag, uplo);
-    } else {
-      assert(b->isRkMatrix());
-      HMatrix * bSubset = b->subset(uplo == Uplo::LOWER ? this->rows() : this->cols(), b->cols());
-      this->solveUpperTriangularLeft(bSubset->rk()->a, algo, diag, uplo);
-      if(bSubset != b)
-          delete bSubset;
-    }
-  }
-}
-
 template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
@@ -1956,6 +1921,41 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
 template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   solveUpperTriangularRight(&b->data, algo, diag, uplo);
+}
+
+/* Resolve U.X=B, solution saved in B, with B Hmat
+   Only called by luDecomposition
+ */
+template<typename T>
+void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
+  DECLARE_CONTEXT;
+  if (rows()->size() == 0 || cols()->size() == 0) return;
+  // At first, the recursion one (simple case)
+  if (!this->isLeaf() && !b->isLeaf()) {
+    this->recursiveSolveUpperTriangularLeft(b, algo, diag, uplo);
+  } else if(!b->isLeaf()) {
+    // B isn't a leaf, then 'this' is one
+    assert(this->isLeaf());
+    // Evaluate B, solve by column, and restore in the matrix
+    // TODO: check if it's not too bad
+    FullMatrix<T> bFull(b->rows(), b->cols());
+    b->evalPart(&bFull, b->rows(), b->cols());
+    this->solveUpperTriangularLeft(&bFull, algo, diag, uplo);
+    b->clear();
+    b->axpy(Constants<T>::pone, &bFull);
+  } else if(b->isNull()) {
+    // nothing to do
+  } else {
+    if (b->isFullMatrix()) {
+      this->solveUpperTriangularLeft(b->full(), algo, diag, uplo);
+    } else {
+      assert(b->isRkMatrix());
+      HMatrix * bSubset = b->subset(uplo == Uplo::LOWER ? this->rows() : this->cols(), b->cols());
+      this->solveUpperTriangularLeft(bSubset->rk()->a, algo, diag, uplo);
+      if(bSubset != b)
+          delete bSubset;
+    }
+  }
 }
 
 template<typename T>
