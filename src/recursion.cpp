@@ -85,15 +85,15 @@ namespace hmat {
   template<typename T, typename Mat>
   void RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularRight(Mat* b, Factorization algo, Diag diag, Uplo uplo) const {
 
-    //  Backward substitution:
+    //  Forward substitution:
     //  [ X11 | X12 ]    [ U11 | U12 ]   [ b11 | b12 ]
     //  [ ----+---- ] *  [-----+-----] = [ ----+---- ]
     //  [ X21 | X22 ]    [  0  | U22 ]   [ b21 | b22 ]
     //
-    //  X11 * U11 = b11 (by recursive backward substitution)
-    //  X21 * U11 = b21 (by recursive backward substitution)
-    //  X11 * U12 + X12 * U22 = b12 (backward substitution of X12*U22=b12-X11*U12)
-    //  X21 * U12 + X22 * U22 = b22 (backward substitution of X22*U22=b22-X21*U12)
+    //  X11 * U11 = b11 (by recursive forward substitution)
+    //  X21 * U11 = b21 (by recursive forward substitution)
+    //  X11 * U12 + X12 * U22 = b12 (forward substitution of X12*U22=b12-X11*U12)
+    //  X21 * U12 + X22 * U22 = b22 (forward substitution of X22*U22=b22-X21*U12)
     // X and b are not necessarily square
 
     // First we handle the general case, where dimensions (in terms of number of children) are compatible

@@ -27,6 +27,7 @@
 #ifndef RECURSION_HPP
 #define RECURSION_HPP
 
+#include "hmat/hmat.h"
 #include "h_matrix.hpp"
 
 namespace hmat {
