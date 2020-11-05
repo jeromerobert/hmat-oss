@@ -202,11 +202,13 @@ public:
    */
   RkMatrix<T>* copy() const;
 
-  /** Compute y <- alpha * op(A) * y + beta * y with x and y ScalarArray<T>*
+  /** Compute y <- alpha * op(A) * y + beta * y if side is Side::LEFT
+           or y <- alpha * y * op(A) + beta * y if side is Side::RIGHT
+      with x and y ScalarArray<T>*.
 
       The arguments are similar to BLAS GEMV.
    */
-  void gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const;
+  void gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y, Side side = Side::LEFT) const;
 
   /**  Right multiplication of RkMatrix by a matrix.
 

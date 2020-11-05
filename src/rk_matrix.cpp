@@ -102,32 +102,55 @@ template<typename T> void RkMatrix<T>::clear() {
 }
 
 template<typename T>
-void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
+void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y, Side side) const {
   if (rank() == 0) {
     if (beta != Constants<T>::pone) {
       y->scale(beta);
     }
     return;
   }
-  if (trans == 'N') {
-    // Compute Y <- Y + alpha * A * B^T * X
-    ScalarArray<T> z(b->cols, x->cols);
-    z.gemm('T', 'N', Constants<T>::pone, b, x, Constants<T>::zero);
-    y->gemm('N', 'N', alpha, a, &z, beta);
-  } else if (trans == 'T') {
-    // Compute Y <- Y + alpha * (A*B^T)^T * X = Y + alpha * B * A^T * X
-    ScalarArray<T> z(a->cols, x->cols);
-    z.gemm('T', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
-    y->gemm('N', 'N', alpha, b, &z, beta);
+  if (side == Side::LEFT) {
+    if (trans == 'N') {
+      // Compute Y <- Y + alpha * A * B^T * X
+      ScalarArray<T> z(b->cols, x->cols);
+      z.gemm('T', 'N', Constants<T>::pone, b, x, Constants<T>::zero);
+      y->gemm('N', 'N', alpha, a, &z, beta);
+    } else if (trans == 'T') {
+      // Compute Y <- Y + alpha * B * A^T * X
+      ScalarArray<T> z(a->cols, x->cols);
+      z.gemm('T', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
+      y->gemm('N', 'N', alpha, b, &z, beta);
+    } else {
+      assert(trans == 'C');
+      // Compute Y <- Y + alpha * (A*B^T)^H * X = Y + alpha * conj(B) * A^H * X
+      ScalarArray<T> z(a->cols, x->cols);
+      z.gemm('C', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
+      ScalarArray<T> * newB = b->copy();
+      newB->conjugate();
+      y->gemm('N', 'N', alpha, newB, &z, beta);
+      delete newB;
+    }
   } else {
-    assert(trans == 'C');
-    // Compute Y <- Y + alpha * (A*B^T)^H * X = Y + alpha * conj(B) * A^H * X
-    ScalarArray<T> z(a->cols, x->cols);
-    z.gemm('C', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
-    ScalarArray<T> * newB = b->copy();
-    newB->conjugate();
-    y->gemm('N', 'N', alpha, newB, &z, beta);
-    delete newB;
+    if (trans == 'N') {
+      // Compute Y <- Y + alpha * X * A * B^T
+      ScalarArray<T> z(x->rows, a->cols);
+      z.gemm('N', 'N', Constants<T>::pone, x, a, Constants<T>::zero);
+      y->gemm('N', 'T', alpha, &z, b, beta);
+    } else if (trans == 'T') {
+      // Compute Y <- Y + alpha * X * B * A^T
+      ScalarArray<T> z(x->rows, b->cols);
+      z.gemm('N', 'N', Constants<T>::pone, x, b, Constants<T>::zero);
+      y->gemm('N', 'T', alpha, &z, a, beta);
+    } else {
+      assert(trans == 'C');
+      // Compute Y <- Y + alpha * X * (A*B^T)^H = Y + alpha * X * conj(B) * A^H
+      ScalarArray<T> * newB = b->copy();
+      newB->conjugate();
+      ScalarArray<T> z(x->rows, b->cols);
+      z.gemm('N', 'N', Constants<T>::pone, x, newB, Constants<T>::zero);
+      delete newB;
+      y->gemm('N', 'C', alpha, &z, a, beta);
+    }
   }
 }
 

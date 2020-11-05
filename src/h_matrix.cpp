@@ -688,14 +688,22 @@ template<typename T> const HMatrix<T> * HMatrix<T>::getChildForGEMM(char & t, in
   return res;
 }
 
-// y <- alpha * op(this) * x + beta * y.
+// y <- alpha * op(this) * x + beta * y or y <- alpha * x * op(this) + beta * y.
 template<typename T>
-void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const {
-  // The dimensions of the H-matrix and the 2 ScalarArrays must match exactly
-  assert(x->cols == y->cols);
+void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y, Side side) const {
   if (rows()->size() == 0 || cols()->size() == 0) return;
-  assert((matTrans != 'N' ? cols()->size() : rows()->size()) == y->rows);
-  assert((matTrans != 'N' ? rows()->size() : cols()->size()) == x->rows);
+  // The dimensions of the H-matrix and the 2 ScalarArrays must match exactly
+  if(side == Side::LEFT) {
+    // Y + H * X
+    assert(x->cols == y->cols);
+    assert((matTrans != 'N' ? cols()->size() : rows()->size()) == y->rows);
+    assert((matTrans != 'N' ? rows()->size() : cols()->size()) == x->rows);
+  } else {
+    // Y + X * H
+    assert(x->rows == y->rows);
+    assert((matTrans != 'N' ? cols()->size() : rows()->size()) == x->cols);
+    assert((matTrans != 'N' ? rows()->size() : cols()->size()) == y->cols);
+  }
   if (beta != Constants<T>::pone) {
     y->scale(beta);
   }
@@ -720,10 +728,17 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
             std::swap(colsSize,   rowsSize);
           }
 
-          // get the rows subset of X aligned with 'trans(child)' cols and Y aligned with 'trans(child)' rows
-          const ScalarArray<T> subX(x->rowsSubset(colsOffset, colsSize));
-          ScalarArray<T> subY(y->rowsSubset(rowsOffset, rowsSize));
-          child->gemv(trans, alpha, &subX, Constants<T>::pone, &subY);
+          if (side == Side::LEFT) {
+            // get the rows subset of X aligned with 'trans(child)' cols and Y aligned with 'trans(child)' rows
+            const ScalarArray<T> subX(*x, colsOffset, colsSize, 0, x->cols);
+            ScalarArray<T> subY(*y, rowsOffset, rowsSize, 0, y->cols);
+            child->gemv(trans, alpha, &subX, Constants<T>::pone, &subY, side);
+          } else {
+            // get the columns subset of X aligned with 'trans(child)' rows and Y aligned with 'trans(child)' columns
+            const ScalarArray<T> subX(*x, 0, x->rows, rowsOffset, rowsSize);
+            ScalarArray<T> subY(*y, 0, y->rows, colsOffset, colsSize);
+            child->gemv(trans, alpha, &subX, Constants<T>::pone, &subY, side);
+          }
         }
         else continue;
       }
@@ -731,16 +746,20 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
   } else {
     // We are on a leaf of the matrix 'this'
     if (isFullMatrix()) {
-      y->gemm(matTrans, 'N', alpha, &full()->data, x, Constants<T>::pone);
+      if (side == Side::LEFT) {
+        y->gemm(matTrans, 'N', alpha, &full()->data, x, Constants<T>::pone);
+      } else {
+        y->gemm('N', matTrans, alpha, x, &full()->data, Constants<T>::pone);
+      }
     } else if(!isNull()){
-      rk()->gemv(matTrans, alpha, x, Constants<T>::pone, y);
+      rk()->gemv(matTrans, alpha, x, Constants<T>::pone, y, side);
     }
   }
 }
 
 template<typename T>
-void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const {
-  gemv(matTrans, alpha, &x->data, beta, &y->data);
+void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y, Side side) const {
+  gemv(matTrans, alpha, &x->data, beta, &y->data, side);
 }
 
 /**
@@ -1757,31 +1776,27 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, algo, diag, uplo);
+  } else if(!b->isLeaf()) {
+    // B isn't a leaf, then 'this' is one
+    assert(this->isLeaf());
+    // Evaluate B as a full matrix, solve, and restore in the matrix
+    // TODO: check if it's not too bad
+    FullMatrix<T> bFull(b->rows(), b->cols());
+    b->evalPart(&bFull, b->rows(), b->cols());
+    this->solveLowerTriangularLeft(&bFull, algo, diag, uplo);
+    b->clear();
+    b->axpy(Constants<T>::pone, &bFull);
+  } else if(b->isNull()) {
+    // nothing to do
   } else {
-    // if B is a leaf, the resolve is done by column
-    if (b->isLeaf()) {
-      if (b->isFullMatrix()) {
-        this->solveLowerTriangularLeft(b->full(), algo, diag, uplo);
-      } else {
-        if (b->isNull()) {
-          return;
-        }
-        assert(b->isRkMatrix());
-        HMatrix<T> * tmp = b->subset(this->cols(), b->cols());
-        this->solveLowerTriangularLeft(tmp->rk()->a, algo, diag, uplo);
-        if(tmp != b)
-            delete tmp;
-      }
+    if (b->isFullMatrix()) {
+      this->solveLowerTriangularLeft(b->full(), algo, diag, uplo);
     } else {
-      // B isn't a leaf, then 'this' is one
-      assert(this->isLeaf());
-      // Evaluate B, solve by column, and restore in the matrix
-      // TODO: check if it's not too bad
-      FullMatrix<T> bFull(b->rows(), b->cols());
-      b->evalPart(&bFull, b->rows(), b->cols());
-      this->solveLowerTriangularLeft(&bFull, algo, diag, uplo);
-      b->clear();
-      b->axpy(Constants<T>::pone, &bFull);
+      assert(b->isRkMatrix());
+      HMatrix<T> * bSubset = b->subset(uplo == Uplo::LOWER ? this->cols() : this->rows(), b->cols());
+      this->solveLowerTriangularLeft(bSubset->rk()->a, algo, diag, uplo);
+      if(bSubset != b)
+          delete bSubset;
     }
   }
 }
@@ -1790,27 +1805,26 @@ template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
-  assert(cols()->size() == b->rows); // Here : the change : OK or not ??????? : cols <-> rows
+  assert(cols()->size() == b->rows);
   if (isVoid()) return;
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
-    // LAPACK resolution
     full()->solveLowerTriangularLeft(b, algo, diag, uplo);
   } else {
     //  Forward substitution:
-    //  [ L11 |  0  ]    [ X1 ]   [ b1 ]
-    //  [ ----+---- ] *  [----] = [ -- ]
-    //  [ L21 | L22 ]    [ X2 ]   [ b2 ]
+    //  [ L11 |  0  ]   [ X1 ]   [ b1 ]
+    //  [ ----+---- ] * [----] = [ -- ]
+    //  [ L21 | L22 ]   [ X2 ]   [ b2 ]
     //
     //  L11 * X1 = b1 (by recursive forward substitution)
-    //  L21 * X1 + L22 * X2 = b2 (forward substitution of L22*X21=b21-L21*X11)
+    //  L21 * X1 + L22 * X2 = b2 (forward substitution of L22*X2=b2-L21*X1)
     //
 
     int offset(0);
     vector<ScalarArray<T> > sub;
     for (int i=0 ; i<nrChildRow() ; i++) {
-      // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
-      sub.push_back(b->rowsSubset(offset, get(i, i)->cols()->size()));
+      // Create sub[i] = a ScalarArray (without copy of data) for the rows in front of the i-th matrix block
+      sub.push_back(ScalarArray<T>(*b, offset, get(i, i)->cols()->size(), 0, b->cols));
       offset += get(i, i)->cols()->size();
       // Update sub[i] with the contribution of the solutions already computed sub[j] j<i
       for (int j=0 ; j<i ; j++) {
@@ -1836,49 +1850,33 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
   // The recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularRight(b, algo, diag, uplo);
+  } else if(!b->isLeaf()) {
+    // B isn't a leaf, then 'this' is one
+    assert(this->isLeaf());
+    assert(isFullMatrix());
+    // Evaluate B, solve by column and restore all in the matrix
+    // TODO: check if it's not too bad
+    FullMatrix<T> bFull(b->rows(), b->cols());
+    b->evalPart(&bFull, b->rows(), b->cols());
+    this->solveUpperTriangularRight(&bFull, algo, diag, uplo);
+    b->clear();
+    b->axpy(Constants<T>::pone, &bFull);
+  } else if(b->isNull()) {
+    // nothing to do
   } else {
-    // if B is a leaf, the resolution is done by column
-    if (b->isLeaf()) {
-      if (b->isFullMatrix()) {
-        this->solveUpperTriangularRight(b->full(), algo, diag, uplo);
-      } else if(!b->isNull() && b->isRkMatrix()){
-        // Xa Xb^t U = Ba Bb^t
-        //   - Xa = Ba
-        //   - Xb^t U = Bb^t
-        // Xb is stored without been transposed
-        HMatrix<T> * tmp;
-        if(*rows() == *b->cols())
-            tmp = b;
-        else
-            tmp = b->subset(b->rows(), this->rows());
-        // Replace Xb^t U = Bb^t by U^t Xb = Bb
-        this->solveLowerTriangularLeft(tmp->rk()->b, algo, diag, uplo);
-        if(tmp != b)
-            delete tmp;
-      } else {
-        // b is a null block so nothing to do
-      }
+    if (b->isFullMatrix()) {
+      this->solveUpperTriangularRight(b->full(), algo, diag, uplo);
     } else {
-      // B is not a leaf, then so is L
-      assert(this->isLeaf());
-      assert(isFullMatrix());
-      // Evaluate B, solve by column and restore all in the matrix
-      // TODO: check if it's not too bad
-      FullMatrix<T>* bFull = new FullMatrix<T>(b->rows(), b->cols());
-      b->evalPart(bFull, b->rows(), b->cols());
-      this->solveUpperTriangularRight(bFull, algo, diag, uplo);
-      // int bRows = b->rows()->size();
-      // int bCols = b->cols()->size();
-      // Vector<T> bRow(bCols);
-      // for (int row = 0; row < bRows; row++) {
-      //   blasCopy<T>(bCols, bFull->data.m + row, bRows, bRow.v, 1);
-      //   FullMatrix<T> tmp(bRow.v, bRow.rows, 1);
-      //   this->solveUpperTriangularRight(&tmp);
-      //   blasCopy<T>(bCols, bRow.v, 1, bFull->data.m + row, bRows);      // }
-      // }
-      b->clear();
-      b->axpy(Constants<T>::pone, bFull);
-      delete bFull;
+      assert(b->isRkMatrix());
+      // Xa Xb^t U = Ba Bb^t
+      //   - Xa = Ba
+      //   - Xb^t U = Bb^t
+      // Xb is stored without being transposed, thus we solve
+      // U^t Xb = Bb instead
+      HMatrix<T> * tmp = b->subset(b->rows(), uplo == Uplo::LOWER ? this->cols() : this->rows());
+      this->solveLowerTriangularLeft(tmp->rk()->b, algo, diag, uplo);
+      if(tmp != b)
+          delete tmp;
     }
   }
 }
@@ -1894,7 +1892,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularLeft(b, algo, diag, uplo);
   } else if(!b->isLeaf()) {
-    // B isn't a leaf, then so is L
+    // B isn't a leaf, then 'this' is one
     assert(this->isLeaf());
     // Evaluate B, solve by column, and restore in the matrix
     // TODO: check if it's not too bad
@@ -1906,15 +1904,15 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
   } else if(b->isNull()) {
     // nothing to do
   } else {
-    HMatrix * bSubset = b->subset(uplo == Uplo::LOWER ? this->rows() : this->cols(), b->cols());
-    if (bSubset->isFullMatrix()) {
-      this->solveUpperTriangularLeft(bSubset->full(), algo, diag, uplo);
+    if (b->isFullMatrix()) {
+      this->solveUpperTriangularLeft(b->full(), algo, diag, uplo);
     } else {
       assert(b->isRkMatrix());
+      HMatrix * bSubset = b->subset(uplo == Uplo::LOWER ? this->rows() : this->cols(), b->cols());
       this->solveUpperTriangularLeft(bSubset->rk()->a, algo, diag, uplo);
+      if(bSubset != b)
+          delete bSubset;
     }
-    if(b != bSubset)
-        delete bSubset;
   }
 }
 
@@ -1922,16 +1920,36 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
-  if (rows()->size() == 0 || cols()->size() == 0) return;
-  // B is given in form of a column vector
+  assert(rows()->size() == b->cols);
+  if (isVoid()) return;
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
     full()->solveUpperTriangularRight(b, algo, diag, uplo);
   } else {
-    // Replace X U = B by U^t X^t = B^t
-    b->transpose();
-    this->solveLowerTriangularLeft(b, algo, diag, uplo);
-    b->transpose();
+    //  Forward substitution:
+    //                [ U11 | U12 ]
+    //  [ X1 | X2 ] * [ ----+---- ] = [ b1 | b2 ]
+    //                [  0  | U22 ]
+    //
+    //  X1 * U11 = b1 (by recursive forward substitution)
+    //  X1 * U12 + X2 * U22 = b2 (forward substitution of X2*U22=b2-X1*U12)
+    //
+
+    int offset(0);
+    vector<ScalarArray<T> > sub;
+    for (int i=0 ; i<nrChildCol() ; i++) {
+      // Create sub[i] = a ScalarArray (without copy of data) for the columns in front of the i-th matrix block
+      sub.push_back(ScalarArray<T>(*b, 0, b->rows, offset, get(i, i)->rows()->size()));
+      offset += get(i, i)->rows()->size();
+      // Update sub[i] with the contribution of the solutions already computed sub[j]
+      for (int j=0 ; j<i ; j++) {
+        const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
+        if (u_ji)
+          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i], Side::RIGHT);
+      }
+      // Solve the i-th diagonal system
+      get(i, i)->solveUpperTriangularRight(&sub[i], algo, diag, uplo);
+    }
   }
 }
 
@@ -1950,11 +1968,19 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo,
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, algo, diag, uplo);
   } else {
+    //  Backward substitution:
+    //  [ U11 | U12 ]   [ X1 ]   [ b1 ]
+    //  [ ----+---- ] * [----] = [ -- ]
+    //  [  0  | U22 ]   [ X2 ]   [ b2 ]
+    //
+    //  U22 * X2 = b12(by recursive backward substitution)
+    //  U11 * X1 + U12 * X2 = b1 (backward substitution of U11*X1=b1-U12*X2)
+    //
 
     int offset(0);
     vector<ScalarArray<T> > sub;
     for (int i=0 ; i<nrChildRow() ; i++) {
-      // Create sub[i] = a FullMatrix (without copy of data) for the lines in front of the i-th matrix block
+      // Create sub[i] = a ScalarArray (without copy of data) for the rows in front of the i-th matrix block
       sub.push_back(b->rowsSubset(offset, get(i, i)->cols()->size()));
       offset += get(i, i)->cols()->size();
     }

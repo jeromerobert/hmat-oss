@@ -226,16 +226,18 @@ public:
       \param alpha scaling factor
    */
   void scale(T alpha);
-  /** Compute y <- alpha * op(this) * x + beta * y.
+  /** Compute y <- alpha * op(this) * x + beta * y if side is Side::LEFT or
+              y <- alpha * x * op(this) + beta * y if side is Side::RIGHT
 
       The arguments are similar to BLAS GEMV.
    */
-  void gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y) const;
-  /** Compute y <- alpha * op(this) * x + beta * y.
+  void gemv(char trans, T alpha, const FullMatrix<T>* x, T beta, FullMatrix<T>* y, Side side = Side::LEFT) const;
+  /** Compute y <- alpha * op(this) * x + beta * y if side is Side::LEFT or
+              y <- alpha * x * op(this) + beta * y if side is Side::RIGHT
 
       The arguments are similar to BLAS GEMV.
    */
-  void gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y) const;
+  void gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y, Side side = Side::LEFT) const;
   /*! \brief this <- alpha * op(A) * op(B) + beta * this
 
     \param transA 'N' or 'T', as in BLAS
