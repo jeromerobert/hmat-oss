@@ -41,9 +41,13 @@ void MatrixStructMarshaller<T>::write(const ClusterTree * clusterTree) {
             writeValue(d.coordinates()->spanCenter(j, i));
         }
     }
+    if(d.group_index() == NULL)
+        writeValue(0);
+    else {
+        writeValue(1);
+        writeFunc_(d.group_index(), s * sizeof(int), userData_);
+    }
     writeFunc_(d.indices(), s * sizeof(int), userData_);
-    // TODO support this case
-    assert(d.group_index() == NULL);
     writeTree<ClusterTree>(clusterTree);
 }
 
@@ -131,15 +135,22 @@ ClusterTree * MatrixStructUnmarshaller<T>::readClusterTree() {
     readFunc_(coordinates, sizeof(double) * size * dim, userData_);
     DofCoordinates * dofCoordinates = new DofCoordinates(coordinates, dim, size, true);
     delete[] coordinates;
-    dofData_ = new DofData(*dofCoordinates);
+    int * group_index = NULL;
+    if (readValue<int>()) {
+        group_index = new int[size];
+        readFunc_(group_index, sizeof(int) * size, userData_);
+    }
+    dofData_ = new DofData(*dofCoordinates, group_index);
     delete dofCoordinates;
+    delete[] group_index;
     // dummy cluster tree to access the indices array
     ClusterTree dummyClusterTree(dofData_);
     // avoid DofData deletion
     dummyClusterTree.father = &dummyClusterTree;
     readFunc_(dummyClusterTree.data.indices(), sizeof(int) * size, userData_);
-    // TODO: fill rootClusterTree->data.indices_rev
-    // TODO: add read/write for group_index
+    for(int i = 0; i < size; ++i) {
+        dummyClusterTree.data.indices_rev()[dummyClusterTree.data.indices()[i]] = i;
+    }
     return readTree<ClusterTree>(NULL);
 }
 
