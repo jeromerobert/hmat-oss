@@ -97,6 +97,20 @@ template<typename T> void restoreVectorOrder(ScalarArray<T>* v, int *indices, in
 
 template<typename T> class HMatrix;
 
+enum class Axis {ROW, COL};
+
+/** Precompute compatibility between children of a and b for GEMM.
+
+     \param a first matrix
+     \param axisA check rows or columns of a
+     \param transA tells whether a is transposed or not
+     \param b second matrix
+     \param axisB check rows or columns of b
+     \param transB tells whether b is transposed or not
+     \return byte array
+ */
+template<typename T> unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char transA, const HMatrix<T>* b, Axis axisB, char transB);
+
 /*! \brief The HMatrix class, representing a HMatrix.
 
   It is a tree of arity arity(ClusterTree)^2, 4 in most cases.
