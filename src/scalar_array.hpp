@@ -133,7 +133,7 @@ public:
   ScalarArray(int _rows, int _cols, bool zeroinit=true);
   /** \brief Initialize the ScalarArray with subset of existing ScalarArray.
    */
-  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+colsOffset*d.lda), is_ortho(d.is_ortho), ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda){}
+  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+(size_t)colsOffset*d.lda), is_ortho(d.is_ortho), ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda){}
 
   ~ScalarArray();
 
