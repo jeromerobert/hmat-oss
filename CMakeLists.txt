@@ -18,7 +18,7 @@
 #
 #  http://github.com/jeromerobert/hmat-oss
 
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.2)
 
 # Set CMAKE_BUILD_TYPE to Release by default.
 # Must be done before calling project()
@@ -92,7 +92,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # Enable gcc vectorization
 function(opt_flag flag)
-  if(CMAKE_VERSION VERSION_GREATER 2.8.12)
     include(CheckCCompilerFlag)
     string(MAKE_C_IDENTIFIER ${flag} label)
     check_c_compiler_flag(${flag} ${label})
@@ -100,7 +99,6 @@ function(opt_flag flag)
        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${flag}" PARENT_SCOPE)
        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${flag}" PARENT_SCOPE)
     endif()
-  endif()
 endfunction()
 opt_flag("-ffast-math")
 opt_flag("-funsafe-math-optimizations")
@@ -184,10 +182,6 @@ if (NOT MKL_FOUND)
         endif()
     endif()
     if(NOT is_debian_openblas)
-        # workaround for cmake issue #0009976
-        if (CMAKE_VERSION VERSION_LESS 2.8.4)
-            enable_language(Fortran)
-        endif ()
         find_package(BLAS REQUIRED)
         find_package(LAPACK REQUIRED)
     endif()
@@ -203,17 +197,13 @@ endif()
 
 include(CheckFunctionExists)
 if (NOT MKL_CBLAS_FOUND)
-    if (CMAKE_VERSION VERSION_GREATER 2.8.8)
-        include(CMakePushCheckState)
-        cmake_push_check_state()
-    endif ()
+    include(CMakePushCheckState)
+    cmake_push_check_state()
     set(CMAKE_REQUIRED_LIBRARIES ${BLAS_LIBRARIES})
     check_function_exists("openblas_set_num_threads" HAVE_OPENBLAS_SET_NUM_THREADS)
     check_function_exists("goto_get_num_procs" HAVE_GOTO_GET_NUM_PROCS)
     check_function_exists("cblas_dgemm" CHECK_FUNCTION_EXISTS_CBLAS_DGEMM)
-    if (CMAKE_VERSION VERSION_GREATER 2.8.8)
-        cmake_pop_check_state()
-    endif ()
+    cmake_pop_check_state()
 endif()
 if ((NOT MKL_CBLAS_FOUND) AND (NOT is_debian_openblas))
     # Functions may already be available via MKL or BLAS, but we need cblas.h
@@ -311,8 +301,7 @@ endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_NAME_DIR ${INSTALL_LIB_DIR}    )
 
-# LINK_PRIVATE and LINK_PUBLIC keywords were introduced in 2.8.7
-if(BUILD_SHARED_LIBS AND CMAKE_VERSION VERSION_GREATER 2.8.6)
+if(BUILD_SHARED_LIBS)
     # Programs using hmat do not need to link directly with second level dependencies so we strip them all
     set(_LINK_PRIVATE LINK_PRIVATE)
     set(_LINK_PUBLIC LINK_PUBLIC)
@@ -447,7 +436,5 @@ endif()
 # ========================
 # final LOG
 # ========================
-if (CMAKE_VERSION VERSION_GREATER 2.8.5)
-    include(FeatureSummary)
-    feature_summary(WHAT ALL)
-endif ()
+include(FeatureSummary)
+feature_summary(WHAT ALL)
