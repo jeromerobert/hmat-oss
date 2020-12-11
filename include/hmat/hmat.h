@@ -308,6 +308,8 @@ typedef struct {
     double eta;
     /** ratio (in [0, 0.5]) to prevent tall and skinny blocks */
     double ratio;
+    /** maximum block width */
+    size_t max_width;
 } hmat_admissibility_param_t;
 
 /** Init an hmat_admissibility_param structure with default values */
@@ -318,6 +320,9 @@ typedef struct hmat_admissibility_condition hmat_admissibility_t;
 
 /** Create an admissibility condition from parameters */
 HMAT_API hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t *);
+
+/** Update an admissibility condition with parameters */
+HMAT_API void hmat_update_admissibility(hmat_admissibility_t*, hmat_admissibility_param_t *);
 
 /* Create a standard (Hackbusch) admissibility condition, with a given eta */
 HMAT_API hmat_admissibility_t* hmat_create_admissibility_standard(double eta);

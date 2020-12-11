@@ -29,6 +29,12 @@
 
 namespace hmat {
 
+bool
+AdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t) const
+{
+    return rows.data.size() > maxWidth_ || cols.data.size() > maxWidth_;
+}
+
 std::pair<bool, bool>
 AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
 {
@@ -173,15 +179,19 @@ bool AlwaysAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const 
     if(rows.father == NULL && cols.father == NULL) {
         max_block_size_impl_ = std::min(block_size / min_nr_block_, max_block_size_);
     }
-    return never_ && block_size <= max_block_size_impl_;
+    if (never_ && block_size <= max_block_size_impl_)
+        return true;
+    return AdmissibilityCondition::stopRecursion(rows, cols);
 }
 
-bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t) const {
+bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t elem_size) const {
     size_t block_size = ((size_t)rows.data.size()) * cols.data.size();
     if(rows.father == NULL && cols.father == NULL) {
         max_block_size_impl_ = std::min(block_size / min_nr_block_, max_block_size_);
     }
-    return block_size > max_block_size_impl_;
+    if (block_size > max_block_size_impl_)
+        return true;
+    return AdmissibilityCondition::forceRecursion(rows, cols, elem_size);
 }
 
 bool AlwaysAdmissibilityCondition::forceFull(const ClusterTree& rows, const ClusterTree& cols) const {

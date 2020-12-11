@@ -38,6 +38,7 @@ class ClusterTree;
 class AdmissibilityCondition
 {
 public:
+  AdmissibilityCondition() : maxWidth_(-1L) {}
   /*! \brief Virtual copy constructor */
   virtual AdmissibilityCondition * clone() const = 0;
 
@@ -65,10 +66,7 @@ public:
       \param elemSize the size of the element of the matrix (i.e. sizeof(T))
     \return true  if the block is too large to perform compression
    */
-  virtual bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t elemSize) const {
-      (void)rows, (void)cols, (void)elemSize; // unused
-      return false;
-  }
+  virtual bool forceRecursion(const ClusterTree& rows, const ClusterTree& cols, size_t elemSize) const;
   /*! \brief Returns a boolean telling if the block of interaction between 2 nodes
       must not be compressed, even if admissible.
       Note: forceFull and forceRk must not both return true.
@@ -134,8 +132,15 @@ public:
  */
   void setRatio(double ratio) { ratio_ = ratio; }
 
+  /**
+   * @brief Set maximum width (default is unlimited)
+   * @param maxWidth  force recursion if size(rows) or size(cols) is larger than this threshold.
+ */
+  void setMaxWidth(size_t maxWidth) { maxWidth_ = maxWidth; }
+
 protected:
   double ratio_;
+  size_t maxWidth_;
 };
 
 /**

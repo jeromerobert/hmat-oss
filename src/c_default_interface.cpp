@@ -184,12 +184,20 @@ const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree) {
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->ratio = 0.0;
+    p->max_width = -1L;
 }
 
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {
     hmat::StandardAdmissibilityCondition * r =
          new hmat::StandardAdmissibilityCondition(p->eta, p->ratio);
+    r->setMaxWidth(p->max_width);
     return reinterpret_cast<hmat_admissibility_t*>(r);
+}
+
+void hmat_update_admissibility(hmat_admissibility_t* cond, hmat_admissibility_param_t *p) {
+    hmat::AdmissibilityCondition * r = reinterpret_cast<AdmissibilityCondition*>(cond);
+    r->setRatio(p->ratio);
+    r->setMaxWidth(p->max_width);
 }
 
 hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
