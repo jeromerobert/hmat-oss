@@ -40,6 +40,12 @@ AssemblyFunction<T, F>::AssemblyFunction(const F<T> function, const CompressionA
         : function_(function), compression_(compression->clone()) {}
 
 template<typename T, template <typename> class F>
+AssemblyFunction<T, F>::~AssemblyFunction()
+{
+    delete compression_;
+}
+
+template<typename T, template <typename> class F>
 void AssemblyFunction<T, F>::assemble(const LocalSettings &,
                                      const ClusterTree &rows,
                                      const ClusterTree &cols,

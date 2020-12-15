@@ -72,7 +72,7 @@ public:
 template<typename T, template <typename> class F> class AssemblyFunction: public Assembly<T> {
 public:
     AssemblyFunction(const F<T> function, const CompressionAlgorithm* compression);
-    virtual ~AssemblyFunction() {delete compression_;}
+    virtual ~AssemblyFunction();
     virtual void assemble(const LocalSettings & settings,
                           const ClusterTree & rows, const ClusterTree & cols,
                           bool admissible,
