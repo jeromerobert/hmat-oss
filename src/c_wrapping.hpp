@@ -54,39 +54,45 @@ hmat_matrix_t * create_empty_hmatrix_admissibility(
 }
 
 template<typename T, template <typename> class E>
-void assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
+int assemble_generic(hmat_matrix_t* matrix, hmat_assemble_context_t * ctx) {
     DECLARE_CONTEXT;
     hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)matrix;
     bool assembleOnly = ctx->factorization == hmat_factorization_none;
     hmat::SymmetryFlag sf = ctx->lower_symmetric ? hmat::kLowerSymmetric : hmat::kNotSymmetric;
-    if (ctx->lower_symmetric) {
-      HMAT_ASSERT(hmat->engine().hmat->rowsTree() == hmat->engine().hmat->colsTree());
-    }
-    HMAT_ASSERT_MSG(ctx->compression, "No compression algorithm defined in hmat_assemble_context_t");
-    hmat::CompressionAlgorithm* compression = (hmat::CompressionAlgorithm*)ctx->compression;
-    if(ctx->assembly != NULL) {
-        HMAT_ASSERT(ctx->block_compute == NULL && ctx->advanced_compute == NULL && ctx->simple_compute == NULL);
-        hmat::Assembly<T> * cppAssembly = (hmat::Assembly<T> *)ctx->assembly;
-        hmat->assemble(*cppAssembly, sf, ctx->progress);
-    } else if(ctx->block_compute != NULL || ctx->advanced_compute != NULL) {
-        HMAT_ASSERT(ctx->simple_compute == NULL && ctx->assembly == NULL);
-        HMAT_ASSERT(ctx->prepare != NULL);
-        hmat::BlockFunction<T> blockFunction(hmat->rows(), hmat->cols(),
-            ctx->user_context, ctx->prepare, ctx->block_compute, ctx->advanced_compute);
-        hmat::AssemblyFunction<T, hmat::BlockFunction> * f =
-            new hmat::AssemblyFunction<T, hmat::BlockFunction>(blockFunction, compression);
-        hmat->assemble(*f, sf, true, ctx->progress, true);
-    } else if(ctx->simple_compute != NULL) {
-        HMAT_ASSERT(ctx->block_compute == NULL && ctx->advanced_compute == NULL && ctx->assembly == NULL);
-        hmat::AssemblyFunction<T, hmat::SimpleFunction> * f =
-            new hmat::AssemblyFunction<T, hmat::SimpleFunction>(
-            hmat::SimpleFunction<T>(ctx->simple_compute, ctx->user_context), compression);
-        hmat->assemble(*f, sf, true, ctx->progress, true);
-    } else
-      HMAT_ASSERT_MSG(0, "No valid assembly method in assemble_generic()");
+    try {
+        if (ctx->lower_symmetric) {
+          HMAT_ASSERT(hmat->engine().hmat->rowsTree() == hmat->engine().hmat->colsTree());
+        }
+        HMAT_ASSERT_MSG(ctx->compression, "No compression algorithm defined in hmat_assemble_context_t");
+        hmat::CompressionAlgorithm* compression = (hmat::CompressionAlgorithm*)ctx->compression;
+        if(ctx->assembly != NULL) {
+            HMAT_ASSERT(ctx->block_compute == NULL && ctx->advanced_compute == NULL && ctx->simple_compute == NULL);
+            hmat::Assembly<T> * cppAssembly = (hmat::Assembly<T> *)ctx->assembly;
+            hmat->assemble(*cppAssembly, sf, ctx->progress);
+        } else if(ctx->block_compute != NULL || ctx->advanced_compute != NULL) {
+            HMAT_ASSERT(ctx->simple_compute == NULL && ctx->assembly == NULL);
+            HMAT_ASSERT(ctx->prepare != NULL);
+            hmat::BlockFunction<T> blockFunction(hmat->rows(), hmat->cols(),
+                ctx->user_context, ctx->prepare, ctx->block_compute, ctx->advanced_compute);
+            hmat::AssemblyFunction<T, hmat::BlockFunction> * f =
+                new hmat::AssemblyFunction<T, hmat::BlockFunction>(blockFunction, compression);
+            hmat->assemble(*f, sf, true, ctx->progress, true);
+        } else if(ctx->simple_compute != NULL) {
+            HMAT_ASSERT(ctx->block_compute == NULL && ctx->advanced_compute == NULL && ctx->assembly == NULL);
+            hmat::AssemblyFunction<T, hmat::SimpleFunction> * f =
+                new hmat::AssemblyFunction<T, hmat::SimpleFunction>(
+                hmat::SimpleFunction<T>(ctx->simple_compute, ctx->user_context), compression);
+            hmat->assemble(*f, sf, true, ctx->progress, true);
+        } else
+          HMAT_ASSERT_MSG(0, "No valid assembly method in assemble_generic()");
 
-    if(!assembleOnly)
-        hmat->factorize(hmat::convert_int_to_factorization(ctx->factorization), ctx->progress);
+        if(!assembleOnly)
+            hmat->factorize(hmat::convert_int_to_factorization(ctx->factorization), ctx->progress);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
+    return 0;
 }
 
 template<typename T, template <typename> class E>
@@ -120,15 +126,26 @@ int destroy_child(hmat_matrix_t* holder) {
 template<typename T, template <typename> class E>
 int inverse(hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
-  ((hmat::HMatInterface<T>*) holder)->inverse();
+  try {
+      ((hmat::HMatInterface<T>*) holder)->inverse();
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
 template<typename T, template <typename> class E>
-void factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx) {
+int factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx) {
     DECLARE_CONTEXT;
     hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-    hmat->factorize(hmat::convert_int_to_factorization(ctx->factorization), ctx->progress);
+    try {
+        hmat->factorize(hmat::convert_int_to_factorization(ctx->factorization), ctx->progress);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
+    return 0;
 }
 
 template<typename T, template <typename> class E>
@@ -137,8 +154,7 @@ int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
     hmat_factorization_context_t ctx;
     hmat_factorization_context_init(&ctx);
     ctx.factorization = t;
-    factorize_generic<T, E>(holder, &ctx);
-    return 0;
+    return factorize_generic<T, E>(holder, &ctx);
 }
 
 template<typename T, template <typename> class E>
@@ -153,27 +169,32 @@ int full_gemm(char transA, char transB, int mc, int nc, void* c,
                              void* alpha, void* a, hmat_matrix_t * holder, void* beta) {
   DECLARE_CONTEXT;
 
-  const hmat::HMatInterface<T>* b = (hmat::HMatInterface<T>*)holder;
-  hmat::ScalarArray<T> matC((T*)c, mc, nc);
-  hmat::ScalarArray<T>* matA = NULL;
-  const hmat::ClusterData* bDataRows = (transB == 'N' ? b->rows(): b->cols());
-  const hmat::ClusterData* bDataCols = (transB == 'N' ? b->cols(): b->rows());
-  hmat::reorderVector(&matC, bDataCols->indices(), 1);
-  if (transA == 'N') {
-    matA = new hmat::ScalarArray<T>((T*)a, mc, bDataRows->size());
-    hmat::reorderVector(matA, bDataRows->indices(), 1);
-  } else {
-    matA = new hmat::ScalarArray<T>((T*)a, bDataRows->size(), mc);
-    hmat::reorderVector(matA, bDataRows->indices(), 0);
+  try {
+      const hmat::HMatInterface<T>* b = (hmat::HMatInterface<T>*)holder;
+      hmat::ScalarArray<T> matC((T*)c, mc, nc);
+      hmat::ScalarArray<T>* matA = NULL;
+      const hmat::ClusterData* bDataRows = (transB == 'N' ? b->rows(): b->cols());
+      const hmat::ClusterData* bDataCols = (transB == 'N' ? b->cols(): b->rows());
+      hmat::reorderVector(&matC, bDataCols->indices(), 1);
+      if (transA == 'N') {
+        matA = new hmat::ScalarArray<T>((T*)a, mc, bDataRows->size());
+        hmat::reorderVector(matA, bDataRows->indices(), 1);
+      } else {
+        matA = new hmat::ScalarArray<T>((T*)a, bDataRows->size(), mc);
+        hmat::reorderVector(matA, bDataRows->indices(), 0);
+      }
+      hmat::HMatInterface<T>::gemm(matC, transA, transB, *((T*)alpha), *matA, *b, *((T*)beta));
+      hmat::restoreVectorOrder(&matC, bDataCols->indices(), 1);
+      if (transA == 'N') {
+          hmat::restoreVectorOrder(matA, bDataRows->indices(), 1);
+      } else {
+          hmat::restoreVectorOrder(matA, bDataRows->indices(), 0);
+      }
+      delete matA;
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
   }
-  hmat::HMatInterface<T>::gemm(matC, transA, transB, *((T*)alpha), *matA, *b, *((T*)beta));
-  hmat::restoreVectorOrder(&matC, bDataCols->indices(), 1);
-  if (transA == 'N') {
-      hmat::restoreVectorOrder(matA, bDataRows->indices(), 1);
-  } else {
-      hmat::restoreVectorOrder(matA, bDataRows->indices(), 0);
-  }
-  delete matA;
   return 0;
 }
 
@@ -184,7 +205,12 @@ int gemm(char trans_a, char trans_b, void *alpha, hmat_matrix_t * holder,
   hmat::HMatInterface<T>* hmat_a = (hmat::HMatInterface<T>*)holder;
   hmat::HMatInterface<T>* hmat_b = (hmat::HMatInterface<T>*)holder_b;
   hmat::HMatInterface<T>* hmat_c = (hmat::HMatInterface<T>*)holder_c;
-  hmat_c->gemm(trans_a, trans_b, *((T*)alpha), hmat_a, hmat_b, *((T*)beta));
+  try {
+      hmat_c->gemm(trans_a, trans_b, *((T*)alpha), hmat_a, hmat_b, *((T*)beta));
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -194,7 +220,12 @@ int axpy(void *a, hmat_matrix_t * x, hmat_matrix_t * y) {
   DISABLE_THREADING_IN_BLOCK;
   hmat::HMatInterface<T>* hmat_x = reinterpret_cast<hmat::HMatInterface<T>*>(x);
   hmat::HMatInterface<T>* hmat_y = reinterpret_cast<hmat::HMatInterface<T>*>(y);
-  hmat_y->engine().hmat->axpy(*((T*)a), hmat_x->engine().hmat);
+  try {
+      hmat_y->engine().hmat->axpy(*((T*)a), hmat_x->engine().hmat);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -205,13 +236,18 @@ int gemv(char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
   const hmat::ClusterData* bData = (trans_a == 'N' ? hmat->cols(): hmat->rows());
   const hmat::ClusterData* cData = (trans_a == 'N' ? hmat->rows(): hmat->cols());
-  hmat::ScalarArray<T> mb((T*) vec_b, bData->size(), nrhs);
-  hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
-  hmat::reorderVector(&mb, bData->indices(), 0);
-  hmat::reorderVector(&mc, cData->indices(), 0);
-  hmat->gemv(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
-  hmat::restoreVectorOrder(&mb, bData->indices(), 0);
-  hmat::restoreVectorOrder(&mc, cData->indices(), 0);
+  try {
+      hmat::ScalarArray<T> mb((T*) vec_b, bData->size(), nrhs);
+      hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
+      hmat::reorderVector(&mb, bData->indices(), 0);
+      hmat::reorderVector(&mc, cData->indices(), 0);
+      hmat->gemv(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
+      hmat::restoreVectorOrder(&mb, bData->indices(), 0);
+      hmat::restoreVectorOrder(&mc, cData->indices(), 0);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -222,10 +258,15 @@ int gemm_scalar( char trans_a, void* alpha, hmat_matrix_t * holder, void* vec_b,
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
   const hmat::ClusterData* bData = (trans_a == 'N' ? hmat->cols(): hmat->rows());
   const hmat::ClusterData* cData = (trans_a == 'N' ? hmat->rows(): hmat->cols());
-  hmat::ScalarArray<T> mb((T*) vec_b, bData->size(), nrhs);
-  hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
+  try {
+      hmat::ScalarArray<T> mb((T*) vec_b, bData->size(), nrhs);
+      hmat::ScalarArray<T> mc((T*) vec_c, cData->size(), nrhs);
 
-  hmat->gemm_scalar(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
+      hmat->gemm_scalar(trans_a, *((T*)alpha), mb, *((T*)beta), mc);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -287,35 +328,40 @@ int gemm_dense(char trans_b, char trans_x, char side, void* alpha, hmat_matrix_t
   const hmat::HMatInterface<T>* b = (hmat::HMatInterface<T>*)holder;
   const hmat::IndexSet* bDataRows = !is_trans(trans_b) ? b->rows(): b->cols();
   const hmat::IndexSet* bDataCols = !is_trans(trans_b) ? b->cols(): b->rows();
-  hmat::ScalarArray<T>* mx = !is_trans(trans_x) ?
-      new hmat::ScalarArray<T>((T*) vec_x, bDataCols->size(), nrhs) :
-      new hmat::ScalarArray<T>((T*) vec_x, nrhs, bDataCols->size());
-  hmat::ScalarArray<T>* my =  !is_trans(trans_y) ?
-      new hmat::ScalarArray<T>((T*) vec_y, bDataRows->size(), nrhs) :
-      new hmat::ScalarArray<T>((T*) vec_y, nrhs, bDataRows->size());
+  try {
+      hmat::ScalarArray<T>* mx = !is_trans(trans_x) ?
+          new hmat::ScalarArray<T>((T*) vec_x, bDataCols->size(), nrhs) :
+          new hmat::ScalarArray<T>((T*) vec_x, nrhs, bDataCols->size());
+      hmat::ScalarArray<T>* my =  !is_trans(trans_y) ?
+          new hmat::ScalarArray<T>((T*) vec_y, bDataRows->size(), nrhs) :
+          new hmat::ScalarArray<T>((T*) vec_y, nrhs, bDataRows->size());
 
-  // Apply transformations on x and y
-  if (is_trans(trans_x))
-      mx->transpose();
-  if (is_conj(trans_x))
-      mx->conjugate();
-  if (is_trans(trans_y))
-      my->transpose();
-  if (is_conj(trans_y))
-      my->conjugate();
+      // Apply transformations on x and y
+      if (is_trans(trans_x))
+          mx->transpose();
+      if (is_conj(trans_x))
+          mx->conjugate();
+      if (is_trans(trans_y))
+          my->transpose();
+      if (is_conj(trans_y))
+          my->conjugate();
 
-  b->gemv(trans_b, *((T*)alpha), *mx, *((T*)beta), *my);
+      b->gemv(trans_b, *((T*)alpha), *mx, *((T*)beta), *my);
 
-  // Apply inverse transformations on x and y
-  if (is_trans(trans_x))
-      mx->transpose();
-  if (is_trans(trans_y))
-      my->transpose();
-  if (is_conj(trans_y))
-      my->conjugate();
+      // Apply inverse transformations on x and y
+      if (is_trans(trans_x))
+          mx->transpose();
+      if (is_trans(trans_y))
+          my->transpose();
+      if (is_conj(trans_y))
+          my->conjugate();
 
-  delete mx;
-  delete my;
+      delete mx;
+      delete my;
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -326,14 +372,19 @@ int trsm( char side, char uplo, char transa, char diag, int m, int n,
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmatA = (hmat::HMatInterface<T>*)A;
 
-  if ( is_b_hmat ) {
-      hmat::HMatInterface<T>* hmatB = (hmat::HMatInterface<T>*)B;
-      hmatA->trsm( side, uplo, transa, diag, *((T*)alpha), hmatB );
-  }
-  else {
-      bool isleft = (side == 'l') || (side == 'L');
-      hmat::ScalarArray<T> mB( (T*)B, (isleft ? m : n), (isleft ? n : m ) );
-      hmatA->trsm( side, uplo, transa, diag, *((T*)alpha), mB );
+  try {
+      if ( is_b_hmat ) {
+          hmat::HMatInterface<T>* hmatB = (hmat::HMatInterface<T>*)B;
+          hmatA->trsm( side, uplo, transa, diag, *((T*)alpha), hmatB );
+      }
+      else {
+          bool isleft = (side == 'l') || (side == 'L');
+          hmat::ScalarArray<T> mB( (T*)B, (isleft ? m : n), (isleft ? n : m ) );
+          hmatA->trsm( side, uplo, transa, diag, *((T*)alpha), mB );
+      }
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
   }
   return 0;
 }
@@ -342,7 +393,12 @@ template<typename T, template <typename> class E>
 int add_identity(hmat_matrix_t* holder, void *alpha) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
-  hmat->addIdentity(*((T*)alpha));
+  try {
+      hmat->addIdentity(*((T*)alpha));
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -361,32 +417,47 @@ double norm(hmat_matrix_t* holder) {
 template<typename T, template <typename> class E>
 int scale(void *alpha, hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
-  ((hmat::HMatInterface<T>*)holder)->scale(*((T*)alpha));
+  try {
+      ((hmat::HMatInterface<T>*)holder)->scale(*((T*)alpha));
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
 template<typename T, template <typename> class E>
 int truncate(hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
-  ((hmat::HMatInterface<T>*)holder)->truncate();
+  try {
+      ((hmat::HMatInterface<T>*)holder)->truncate();
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
 template<typename T, template <typename> class E>
 int vector_reorder(void* vec_b, const hmat_cluster_tree_t *rows_ct, int rows, const hmat_cluster_tree_t *cols_ct, int cols) {
   DECLARE_CONTEXT;
-  HMAT_ASSERT_MSG(rows_ct != NULL || rows != 0, "either row cluster tree or rows must be non null");
-  HMAT_ASSERT_MSG(cols_ct != NULL || cols != 0, "either col cluster tree or cols must be non null");
-  const hmat::ClusterTree *clusterTreeRows = reinterpret_cast<const hmat::ClusterTree*>(rows_ct);
-  const hmat::ClusterTree *clusterTreeCols = reinterpret_cast<const hmat::ClusterTree*>(cols_ct);
-  int nrows = clusterTreeRows == NULL ? rows : clusterTreeRows->data.size();
-  int ncols = clusterTreeCols == NULL ? cols : clusterTreeCols->data.size();
-  hmat::ScalarArray<T> mb((T*) vec_b, nrows, ncols);
-  if (clusterTreeRows) {
-    hmat::reorderVector(&mb, clusterTreeRows->data.indices(), 0);
-  }
-  if (clusterTreeCols) {
-    hmat::reorderVector(&mb, clusterTreeCols->data.indices(), 1);
+  try {
+      HMAT_ASSERT_MSG(rows_ct != NULL || rows != 0, "either row cluster tree or rows must be non null");
+      HMAT_ASSERT_MSG(cols_ct != NULL || cols != 0, "either col cluster tree or cols must be non null");
+      const hmat::ClusterTree *clusterTreeRows = reinterpret_cast<const hmat::ClusterTree*>(rows_ct);
+      const hmat::ClusterTree *clusterTreeCols = reinterpret_cast<const hmat::ClusterTree*>(cols_ct);
+      int nrows = clusterTreeRows == NULL ? rows : clusterTreeRows->data.size();
+      int ncols = clusterTreeCols == NULL ? cols : clusterTreeCols->data.size();
+      hmat::ScalarArray<T> mb((T*) vec_b, nrows, ncols);
+      if (clusterTreeRows) {
+        hmat::reorderVector(&mb, clusterTreeRows->data.indices(), 0);
+      }
+      if (clusterTreeCols) {
+        hmat::reorderVector(&mb, clusterTreeCols->data.indices(), 1);
+      }
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
   }
   return 0;
 }
@@ -394,18 +465,23 @@ int vector_reorder(void* vec_b, const hmat_cluster_tree_t *rows_ct, int rows, co
 template<typename T, template <typename> class E>
 int vector_restore(void* vec_b, const hmat_cluster_tree_t *rows_ct, int rows, const hmat_cluster_tree_t *cols_ct, int cols) {
   DECLARE_CONTEXT;
-  HMAT_ASSERT_MSG(rows_ct != NULL || rows != 0, "either row cluster tree or rows must be non null");
-  HMAT_ASSERT_MSG(cols_ct != NULL || cols != 0, "either col cluster tree or cols must be non null");
-  const hmat::ClusterTree *clusterTreeRows = reinterpret_cast<const hmat::ClusterTree*>(rows_ct);
-  const hmat::ClusterTree *clusterTreeCols = reinterpret_cast<const hmat::ClusterTree*>(cols_ct);
-  int nrows = clusterTreeRows == NULL ? rows : clusterTreeRows->data.size();
-  int ncols = clusterTreeCols == NULL ? cols : clusterTreeCols->data.size();
-  hmat::ScalarArray<T> mb((T*) vec_b, nrows, ncols);
-  if (clusterTreeRows) {
-    hmat::restoreVectorOrder(&mb, clusterTreeRows->data.indices(), 0);
-  }
-  if (clusterTreeCols) {
-    hmat::restoreVectorOrder(&mb, clusterTreeCols->data.indices(), 1);
+  try {
+      HMAT_ASSERT_MSG(rows_ct != NULL || rows != 0, "either row cluster tree or rows must be non null");
+      HMAT_ASSERT_MSG(cols_ct != NULL || cols != 0, "either col cluster tree or cols must be non null");
+      const hmat::ClusterTree *clusterTreeRows = reinterpret_cast<const hmat::ClusterTree*>(rows_ct);
+      const hmat::ClusterTree *clusterTreeCols = reinterpret_cast<const hmat::ClusterTree*>(cols_ct);
+      int nrows = clusterTreeRows == NULL ? rows : clusterTreeRows->data.size();
+      int ncols = clusterTreeCols == NULL ? cols : clusterTreeCols->data.size();
+      hmat::ScalarArray<T> mb((T*) vec_b, nrows, ncols);
+      if (clusterTreeRows) {
+        hmat::restoreVectorOrder(&mb, clusterTreeRows->data.indices(), 0);
+      }
+      if (clusterTreeCols) {
+        hmat::restoreVectorOrder(&mb, clusterTreeCols->data.indices(), 1);
+      }
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
   }
   return 0;
 }
@@ -413,18 +489,28 @@ int vector_restore(void* vec_b, const hmat_cluster_tree_t *rows_ct, int rows, co
 template<typename T, template <typename> class E>
 int solve_mat(hmat_matrix_t* hmat, hmat_matrix_t* hmatB) {
   DECLARE_CONTEXT;
-  ((hmat::HMatInterface<T>*)hmat)->solve(*(hmat::HMatInterface<T>*)hmatB);
-    return 0;
+  try {
+      ((hmat::HMatInterface<T>*)hmat)->solve(*(hmat::HMatInterface<T>*)hmatB);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
 }
 
 template<typename T, template <typename> class E>
 int solve_systems(hmat_matrix_t* holder, void* b, int nrhs) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
-  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-  hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
-  hmat->solve(mb);
-  hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
+  try {
+      hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
+      hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
+      hmat->solve(mb);
+      hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -432,15 +518,25 @@ template<typename T, template <typename> class E>
 int solve_dense(hmat_matrix_t* holder, void* b, int nrhs) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
-  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-  hmat->solve(mb);
+  try {
+      hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
+      hmat->solve(mb);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
 template<typename T, template <typename> class E>
 int transpose(hmat_matrix_t* hmat) {
   DECLARE_CONTEXT;
-  ((hmat::HMatInterface<T>*)hmat)->transpose();
+  try {
+      ((hmat::HMatInterface<T>*)hmat)->transpose();
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -448,7 +544,12 @@ template<typename T, template <typename> class E>
 int hmat_get_info(hmat_matrix_t* holder, hmat_info_t* info) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  hmat->info(*info);
+  try {
+      hmat->info(*info);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -456,9 +557,14 @@ template<typename T, template <typename> class E>
 int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  std::string filejson(prefix);
-  filejson += ".json";
-  hmat->dumpTreeToFile( filejson );
+  try {
+      std::string filejson(prefix);
+      filejson += ".json";
+      hmat->dumpTreeToFile( filejson );
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -466,10 +572,15 @@ template<typename T, template <typename> class E>
 int get_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t ** rows, const hmat_cluster_tree_t ** cols) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  if (rows)
-    *rows = static_cast<const hmat_cluster_tree_t*>(static_cast<const void*>(hmat->engine().hmat->rowsTree()));
-  if (cols)
-    *cols = static_cast<const hmat_cluster_tree_t*>(static_cast<const void*>(hmat->engine().hmat->colsTree()));
+  try {
+      if (rows)
+        *rows = static_cast<const hmat_cluster_tree_t*>(static_cast<const void*>(hmat->engine().hmat->rowsTree()));
+      if (cols)
+        *cols = static_cast<const hmat_cluster_tree_t*>(static_cast<const void*>(hmat->engine().hmat->colsTree()));
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -477,9 +588,14 @@ template<typename T, template <typename> class E>
 int set_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t * rows, const hmat_cluster_tree_t * cols) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  hmat->engine().hmat->setClusterTrees(
-    reinterpret_cast<const hmat::ClusterTree*>(rows),
-    reinterpret_cast<const hmat::ClusterTree*>(cols));
+  try {
+      hmat->engine().hmat->setClusterTrees(
+        reinterpret_cast<const hmat::ClusterTree*>(rows),
+        reinterpret_cast<const hmat::ClusterTree*>(cols));
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -505,9 +621,14 @@ int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
   DECLARE_CONTEXT;
   (void)size; //for API compatibility
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
-  hmat->engine().hmat->extractDiagonal(static_cast<T*>(diag));
-  hmat::ScalarArray<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), 1);
-  hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices(), 0);
+  try {
+      hmat->engine().hmat->extractDiagonal(static_cast<T*>(diag));
+      hmat::ScalarArray<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), 1);
+      hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices(), 0);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -517,15 +638,20 @@ int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nr
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
   hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-  if (transpose)
-    hmat::reorderVector<T>(&mb, hmat->rows()->indices(), 0);
-  else
-    hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
-  hmat->solveLower(mb, transpose);
-  if (transpose)
-    hmat::restoreVectorOrder<T>(&mb, hmat->rows()->indices(), 0);
-  else
-    hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
+  try {
+      if (transpose)
+        hmat::reorderVector<T>(&mb, hmat->rows()->indices(), 0);
+      else
+        hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
+      hmat->solveLower(mb, transpose);
+      if (transpose)
+        hmat::restoreVectorOrder<T>(&mb, hmat->rows()->indices(), 0);
+      else
+        hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -535,7 +661,12 @@ int solve_lower_triangular_dense(hmat_matrix_t* holder, int transpose, void* b, 
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
   hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-  hmat->solveLower(mb, transpose);
+  try {
+      hmat->solveLower(mb, transpose);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
   return 0;
 }
 
@@ -555,28 +686,33 @@ int get_block(struct hmat_get_values_context_t *ctx) {
   DECLARE_CONTEXT;
   DISABLE_THREADING_IN_BLOCK;
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)ctx->matrix;
-    hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
-    hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
-    typename E<T>::UncompressedBlock view;
-    const E<T>& engine = dynamic_cast<const E<T>&>(hmat->engine());
-    view.uncompress(engine.getHandle(), rows, cols, (T*)ctx->values);
-    hmat::HMatrix<T>* compressed = hmat->engine().hmat;
-    // Symmetrize values when requesting a full symmetric matrix
-    if (compressed->isLower &&
-        ctx->row_offset == 0 && ctx->col_offset == 0 &&
-        ctx->row_size == compressed->rows()->size() && ctx->col_size == compressed->cols()->size())
-    {
-      T* ptr = static_cast<T*>(ctx->values);
-      for (int i = 0; i < ctx->row_size; i++) {
-        for (int j = i + 1; j < ctx->col_size; j++) {
-          ptr[j*ctx->row_size + i] = ptr[i*ctx->row_size + j];
+    try {
+        hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
+        hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
+        typename E<T>::UncompressedBlock view;
+        const E<T>& engine = dynamic_cast<const E<T>&>(hmat->engine());
+        view.uncompress(engine.getHandle(), rows, cols, (T*)ctx->values);
+        hmat::HMatrix<T>* compressed = hmat->engine().hmat;
+        // Symmetrize values when requesting a full symmetric matrix
+        if (compressed->isLower &&
+            ctx->row_offset == 0 && ctx->col_offset == 0 &&
+            ctx->row_size == compressed->rows()->size() && ctx->col_size == compressed->cols()->size())
+        {
+          T* ptr = static_cast<T*>(ctx->values);
+          for (int i = 0; i < ctx->row_size; i++) {
+            for (int j = i + 1; j < ctx->col_size; j++) {
+              ptr[j*ctx->row_size + i] = ptr[i*ctx->row_size + j];
+            }
+          }
         }
-      }
+        if (ctx->renumber_rows)
+            view.renumberRows();
+        ctx->col_indices = view.colsNumbering();
+        ctx->row_indices= view.rowsNumbering();
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
     }
-    if (ctx->renumber_rows)
-        view.renumberRows();
-    ctx->col_indices = view.colsNumbering();
-    ctx->row_indices= view.rowsNumbering();
     return 0;
 }
 
@@ -585,12 +721,17 @@ int get_values(struct hmat_get_values_context_t *ctx) {
   DECLARE_CONTEXT;
     // No need to call DISABLE_THREADING_IN_BLOCK here, there is no BLAS call
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)ctx->matrix;
-    typename E<T>::UncompressedValues view;
-    const E<T>& engine = reinterpret_cast<const E<T>&>(hmat->engine());
-    view.uncompress(engine.getHandle(),
-                    ctx->row_indices, ctx->row_size,
-                    ctx->col_indices, ctx->col_size,
-                    (T*)ctx->values);
+    try {
+        typename E<T>::UncompressedValues view;
+        const E<T>& engine = reinterpret_cast<const E<T>&>(hmat->engine());
+        view.uncompress(engine.getHandle(),
+                        ctx->row_indices, ctx->row_size,
+                        ctx->col_indices, ctx->col_size,
+                        (T*)ctx->values);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
     return 0;
 }
 
@@ -598,8 +739,13 @@ template <typename T, template <typename> class E>
 int walk(hmat_matrix_t* holder, hmat_procedure_t* proc) {
   DECLARE_CONTEXT;
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *) holder;
-    hmat::TreeProcedure<hmat::HMatrix<T> > *functor = (hmat::TreeProcedure<hmat::HMatrix<T> > *) proc->internal;
-    hmat->walk(functor);
+    try {
+        hmat::TreeProcedure<hmat::HMatrix<T> > *functor = (hmat::TreeProcedure<hmat::HMatrix<T> > *) proc->internal;
+        hmat->walk(functor);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
     return 0;
 }
 
@@ -607,8 +753,13 @@ template <typename T, template <typename> class E>
 int apply_on_leaf(hmat_matrix_t* holder, const hmat_leaf_procedure_t* proc) {
   DECLARE_CONTEXT;
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *) holder;
-    const hmat::LeafProcedure<hmat::HMatrix<T> > *functor = static_cast<const hmat::LeafProcedure<hmat::HMatrix<T> > *>(proc->internal);
-    hmat->apply_on_leaf(*functor);
+    try {
+        const hmat::LeafProcedure<hmat::HMatrix<T> > *functor = static_cast<const hmat::LeafProcedure<hmat::HMatrix<T> > *>(proc->internal);
+        hmat->apply_on_leaf(*functor);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
     return 0;
 }
 

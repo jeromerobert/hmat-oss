@@ -293,13 +293,21 @@ int main(int argc, char **argv) {
   ctx_assemble.prepare = prepare_hmat;
   ctx_assemble.block_compute = compute_hmat;
   ctx_assemble.lower_symmetric = 0;
-  hmat.assemble_generic(hmatrix, &ctx_assemble);
+  int rc = hmat.assemble_generic(hmatrix, &ctx_assemble);
+  if (0 != rc) {
+      fprintf(stderr, "Error during assembly, aborting\n");
+      exit(rc);
+  }
   hmat_delete_compression(ctx_assemble.compression);
 
   hmat_factorization_context_t ctx_facto;
   hmat_factorization_context_init(&ctx_facto);
   ctx_facto.factorization = hmat_factorization_lu;
-  hmat.factorize_generic(hmatrix, &ctx_facto);
+  rc = hmat.factorize_generic(hmatrix, &ctx_facto);
+  if (0 != rc) {
+      fprintf(stderr, "Error during factorization, aborting\n");
+      exit(rc);
+  }
 
   hmat.destroy(hmatrix);
   hmat_delete_cluster_tree(cluster_tree);

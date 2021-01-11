@@ -653,7 +653,7 @@ typedef struct
     void (*set_low_rank_epsilon)(hmat_matrix_t* hmatrix, double epsilon);
 
     /*! Assemble a HMatrix */
-    void (*assemble_generic)(hmat_matrix_t* matrix, hmat_assemble_context_t * context);
+    int (*assemble_generic)(hmat_matrix_t* matrix, hmat_assemble_context_t * context);
 
     /*! \brief Return a copy of a HMatrix.
 
@@ -679,7 +679,7 @@ typedef struct
     int (*inverse)(hmat_matrix_t* hmatrix);
 
     /*! Factorize a HMatrix */
-    void (*factorize_generic)(hmat_matrix_t* matrix, hmat_factorization_context_t * context);
+    int (*factorize_generic)(hmat_matrix_t* matrix, hmat_factorization_context_t * context);
 
     /*! \brief Destroy a HMatrix.
 
@@ -707,7 +707,6 @@ typedef struct
     /*! \brief Solve A X = B, with X overwriting B.
 
       In this function, B is a H-matrix
-hmat
       \param hmatrix
       \param hmatrixb
       \return 0 for success

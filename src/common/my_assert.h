@@ -69,6 +69,39 @@ HMAT_NORETURN inline static void hmat_assert(const char * format, ...) {
     abort();
 }
 
+#if defined(__cplusplus) && __cplusplus >= 201103L
+
+#include <stdexcept>
+#include <string>
+
+inline std::string hmat_build_message(const char * format, ...) {
+    va_list arglist, argcopy;
+    va_start(arglist, format);
+    va_copy(argcopy, arglist);
+    int n = std::vsnprintf(NULL, 0, format, arglist);
+    va_end(arglist);
+    if (n < 0)
+        return std::string("Internal error: cannot build error message, bad format '%s' or wrong arguments", format);
+    std::string message;
+    message.resize(n + 1);
+    std::vsnprintf(&message[0], n, format, argcopy);
+    va_end(argcopy);
+    return message;
+}
+
+#define HMAT_ASSERT(x) do { if (!(x)) { \
+    hmat_backtrace(); \
+    throw std::runtime_error(hmat_build_message("\n\n[hmat] assert failure %s at %s:%d %s\n", #x, __FILE__, __LINE__, HMAT_FUNCTION)); \
+    }} while(0)
+
+#define HMAT_ASSERT_MSG(x, format, ...) do { if (!(x)) { \
+    hmat_backtrace(); \
+    throw std::runtime_error(hmat_build_message("\n\n[hmat] assert failure %s at %s:%d %s, " format "\n", \
+                #x, __FILE__, __LINE__, HMAT_FUNCTION, ## __VA_ARGS__)); \
+    }} while(0)
+
+#else
+
 #define HMAT_ASSERT(x) do { if (!(x)) \
     hmat_assert("\n\n[hmat] assert failure %s at %s:%d %s\n", \
     #x, __FILE__, __LINE__, HMAT_FUNCTION); \
@@ -78,5 +111,7 @@ HMAT_NORETURN inline static void hmat_assert(const char * format, ...) {
     hmat_assert("\n\n[hmat] assert failure %s at %s:%d %s, " format "\n", \
                 #x, __FILE__, __LINE__, HMAT_FUNCTION, ## __VA_ARGS__); \
     } while(0)
+
+#endif /* !__cplusplus */
 
 #endif
