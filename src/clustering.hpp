@@ -190,7 +190,7 @@ private:
 /**
  * Isolate DoF with large span to a dedicated cluster
  */
-class SpanClusteringAlgorithm: public ClusteringAlgorithm {
+class SpanClusteringAlgorithm: public AxisAlignClusteringAlgorithm {
     const ClusteringAlgorithm &algo_;
     double ratio_;
 public:

@@ -70,16 +70,6 @@ public:
     }
 };
 
-hmat::AxisAlignedBoundingBox* getAxisAlignedBoundingBox(const hmat::ClusterTree& node) {
-    hmat::AxisAlignedBoundingBox* bbox =
-        static_cast<hmat::AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
-    if (bbox == NULL) {
-        bbox = new hmat::AxisAlignedBoundingBox(node.data);
-        node.clusteringAlgoData_ = bbox;
-    }
-    return bbox;
-}
-
 }
 
 namespace hmat {
@@ -96,7 +86,13 @@ AxisAlignedBoundingBox*
 AxisAlignClusteringAlgorithm::getAxisAlignedBoundingbox(const ClusterTree& node)
 const
 {
-    return ::getAxisAlignedBoundingBox(node);
+    hmat::AxisAlignedBoundingBox* bbox =
+        static_cast<hmat::AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
+    if (bbox == NULL) {
+        bbox = new hmat::AxisAlignedBoundingBox(node.data);
+        node.clusteringAlgoData_ = bbox;
+    }
+    return bbox;
 }
 
 int
@@ -527,7 +523,7 @@ int SpanClusteringAlgorithm::partition(
     const DofCoordinates & coords = *current.data.coordinates();
     int n = current.data.size();
     assert(n + offset <= current.data.coordinates()->numberOfDof());
-    AxisAlignedBoundingBox * aabb = ::getAxisAlignedBoundingBox(current);
+    AxisAlignedBoundingBox * aabb = getAxisAlignedBoundingbox(current);
     int greatestDim = aabb->greatestDim();
     double threshold = aabb->extends(greatestDim) * ratio_;
     // move large span at the end of the indices array
