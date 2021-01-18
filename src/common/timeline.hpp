@@ -36,8 +36,12 @@ class Timeline {
         bool init(int workerId, Operation op);
         void timestamp();
         void addBlock(const IndexSet * rows, const IndexSet * cols);
+        void addBlock(int rows, int cols);
         template<typename T> void addBlock(HMatrix<T> * m) {
             addBlock(m->rows(), m->cols());
+        }
+        template<typename T> void addBlock(ScalarArray<T> * m) {
+            addBlock(m->rows, m->cols);
         }
     public:
         /** Shortcut API to record a new Task with blocks */
@@ -46,6 +50,20 @@ class Timeline {
             buffer_size(0), timeline_(instance()) {
           // I use trace::currentNodeIndex() to get the worker id for any runtime.
           // I do '-1' to get a value of -1 for sequential section.
+            if(init(trace::currentNodeIndex()-1, op)) {
+                if(block1)
+                    addBlock(block1);
+                if(block2)
+                    addBlock(block2);
+                if(block3)
+                    addBlock(block3);
+                timestamp();
+            }
+        }
+        /** Shortcut API to record a new Task with blocks */
+        template<typename T> Task(Operation op, ScalarArray<T> * block1,
+            HMatrix<T> * block2 = NULL, ScalarArray<T> * block3 = NULL):
+            buffer_size(0), timeline_(instance()) {
             if(init(trace::currentNodeIndex()-1, op)) {
                 if(block1)
                     addBlock(block1);
@@ -73,6 +91,8 @@ class Timeline {
     public:
         template<typename T> Task(Operation op, HMatrix<T> * block1,
             HMatrix<T> * block2 = NULL, HMatrix<T> * block3 = NULL){}
+        template<typename T> Task(Operation op, ScalarArray<T> * block1,
+            HMatrix<T> * block2 = NULL, ScalarArray<T> * block3 = NULL){}
         Task(Operation op, const int *a=NULL, const int *b=NULL, const int *c=NULL, const int *d=NULL, const int *e=NULL) {}
 #endif
     };

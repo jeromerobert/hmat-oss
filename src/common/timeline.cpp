@@ -47,6 +47,13 @@ void Timeline::Task::addBlock(const IndexSet * rows, const IndexSet * cols) {
     write(cols->size());
 }
 
+void Timeline::Task::addBlock(int rows, int cols) {
+    write(0);
+    write(rows);
+    write(0);
+    write(cols);
+}
+
 void Timeline::init(int numberOfWorker, int rank, bool onlyWorker) {
     char * prefix = getenv("HMAT_TIMELINE");
     if(prefix == NULL)
