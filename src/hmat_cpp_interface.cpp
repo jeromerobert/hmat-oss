@@ -41,7 +41,9 @@ HMatInterface<T>::HMatInterface(IEngine<T>* engine, const ClusterTree* _rows, co
   engine_(engine),factorizationType(Factorization::NONE)
 {
   DECLARE_CONTEXT;
+  admissibilityCondition->prepare(*_rows, *_cols);
   engine_->hmat = new HMatrix<T>(_rows, _cols, &HMatSettings::getInstance(), 0, sym, admissibilityCondition);
+  admissibilityCondition->clean(*_rows, *_cols);
 }
 
 template<typename T>

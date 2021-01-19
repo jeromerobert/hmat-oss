@@ -137,24 +137,21 @@ void ClusterData::assertValid() {
 ClusterTree::ClusterTree(const DofData* dofData)
   : Tree<ClusterTree>(NULL)
   , data(dofData)
-  , clusteringAlgoData_(NULL)
-  , admissibilityAlgoData_(NULL)
+  , cache_(NULL)
 {
 }
 
     ClusterTree::ClusterTree(const DofData* dofData, int offset, int size)
   : Tree<ClusterTree>(NULL)
   , data(dofData, offset, size)
-  , clusteringAlgoData_(NULL)
-  , admissibilityAlgoData_(NULL)
+  , cache_(NULL)
 {
 }
 
 ClusterTree::ClusterTree(const ClusterTree& other)
   : Tree<ClusterTree>(NULL)
   , data(other.data)
-  , clusteringAlgoData_(NULL)
-  , admissibilityAlgoData_(NULL)
+  , cache_(NULL)
 {
 }
 
@@ -173,8 +170,7 @@ ClusterTree::slice(int offset, int size) const
   ClusterTree* result = new ClusterTree(*this);
   result->data.offset_ = offset;
   result->data.size_ = size;
-  result->clusteringAlgoData_ = NULL;
-  result->admissibilityAlgoData_ = NULL;
+  result->cache_ = NULL;
   return result;
 }
 

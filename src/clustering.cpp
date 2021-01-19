@@ -86,11 +86,10 @@ AxisAlignedBoundingBox*
 AxisAlignClusteringAlgorithm::getAxisAlignedBoundingbox(const ClusterTree& node)
 const
 {
-    hmat::AxisAlignedBoundingBox* bbox =
-        static_cast<hmat::AxisAlignedBoundingBox*>(node.clusteringAlgoData_);
+    hmat::AxisAlignedBoundingBox* bbox = static_cast<hmat::AxisAlignedBoundingBox*>(node.cache_);
     if (bbox == NULL) {
         bbox = new hmat::AxisAlignedBoundingBox(node.data);
-        node.clusteringAlgoData_ = bbox;
+        node.cache_ = bbox;
     }
     return bbox;
 }
@@ -161,7 +160,7 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   int dim = largestDimension(current, currentAxis);
   sortByDimension(current, dim);
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(current);
-  current.clusteringAlgoData_ = bbox;
+  current.cache_ = bbox;
 
   int previousIndex = 0;
   // Loop on 'divider_' = the number of children created
@@ -214,8 +213,8 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
 void
 GeometricBisectionAlgorithm::clean(ClusterTree& current) const
 {
-  delete static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
-  current.clusteringAlgoData_ = NULL;
+  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
+  current.cache_ = NULL;
 }
 
 int
@@ -267,8 +266,8 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
 void
 MedianBisectionAlgorithm::clean(ClusterTree& current) const
 {
-  delete static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
-  current.clusteringAlgoData_ = NULL;
+  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
+  current.cache_ = NULL;
 }
 
 int
@@ -406,8 +405,8 @@ NTilesRecursiveAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
 void
 NTilesRecursiveAlgorithm::clean(ClusterTree& current) const
 {
-  delete static_cast<AxisAlignedBoundingBox*>(current.clusteringAlgoData_);
-  current.clusteringAlgoData_ = NULL;
+  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
+  current.cache_ = NULL;
 }
 
 ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo)

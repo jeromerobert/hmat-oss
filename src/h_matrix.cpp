@@ -195,8 +195,6 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
       }
     }
   }
-  admissibilityCondition->clean(*(rows_));
-  admissibilityCondition->clean(*(cols_));
   assert(!this->isLeaf() || isAssembled());
 }
 

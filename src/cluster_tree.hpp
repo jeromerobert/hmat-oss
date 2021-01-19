@@ -158,10 +158,8 @@ public:
   /*! Data */
   ClusterData data;
 
-  /*! Opaque pointer which may be used by clustering algorithm */
-  mutable void* clusteringAlgoData_;
-  /*! Opaque pointer which may be used by admissibility algorithm */
-  mutable void* admissibilityAlgoData_;
+  /*! Opaque pointer which may be used by algorithms */
+  mutable void* cache_;
 
 public:
   /*! \brief Create a leaf.

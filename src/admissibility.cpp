@@ -48,20 +48,49 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
     return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
 }
 
-void*
-AdmissibilityCondition::getData(const ClusterTree& current, bool) const
+const AxisAlignedBoundingBox*
+AdmissibilityCondition::getAxisAlignedBoundingBox(const ClusterTree& current, bool) const
 {
-  void* admissibility_data = current.admissibilityAlgoData_;
-  if (admissibility_data == NULL)
-  {
-    admissibility_data = new AxisAlignedBoundingBox(current.data);
-    current.admissibilityAlgoData_ = admissibility_data;
-  }
-  return admissibility_data;
+  return static_cast<const AxisAlignedBoundingBox*>(current.cache_);
 }
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(double eta, double ratio):
     eta_(eta) { ratio_ = ratio; }
+
+namespace {
+void
+recursive_compute_bounding_box(const ClusterTree& current)
+{
+  if (current.cache_)
+    return;
+  current.cache_ = new AxisAlignedBoundingBox(current.data);
+  for (int i = 0; i < current.nrChild(); ++i)
+  {
+    if (current.getChild(i))
+      recursive_compute_bounding_box(*((ClusterTree*)current.getChild(i)));
+  }
+}
+
+void
+recursive_delete_bounding_box(const ClusterTree& current)
+{
+  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
+  current.cache_ = NULL;
+  for (int i = 0; i < current.nrChild(); ++i)
+  {
+    if (current.getChild(i))
+      recursive_delete_bounding_box(*((ClusterTree*)current.getChild(i)));
+  }
+}
+}
+
+void
+StandardAdmissibilityCondition::prepare(const ClusterTree& rows, const ClusterTree& cols) const
+{
+  recursive_compute_bounding_box(rows);
+  if (&rows != &cols)
+    recursive_compute_bounding_box(cols);
+}
 
 bool
 StandardAdmissibilityCondition::stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const
@@ -80,18 +109,19 @@ StandardAdmissibilityCondition::forceFull(const ClusterTree& rows, const Cluster
 bool
 StandardAdmissibilityCondition::isLowRank(const ClusterTree& rows, const ClusterTree& cols) const
 {
-  AxisAlignedBoundingBox* rows_bbox = static_cast<AxisAlignedBoundingBox*>(getData(rows, true));
-  AxisAlignedBoundingBox* cols_bbox = static_cast<AxisAlignedBoundingBox*>(getData(cols, false));
+  const AxisAlignedBoundingBox* rows_bbox = getAxisAlignedBoundingBox(rows, true);
+  const AxisAlignedBoundingBox* cols_bbox = getAxisAlignedBoundingBox(cols, false);
 
   const double min_diameter = std::min(rows_bbox->diameter(), cols_bbox->diameter());
   return min_diameter > 0.0 && min_diameter <= eta_ * rows_bbox->distanceTo(*cols_bbox);
 }
 
 void
-StandardAdmissibilityCondition::clean(const ClusterTree& current) const
+StandardAdmissibilityCondition::clean(const ClusterTree& rows, const ClusterTree& cols) const
 {
-    delete static_cast<AxisAlignedBoundingBox*>(current.admissibilityAlgoData_);
-    current.admissibilityAlgoData_ = NULL;
+    recursive_delete_bounding_box(rows);
+    if (&rows != &cols)
+        recursive_delete_bounding_box(cols);
 }
 
 std::string

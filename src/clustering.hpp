@@ -256,7 +256,7 @@ public:
     void clean(ClusterTree& current) const;
 
 private:
-    mutable int tileSize_;
+    const int tileSize_;
 };
 
 }  // end namespace hmat

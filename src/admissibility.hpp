@@ -34,6 +34,7 @@ namespace hmat {
 
 // Forward declarations
 class ClusterTree;
+class AxisAlignedBoundingBox;
 
 class AdmissibilityCondition
 {
@@ -43,6 +44,12 @@ public:
   virtual AdmissibilityCondition * clone() const = 0;
 
   virtual ~AdmissibilityCondition() {}
+
+  /*! \brief Precompute ClusterTree::cache_ */
+  virtual void prepare(const ClusterTree& rows, const ClusterTree& cols) const {}
+  /*! \brief Clean up data which may be allocated by prepare  */
+  virtual void clean(const ClusterTree& rows, const ClusterTree& cols) const {}
+
   /*! \brief Returns true if the block of interaction between 2 nodes has a
       low-rank representation.
 
@@ -112,15 +119,12 @@ public:
   }
 
   /**
-   * @brief Get admissibility data of a cluster tree
+   * @brief Get axis aligned bounding box of a cluster tree
    * @param current cluster tree
    * @param is_rows current is a rows (resp. cols) cluster when is_rows
         is true (resp. false)
    */
-  virtual void* getData(const ClusterTree& current, bool is_rows) const;
-
-  /*! \brief Clean up data which may be allocated by isLowRank  */
-  virtual void clean(const ClusterTree&) const {}
+  virtual const AxisAlignedBoundingBox* getAxisAlignedBoundingBox(const ClusterTree& current, bool is_rows) const;
 
   virtual std::string str() const = 0;
 
@@ -155,13 +159,15 @@ class StandardAdmissibilityCondition : public AdmissibilityCondition
 public:
   StandardAdmissibilityCondition(double eta, double ratio = 0);
   StandardAdmissibilityCondition * clone() const { return new StandardAdmissibilityCondition(*this); }
+  // Precompute axis aligned bounding blocks
+  void prepare(const ClusterTree& rows, const ClusterTree& cols) const;
+  void clean(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true if block is admissible (Hackbusch condition)
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true when there is less than 2 rows or cols
   bool stopRecursion(const ClusterTree& rows, const ClusterTree& cols) const;
   // Returns true when there is less than 2 rows or cols
   bool forceFull(const ClusterTree& rows, const ClusterTree& cols) const;
-  void clean(const ClusterTree& current) const;
   std::string str() const;
   void setEta(double eta);
   double getEta() const;
@@ -219,6 +225,12 @@ public:
   AdmissibilityCondition * getProxy() const { return proxy_; }
   void setProxy(AdmissibilityCondition * admissibility) { proxy_ = admissibility; }
 
+  void prepare(const ClusterTree& rows, const ClusterTree& cols) const {
+    proxy_->prepare(rows, cols);
+  }
+  void clean(const ClusterTree& rows, const ClusterTree& cols) const {
+    return proxy_->clean(rows, cols);
+  }
   bool isLowRank(const ClusterTree& rows, const ClusterTree& cols) const {
     return proxy_->isLowRank(rows, cols);
   }
@@ -243,11 +255,8 @@ public:
   int getApproximateRank(const ClusterTree& rows, const ClusterTree& cols) const {
     return proxy_->getApproximateRank(rows, cols);
   }
-  void* getData(const ClusterTree& current, bool is_rows) const {
-    return proxy_->getData(current, is_rows);
-  }
-  void clean(const ClusterTree& current) const {
-    return proxy_->clean(current);
+  const AxisAlignedBoundingBox* getAxisAlignedBoundingBox(const ClusterTree& current, bool is_rows) const {
+    return proxy_->getAxisAlignedBoundingBox(current, is_rows);
   }
   std::string str() const {
     return proxy_->str();
