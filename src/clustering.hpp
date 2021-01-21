@@ -105,9 +105,11 @@ protected:
 };
 
 class AxisAlignClusteringAlgorithm : public ClusteringAlgorithm {
+public:
+  virtual AxisAlignedBoundingBox* getAxisAlignedBoundingbox(const ClusterTree& node) const;
+  void clean(ClusterTree& current) const;
 protected:
   void sortByDimension(ClusterTree& node, int dim) const;
-  virtual AxisAlignedBoundingBox* getAxisAlignedBoundingbox(const ClusterTree& node) const;
   /*!
    * \brief Return the largest dimension of node which is not toAvoid
    * \param toAvoid a dimension which should not be chosen as the largest
@@ -136,7 +138,6 @@ public:
   std::string str() const { return "GeometricBisectionAlgorithm"; }
 
   int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
-  void clean(ClusterTree& current) const;
 };
 
 /*! \brief Creating tree by median division.
@@ -159,7 +160,6 @@ public:
   std::string str() const { return "MedianBisectionAlgorithm"; }
 
   int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
-  void clean(ClusterTree& current) const;
 };
 
 /*! \brief Hybrid algorithm.
@@ -253,7 +253,6 @@ public:
 
     int subpartition( ClusterTree& father, ClusterTree *current, std::vector<ClusterTree*>& children, int currentAxis ) const;
     int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
-    void clean(ClusterTree& current) const;
 
 private:
     const int tileSize_;

@@ -94,6 +94,13 @@ const
     return bbox;
 }
 
+void
+AxisAlignClusteringAlgorithm::clean(ClusterTree& current) const
+{
+  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
+  current.cache_ = NULL;
+}
+
 int
 AxisAlignClusteringAlgorithm::largestDimension(const ClusterTree& node, int toAvoid, double avoidRatio)
 const
@@ -210,13 +217,6 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   return dim;
 }
 
-void
-GeometricBisectionAlgorithm::clean(ClusterTree& current) const
-{
-  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
-  current.cache_ = NULL;
-}
-
 int
 MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children,
                                     int currentAxis) const
@@ -261,13 +261,6 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   // Add the last child
   children.push_back(current.slice(current.data.offset()+ previousIndex, current.data.size() - previousIndex));
   return dim;
-}
-
-void
-MedianBisectionAlgorithm::clean(ClusterTree& current) const
-{
-  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
-  current.cache_ = NULL;
 }
 
 int
@@ -400,13 +393,6 @@ NTilesRecursiveAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
     clean( *slice );
     delete( slice );
     return dim;
-}
-
-void
-NTilesRecursiveAlgorithm::clean(ClusterTree& current) const
-{
-  delete static_cast<AxisAlignedBoundingBox*>(current.cache_);
-  current.cache_ = NULL;
 }
 
 ClusterTreeBuilder::ClusterTreeBuilder(const ClusteringAlgorithm& algo)
