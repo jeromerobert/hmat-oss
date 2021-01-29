@@ -178,18 +178,6 @@ public:
     return result;
   }
 
- /*! \brief Return a list of leaves.
-   */
-  void listAllLeaves(std::vector<const TreeNode*>& leaves) const {
-    if (!isLeaf()) {
-      for (int i=0 ; i<nrChild() ; i++)
-        if (children[i])
-          children[i]->listAllLeaves(leaves);
-    } else {
-      leaves.push_back(me());
-    }
-  }
-
   void walk(const TreeProcedure<TreeNode> *proc) {
     if (isLeaf()) {
       proc->visit(me(), tree_leaf); // treatment on the leaves

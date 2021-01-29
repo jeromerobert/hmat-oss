@@ -2670,8 +2670,43 @@ template<typename T>  void HMatrix<T>::rk(const ScalarArray<T> * a, const Scalar
                        b == NULL ? NULL : b->copy(), cols()));
 }
 
+template<typename T> void HMatrix<T>::listAllLeaves(std::deque<const HMatrix<T> *> & out) const {
+  std::vector<const HMatrix<T> *> stack;
+  stack.push_back(this);
+  while(!stack.empty()) {
+    const HMatrix<T> * m = stack.back();
+    stack.pop_back();
+    if(m->isLeaf()) {
+      out.push_back(m);
+    } else {
+      for(int i = 0; i < m->nrChild(); i++) {
+        if(m->getChild(i) != nullptr)
+          stack.push_back(m->getChild(i));
+      }
+    }
+  }
+}
+
+// No way to avoid copy/past of the const version
+template<typename T> void HMatrix<T>::listAllLeaves(std::deque<HMatrix<T> *> & out) {
+  std::vector<HMatrix<T> *> stack;
+  stack.push_back(this);
+  while(!stack.empty()) {
+    HMatrix<T> * m = stack.back();
+    stack.pop_back();
+    if(m->isLeaf()) {
+      out.push_back(m);
+    } else {
+      for(int i = 0; i < m->nrChild(); i++) {
+        if(m->getChild(i) != nullptr)
+          stack.push_back(m->getChild(i));
+      }
+    }
+  }
+}
+
 template<typename T> std::string HMatrix<T>::toString() const {
-    std::vector<const HMatrix<T> *> leaves;
+    std::deque<const HMatrix<T> *> leaves;
     this->listAllLeaves(leaves);
     int nbAssembled = 0;
     int nbNullFull = 0;

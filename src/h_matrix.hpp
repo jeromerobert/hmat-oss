@@ -43,6 +43,7 @@ namespace hmat {
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <deque>
 
 
 namespace hmat {
@@ -178,6 +179,10 @@ public:
   /** Return a full null block at the given offset and of the give size */
   HMatrix<T> * internalCopy(const ClusterTree * rows, const ClusterTree * cols) const;
 
+
+  /** \brief Add the list of leaves to a list */
+  void listAllLeaves(std::deque<const HMatrix<T> *> & out) const;
+  void listAllLeaves(std::deque<HMatrix<T> *> & out);
 
   /**
    * Create a temporary block from a list of children.
