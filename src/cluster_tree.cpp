@@ -170,6 +170,7 @@ ClusterTree::slice(int offset, int size) const
   ClusterTree* result = new ClusterTree(*this);
   result->data.offset_ = offset;
   result->data.size_ = size;
+  result->depth = depth;
   result->cache_ = NULL;
   return result;
 }
