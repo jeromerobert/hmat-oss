@@ -179,6 +179,13 @@ public:
   /** Return a full null block at the given offset and of the give size */
   HMatrix<T> * internalCopy(const ClusterTree * rows, const ClusterTree * cols) const;
 
+  /**
+   * \brief Split this block according and admissibility condition
+   *
+   * \return true if the block was actually splitted
+  */
+  bool split(AdmissibilityCondition * admissibilityCondition, bool lowRank,
+             SymmetryFlag symmetryFlag = kNotSymmetric);
 
   /** \brief Add the list of leaves to a list */
   void listAllLeaves(std::deque<const HMatrix<T> *> & out) const;

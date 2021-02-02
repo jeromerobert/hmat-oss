@@ -151,19 +151,9 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
 {
   if (isVoid())
     return;
-  // We would like to create a block of matrix in one of the following case:
-  // - rows_->isLeaf() && cols_->isLeaf() : both rows and cols are leaves.
-  // - Block is too small to recurse and compress (for performance)
-  // - Block is compressible and in-place compression is possible
-  // In the other cases, we subdivide.
-  //
-  // FIXME: But in practice this does not work yet, so we stop recursion as soon as either rows
-  // or cols is a leaf.
   const bool lowRank = admissibilityCondition->isLowRank(*rows_, *cols_);
-  const bool stopRecursion = admissibilityCondition->stopRecursion(*rows_, *cols_);
-  const bool forceRecursion = admissibilityCondition->forceRecursion(*rows_, *cols_, sizeof(T));
-  assert(!(forceRecursion && stopRecursion));
-  if ((rows_->isLeaf() && cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion)) {
+  if (!split(admissibilityCondition, lowRank, symFlag)) {
+    // If we cannot split, we are on a leaf
     const bool forceFull = admissibilityCondition->forceFull(*rows_, *cols_);
     const bool forceRk   = admissibilityCondition->forceRk(*rows_, *cols_);
     assert(!(forceFull && forceRk));
@@ -172,30 +162,56 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
     else
       full(NULL);
     approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
-  } else {
-    pair<bool, bool> split = admissibilityCondition->splitRowsCols(*rows_, *cols_);
-    assert(split.first || split.second);
-    keepSameRows = !split.first;
-    keepSameCols = !split.second;
-    isLower = (symFlag == kLowerSymmetric ? true : false);
-    for (int i = 0; i < nrChildRow(); ++i) {
-      // Don't recurse on rows if splitRowsCols() told us not to.
-      ClusterTree* rowChild = const_cast<ClusterTree*>((keepSameRows ? rows_ : rows_->getChild(i)));
-      for (int j = 0; j < nrChildCol(); ++j) {
-        // Don't recurse on cols if splitRowsCols() told us not to.
-        ClusterTree* colChild = const_cast<ClusterTree*>((keepSameCols ? cols_ : cols_->getChild(j)));
-        if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
-          if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
-            // Create child only if not 'inert' (inert = will always be null)
-            this->insertChild(i, j, new HMatrix<T>(rowChild, colChild, settings, _depth+1, (i == j ? symFlag : kNotSymmetric), admissibilityCondition));
-          } else
-            // If 'inert', the child is NULL
-            this->insertChild(i, j, NULL);
-        }
+  }
+  assert(!this->isLeaf() || isAssembled());
+}
+
+template<typename T>
+bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool lowRank,
+                      SymmetryFlag symFlag) {
+  assert(rank_ == NONLEAF_BLOCK || rank_ == UNINITIALIZED_BLOCK || (this->isLeaf() && isNull()));
+  // We would like to create a block of matrix in one of the following case:
+  // - rows_->isLeaf() && cols_->isLeaf() : both rows and cols are leaves.
+  // - Block is too small to recurse and compress (for performance)
+  // - Block is compressible and in-place compression is possible
+  // In the other cases, we subdivide.
+  //
+  // FIXME: But in practice this does not work yet, so we stop recursion as soon as either rows
+  // or cols is a leaf.
+  bool stopRecursion = admissibilityCondition->stopRecursion(*rows_, *cols_);
+  bool forceRecursion = admissibilityCondition->forceRecursion(*rows_, *cols_, sizeof(T));
+  assert(!(forceRecursion && stopRecursion));
+  // check we can actually split
+  if ((rows_->isLeaf() && cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion))
+    return false;
+  pair<bool, bool> splitRC = admissibilityCondition->splitRowsCols(*rows_, *cols_);
+  assert(splitRC.first || splitRC.second);
+  keepSameRows = !splitRC.first;
+  keepSameCols = !splitRC.second;
+  isLower = (symFlag == kLowerSymmetric ? true : false);
+  for (int i = 0; i < nrChildRow(); ++i) {
+    // Don't recurse on rows if splitRowsCols() told us not to.
+    ClusterTree* rowChild = const_cast<ClusterTree*>((keepSameRows ? rows_ : rows_->getChild(i)));
+    for (int j = 0; j < nrChildCol(); ++j) {
+      // Don't recurse on cols if splitRowsCols() told us not to.
+      ClusterTree* colChild = const_cast<ClusterTree*>((keepSameCols ? cols_ : cols_->getChild(j)));
+      if ((symFlag == kNotSymmetric) || (isUpper && (i <= j)) || (isLower && (i >= j))) {
+        if (!admissibilityCondition->isInert(*rowChild, *colChild)) {
+          // Create child only if not 'inert' (inert = will always be null)
+          this->insertChild(i, j,
+                            new HMatrix<T>(rowChild, colChild, localSettings.global,
+                                           this->depth + 1,
+                                           i == j ? symFlag : kNotSymmetric,
+                                           admissibilityCondition));
+        } else
+          // If 'inert', the child is NULL
+          this->insertChild(i, j, NULL);
       }
     }
   }
-  assert(!this->isLeaf() || isAssembled());
+  if(nrChildRow() > 0 && nrChildCol() > 0)
+    rank_ = NONLEAF_BLOCK;
+  return true;
 }
 
 template<typename T>
