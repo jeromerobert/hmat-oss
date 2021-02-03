@@ -184,7 +184,7 @@ const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree) {
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->ratio = 0.0;
-    p->max_width = -1L;
+    p->max_width = (size_t)-1L;
 }
 
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {

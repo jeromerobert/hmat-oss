@@ -39,7 +39,7 @@ class AxisAlignedBoundingBox;
 class AdmissibilityCondition
 {
 public:
-  AdmissibilityCondition() : maxWidth_(-1L) {}
+  AdmissibilityCondition() : maxWidth_((size_t)-1L) {}
   /*! \brief Virtual copy constructor */
   virtual AdmissibilityCondition * clone() const = 0;
 

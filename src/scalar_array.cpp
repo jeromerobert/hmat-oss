@@ -163,8 +163,13 @@ template<typename T> void ScalarArray<T>::resize(int col_num) {
   assert(ownsFlag);
   if(col_num > cols)
     setOrtho(0);
-  MemoryInstrumenter::instance().alloc(sizeof(T) * rows * (col_num - cols),
-                                       MemoryInstrumenter::FULL_MATRIX);
+  int diffcol = col_num - cols;
+  if(diffcol > 0)
+    MemoryInstrumenter::instance().alloc(sizeof(T) * rows * diffcol,
+                                         MemoryInstrumenter::FULL_MATRIX);
+  else
+    MemoryInstrumenter::instance().free(sizeof(T) * rows * -diffcol,
+                                        MemoryInstrumenter::FULL_MATRIX);
   cols = col_num;
 #ifdef HAVE_JEMALLOC
   void * p = je_realloc(m, sizeof(T) * rows * cols);
