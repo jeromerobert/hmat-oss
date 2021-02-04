@@ -43,7 +43,7 @@ namespace hmat {
     std::sort(_pivots.begin(), _pivots.end(), Pivot<dp_t>::ComparerLower);
     int size;
     for (size = _pivots.size() - 1; size >= 0; --size) {
-      if (abs(_pivots[size].value) > 1e-14 * _refValue)
+      if (std::abs(_pivots[size].value) > 1e-14 * _refValue)
         break;
     }
     assert(_pivots.size() - (size + 1) >= numberOfPivotsToRemove);

@@ -16,7 +16,9 @@ namespace hmat {
 
     Pivot(int row, int col, T value) : row(row), col(col), value(value) {}
     Pivot() : row(0), col(0), value(0) {}
-    static bool ComparerLower(const Pivot& pivot1, const Pivot& pivot2){ return abs(pivot1.value) > abs(pivot2.value);}
+    static bool ComparerLower(const Pivot& pivot1, const Pivot& pivot2){
+      return std::abs(pivot1.value) > std::abs(pivot2.value);
+    }
   };
 
   template<typename T>
