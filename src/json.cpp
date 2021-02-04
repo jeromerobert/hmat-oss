@@ -141,7 +141,7 @@ template<typename T> void HMatrixJSONDumper<T>::update() {
     nrChild_ = current_->nrChild();
     if (current_->isFullMatrix()) {
         nodeInfo_ << " \"leaf_type\": \"Full\"";
-    } else if (current_->isRkMatrix() && current_->rk()) {
+    } else if (current_->isRkMatrix()) {
         nodeInfo_ << " \"leaf_type\": \"Rk\", \"k\": " << current_->rank() << ",";
         nodeInfo_ << " \"epsilon\": " << current_->lowRankEpsilon();
     }
