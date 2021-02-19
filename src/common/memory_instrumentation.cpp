@@ -36,7 +36,11 @@
 #if defined(__GLIBC__) && !defined(HAVE_JEMALLOC)
 #include <malloc.h>
 // Do not care about thread safety. This is an acceptable approximation.
+#if __GLIBC_PREREQ(2,33)
+static struct mallinfo2 global_mallinfo;
+#else
 static struct mallinfo global_mallinfo;
+#endif
 #endif
 static int mallinfo_counter;
 static int write_counter;
@@ -159,7 +163,11 @@ void MemoryInstrumenter::allocImpl(mem_t size, char type) {
 #if defined(__GLIBC__) && !defined(HAVE_JEMALLOC)
         mallinfo_counter ++;
         if(mallinfo_counter >= mallinfo_sampling) {
+#if __GLIBC_PREREQ(2,33)
+            global_mallinfo = mallinfo2();
+#else
             global_mallinfo = mallinfo();
+#endif
             mallinfo_counter = 0;
         }
         int k = 3;
