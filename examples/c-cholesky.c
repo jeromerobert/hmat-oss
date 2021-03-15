@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
   hmat.assemble_generic(hmatrix, &ctx_assemble);
   fprintf(stdout, "done.\n");
   hmat.get_info(hmatrix, &mat_info);
-  printf("HMatrix size = %ld, uncompressed size = %ld\n", mat_info.compressed_size, mat_info.uncompressed_size);
+  printf("HMatrix size = %ld, uncompressed size = %ld\n", (long)mat_info.compressed_size, (long)mat_info.uncompressed_size);
   hmat_delete_compression(ctx_assemble.compression);
 
   fprintf(stdout,"Factorisation...");
@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
   hmat.factorize_generic(hmatrix, &ctx_facto);
   fprintf(stdout, "done.\n");
   hmat.get_info(hmatrix, &mat_info);
-  printf("HMatrix size = %ld, uncompressed size = %ld\n", mat_info.compressed_size, mat_info.uncompressed_size);
+  printf("HMatrix size = %ld, uncompressed size = %ld\n", (long)mat_info.compressed_size, (long)mat_info.uncompressed_size);
 
   fprintf(stdout,"Solve...");
   if(type == HMAT_SIMPLE_PRECISION){

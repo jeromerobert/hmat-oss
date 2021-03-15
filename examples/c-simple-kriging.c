@@ -391,13 +391,13 @@ int main(int argc, char **argv) {
   hmat_delete_compression(ctx_assemble.compression);
 
   hmat.get_info(hmatrix, &mat_info);
-  printf("Rk size = %ld\n", mat_info.compressed_size);
+  printf("Rk size = %ld\n", (long)mat_info.compressed_size);
   hmat.set_low_rank_epsilon(hmatrix, 1.e-2);
   fprintf(stdout,"Post-process Rk-matrices...");
   hmat.truncate(hmatrix);
   fprintf(stdout, "done.\n");
   hmat.get_info(hmatrix, &mat_info);
-  printf("Rk size = %ld\n", mat_info.compressed_size);
+  printf("Rk size = %ld\n", (long)mat_info.compressed_size);
 
   fprintf(stdout,"Factorisation...");
   hmat_factorization_context_t ctx_facto;
