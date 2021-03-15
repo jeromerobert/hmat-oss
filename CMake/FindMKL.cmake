@@ -50,7 +50,7 @@ if(MKL_DETECT)
         set(MKL_IL "c")
     endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 
-    find_library(MKL_RT_LIBRARY NAMES mkl_rt HINTS
+    find_library(MKL_RT_LIBRARY NAMES mkl_rt_dll;mkl_rt HINTS
         $ENV{MKLROOT}/lib
         ${MKLROOT}/lib
         PATH_SUFFIXES ${MKL_ARCH})
