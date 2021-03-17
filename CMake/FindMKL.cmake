@@ -103,7 +103,7 @@ endif(MKL_DETECT)
 if (MKL_FOUND)
   include(CMakePushCheckState)
   cmake_push_check_state()
-  set(CMAKE_REQUIRED_FLAGS ${MKL_COMPILE_FLAGS})
+  set(CMAKE_REQUIRED_FLAGS ${MKL_COMPILE_FLAGS};${OpenMP_C_FLAGS})
   set(CMAKE_REQUIRED_INCLUDES ${MKL_INCLUDE_DIRS})
   # We want MKL link flags to be added at the end of the command line
   # else static compilation will fail, so we use CMAKE_REQUIRED_LIBRARIES
