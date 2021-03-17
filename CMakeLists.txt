@@ -114,6 +114,7 @@ set(EXTRA_LIBS "")
 
 include(CheckLibraryExists)
 
+if(NOT WIN32)
 check_library_exists("m" sqrt "" HAVE_LIBM)
 if(HAVE_LIBM)
     set(M_LIBRARY m)
@@ -123,6 +124,7 @@ check_library_exists("rt" clock_gettime "" HAVE_LIBRT)
 if(HAVE_LIBRT)
     set(RT_LIBRARY rt)
 endif()
+endif(NOT WIN32)
 
 option(HMAT_DISABLE_OPENMP "Let HMat disable OpenMP (require OpenMP support)" ON)
 if(HMAT_DISABLE_OPENMP)
