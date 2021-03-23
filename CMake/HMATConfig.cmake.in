@@ -45,6 +45,14 @@ set(HMAT_CONFIG_FILE "${CMAKE_CURRENT_LIST_FILE}")
 if(NOT TARGET HMAT::hmat)
     include("${CMAKE_CURRENT_LIST_DIR}/HMATTargets.cmake")
 
+    if(@HMAT_JEMALLOC@)
+        add_library(HMAT::jemalloc UNKNOWN IMPORTED GLOBAL)
+        set_target_properties(HMAT::jemalloc PROPERTIES
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+            INTERFACE_INCLUDE_DIRECTORIES "@JEMALLOC_INCLUDE_DIR@"
+            IMPORTED_LOCATION "@JEMALLOC_LIBRARIES@")
+    endif()
+
     # Deprecated variable, it will be removed later.
     set(HMAT_LIBRARIES HMAT::hmat)
 endif()
