@@ -141,7 +141,7 @@ if(HMAT_DISABLE_OPENMP)
     find_package(OpenMP)
     if(OpenMP_FOUND)
         target_compile_options(hmat PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>$<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>")
-        target_link_libraries(hmat PRIVATE OpenMP::OpenMP_C)
+        target_link_libraries(hmat PRIVATE ${OpenMP_C_LIBRARIES})
     endif()
 endif()
 
@@ -151,12 +151,8 @@ if(HMAT_JEMALLOC)
     find_package(JeMalloc REQUIRED)
     if(JEMALLOC_FOUND)
         set(HAVE_JEMALLOC TRUE)
-        add_library(HMAT::jemalloc UNKNOWN IMPORTED)
-        set_target_properties(HMAT::jemalloc PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            INTERFACE_INCLUDE_DIRECTORIES "${JEMALLOC_INCLUDE_DIR}"
-            IMPORTED_LOCATION "${JEMALLOC_LIBRARIES}")
-        target_link_libraries(hmat PRIVATE HMAT::jemalloc)
+        target_include_directories(hmat PRIVATE ${JEMALLOC_INCLUDE_DIR})
+        target_link_libraries(hmat PRIVATE ${JEMALLOC_LIBRARIES})
     endif()
 endif()
 
