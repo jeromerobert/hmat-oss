@@ -1,0 +1,65 @@
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+jobs:
+  linux-release-shared:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: cmake -DBUILD_EXAMPLES=ON .
+    - run: make -j$(nproc)
+    - run: ctest
+  linux-debug-shared:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: cmake -DBUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Debug .
+    - run: make -j$(nproc)
+    - run: ctest
+  linux-release-static:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: cmake -DBUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=OFF .
+    - run: make -j$(nproc)
+    - run: ctest
+  linux-clang:
+    env:
+      CC: clang
+      CXX: clang++
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: cmake -DBUILD_EXAMPLES=ON .
+    - run: make -j$(nproc)
+    - run: ctest
+  macos:
+    runs-on: macos-latest
+    env:
+      LDFLAGS: -L/usr/local/opt/openblas/lib
+    steps:
+    - uses: actions/checkout@v2
+    - run: brew install openblas
+    - run: cmake -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=/usr/local/opt/openblas/include .
+    - run: make -j$(sysctl -n hw.logicalcpu)
+    - run: ctest
+  mingw64:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-openblas
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+    - uses: actions/checkout@v2
+    - run: cmake -GNinja -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=D:/a/_temp/msys/msys64/mingw64/include/OpenBLAS .
+    - run: ninja
+    - run: ctest
+
