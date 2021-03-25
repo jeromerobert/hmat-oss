@@ -57,7 +57,8 @@ static size_t get_res_mem(void *)
     size_t resident = 0;
 #ifdef __linux__
     FILE * statm_file = fopen("/proc/self/statm", "r");
-    fscanf(statm_file, "%*s %zu", &resident);
+    int r = fscanf(statm_file, "%*s %zu", &resident);
+    HMAT_ASSERT(r == 1);
     fclose(statm_file);
     resident *= 4096;
   #ifdef HAVE_JEMALLOC
