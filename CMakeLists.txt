@@ -39,6 +39,10 @@ endif()
 
 project(hmat-oss C CXX)
 
+if(POLICY CMP0092)
+    cmake_policy(SET CMP0092 NEW) # 3.15: MSVC warning flags are not in CMAKE_<LANG>_FLAGS by default.
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMake)
 
 if(NOT HMAT_VERSION)
@@ -256,16 +260,19 @@ function(hmat_set_compiler_flags _TARGET_NAME)
         target_compile_options(${_TARGET_NAME} PRIVATE -Werror -Wall)
         foreach(flag -Wno-sign-compare;-Wno-literal-suffix;-Wno-undefined-var-template)
             string(REPLACE "-" "_" varname ${flag})
-            # Warning: -Werror must also be set when checking for -W flags, otherwise compiler does not report an error
-            check_cxx_compiler_flag("-Werror ${flag}" CXX${varname})
+            check_cxx_compiler_flag("${flag}" CXX${varname})
             if(CXX${varname})
                 target_compile_options(${_TARGET_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${flag}>)
             endif()
-            check_c_compiler_flag("-Werror ${flag}" C${varname})
+            check_c_compiler_flag("${flag}" C${varname})
             if(C${varname})
                 target_compile_options(${_TARGET_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:${flag}>)
             endif()
         endforeach()
+    endif()
+    check_cxx_compiler_flag("/W4" MSVC_COMPILER_WARNING_FLAGS)
+    if(MSVC_COMPILER_WARNING_FLAGS)
+        target_compile_options(${_TARGET_NAME} PRIVATE /W4 -wd869,1786,2557,3280)
     endif()
 
     # C99 required for complex numbers
@@ -281,8 +288,7 @@ hmat_set_compiler_flags(hmat)
 # Enable gcc vectorization
 function(opt_flag flag)
     string(MAKE_C_IDENTIFIER ${flag} label)
-    # Warning: -Werror must also be set when checking for -f flags, otherwise compiler does not report an error
-    check_c_compiler_flag("-Werror ${flag}" ${label})
+    check_c_compiler_flag("${flag}" ${label})
     if(${label})
         target_compile_options(hmat PRIVATE $<$<NOT:$<CONFIG:Debug>>:${flag}>)
     endif()
