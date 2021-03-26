@@ -10,24 +10,24 @@ namespace hmat {
 
   template<typename T>
   struct Pivot {
-    int row;
-    int col;
-    T value;
+    int row_;
+    int col_;
+    T value_;
 
-    Pivot(int row, int col, T value) : row(row), col(col), value(value) {}
-    Pivot() : row(0), col(0), value(0) {}
+    Pivot(int row, int col, T value) : row_(row), col_(col), value_(value) {}
+    Pivot() : row_(0), col_(0), value_(0) {}
     static bool ComparerLower(const Pivot& pivot1, const Pivot& pivot2){
-      return std::abs(pivot1.value) > std::abs(pivot2.value);
+      return std::abs(pivot1.value_) > std::abs(pivot2.value_);
     }
   };
 
   template<typename T>
   class RandomPivotManager {
     typedef typename Types<T>::dp dp_t;
-    const hmat::ClusterAssemblyFunction<T> &_clusterAssemblyFunction;
-    std::vector<Pivot<dp_t> > _pivots;
-    double _refValue;
-    int _usedPivots;
+    const hmat::ClusterAssemblyFunction<T> &clusterAssemblyFunction_;
+    std::vector<Pivot<dp_t> > pivots_;
+    double refValue_;
+    int usedPivots_;
 
   public:
     RandomPivotManager(const hmat::ClusterAssemblyFunction<T> &function, int nSamples);

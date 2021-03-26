@@ -1112,9 +1112,9 @@ void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
   int mm = rows;
   int n = rows;
   T alpha = Constants<T>::pone;
-  const T *aData = bTri->const_ptr();
-  int lda = bTri->rows;
-  int ldb = rows;
+  const T *bData = bTri->const_ptr();
+  HMAT_ASSERT(bTri->lda == bTri->rows);
+  HMAT_ASSERT(lda == rows);
   {
     size_t m_ = mm;
     size_t nn = n;
@@ -1122,7 +1122,7 @@ void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
     size_t additions = m_ * nn  * (nn - 1) / 2;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
-  proxy_cblas::trmm('R', 'U', 'T', 'N', mm, n, alpha, aData, lda, ptr(), ldb);
+  proxy_cblas::trmm('R', 'U', 'T', 'N', mm, n, alpha, bData, bTri->lda, ptr(), lda);
 }
 
 template<typename T>

@@ -684,39 +684,39 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   //     + if transM is 'C', newB = conj(M) * conj(B) = conj(M * B)
 
   ScalarArray<T> *newA, *newB;
-  ScalarArray<T>* a = rk->a;
-  ScalarArray<T>* b = rk->b;
+  ScalarArray<T>* ra = rk->a;
+  ScalarArray<T>* rb = rk->b;
   if (transR != 'N') {
-    // if transR == 'T', we permute a and b; if transR == 'C', they will
+    // if transR == 'T', we permute ra and rb; if transR == 'C', they will
     // also have to be conjugated, but this cannot be done here because rk
     // is const, this will be performed below.
-    std::swap(a, b);
+    std::swap(ra, rb);
   }
-  newA = a->copy();
-  newB = new ScalarArray<T>(transM == 'N' ? m->cols() : m->rows(), b->cols);
+  newA = ra->copy();
+  newB = new ScalarArray<T>(transM == 'N' ? m->cols() : m->rows(), rb->cols);
   if (transR == 'C') {
     newA->conjugate();
     if (transM == 'N') {
-      newB->gemm('C', 'N', Constants<T>::pone, &m->data, b, Constants<T>::zero);
+      newB->gemm('C', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
       newB->conjugate();
     } else if (transM == 'T') {
-      ScalarArray<T> *conjB = b->copy();
+      ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
       newB->gemm('N', 'N', Constants<T>::pone, &m->data, conjB, Constants<T>::zero);
       delete conjB;
     } else {
       assert(transM == 'C');
-      newB->gemm('N', 'N', Constants<T>::pone, &m->data, b, Constants<T>::zero);
+      newB->gemm('N', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
       newB->conjugate();
     }
   } else {
     if (transM == 'N') {
-      newB->gemm('T', 'N', Constants<T>::pone, &m->data, b, Constants<T>::zero);
+      newB->gemm('T', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
     } else if (transM == 'T') {
-      newB->gemm('N', 'N', Constants<T>::pone, &m->data, b, Constants<T>::zero);
+      newB->gemm('N', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
     } else {
       assert(transM == 'C');
-      ScalarArray<T> *conjB = b->copy();
+      ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
       newB->gemm('N', 'N', Constants<T>::pone, &m->data, conjB, Constants<T>::zero);
       newB->conjugate();
@@ -742,33 +742,33 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
   //     + if transM is 'T', newA = M^T * conj(A) = conj(M^H * A)
   //     + if transM is 'C', newA = M^H * conj(A) = conj(M^T * A)
   ScalarArray<T> *newA, *newB;
-  ScalarArray<T>* a = rk->a;
-  ScalarArray<T>* b = rk->b;
+  ScalarArray<T>* ra = rk->a;
+  ScalarArray<T>* rb = rk->b;
   if (transR != 'N') { // permutation to transpose the matrix Rk
-    std::swap(a, b);
+    std::swap(ra, rb);
   }
   const IndexSet *rkCols = ((transR == 'N')? rk->cols : rk->rows);
   const IndexSet *mRows = ((transM == 'N')? m->rows_ : m->cols_);
 
-  newA = new ScalarArray<T>(mRows->size(), b->cols);
-  newB = b->copy();
+  newA = new ScalarArray<T>(mRows->size(), rb->cols);
+  newB = rb->copy();
   if (transR == 'C') {
     newB->conjugate();
     if (transM == 'N') {
-      ScalarArray<T> *conjA = a->copy();
+      ScalarArray<T> *conjA = ra->copy();
       conjA->conjugate();
       newA->gemm('N', 'N', Constants<T>::pone, &m->data, conjA, Constants<T>::zero);
       delete conjA;
     } else if (transM == 'T') {
-      newA->gemm('C', 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
+      newA->gemm('C', 'N', Constants<T>::pone, &m->data, ra, Constants<T>::zero);
       newA->conjugate();
     } else {
       assert(transM == 'C');
-      newA->gemm('T', 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
+      newA->gemm('T', 'N', Constants<T>::pone, &m->data, ra, Constants<T>::zero);
       newA->conjugate();
     }
   } else {
-    newA->gemm(transM, 'N', Constants<T>::pone, &m->data, a, Constants<T>::zero);
+    newA->gemm(transM, 'N', Constants<T>::pone, &m->data, ra, Constants<T>::zero);
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, mRows, newB, rkCols);
   return result;
@@ -796,39 +796,39 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transR, char transH,
   // So H^t size is m x n and the product is m x cols(B)
   // and the number of columns of B is k.
   ScalarArray<T> *newA, *newB;
-  ScalarArray<T>* a = rk->a;
-  ScalarArray<T>* b = rk->b;
+  ScalarArray<T>* ra = rk->a;
+  ScalarArray<T>* rb = rk->b;
   if (transR != 'N') { // permutation to transpose the matrix Rk
-    std::swap(a, b);
+    std::swap(ra, rb);
   }
 
   const IndexSet *newCols = ((transH == 'N' )? h->cols() : h->rows());
 
-  newA = a->copy();
-  newB = new ScalarArray<T>(transH == 'N' ? h->cols()->size() : h->rows()->size(), b->cols);
+  newA = ra->copy();
+  newB = new ScalarArray<T>(transH == 'N' ? h->cols()->size() : h->rows()->size(), rb->cols);
   if (transR == 'C') {
     newA->conjugate();
     if (transH == 'N') {
-      h->gemv('C', Constants<T>::pone, b, Constants<T>::zero, newB);
+      h->gemv('C', Constants<T>::pone, rb, Constants<T>::zero, newB);
       newB->conjugate();
     } else if (transH == 'T') {
-      ScalarArray<T> *conjB = b->copy();
+      ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
       h->gemv('N', Constants<T>::pone, conjB, Constants<T>::zero, newB);
       delete conjB;
     } else {
       assert(transH == 'C');
-      h->gemv('N', Constants<T>::pone, b, Constants<T>::zero, newB);
+      h->gemv('N', Constants<T>::pone, rb, Constants<T>::zero, newB);
       newB->conjugate();
     }
   } else {
     if (transH == 'N') {
-      h->gemv('T', Constants<T>::pone, b, Constants<T>::zero, newB);
+      h->gemv('T', Constants<T>::pone, rb, Constants<T>::zero, newB);
     } else if (transH == 'T') {
-      h->gemv('N', Constants<T>::pone, b, Constants<T>::zero, newB);
+      h->gemv('N', Constants<T>::pone, rb, Constants<T>::zero, newB);
     } else {
       assert(transH == 'C');
-      ScalarArray<T> *conjB = b->copy();
+      ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
       h->gemv('N', Constants<T>::pone, conjB, Constants<T>::zero, newB);
       delete conjB;
@@ -860,33 +860,33 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   //     + if transH is 'T', newA = M^T * conj(A) = conj(M^H * A)
   //     + if transH is 'C', newA = M^H * conj(A) = conj(M^T * A)
   ScalarArray<T> *newA, *newB;
-  ScalarArray<T>* a = rk->a;
-  ScalarArray<T>* b = rk->b;
+  ScalarArray<T>* ra = rk->a;
+  ScalarArray<T>* rb = rk->b;
   if (transR != 'N') { // permutation to transpose the matrix Rk
-    std::swap(a, b);
+    std::swap(ra, rb);
   }
   const IndexSet *rkCols = ((transR == 'N')? rk->cols : rk->rows);
   const IndexSet* newRows = ((transH == 'N')? h-> rows() : h->cols());
 
-  newA = new ScalarArray<T>(transH == 'N' ? h->rows()->size() : h->cols()->size(), b->cols);
-  newB = b->copy();
+  newA = new ScalarArray<T>(transH == 'N' ? h->rows()->size() : h->cols()->size(), rb->cols);
+  newB = rb->copy();
   if (transR == 'C') {
     newB->conjugate();
     if (transH == 'N') {
-      ScalarArray<T> *conjA = a->copy();
+      ScalarArray<T> *conjA = ra->copy();
       conjA->conjugate();
       h->gemv('N', Constants<T>::pone, conjA, Constants<T>::zero, newA);
       delete conjA;
     } else if (transH == 'T') {
-      h->gemv('C', Constants<T>::pone, a, Constants<T>::zero, newA);
+      h->gemv('C', Constants<T>::pone, ra, Constants<T>::zero, newA);
       newA->conjugate();
     } else {
       assert(transH == 'C');
-      h->gemv('T', Constants<T>::pone, a, Constants<T>::zero, newA);
+      h->gemv('T', Constants<T>::pone, ra, Constants<T>::zero, newA);
       newA->conjugate();
     }
   } else {
-    h->gemv(transH, Constants<T>::pone, a, Constants<T>::zero, newA);
+    h->gemv(transH, Constants<T>::pone, ra, Constants<T>::zero, newA);
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, newRows, newB, rkCols);
   return result;

@@ -392,8 +392,8 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
     }
 
     Pivot<dp_t > randomOrDefaultPivot = randomPivotManager.GetPivot();
-    if(I!=randomOrDefaultPivot.row && squaredNorm(randomOrDefaultPivot.value) > maxNorm2){
-      I = randomOrDefaultPivot.row;
+    if(I!=randomOrDefaultPivot.row_ && squaredNorm(randomOrDefaultPivot.value_) > maxNorm2){
+      I = randomOrDefaultPivot.row_;
       continue;
     }
 
