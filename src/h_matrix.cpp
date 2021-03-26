@@ -2623,7 +2623,7 @@ void HMatrix<T>::solveLlt(FullMatrix<T>* b) const {
 
 template<typename T>
 void HMatrix<T>::checkStructure() const {
-  return;
+#if 0
   if (this->isLeaf()) {
     return;
   }
@@ -2634,11 +2634,12 @@ void HMatrix<T>::checkStructure() const {
         child->checkStructure();
     }
   }
+#endif
 }
 
 template<typename T>
 void HMatrix<T>::checkNan() const {
-  return;
+#if 0
   if (this->isLeaf()) {
     if (isFullMatrix()) {
       full()->checkNan();
@@ -2653,6 +2654,7 @@ void HMatrix<T>::checkNan() const {
       }
     }
   }
+#endif
 }
 
 template<typename T> void HMatrix<T>::setTriLower(bool value)
