@@ -59,11 +59,9 @@ public:
         return info_ != 0;
     }
 
-    virtual const char* what() const throw() {
+    virtual const char* what() const noexcept {
         return msg.c_str();
     }
-
-    virtual ~LapackException() throw() {}
 };
 
 }  // end namespace hmat

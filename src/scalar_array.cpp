@@ -626,11 +626,9 @@ public:
         invalidDiagonalMessage_ = sstm.str();
     }
 
-    virtual const char* what() const throw() {
+    virtual const char* what() const noexcept {
         return invalidDiagonalMessage_.c_str();
     }
-
-    virtual ~InvalidDiagonalException() throw() {}
 };
 
 template<typename T, typename std::enable_if<hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
