@@ -65,7 +65,7 @@ namespace hmat {
     virtual void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> > &f) = 0;
 
     void progress(hmat_progress_t *p) { progress_ = p; }
-
+    hmat_progress_t * progress() const { return progress_; }
     virtual void info(hmat_info_t &i) const =0;
 
     virtual EngineSettings &GetSettings() = 0;
