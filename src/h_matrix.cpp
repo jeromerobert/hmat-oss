@@ -952,7 +952,8 @@ void HMatrix<T>::addIdentity(T alpha)
     }
   } else {
     for (int i = 0; i < nrChildRow(); i++)
-      get(i,i)->addIdentity(alpha);
+      if(get(i, i) != nullptr)
+        get(i,i)->addIdentity(alpha);
   }
 }
 
