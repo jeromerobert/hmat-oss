@@ -257,6 +257,9 @@ namespace hmat {
                     me()->nrChildRow(), me()->nrChildCol(), me()->description().c_str());
 
     for (int k=0 ; k<me()->nrChildRow() ; k++) {
+      if(me()->get(k,k) == nullptr)
+        // inert diagonal block. The associated row & column are considered as also inert.
+        continue;
       // Hkk <- Lkk * Ukk
       me()->get(k,k)->luDecomposition(progress);
       // Solve the rest of line k: solve Lkk Uki = Hki and get Uki
