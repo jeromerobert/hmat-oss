@@ -1734,7 +1734,7 @@ void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
   } else {
     for (int i=0 ; i<nrChildRow() ; i++)
       for (int j=0 ; j<nrChildCol() ; j++)
-        if (get(i,j))
+        if (get(i,j) && o->get(j, i))
           get(i, j)->copyAndTranspose(o->get(j, i));
   }
 }
