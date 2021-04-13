@@ -992,6 +992,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
     if(this->isLeaf()) {
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
         tmpMatrix->temporary_=true;
+        tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
         ClusterTree * r = rows_->slice(rows->offset(), rows->size());
         ClusterTree * c = cols_->slice(cols->offset(), cols->size());
 
