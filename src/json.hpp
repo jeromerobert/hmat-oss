@@ -59,13 +59,13 @@ public:
 
 template<typename T>
 class HMatrixJSONDumper: public JSONDumper {
-    HMatrix<T> * current_;
+    const HMatrix<T> * current_;
     void update();
 protected:
     virtual void loopOnChildren(int depth);
     virtual void dumpMeta();
 public:
-    HMatrixJSONDumper(HMatrix<T> * m, std::ostream & out);
+    HMatrixJSONDumper(const HMatrix<T> * m, std::ostream & out);
 };
 
 }

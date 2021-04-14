@@ -149,7 +149,7 @@ template<typename T> void HMatrixJSONDumper<T>::update() {
 
 template<typename T>
 void HMatrixJSONDumper<T>::loopOnChildren(int depth) {
-    HMatrix<T> * toLoopOn = current_;
+    const HMatrix<T> * toLoopOn = current_;
     int last = toLoopOn->nrChild() - 1;
     while(last >= 0 && NULL == toLoopOn->getChild(last))
       --last;
@@ -164,7 +164,7 @@ void HMatrixJSONDumper<T>::loopOnChildren(int depth) {
 }
 
 template<typename T>
-HMatrixJSONDumper<T>::HMatrixJSONDumper(HMatrix<T> * m, std::ostream & out)
+HMatrixJSONDumper<T>::HMatrixJSONDumper(const HMatrix<T> * m, std::ostream & out)
     : JSONDumper(out), current_(m) {
     update();
 }
