@@ -1486,11 +1486,20 @@ FullMatrix<T>* multiplyFullH(char transM, char transH,
                                          const FullMatrix<T>* mat,
                                          const HMatrix<T>* h) {
   assert(transH != 'C');
-  assert(transM != 'C');
-  // R = M * H = (H^t * M^t*)^t
-  FullMatrix<T>* resultT = multiplyHFull(transH == 'N' ? 'T' : 'N',
-                                         transM == 'N' ? 'T' : 'N',
-                                         h, mat);
+  FullMatrix<T>* resultT;
+  if(transM == 'C') {
+    // R = M* * H = (H^t * conj(M))^t
+    FullMatrix<T>* matT = mat->copy();
+    matT->conjugate();
+    resultT = multiplyHFull(transH == 'N' ? 'T' : 'N',
+                            'N', h, matT);
+    delete matT;
+  } else {
+    // R = M * H = (H^t * M^t*)^t
+    resultT = multiplyHFull(transH == 'N' ? 'T' : 'N',
+                            transM == 'N' ? 'T' : 'N',
+                            h, mat);
+  }
   if(resultT != NULL)
     resultT->transpose();
   return resultT;
