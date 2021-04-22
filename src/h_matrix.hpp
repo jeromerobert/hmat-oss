@@ -368,6 +368,7 @@ public:
    */
   void transpose();
 
+  void conjugate();
   /**
    * Swap non diagonal blocks and cluster trees.
    * Only used internally.

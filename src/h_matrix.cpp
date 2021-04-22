@@ -1698,6 +1698,29 @@ template<typename T> void HMatrix<T>::transpose() {
     transposeMeta();
 }
 
+template<> void HMatrix<S_t>::conjugate() {}
+template<> void HMatrix<D_t>::conjugate() {}
+template<typename T> void HMatrix<T>::conjugate() {
+  std::vector<const HMatrix<T> *> stack;
+  stack.push_back(this);
+  while(!stack.empty()) {
+    const HMatrix<T> * m = stack.back();
+    stack.pop_back();
+    if(!m->isLeaf()) {
+      for(int i = 0; i < m->nrChild(); i++) {
+        if(m->getChild(i) != NULL)
+          stack.push_back(m->getChild(i));
+      }
+    } else if(m->isNull()) {
+      // nothing to do
+    } else if(m->isRkMatrix()) {
+      m->rk()->conjugate();
+    } else {
+      m->full()->conjugate();
+    }
+  }
+}
+
 template<typename T>
 void HMatrix<T>::copyAndTranspose(const HMatrix<T>* o) {
   assert(o);
