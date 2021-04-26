@@ -1385,7 +1385,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         assert(*cols() == (transB == 'N' ? *b->cols() : *b->rows()));
         if(rk() == NULL)
             rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
-        rk()->gemmRk(lowRankEpsilon(), transA, transB, alpha, a, b, Constants<T>::pone);
+        rk()->gemmRk(lowRankEpsilon(), transA, transB, alpha, a, b);
         rank_ = rk()->rank();
         return;
     }

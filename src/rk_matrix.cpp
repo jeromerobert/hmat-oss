@@ -1010,82 +1010,42 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
 }
 
 template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char transHB,
-                                              T alpha, const HMatrix<T>* ha, const HMatrix<T>* hb, T beta) {
+                                              T alpha, const HMatrix<T>* ha, const HMatrix<T>* hb) {
   DECLARE_CONTEXT;
-  // TODO: remove this limitation, if needed.
-  assert(beta == Constants<T>::pone);
-
-  // This is ugly!  When ha node is void, we replace ha by its non-void child
-  // so that further computations are similar to the non-void case.
-  // Indeed, this is ugly...
-  while (!ha->isLeaf())
-  {
-    if (ha->nrChildRow() >= 2 && ha->nrChildCol() >= 2) {
-      if (ha->get(0, 0) && ha->get(0, 0)->rows()->size() == 0 && ha->get(0, 0)->cols()->size() == 0)
-      {
-        ha = ha->get(1, 1);
-        continue;
-      }
-      if (ha->get(1, 1) && ha->get(1, 1)->rows()->size() == 0 && ha->get(1, 1)->cols()->size() == 0)
-      {
-        ha = ha->get(0, 0);
-        continue;
-      }
-    }
-    break;
-  }
-  while (!hb->isLeaf())
-  {
-    if (hb->nrChildRow() >= 2 && hb->nrChildCol() >= 2) {
-      if (hb->get(0, 0) && hb->get(0, 0)->rows()->size() == 0 && hb->get(0, 0)->cols()->size() == 0)
-      {
-        hb = hb->get(1, 1);
-        continue;
-      }
-      if (hb->get(1, 1) && hb->get(1, 1)->rows()->size() == 0 && hb->get(1, 1)->cols()->size() == 0)
-      {
-        hb = hb->get(0, 0);
-        continue;
-      }
-    }
-    break;
-  }
-  // void matrix
-  if (ha->rows()->size() == 0 || ha->cols()->size() == 0 || hb->rows()->size() == 0 || hb->cols()->size() == 0) return;
-
-  if (!(ha->isLeaf() || hb->isLeaf())) {
+  if (!ha->isLeaf() && !hb->isLeaf()) {
     // Recursion case
     int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
     int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
     int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
-    RkMatrix<T>* subRks[nbRows * nbCols];
+    int nSubRks = nbRows * nbCols;
+    RkMatrix<T>* subRks[nSubRks] = {};
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
-        subRks[i + j * nbRows]=(RkMatrix<T>*)NULL;
+        int p = i + j * nbRows;
         for (int k = 0; k < nbCom; k++) {
           // C_ij = A_ik * B_kj
-          const HMatrix<T>* a_ik = (transHA == 'N' ? ha->get(i, k) : ha->get(k, i));
-          const HMatrix<T>* b_kj = (transHB == 'N' ? hb->get(k, j) : hb->get(j, k));
+          HMatrix<T>* a_ik = transHA == 'N' ? ha->get(i, k) : ha->get(k, i);
+          HMatrix<T>* b_kj = transHB == 'N' ? hb->get(k, j) : hb->get(j, k);
           if (a_ik && b_kj) {
-            if (subRks[i + j * nbRows]==NULL) {
-              const IndexSet* subRows = (transHA == 'N' ? a_ik->rows() : a_ik->cols());
-              const IndexSet* subCols = (transHB == 'N' ? b_kj->cols() : b_kj->rows());
-              subRks[i + j * nbRows] = new RkMatrix<T>(NULL, subRows, NULL, subCols);
+            if (subRks[p] == nullptr) {
+              const IndexSet* subRows = transHA == 'N' ? a_ik->rows() : a_ik->cols();
+              const IndexSet* subCols = transHB == 'N' ? b_kj->cols() : b_kj->rows();
+              subRks[p] = new RkMatrix<T>(nullptr, subRows, nullptr, subCols);
             }
-            subRks[i + j * nbRows]->gemmRk(epsilon, transHA, transHB, alpha, a_ik, b_kj, beta);
+            subRks[p]->gemmRk(epsilon, transHA, transHB, alpha, a_ik, b_kj);
           }
         } // k loop
       } // j loop
     } // i loop
     // Reconstruction of C by adding the parts
-    std::vector<T> alphaV(nbRows * nbCols, Constants<T>::pone);
-    formattedAddParts(epsilon, &alphaV[0], (const RkMatrix<T>**) subRks,
-        nbRows * nbCols);
-    for (int i = 0; i < nbRows * nbCols; i++) {
+    T alphaV[nSubRks];
+    std::fill_n(alphaV, nSubRks, 1);
+    formattedAddParts(epsilon, alphaV, subRks, nSubRks);
+    for (int i = 0; i < nSubRks; i++) {
       delete subRks[i];
     }
   } else {
-    RkMatrix<T>* rk = NULL;
+    RkMatrix<T>* rk = nullptr;
     // One of the product matrix is a leaf
     if ((ha->isLeaf() && ha->isNull()) || (hb->isLeaf() && hb->isNull())) {
       // Nothing to do

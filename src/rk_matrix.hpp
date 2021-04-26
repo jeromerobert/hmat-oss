@@ -182,7 +182,7 @@ public:
 
   /*! \brief Add a product of HMatrix to an RkMatrix
      */
-  void gemmRk(double epsilon, char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta);
+  void gemmRk(double epsilon, char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b);
 
   /** Multiplication by a scalar.
 
