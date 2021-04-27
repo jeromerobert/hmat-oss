@@ -1018,7 +1018,8 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
     int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
     int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
     int nSubRks = nbRows * nbCols;
-    RkMatrix<T>* subRks[nSubRks] = {};
+    RkMatrix<T>* subRks[nSubRks];
+    std::fill_n(subRks, nSubRks, nullptr);
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
         int p = i + j * nbRows;
