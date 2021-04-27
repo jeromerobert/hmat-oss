@@ -266,5 +266,12 @@ private:
   AdmissibilityCondition * proxy_;
 };
 
+class HODLRAdmissibilityCondition : public AdmissibilityCondition {
+public:
+  std::string str() const override;
+  bool isLowRank(const ClusterTree&, const ClusterTree&) const override;
+  HODLRAdmissibilityCondition* clone() const override;
+};
+
 } //  end namespace hmat
 #endif

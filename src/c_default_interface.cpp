@@ -205,6 +205,10 @@ hmat_admissibility_t* hmat_create_admissibility_standard(double eta)
     return static_cast<hmat_admissibility_t*>((void*) new hmat::StandardAdmissibilityCondition(eta));
 }
 
+hmat_admissibility_t* hmat_create_admissibility_hodlr() {
+  return reinterpret_cast<hmat_admissibility_t*>(new hmat::HODLRAdmissibilityCondition());
+}
+
 hmat_admissibility_t* hmat_create_admissibility_always(
         size_t max_size, unsigned int min_block, int split_rows, int split_cols) {
     return reinterpret_cast<hmat_admissibility_t*>(

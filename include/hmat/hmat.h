@@ -328,6 +328,13 @@ HMAT_API void hmat_update_admissibility(hmat_admissibility_t*, hmat_admissibilit
 HMAT_API hmat_admissibility_t* hmat_create_admissibility_standard(double eta);
 
 /**
+ * @brief Create an admissibility which will generate a HODLR matrix.
+ *
+ * All blocks except diagonal ones are admissible.
+ */
+HMAT_API hmat_admissibility_t* hmat_create_admissibility_hodlr(void);
+
+/**
  * @brief Create an admissibility condiction which set all blocks as admissible
  * @param max_block_size The maximum acceptable block size in number of values (rows * cols)
  * @param min_nr_block The minimum acceptable number of blocks created with this condition

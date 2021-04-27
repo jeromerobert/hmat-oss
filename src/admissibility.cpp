@@ -227,4 +227,16 @@ bool AlwaysAdmissibilityCondition::forceRecursion(const ClusterTree& rows, const
 bool AlwaysAdmissibilityCondition::forceFull(const ClusterTree& rows, const ClusterTree& cols) const {
     return never_ || rows.data.size() <= 2 || cols.data.size() <= 2;
 }
+
+std::string HODLRAdmissibilityCondition::str() const {
+  return "HODLRAdmissibilityCondition";
+}
+
+bool HODLRAdmissibilityCondition::isLowRank(const ClusterTree& row, const ClusterTree& col) const {
+  return !(row.data == col.data);
+}
+
+HODLRAdmissibilityCondition* HODLRAdmissibilityCondition::clone() const {
+  return new HODLRAdmissibilityCondition();
+}
 }  // end namespace hmat
