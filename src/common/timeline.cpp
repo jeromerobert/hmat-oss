@@ -68,11 +68,12 @@ void Timeline::init(int numberOfWorker, int rank, bool onlyWorker) {
         files_.push_back(f);
     }
     enabled_ = true;
-    opMask_.set();
-    opMask_[Operation::GEMM] = getenv("HMAT_TIMELINE_GEMM");
-    opMask_[Operation::QR] = getenv("HMAT_TIMELINE_QR");
-    opMask_[Operation::SVD] = false;
-    opMask_[Operation::PRODUCTQ] = false;
+    opMask_.reset();
+    opMask_[Operation::GEMM] = true;
+    opMask_[Operation::QR] = true;
+    opMask_[Operation::SVD] = true;
+    opMask_[Operation::PRODUCTQ] = true;
+    opMask_[Operation::INIT] = true;
     Task t(INIT, static_cast<HMatrix<S_t>*>(NULL));
 }
 
