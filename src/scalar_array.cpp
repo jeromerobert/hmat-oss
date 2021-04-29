@@ -932,7 +932,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures) const {
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
-
+  Timeline::Task t(Timeline::SVD, &rows, &cols);
   // Allocate free space for U, S, V
   int p = std::min(rows, cols);
 
@@ -1126,6 +1126,7 @@ void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
 template<typename T>
 int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   DECLARE_CONTEXT;
+  Timeline::Task t(Timeline::PRODUCTQ, &cols, &c->rows, &c->cols);
   assert((side == 'L') ? rows == c->rows : rows == c->cols);
   int info;
   int workSize;

@@ -4,6 +4,7 @@
 #include "h_matrix.hpp"
 #include "common/chrono.h"
 #include "common/context.hpp"
+#include <bitset>
 
 namespace hmat {
 
@@ -11,18 +12,16 @@ class Timeline {
 #ifdef HMAT_TIMELINE
     std::vector<FILE *> files_;
     bool enabled_;
-    bool packEnabled_;
-    bool gemmEnabled_;
-    bool qrEnabled_;
     bool onlyWorker_;
-    Timeline() : enabled_(false), packEnabled_(true), gemmEnabled_(false), qrEnabled_(false) {}
+    Timeline() : enabled_(false) {}
     ~Timeline();
 #endif
     public:
     enum Operation { GEMM, AXPY, SOLVE_UPPER, LLT, LDLT, MDMT, M_DIAG,
                      SOLVE_UPPER_LEFT, ASM, ASM_SYM, SOLVE_LOWER_LEFT,
                      PACK, UNPACK, INIT, PACK_COUNT, EXTRACT_RK, ASSEMBLE_RK,
-                     MGS, QR, BLASGEMM, COPY_TRUNCATE, COARSEN};
+                     MGS, QR, BLASGEMM, COPY_TRUNCATE, COARSEN, PRODUCTQ, SVD};
+    std::bitset<SVD+1> opMask_;
     class Task {
 #ifdef HMAT_TIMELINE
         char buffer[68]; // 68 bytes = 'op' (4 bytes) + payload (48 bytes max) + 2 timestamps (2x8 bytes)

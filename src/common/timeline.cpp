@@ -24,9 +24,7 @@ void Timeline::Task::timestamp() {
 }
 
 bool Timeline::Task::init(int workerId, Operation op){
-    if(timeline_.enabled_ && (timeline_.packEnabled_ || (op != PACK && op != UNPACK))
-       && (timeline_.gemmEnabled_ || (op != BLASGEMM))
-       && (timeline_.qrEnabled_ || (op != QR && op != MGS))) {
+    if(timeline_.enabled_ && timeline_.opMask_[op]) {
         if(workerId < 0 && !timeline_.onlyWorker_)
             workerId_ = timeline_.files_.size() - 1;
         else
@@ -70,15 +68,16 @@ void Timeline::init(int numberOfWorker, int rank, bool onlyWorker) {
         files_.push_back(f);
     }
     enabled_ = true;
-
-    if (getenv("HMAT_TIMELINE_GEMM")) gemmEnabled_ = true;
-    if (getenv("HMAT_TIMELINE_QR")) qrEnabled_ = true;
-
+    opMask_.set();
+    opMask_[Operation::GEMM] = getenv("HMAT_TIMELINE_GEMM");
+    opMask_[Operation::QR] = getenv("HMAT_TIMELINE_QR");
+    opMask_[Operation::SVD] = false;
+    opMask_[Operation::PRODUCTQ] = false;
     Task t(INIT, static_cast<HMatrix<S_t>*>(NULL));
 }
 
 void Timeline::setPackEnabled(bool enabled) {
-    packEnabled_ = enabled;
+    opMask_[Operation::PACK] = enabled;
 }
 
 Timeline::~Timeline() {
