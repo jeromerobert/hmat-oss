@@ -22,7 +22,7 @@
 
 #include "json.hpp"
 #include "cluster_tree.hpp"
-#include "rk_matrix.hpp"
+#include "h_matrix.hpp"
 
 using namespace std;
 

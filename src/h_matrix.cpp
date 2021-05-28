@@ -33,7 +33,7 @@
 
 #include "h_matrix.hpp"
 #include "cluster_tree.hpp"
-#include "rk_matrix.hpp"
+#include "admissibility.hpp"
 #include "data_types.hpp"
 #include "compression.hpp"
 #include "recursion.hpp"

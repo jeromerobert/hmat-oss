@@ -29,10 +29,8 @@
 
 #include "tree.hpp"
 #include "assembly.hpp"
-#include "data_types.hpp"
-#include "full_matrix.hpp"
 #include "cluster_tree.hpp"
-#include "admissibility.hpp"
+#include "rk_matrix.hpp"
 
 namespace hmat {
     /** Identify the current user level operation */
@@ -49,7 +47,8 @@ namespace hmat {
 namespace hmat {
 
 template<typename T> class Vector;
-template<typename T> class RkMatrix;
+class AdmissibilityCondition;
+template<typename T> class FullMatrix;
 
 /** Flag used to describe the symmetry of a matrix.
  */

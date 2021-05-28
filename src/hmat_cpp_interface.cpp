@@ -22,7 +22,7 @@
 
 #include "hmat_cpp_interface.hpp"
 #include "h_matrix.hpp"
-#include "rk_matrix.hpp"
+#include "admissibility.hpp"
 #include "cluster_tree.hpp"
 #include "common/context.hpp"
 #include "disable_threading.hpp"
