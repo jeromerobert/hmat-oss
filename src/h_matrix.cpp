@@ -647,7 +647,8 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
       break;
     } else {
       childrenArray[i] = child->rk();
-      childrenElements += (childrenArray[i]->rows->size()
+      if(childrenArray[i])
+        childrenElements += (childrenArray[i]->rows->size()
                            + childrenArray[i]->cols->size()) * childrenArray[i]->rank();
     }
   }
