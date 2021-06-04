@@ -637,9 +637,10 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
   // leaves. Note that this operation could be used hierarchically.
 
   bool allRkLeaves = true;
-  const RkMatrix<T>* childrenArray[this->nrChild()]={};
+  const RkMatrix<T>* childrenArray[this->nrChild()];
   size_t childrenElements = 0;
   for (int i = 0; i < this->nrChild(); i++) {
+    childrenArray[i] = nullptr;
     HMatrix<T> *child = this->getChild(i);
     if (!child) continue;
     if (!child->isRkMatrix()) {
