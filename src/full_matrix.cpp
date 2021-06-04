@@ -215,7 +215,7 @@ void FullMatrix<T>::luDecomposition() {
 
 template<typename T>
 FactorizationData<T> FullMatrix<T>::getFactorizationData(Factorization algo) const {
-  FactorizationData<T> result = { algo };
+  FactorizationData<T> result = { algo, {} };
   if (algo == Factorization::LU) {
     HMAT_ASSERT(pivots);
     result.data.pivots = pivots;

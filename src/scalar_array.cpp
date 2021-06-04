@@ -332,6 +332,7 @@ void ScalarArray<T>::gemm(char transA, char transB, T alpha,
   const int tA = (transA == 'N' ? 0 : ( transA == 'T' ? 1 : 2 ));
   const int tB = (transB == 'N' ? 0 : ( transB == 'T' ? 1 : 2 ));
   Timeline::Task t(Timeline::BLASGEMM, &rows, &cols, &k, &tA, &tB);
+  (void)t;
   assert(rows == aRows);
   assert(cols == n);
   assert(k == (transB == 'N' ? b->rows : b->cols));
@@ -933,6 +934,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   DECLARE_CONTEXT;
   static char * useGESDD = getenv("HMAT_GESDD");
   Timeline::Task t(Timeline::SVD, &rows, &cols);
+  (void)t;
   // Allocate free space for U, S, V
   int p = std::min(rows, cols);
 
@@ -1044,6 +1046,7 @@ template<typename T> void ScalarArray<T>::orthoColumns(ScalarArray<T> *resultR, 
 template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *resultR, int initialPivot) {
   DECLARE_CONTEXT;
   Timeline::Task t(Timeline::QR, &rows, &cols, &initialPivot);
+  (void)t;
 
   static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
   if (!useInitPivot) initialPivot=0;
@@ -1127,6 +1130,7 @@ template<typename T>
 int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   DECLARE_CONTEXT;
   Timeline::Task t(Timeline::PRODUCTQ, &cols, &c->rows, &c->cols);
+  (void)t;
   assert((side == 'L') ? rows == c->rows : rows == c->cols);
   int info;
   int workSize;
@@ -1169,6 +1173,7 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
 template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec, int initialPivot ) {
   DECLARE_CONTEXT;
   Timeline::Task t(Timeline::MGS, &rows, &cols, &initialPivot);
+  (void)t;
 
   static char *useInitPivot = getenv("HMAT_MGS_INITPIV");
   if (!useInitPivot) initialPivot=0;
