@@ -21,7 +21,7 @@
 # Set label_VERSION to the git version
 
 function(git_version label default_version)
-    option(${label}_GIT_VERSION "Get the version string from git describe" ON)
+    option(${label}_GIT_VERSION "Get the version string from git describe" OFF)
     if(${label}_GIT_VERSION)
         find_package(Git)
         if(GIT_FOUND)
