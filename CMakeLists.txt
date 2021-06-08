@@ -49,7 +49,7 @@ if(NOT HMAT_VERSION)
     include(GitVersion)
     git_version(HMAT 1.7.0)
 endif()
-set(HMAT_SO_VERSION 1)
+set(HMAT_SO_VERSION 2)
 
 if ( WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel" )
     set(WINTEL TRUE)
