@@ -93,6 +93,8 @@ Factorization convert_int_to_factorization(int t) {
         return Factorization::LDLT;
     case hmat_factorization_llt:
         return Factorization::LLT;
+    case hmat_factorization_hodlr:
+        return Factorization::HODLR;
     default:
         HMAT_ASSERT(false);
     }
@@ -108,6 +110,8 @@ int convert_factorization_to_int(Factorization f) {
         return hmat_factorization_ldlt;
     case Factorization::LLT:
         return hmat_factorization_llt;
+    case Factorization::HODLR:
+        return hmat_factorization_hodlr;
     default:
         HMAT_ASSERT(false);
     }

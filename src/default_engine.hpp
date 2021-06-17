@@ -26,12 +26,14 @@
 #include "uncompressed_block.hpp"
 #include "uncompressed_values.hpp"
 #include "iengine.hpp"
+#include "hodlr.hpp"
 
 namespace hmat {
 
 template<typename T> class DefaultEngine : public IEngine<T>
 {
   NullSettings settings;
+  HODLR<T> hodlr;
 public:
   ~DefaultEngine(){}
   typedef hmat::UncompressedBlock<T> UncompressedBlock;

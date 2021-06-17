@@ -112,6 +112,9 @@ void DefaultEngine<T>::factorization(Factorization algo) {
   case Factorization::LLT:
       this->hmat->lltDecomposition(this->progress_);
       break;
+  case Factorization::HODLR:
+      this->hodlr.factorize(this->hmat, this->progress_);
+      break;
   default:
       HMAT_ASSERT(false);
   }
@@ -169,6 +172,9 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, Factorization algo) const {
   case Factorization::LLT:
       this->hmat->solveLlt(&b);
       break;
+  case Factorization::HODLR:
+      this->hodlr.solve(this->hmat, b);
+      break;
   default:
      // not supported
      HMAT_ASSERT(false);
@@ -177,7 +183,11 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, Factorization algo) const {
 
 template<typename T>
 void DefaultEngine<T>::solve(IEngine<T>& b, Factorization f) const {
-  this->hmat->solve(b.hmat, f);
+  if(f == Factorization::HODLR) {
+    this->hodlr.solve(this->hmat, b.hmat);
+  }
+  else
+    this->hmat->solve(b.hmat, f);
 }
 
 template<typename T>
