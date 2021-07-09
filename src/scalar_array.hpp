@@ -430,13 +430,8 @@ public:
   int productQ(char side, char trans, ScalarArray<T>* c) const;
 
 
-  /** Multiplication used in RkMatrix::truncate()
-
-       A B -> computing "AB^t" with A=this and B full upper triangular
-       (non-unitary diagonal)
-
-   */
-  void myTrmm(const ScalarArray<T>* bTri);
+  /** @brief Wrapper for Lapack trmm with B=this */
+  void trmm(char side, char uplo, char transA, char diag, T alpha, const ScalarArray<T> * a);
 
   /** modified Gram-Schmidt algorithm of A='this'
 
