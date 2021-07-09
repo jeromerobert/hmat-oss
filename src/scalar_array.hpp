@@ -92,8 +92,10 @@ private:
 protected:
   /// Fortran style pointer (columnwise)
   T* m;
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
   /*! flag for column orthogonality in m[] (it is a pointer because it is copied with m in subsets) */
   int *is_ortho;
+#endif
   /*! True if we own 'is_ortho' (there are cases where we own the flag and not the memory, with the constructor taking a 'T*' as input) */
   char ownsFlag:1;
 public:
@@ -111,7 +113,11 @@ public:
 
       \param d a ScalarArray
    */
-  ScalarArray(const ScalarArray& d) : ownsMemory(false), m(d.m), is_ortho(d.is_ortho), ownsFlag(false), rows(d.rows), cols(d.cols), lda(d.lda) {}
+  ScalarArray(const ScalarArray& d) : ownsMemory(false), m(d.m),
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
+    is_ortho(d.is_ortho),
+#endif
+    ownsFlag(false), rows(d.rows), cols(d.cols), lda(d.lda) {}
   /** \brief Initialize the matrix with existing data.
 
       In this case the matrix doesn't own the data (the memory is not
@@ -134,7 +140,13 @@ public:
   ScalarArray(int _rows, int _cols, bool zeroinit=true);
   /** \brief Initialize the ScalarArray with subset of existing ScalarArray.
    */
-  ScalarArray(const ScalarArray& d, const int rowsOffset, const int rowsSize, const int colsOffset, const int colsSize): ownsMemory(false), m(d.m+rowsOffset+(size_t)colsOffset*d.lda), is_ortho(d.is_ortho), ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda){}
+  ScalarArray(const ScalarArray &d, const int rowsOffset, const int rowsSize,
+              const int colsOffset, const int colsSize)
+      : ownsMemory(false), m(d.m + rowsOffset + (size_t)colsOffset * d.lda),
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
+        is_ortho(d.is_ortho),
+#endif
+        ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda) {}
 
   ~ScalarArray();
 
@@ -493,14 +505,21 @@ public:
   /*! \brief Set orthogonality flag
    */
   inline void setOrtho(const int flag) const {
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
     *is_ortho = flag;
     static char *test = getenv("HMAT_TEST_ORTHO");
     if (flag && test) assert(getOrtho() == testOrtho());
+#endif
   }
+
   /*! \brief Get orthogonality flag
    */
   inline int getOrtho() const {
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
     return *is_ortho;
+#else
+    return 0;
+#endif
   }
 
 };
