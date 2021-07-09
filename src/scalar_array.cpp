@@ -95,6 +95,8 @@ Factorization convert_int_to_factorization(int t) {
         return Factorization::LLT;
     case hmat_factorization_hodlr:
         return Factorization::HODLR;
+    case hmat_factorization_hodlrsym:
+        return Factorization::HODLRSYM;
     default:
         HMAT_ASSERT(false);
     }

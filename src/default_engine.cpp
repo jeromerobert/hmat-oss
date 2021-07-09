@@ -115,6 +115,9 @@ void DefaultEngine<T>::factorization(Factorization algo) {
   case Factorization::HODLR:
       this->hodlr.factorize(this->hmat, this->progress_);
       break;
+  case Factorization::HODLRSYM:
+      this->hodlr.factorizeSym(this->hmat, this->progress_);
+      break;
   default:
       HMAT_ASSERT(false);
   }
@@ -174,6 +177,9 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, Factorization algo) const {
       break;
   case Factorization::HODLR:
       this->hodlr.solve(this->hmat, b);
+      break;
+  case Factorization::HODLRSYM:
+      this->hodlr.solveSym(this->hmat, b);
       break;
   default:
      // not supported

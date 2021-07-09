@@ -78,7 +78,8 @@ typedef enum {
     hmat_factorization_lu,
     hmat_factorization_ldlt,
     hmat_factorization_llt,
-    hmat_factorization_hodlr
+    hmat_factorization_hodlr,
+    hmat_factorization_hodlrsym
 } hmat_factorization_t;
 
 typedef struct hmat_block_info_struct {

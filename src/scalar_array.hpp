@@ -42,7 +42,8 @@ enum class Factorization {
     LU = hmat_factorization_lu,
     LDLT = hmat_factorization_ldlt,
     LLT = hmat_factorization_llt,
-    HODLR = hmat_factorization_hodlr
+    HODLR = hmat_factorization_hodlr,
+    HODLRSYM = hmat_factorization_hodlrsym
 };
 
 enum class Side {
