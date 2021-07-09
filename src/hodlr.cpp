@@ -70,6 +70,10 @@ void solve(HMatrix<T> * const m, HMatrix<T> *x, const HODLRNode<T> * node) {
 
 template<typename T>
 void factorize(HMatrix<T> * m, HODLRNode<T> * node) {
+  // | m00     |   | m00^-1        |   | I    Rk1 |
+  // | m01 m11 | = |        m11^-1 | * | Rk0  I   |
+  // The second factor can be written as U.V^t+I where U and V
+  // are tall and skinny. (U.V^t+I)^1 = I - U.(I+V^t.U)^-1.V^t (Woodbury).
   auto m00 = m->get(0,0);
   auto m11 = m->get(1,1);
   auto m10 = m->get(1,0);
@@ -86,41 +90,144 @@ void factorize(HMatrix<T> * m, HODLRNode<T> * node) {
   solve(m11, m10, node->child1);
   int r0 = m10->rk()->rank();
   int r1 = m01->rk()->rank();
+  // Compute kk=(I+V^t.U)^-1
   ScalarArray<T> tb0a1(node->kk, r1, r0, 0, r1);
   ScalarArray<T> tb1a0(node->kk, 0, r1, r1, r0);
   tb0a1.gemm('T', 'N', 1, m10->rk()->b, m01->rk()->a, 0);
   tb1a0.gemm('T', 'N', 1, m01->rk()->b, m10->rk()->a, 0);
-  for(int i = 0; i < node->kk.rows; i++) {
-    node->kk.get(i, i) = 1;
-  }
+  node->kk.addIdentity(1);
   node->kk.luDecomposition(node->pivot);
 }
+
+template<typename T>
+void solveUpperTriangularLeft(HMatrix<T> * const m, ScalarArray<T> *x, int xOffset, const HODLRNode<T> * node) {
+  if(m->isLeaf()) {
+    ScalarArray<T> xc(*x, m->cols()->offset() - xOffset, m->cols()->size(), 0, x->cols);
+    m->solveUpperTriangularLeft(&xc, Factorization::LLT, Diag::NONUNIT, Uplo::LOWER);
+    return;
+  }
+  auto m10 = m->get(1,0);
+  ScalarArray<T> x0(*x, m10->cols()->offset() - xOffset, m10->cols()->size(), 0, x->cols);
+  ScalarArray<T> x1(*x, m10->rows()->offset() - xOffset, m10->rows()->size(), 0, x->cols);
+  ScalarArray<T> tax1(m10->rank(), x->cols, false);
+  tax1.gemm('T', 'N', 1, m10->rk()->a, &x1, 0);
+  ScalarArray<T> tkktax1(m10->rank(), x->cols, false);
+  tkktax1.gemm('T', 'N', 1, &node->kk, &tax1, 0);
+  x1.gemm('N', 'N', -1, m10->rk()->a, &tkktax1, 1);
+  m10->gemv('T', -1, &x1, 1, &x0);
+  solveUpperTriangularLeft(m->get(0, 0), x, xOffset, node->child0);
+  solveUpperTriangularLeft(m->get(1, 1), x, xOffset, node->child1);
+}
+
+template<typename T>
+void solveLowerTriangularLeft(HMatrix<T> * const m, ScalarArray<T> *x, int xOffset, const HODLRNode<T> * node) {
+  if(m->isLeaf()) {
+    ScalarArray<T> xc(*x, m->cols()->offset() - xOffset, m->cols()->size(), 0, x->cols);
+    m->solveLowerTriangularLeft(&xc, Factorization::LLT, Diag::NONUNIT, Uplo::LOWER);
+    return;
+  }
+  solveLowerTriangularLeft(m->get(0, 0), x, xOffset, node->child0);
+  solveLowerTriangularLeft(m->get(1, 1), x, xOffset, node->child1);
+  auto m10 = m->get(1,0);
+  ScalarArray<T> x0(*x, m10->cols()->offset() - xOffset, m10->cols()->size(), 0, x->cols);
+  ScalarArray<T> x1(*x, m10->rows()->offset() - xOffset, m10->rows()->size(), 0, x->cols);
+  m10->gemv('N', -1, &x0, 1, &x1);
+  ScalarArray<T> tax1(m10->rank(), x->cols, false);
+  tax1.gemm('T', 'N', 1, m10->rk()->a, &x1, 0);
+  ScalarArray<T> kkax1(m10->rank(), x->cols, false);
+  kkax1.gemm('N', 'N', 1, &node->kk, &tax1, 0);
+  x1.gemm('N', 'N', -1, m10->rk()->a, &kkax1, 1);
+}
+
+template<typename T>
+void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
+  // |a00    |   |P00   |   |I   Rk1|   |P00^t     |
+  // |a01 a11| = |   P11| * |Rk0 I  | * |     P11^t|
+  // Let's write the second factor as I+U.K.U^t, with
+  // K00=K11=0 and K01=K10=I and U a tall and skinny matrix
+  auto a00 = a->get(0,0);
+  auto a11 = a->get(1,1);
+  auto a10 = a->get(1,0);
+  int r = a10->rank();
+  if(a00->isLeaf()) {
+    a00->lltDecomposition(nullptr);
+    a11->lltDecomposition(nullptr);
+  } else {
+    factorizeSym(a00, node->child0);
+    factorizeSym(a11, node->child1);
+  }
+  solveLowerTriangularLeft(a00, a10->rk()->b, a10->cols()->offset(), node->child0);
+  solveLowerTriangularLeft(a11, a10->rk()->a, a10->rows()->offset(), node->child1);
+  // Cholesky like factorization of I+U.K.U^t:
+  // I+U.K.U^t = (I + U.X.U^t).(I + U.X.U^t)^t = Q.Q^t where
+  // X=L^-t.(M − I).L^-1 where M.M^t = I + L^t.K.L and L.L^t = U^t.U
+  // We have X00=0, X01=0, X10=I. We just need to compute X11.
+  // Compute U^t.U
+  ScalarArray<T> ata(r, r, false);
+  ata.gemm('T', 'N', 1, a10->rk()->a, a10->rk()->a, 0);
+  ScalarArray<T> la(r, r, false);
+  la.copyMatrixAtOffset(&ata, 0, 0);
+  // Compute L11 (we don't need L00)
+  la.lltDecomposition();
+  // Compute I + L^t.K.L in node->x11
+  node->x11.gemm('T', 'N', -1, a10->rk()->b, a10->rk()->b, 0);
+  node->x11.trmm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  node->x11.trmm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+  node->x11.addIdentity(1);
+  // Compute M11 in node->x11
+  node->x11.lltDecomposition();
+  node->x11.addIdentity(-1);
+  // Compute X11
+  node->x11.trsm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  node->x11.trsm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+  // Q^-1 = I - U.(I+X.U^t.U)^-1.X.tV (Woodbury identity)
+  // We store (I+X.U^t.U)^-1.X to node->kk to be able to solve later on.
+  // Q00 = I so we just need to compute kk=Q11^-1
+  ScalarArray<T> & ixutu = la; // reuse la (aka L11) storage
+  ixutu.gemm('N', 'N', 1, &node->x11, &ata, 0);
+  ixutu.addIdentity(1);
+  int * pivots = new int[r];
+  ixutu.luDecomposition(pivots);
+  node->kk.copyMatrixAtOffset(&node->x11, 0, 0);
+  FactorizationData<T> fd = { Factorization::LU, { pivots }};
+  ixutu.solve(&node->kk, fd);
+  delete[] pivots;
+}
+
 }
 namespace hmat {
 
 /**
- * The Woodbury matrix identity gives (I+tU.V)^-1 = I - U.(I+tV.U)^-1.tV
+ * The Woodbury matrix identity gives (I+U.V^t)^-1 = I - U.(I+V^t.U)^-1.V^t
  * and we need to store kk = (I+tV.U)^-1. This struct is node tree to
  * store kk at each level of the HODLR tree.
  */
 template<typename T> struct HODLRNode {
-  ScalarArray<T> kk;
-  /** The pivot after the LU factorization of kk */
+  ScalarArray<T> x11, kk;
+  /**
+   * The pivot after the LU factorization of kk.
+   * This is only relevent for non-symmetric factorization. In the case
+   * of symmetric factorization this is always nullptr.
+   */
   int * pivot;
   HODLRNode *child0, *child1;
 
-  HODLRNode(int n): kk(n, n), pivot(new int[n]) {}
+  HODLRNode(int n, int x11n): x11(x11n, x11n), kk(n, n), pivot(x11n == 0 ? new int[n] : nullptr) {}
 
-  ~HODLRNode() { delete[] pivot; }
+  ~HODLRNode() {
+    delete[] pivot;
+    delete child0;
+    delete child1;
+  }
 
-  static HODLRNode<T> * create(HMatrix<T> * m) {
+  static HODLRNode<T> * create(HMatrix<T> * m, bool sym) {
     if(m->isLeaf()) {
       return nullptr;
     } else {
-      int n = 2 * m->get(1,0)->rank();
-      HODLRNode * r = new HODLRNode(n);
-      r->child0 = create(m->get(0,0));
-      r->child1 = create(m->get(1,1));
+      int n = m->get(1,0)->rank();
+      HODLRNode * r = sym ? new HODLRNode(n, n) : new HODLRNode(2 * n, 0);
+      r->child0 = create(m->get(0,0), sym);
+      r->child1 = create(m->get(1,1), sym);
       return r;
     }
   }
@@ -138,8 +245,26 @@ void HODLR<T>::solve(HMatrix<T> * const m, ScalarArray<T> &x) const {
 
 template<typename T>
 void HODLR<T>::factorize(HMatrix<T> * m, hmat_progress_t* p) {
-  root = HODLRNode<T>::create(m);
+  root = HODLRNode<T>::create(m, false);
   ::factorize(m, root);
+}
+
+template<typename T>
+void HODLR<T>::factorizeSym(HMatrix<T> * m, hmat_progress_t* p) {
+  root = HODLRNode<T>::create(m, true);
+  ::factorizeSym(m, root);
+}
+
+template<typename T>
+void HODLR<T>::solveSym(HMatrix<T> * const m, ScalarArray<T> &x) const {
+  assert(x.rows == m->rows()->size());
+  assert(m->cols()->size() == m->rows()->size());
+  ::solveLowerTriangularLeft(m, &x, 0, root);
+  ::solveUpperTriangularLeft(m, &x, 0, root);
+}
+
+template<typename T> HODLR<T>::~HODLR() {
+  delete root;
 }
 
 template class HODLR<S_t>;

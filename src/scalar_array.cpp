@@ -83,6 +83,8 @@ Factorization convert_int_to_factorization(int t) {
         return Factorization::LLT;
     case hmat_factorization_hodlr:
         return Factorization::HODLR;
+    case hmat_factorization_hodlrsym:
+        return Factorization::HODLRSYM;
     default:
         HMAT_ASSERT(false);
     }
@@ -124,6 +126,7 @@ ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
   : ownsMemory(true), ownsFlag(true), rows(_rows), cols(_cols), lda(_rows) {
   size_t size = sizeof(T) * rows * cols;
   if(size == 0) {
+    m = nullptr;
     return;
   }
   void * p;

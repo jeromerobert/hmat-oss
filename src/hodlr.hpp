@@ -29,7 +29,10 @@ template<typename T> struct HODLRNode;
 /**
  * @brief HODLR matrix factorization and solve.
  *
- * From Fast symmetric factorization of hierarchical matrices with applications
+ * From Fast Direct Methods for Gaussian Processes
+ * Sivaram Ambikasaran, Daniel Foreman-Mackey, Leslie Greengard, David W. Hogg, Michael O'Neil
+ * arXiv:1403.6015
+ * And from Fast symmetric factorization of hierarchical matrices with applications
  * Sivaram Ambikasaran, Michael O'Neil, Karan Raj Singh
  * arXiv:1405.0223
  */
@@ -37,8 +40,11 @@ template<typename T> class HODLR {
   HODLRNode<T> * root = nullptr;
 public:
   void factorize(HMatrix<T> *, hmat_progress_t*);
+  void factorizeSym(HMatrix<T> *, hmat_progress_t*);
   /** @brief solve with a Rk RHS */
   void solve(HMatrix<T> * const a, HMatrix<T> *b) const;
   void solve(HMatrix<T> * const a, ScalarArray<T> & b) const;
+  void solveSym(HMatrix<T> * const a, ScalarArray<T> & b) const;
+  ~HODLR();
 };
 }
