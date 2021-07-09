@@ -1104,24 +1104,14 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
   return;
 }
 
-// aFull <- aFull.bTri^t with aFull=this and bTri upper triangular matrix
-template<typename T>
-void ScalarArray<T>::myTrmm(const ScalarArray<T>* bTri) {
+template<typename T> void ScalarArray<T>::trmm(char side, char uplo, char transA, char diag, T alpha, const ScalarArray<T> * a) {
   DECLARE_CONTEXT;
-  int mm = rows;
-  int n = rows;
-  T alpha = Constants<T>::pone;
-  const T *bData = bTri->const_ptr();
-  HMAT_ASSERT(bTri->lda == bTri->rows);
-  HMAT_ASSERT(lda == rows);
   {
-    size_t m_ = mm;
-    size_t nn = n;
-    size_t multiplications = m_ * nn  * (nn + 1) / 2;
-    size_t additions = m_ * nn  * (nn - 1) / 2;
+    size_t multiplications = (size_t)rows * cols * (cols + 1) / 2;
+    size_t additions = (size_t)rows * cols  * (cols - 1) / 2;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
-  proxy_cblas::trmm('R', 'U', 'T', 'N', mm, n, alpha, bData, bTri->lda, ptr(), lda);
+  proxy_cblas::trmm(side, uplo, transA, diag, rows, cols, alpha, a->m, a->lda, this->m, this->lda);
 }
 
 template<typename T>
