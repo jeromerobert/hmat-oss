@@ -113,7 +113,9 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
     lda = rows;
   }
   ownsFlag = true ;
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
   is_ortho = (int*)calloc(1, sizeof(int));
+#endif
   assert(lda >= rows);
 }
 
@@ -128,8 +130,10 @@ ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
   p = initzero ? calloc(size, 1) : malloc(size);
 #endif
   m = static_cast<T*>(p);
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
   is_ortho = (int*)calloc(1, sizeof(int));
   setOrtho(initzero ? 1 : 0); // buffer filled with 0 is orthogonal
+#endif
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
 }
@@ -145,10 +149,12 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
 #endif
     m = NULL;
   }
+#ifdef HMAT_SCALAR_ARRAY_ORTHO
   if (ownsFlag) {
     free(is_ortho);
     is_ortho = NULL;
   }
+#endif
 }
 
 template<typename T> void ScalarArray<T>::resize(int col_num) {
