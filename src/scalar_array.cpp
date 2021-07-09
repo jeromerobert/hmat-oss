@@ -1370,6 +1370,13 @@ void ScalarArray<T>::multiplyWithDiag(const ScalarArray<double>* d) {
   }
 }
 
+template<typename T> void ScalarArray<T>::addIdentity(T alpha) {
+  int n = std::min(this->rows, this->cols);
+  for(int i = 0; i < n; i++) {
+    get(i, i) += alpha;
+  }
+}
+
 template<typename T>
 bool ScalarArray<T>::testOrtho() const {
   static char *test = getenv("HMAT_TEST_ORTHO");

@@ -946,9 +946,7 @@ void HMatrix<T>::addIdentity(T alpha)
     if (isFullMatrix()) {
       FullMatrix<T> * b = full();
       assert(b->rows() == b->cols());
-      for (int i = 0; i < b->rows(); i++) {
-          b->get(i, i) += alpha;
-      }
+      b->data.addIdentity(alpha);
     } else {
       HMAT_ASSERT(false);
     }

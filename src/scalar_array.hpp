@@ -522,6 +522,7 @@ public:
 #endif
   }
 
+  void addIdentity(T alpha);
 };
 
   /*! \brief Templated Vector class = a ScalarArray with 1 column
