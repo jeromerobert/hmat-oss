@@ -123,6 +123,9 @@ template<typename T>
 ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
   : ownsMemory(true), ownsFlag(true), rows(_rows), cols(_cols), lda(_rows) {
   size_t size = sizeof(T) * rows * cols;
+  if(size == 0) {
+    return;
+  }
   void * p;
 #ifdef HAVE_JEMALLOC
   p = initzero ? je_calloc(size, 1) : je_malloc(size);
