@@ -431,7 +431,10 @@ public:
 
 
   /** @brief Wrapper for Lapack trmm with B=this */
-  void trmm(char side, char uplo, char transA, char diag, T alpha, const ScalarArray<T> * a);
+  void trmm(Side side, Uplo uplo, char transA, Diag diag, T alpha, const ScalarArray<T> * a);
+
+  /** @brief Wrapper for Lapack trsm with B=this */
+  void trsm(Side side, Uplo uplo, char transA, Diag diag, T alpha, const ScalarArray<T> * a);
 
   /** modified Gram-Schmidt algorithm of A='this'
 
