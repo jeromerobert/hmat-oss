@@ -138,6 +138,7 @@ ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
   : ownsMemory(true), ownsFlag(true), rows(_rows), cols(_cols), lda(_rows) {
   size_t size = sizeof(T) * rows * cols;
   if(size == 0) {
+    m = nullptr;
     return;
   }
   void * p;

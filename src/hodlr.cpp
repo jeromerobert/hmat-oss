@@ -111,11 +111,11 @@ void solveUpperTriangularLeft(HMatrix<T> * const m, ScalarArray<T> *x, int xOffs
   auto m10 = m->get(1,0);
   ScalarArray<T> x0(*x, m10->cols()->offset() - xOffset, m10->cols()->size(), 0, x->cols);
   ScalarArray<T> x1(*x, m10->rows()->offset() - xOffset, m10->rows()->size(), 0, x->cols);
-  ScalarArray<T> ax1(m10->rank(), x->cols, false);
-  ax1.gemm('N', 'N', 1, m10->rk()->a, &x1, 0);
-  ScalarArray<T> kktax1(m10->rank(), x->cols, false);
-  kktax1.gemm('T', 'N', 1, &node->kk, &ax1, 0);
-  x1.gemm('T', 'N', -1, m10->rk()->a, &kktax1, 1);
+  ScalarArray<T> tax1(m10->rank(), x->cols, false);
+  tax1.gemm('T', 'N', 1, m10->rk()->a, &x1, 0);
+  ScalarArray<T> tkktax1(m10->rank(), x->cols, false);
+  tkktax1.gemm('T', 'N', 1, &node->kk, &tax1, 0);
+  x1.gemm('N', 'N', -1, m10->rk()->a, &tkktax1, 1);
   m10->gemv('T', -1, &x1, 1, &x0);
 }
 
@@ -156,7 +156,7 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
     factorizeSym(a00, node->child0);
     factorizeSym(a11, node->child1);
   }
-  solveLowerTriangularLeft(a00, a10->rk()->b, 0, node->child1);
+  solveLowerTriangularLeft(a00, a10->rk()->b, 0, node->child0);
   solveLowerTriangularLeft(a11, a10->rk()->a, 0, node->child1);
   // Cholesky like factorization of I+U.K.U^t:
   // I+U.K.U^t = (I + U.X.U^t).(I + U.X.U^t)^t = Q.Q^t where
