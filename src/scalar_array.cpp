@@ -69,18 +69,6 @@
 #include <jemalloc/jemalloc.h>
 #endif
 
-#ifdef _MSC_VER
-// Intel compiler defines isnan in global namespace
-// MSVC defines _isnan
-# ifndef __INTEL_COMPILER
-#  define isnan _isnan
-# endif
-#elif __GLIBC__ == 2 && __GLIBC_MINOR__ < 23
-// https://sourceware.org/bugzilla/show_bug.cgi?id=19439
-#elif __cplusplus >= 201103L || !defined(__GLIBC__)
-using std::isnan;
-#endif
-
 namespace hmat {
 
 Factorization convert_int_to_factorization(int t) {
@@ -547,7 +535,7 @@ template<typename T, typename std::enable_if<hmat::Types<T>::IS_REAL::value, T*>
 void checkNanSFINAE(const ScalarArray<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
-      HMAT_ASSERT(!isnan(m->get(row, col)));
+      HMAT_ASSERT(std::isfinite(m->get(row, col)));
     }
   }
 }
@@ -556,8 +544,8 @@ template<typename T, typename std::enable_if<!hmat::Types<T>::IS_REAL::value, T*
 void checkNanSFINAE(const ScalarArray<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
-      HMAT_ASSERT(!isnan(m->get(row, col).real()));
-      HMAT_ASSERT(!isnan(m->get(row, col).imag()));
+      HMAT_ASSERT(std::isfinite(m->get(row, col).real()));
+      HMAT_ASSERT(std::isfinite(m->get(row, col).imag()));
     }
   }
 }
