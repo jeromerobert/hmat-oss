@@ -25,13 +25,6 @@
   \brief Dense Matrix implementation.
 */
 #include "config.h"
-
-#ifdef __INTEL_COMPILER
-#include <mathimf.h>
-#else
-#include <cmath>
-#endif
-
 #include "scalar_array.hpp"
 
 #include "data_types.hpp"
