@@ -70,6 +70,7 @@ void solve(HMatrix<T> * const m, HMatrix<T> *x, const HODLRNode<T> * node) {
 
 template<typename T>
 void factorize(HMatrix<T> * m, HODLRNode<T> * node) {
+  HMAT_ASSERT_MSG(!m->isLeaf(), "Not HODLR matrix");
   // | m00     |   | m00^-1        |   | I    Rk1 |
   // | m01 m11 | = |        m11^-1 | * | Rk0  I   |
   // The second factor can be written as U.V^t+I where U and V
@@ -77,6 +78,8 @@ void factorize(HMatrix<T> * m, HODLRNode<T> * node) {
   auto m00 = m->get(0,0);
   auto m11 = m->get(1,1);
   auto m10 = m->get(1,0);
+  HMAT_ASSERT_MSG(m10->isRkMatrix(), "Not HODLR matrix");
+  HMAT_ASSERT_MSG(m->get(0,1) == nullptr, "Not lowered stored matrix");
   if(m00->isLeaf()) {
     m00->lltDecomposition(nullptr);
     m11->lltDecomposition(nullptr);
@@ -140,7 +143,24 @@ void solveLowerTriangularLeft(HMatrix<T> * const m, ScalarArray<T> *x, int xOffs
 }
 
 template<typename T>
+T logdet(HMatrix<T> * a, HODLRNode<T> * node) {
+  HMAT_ASSERT_MSG(!a->isLeaf(), "Not HODLR matrix");
+  T result = 0;
+  auto a00 = a->get(0,0);
+  auto a11 = a->get(1,1);
+  if(a00->isLeaf()) {
+    result = a00->logdet() + a11->logdet();
+  } else {
+    result += logdet(a00, node->child0);
+    result += logdet(a11, node->child1);
+  }
+  result += std::log(node->detm11_);
+  return result;
+}
+
+template<typename T>
 void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
+  HMAT_ASSERT_MSG(!a->isLeaf(), "Not HODLR matrix");
   // |a00    |   |P00   |   |I   Rk1|   |P00^t     |
   // |a01 a11| = |   P11| * |Rk0 I  | * |     P11^t|
   // Let's write the second factor as I+U.K.U^t, with
@@ -148,6 +168,8 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   auto a00 = a->get(0,0);
   auto a11 = a->get(1,1);
   auto a10 = a->get(1,0);
+  HMAT_ASSERT_MSG(a10->isRkMatrix(), "Not HODLR matrix");
+  HMAT_ASSERT_MSG(a->get(0,1) == nullptr, "Not lowered stored matrix");
   int r = a10->rank();
   if(a00->isLeaf()) {
     a00->lltDecomposition(nullptr);
@@ -176,13 +198,15 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   node->x11.addIdentity(1);
   // Compute M11 in node->x11
   node->x11.lltDecomposition();
+  // We have det(I+U.K.U^t) = det(M11)^2
+  node->detm11_ = node->x11.diagonalProduct();
   node->x11.addIdentity(-1);
   // Compute X11
   node->x11.trsm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
   node->x11.trsm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
   // Q^-1 = I - U.(I+X.U^t.U)^-1.X.tV (Woodbury identity)
   // We store (I+X.U^t.U)^-1.X to node->kk to be able to solve later on.
-  // Q00 = I so we just need to compute kk=Q11^-1
+  // Q00 = I so we just need to store what is needed to compute Q11^-1
   ScalarArray<T> & ixutu = la; // reuse la (aka L11) storage
   ixutu.gemm('N', 'N', 1, &node->x11, &ata, 0);
   ixutu.addIdentity(1);
@@ -192,6 +216,60 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   FactorizationData<T> fd = { Factorization::LU, { pivots }};
   ixutu.solve(&node->kk, fd);
   delete[] pivots;
+}
+
+template<typename T> void gemv(char trans, T alpha, HMatrix<T> * const ma, const ScalarArray<T> & x,
+                               T beta, ScalarArray<T> & y, HODLRNode<T> * node, int offset) {
+  if(ma->isLeaf()) {
+    ma->gemv(trans, alpha, &x, beta, &y);
+    return;
+  }
+  auto ma10 = ma->get(1,0);
+  int r = ma10->rank();
+  const ScalarArray<T> & a = *ma->get(1,0)->rk()->a;
+  const ScalarArray<T> & b = *ma->get(1,0)->rk()->b;
+  int offset0 = ma10->cols()->offset();
+  int offset1 = ma10->rows()->offset();
+  const ScalarArray<T> x0(x, offset0 - offset, ma10->cols()->size(), 0, x.cols);
+  const ScalarArray<T> x1(x, offset1 - offset, ma10->rows()->size(), 0, x.cols);
+  ScalarArray<T> y0(y, offset0 - offset, ma10->cols()->size(), 0, y.cols);
+  ScalarArray<T> y1(y, offset1 - offset, ma10->rows()->size(), 0, y.cols);
+  if(trans == 'N') {
+    // |y0|    |L0  |   |I       |   |x0|
+    // |y1| += |  L1| x |a.bT Q11| x |x1|
+    // Q11 = I + a.X11.aT
+    // y1 += L1.(x1 + a.(bT.x0 + X11.aT.x1))
+    ScalarArray<T> * atx1 = new ScalarArray<T>(r, x.cols, false);
+    ScalarArray<T> x11atx1(r, x.cols, false);
+    atx1->gemm('T', 'N', 1, &a, &x1, 0);
+    x11atx1.gemm('N', 'N', 1, &node->x11, atx1, 0);
+    delete atx1;
+    // x11atx1 <- bT.x0 + X11.aT.x1
+    x11atx1.gemm('T', 'N', 1, &b, &x0, 1);
+    ScalarArray<T> x1bis(x1.rows, x1.cols, false);
+    x1bis.copyMatrixAtOffset(&x1, 0, 0);
+    // x1bis = x1 + a.(bT.x0 + X11.aT.x1)
+    x1bis.gemm('N', 'N', 1, &a, &x11atx1, 1);
+    gemv(trans, alpha, ma->get(1,1), x1bis, beta, y1, node->child1, offset1);
+    gemv(trans, alpha, ma->get(0,0), x0, beta, y0, node->child0, offset0);
+  } else {
+    // |y0|    |I b.a^T|   |L0^T    |   |x0|
+    // |y1| += |  Q11^T| x |    L1^T| x |x1|
+    ScalarArray<T> l1tx1(x1.rows, x1.cols, false);
+    // y0 <- beta*y0 + alpha*L0^T*x0
+    gemv(trans, alpha, ma->get(0,0), x0, beta, y0, node->child0, offset0);
+    gemv<T>(trans, alpha, ma->get(1,1), x1, 0, l1tx1, node->child1, offset1);
+    ScalarArray<T> atl1tx1(r, x1.cols, false);
+    ScalarArray<T> x11atl1tx1(r, x1.cols, false);
+    atl1tx1.gemm('T', 'N', 1, &a, &l1tx1, 0);
+    // y0 += alpha.b.aT.L1^T.x1
+    y0.gemm('N', 'N', alpha, &b, &atl1tx1, 1);
+    x11atl1tx1.gemm('T', 'N', 1, &node->x11, &atl1tx1, 0);
+    // y1 = beta*y1 + alpha*a.X11^t.aT.L1^t.x1
+    y1.gemm('N', 'N', alpha, &a, &x11atl1tx1, beta);
+    // y1 += alpha*L1^t*x1
+    y1.axpy(alpha, &l1tx1);
+  }
 }
 
 }
@@ -211,13 +289,24 @@ template<typename T> struct HODLRNode {
    */
   int * pivot;
   HODLRNode *child0, *child1;
+  /**
+   * The determinant of M11 which is also the determinant of Q in the
+   * symmetric decomposition (A=L.Q.Q^t.L^t)
+   */
+  T detm11_;
 
-  HODLRNode(int n, int x11n): x11(x11n, x11n), kk(n, n), pivot(x11n == 0 ? new int[n] : nullptr) {}
+  HODLRNode(int n, int x11n): x11(x11n, x11n),
+    kk(n, n), pivot(x11n == 0 ? new int[n] : nullptr), detm11_(0) {}
 
   ~HODLRNode() {
     delete[] pivot;
     delete child0;
     delete child1;
+  }
+
+  bool isSymmetric() {
+    assert((x11.rows > 0) == (pivot == nullptr));
+    return x11.rows > 0;
   }
 
   static HODLRNode<T> * create(HMatrix<T> * m, bool sym) {
@@ -261,6 +350,23 @@ void HODLR<T>::solveSym(HMatrix<T> * const m, ScalarArray<T> &x) const {
   assert(m->cols()->size() == m->rows()->size());
   ::solveLowerTriangularLeft(m, &x, 0, root);
   ::solveUpperTriangularLeft(m, &x, 0, root);
+}
+
+template<typename T> void HODLR<T>::gemv(char trans, T alpha, HMatrix<T> * const a, ScalarArray<T> & x, T beta, ScalarArray<T> & y) const {
+  HMAT_ASSERT_MSG(root != nullptr && root->isSymmetric(), "gemv is only supported for symmetrically factorized HODLR matrices");
+  HMAT_ASSERT(trans == 'N' || trans == 'T');
+  HMAT_ASSERT(x.cols == y.cols);
+  HMAT_ASSERT(x.rows == y.rows);
+  ::gemv(trans, alpha, a, x, beta, y, root, 0);
+}
+
+template<typename T> bool HODLR<T>::isFactorized() const {
+  return root != nullptr;
+}
+
+template<typename T> T HODLR<T>::logdet(HMatrix<T> * const m) const {
+  HMAT_ASSERT_MSG(root != nullptr && root->isSymmetric(), "logdet is only supported for symmetrically factorized HODLR matrices");
+  return ::logdet(m, root);
 }
 
 template<typename T> HODLR<T>::~HODLR() {

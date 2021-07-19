@@ -131,7 +131,21 @@ void DefaultEngine<T>::inverse() {
 template<typename T>
 void DefaultEngine<T>::gemv(char trans, T alpha, ScalarArray<T>& x,
                                       T beta, ScalarArray<T>& y) const {
-  this->hmat->gemv(trans, alpha, &x, beta, &y);
+  if(hodlr.isFactorized()) {
+    this->hodlr.gemv(trans, alpha, this->hmat, x, beta, y);
+  } else {
+    this->hmat->gemv(trans, alpha, &x, beta, &y);
+  }
+}
+
+template<typename T> T DefaultEngine<T>::logdet() const {
+  if(hodlr.isFactorized()) {
+    return this->hodlr.logdet(this->hmat);
+  } else if(this->hmat->isTriLower) {
+    return this->hmat->logdet();
+  } else {
+    HMAT_ASSERT_MSG(false, "logdet is only supported for LLt or HODLR factorized matrices.");
+  }
 }
 
 template<typename T>

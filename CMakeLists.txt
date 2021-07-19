@@ -377,12 +377,14 @@ hmat_add_example(NAME c-cylinder)
 hmat_add_example(NAME c-simple-cylinder)
 hmat_add_example(NAME c-simple-kriging)
 hmat_add_example(NAME c-cholesky)
+hmat_add_example(NAME hodlrvsllt)
 
 if (BUILD_EXAMPLES)
     enable_testing ()
     add_test (NAME cholesky COMMAND ${HMAT_PREFIX_EXAMPLE}c-cholesky 1000 S)
     add_test (NAME cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-cylinder 1000 Z)
     add_test (NAME simple-cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-simple-cylinder 1000 Z)
+    add_test (NAME hodlrvsllt COMMAND ${HMAT_PREFIX_EXAMPLE}hodlrvsllt)
 endif ()
 
 # ========================

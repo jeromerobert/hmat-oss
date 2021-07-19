@@ -415,6 +415,19 @@ double norm(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
+int logdet(hmat_matrix_t* holder, void * result) {
+  DECLARE_CONTEXT;
+  try {
+    T r = reinterpret_cast<hmat::HMatInterface<T>*>(holder)->engine().logdet();
+    *static_cast<T*>(result)=r;
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int scale(void *alpha, hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
   try {
@@ -819,6 +832,7 @@ static void createCInterface(hmat_interface_t * i)
     i->add_identity = add_identity<T, E>;
     i->init = init<T, E>;
     i->norm = norm<T, E>;
+    i->logdet = logdet<T, E>;
     i->scale = scale<T, E>;
     i->solve_mat = solve_mat<T, E>;
     i->solve_systems = solve_systems<T, E>;
