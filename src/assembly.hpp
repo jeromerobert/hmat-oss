@@ -73,11 +73,11 @@ template<typename T, template <typename> class F> class AssemblyFunction: public
 public:
     AssemblyFunction(const F<T> function, const CompressionAlgorithm* compression);
     virtual ~AssemblyFunction();
-    virtual void assemble(const LocalSettings & settings,
-                          const ClusterTree & rows, const ClusterTree & cols,
-                          bool admissible,
-                          FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
-                          double epsilon, const AllocationObserver & = AllocationObserver());
+    void assemble(const LocalSettings & settings,
+                  const ClusterTree & rows, const ClusterTree & cols,
+                  bool admissible,
+                  FullMatrix<T> * & fullMatrix, RkMatrix<T> * & rkMatrix,
+                  double epsilon, const AllocationObserver & = AllocationObserver()) override;
 protected:
     const F<T> function_;
     const CompressionAlgorithm* compression_;
@@ -177,19 +177,19 @@ public:
   SimpleFunction(hmat_interaction_func_t compute, void * userContext):
       compute_(compute), userContext_(userContext) {}
   virtual ~SimpleFunction() {}
-  virtual FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
-                                                      const ClusterData* cols,
-                                                      const hmat_block_info_t * block_info = NULL,
-                                                      const AllocationObserver & = AllocationObserver()) const;
-  virtual void getRow(const ClusterData* rows, const ClusterData* cols,
-                      int rowIndex, void* handle,
-                      Vector<typename Types<T>::dp>* result, int stratum) const;
-  virtual void getCol(const ClusterData* rows, const ClusterData* cols,
-                      int colIndex, void* handle,
-                      Vector<typename Types<T>::dp>* result, int stratum) const;
+  FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
+                                              const ClusterData* cols,
+                                              const hmat_block_info_t * block_info = NULL,
+                                              const AllocationObserver & = AllocationObserver()) const override;
+  void getRow(const ClusterData* rows, const ClusterData* cols,
+              int rowIndex, void* handle,
+              Vector<typename Types<T>::dp>* result, int stratum) const override;
+  void getCol(const ClusterData* rows, const ClusterData* cols,
+              int colIndex, void* handle,
+              Vector<typename Types<T>::dp>* result, int stratum) const override;
 
-  virtual T getElement(const ClusterData* rows, const ClusterData* cols,
-                      int rowIndex, int colIndex, void* handle, int stratum) const;
+  T getElement(const ClusterData* rows, const ClusterData* cols,
+               int rowIndex, int colIndex, void* handle, int stratum) const override;
 
 };
 
@@ -213,19 +213,19 @@ public:
   FullMatrix<typename Types<T>::dp>* assemble(const ClusterData* rows,
                                               const ClusterData* cols,
                                               const hmat_block_info_t * block_info,
-                                              const AllocationObserver & = AllocationObserver()) const;
-  virtual void prepareBlock(const ClusterData* rows, const ClusterData* cols,
-                            hmat_block_info_t * block_info, const AllocationObserver &) const;
-  virtual void releaseBlock(hmat_block_info_t * block_info, const AllocationObserver &) const;
+                                              const AllocationObserver & = AllocationObserver()) const override;
+  void prepareBlock(const ClusterData* rows, const ClusterData* cols,
+                    hmat_block_info_t * block_info, const AllocationObserver &) const override;
+  void releaseBlock(hmat_block_info_t * block_info, const AllocationObserver &) const override;
 
-  virtual void getRow(const ClusterData* rows, const ClusterData* cols, int rowIndex,
-                      void* handle, Vector<typename Types<T>::dp>* result, int stratum) const;
+  void getRow(const ClusterData* rows, const ClusterData* cols, int rowIndex,
+                      void* handle, Vector<typename Types<T>::dp>* result, int stratum) const override;
 
-  virtual void getCol(const ClusterData* rows, const ClusterData* cols, int colIndex,
-                      void* handle, Vector<typename Types<T>::dp>* result, int stratum) const;
+  void getCol(const ClusterData* rows, const ClusterData* cols, int colIndex,
+                      void* handle, Vector<typename Types<T>::dp>* result, int stratum) const override;
 
-  virtual T getElement(const ClusterData* rows, const ClusterData* cols,
-                       int rowIndex, int colIndex, void* handle, int stratum) const;
+  T getElement(const ClusterData* rows, const ClusterData* cols,
+                       int rowIndex, int colIndex, void* handle, int stratum) const override;
 };
 
 }  // end namespace hmat

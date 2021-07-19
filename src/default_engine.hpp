@@ -38,29 +38,29 @@ public:
   ~DefaultEngine(){}
   typedef hmat::UncompressedBlock<T> UncompressedBlock;
   typedef hmat::UncompressedValues<T> UncompressedValues;
-  void destroy(){}
-  EngineSettings& GetSettings(){ return settings;}
+  void destroy() override {}
+  EngineSettings& GetSettings() override { return settings;}
   static int init();
   static void finalize(){}
-  void assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssembly);
-  void factorization(Factorization);
-  void inverse();
-  void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const;
-  void gemm(char transA, char transB, T alpha, const IEngine<T>& a, const IEngine<T>& b, T beta);
-  void trsm(char side, char uplo, char trans, char diag, T alpha, IEngine<T> &B) const;
-  void trsm(char side, char uplo, char trans, char diag, T alpha, ScalarArray<T> &B) const;
-  void addIdentity(T alpha);
-  void addRand(double epsilon);
-  void solve(ScalarArray<T>& b, Factorization) const;
-  void solve(IEngine<T>& b, Factorization) const;
-  void solveLower(ScalarArray<T>& b, Factorization t, bool transpose=false) const;
-  void copy(IEngine<T> & result, bool structOnly) const;
-  void transpose();
-  void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f);
-  IEngine<T>* clone() const { return new DefaultEngine();};
+  void assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssembly) override;
+  void factorization(Factorization) override;
+  void inverse() override ;
+  void gemv(char trans, T alpha, ScalarArray<T>& x, T beta, ScalarArray<T>& y) const override;
+  void gemm(char transA, char transB, T alpha, const IEngine<T>& a, const IEngine<T>& b, T beta) override;
+  void trsm(char side, char uplo, char trans, char diag, T alpha, IEngine<T> &B) const override;
+  void trsm(char side, char uplo, char trans, char diag, T alpha, ScalarArray<T> &B) const override;
+  void addIdentity(T alpha) override;
+  void addRand(double epsilon) override;
+  void solve(ScalarArray<T>& b, Factorization) const override;
+  void solve(IEngine<T>& b, Factorization) const override ;
+  void solveLower(ScalarArray<T>& b, Factorization t, bool transpose=false) const override;
+  void copy(IEngine<T> & result, bool structOnly) const override;
+  void transpose() override;
+  void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f) override;
+  IEngine<T>* clone() const override { return new DefaultEngine();}
   HMatrix<T> * getHandle() const { return IEngine<T>::hmat; }
-  void scale(T alpha);
-  void info(hmat_info_t &i) const;
+  void scale(T alpha) override;
+  void info(hmat_info_t &i) const override;
 };
 
 }  // end namespace hmat
