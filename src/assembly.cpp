@@ -116,14 +116,14 @@ void SimpleFunction<T>::getCol(const ClusterData* rows, const ClusterData* cols,
   }
 }
 
-template<typename T>
-T SimpleFunction<T>::getElement(const ClusterData* rows, const ClusterData* cols,
+template<typename T> typename Types<T>::dp
+  SimpleFunction<T>::getElement(const ClusterData* rows, const ClusterData* cols,
                int rowIndex, int colIndex, void* handle, int stratum) const{
   (void)stratum; //unused with NDEBUG
   assert(stratum == -1); // stratum not supported here
   const int col = *(cols->indices() + cols->offset() + colIndex);
   const int row = *(rows->indices() + rows->offset() + rowIndex);
-  T elementValue;
+  typename Types<T>::dp elementValue;
   compute_(userContext_, row, col, &elementValue);
   return elementValue;
 }
@@ -268,12 +268,12 @@ void BlockFunction<T>::getCol(const ClusterData* rows,
     }
 }
 
-template<typename T>
-T BlockFunction<T>::getElement(const ClusterData* rows, const ClusterData* cols,
+template<typename T> typename Types<T>::dp
+  BlockFunction<T>::getElement(const ClusterData* rows, const ClusterData* cols,
                        int rowIndex, int colIndex, void* handle, int stratum) const{
   DECLARE_CONTEXT;
   assert(handle);
-  T elementValue;
+  typename Types<T>::dp elementValue;
   if(compute_ == NULL) {
     assert(stratum == -1); // statum not supported here
     legacyCompute_(handle, rowIndex, 1, colIndex, 1, &elementValue);

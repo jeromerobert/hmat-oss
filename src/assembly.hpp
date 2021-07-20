@@ -159,8 +159,10 @@ public:
       \param stratum the stratum id or -1 for all strata
       \return the value of the element as a \a T
     */
-    virtual T getElement(const ClusterData* rows, const ClusterData* cols,
-                        int rowIndex, int colIndex, void* handle, int stratum) const = 0;
+  virtual typename Types<T>::dp getElement(const ClusterData *rows,
+                                           const ClusterData *cols,
+                                           int rowIndex, int colIndex,
+                                           void *handle, int stratum) const = 0;
 };
 
 /**
@@ -188,9 +190,10 @@ public:
               int colIndex, void* handle,
               Vector<typename Types<T>::dp>* result, int stratum) const override;
 
-  T getElement(const ClusterData* rows, const ClusterData* cols,
-               int rowIndex, int colIndex, void* handle, int stratum) const override;
-
+  typename Types<T>::dp getElement(const ClusterData *rows,
+                                   const ClusterData *cols, int rowIndex,
+                                   int colIndex, void *handle,
+                                   int stratum) const override;
 };
 
 template<typename T> class BlockFunction : public Function<T> {
@@ -224,8 +227,10 @@ public:
   void getCol(const ClusterData* rows, const ClusterData* cols, int colIndex,
                       void* handle, Vector<typename Types<T>::dp>* result, int stratum) const override;
 
-  T getElement(const ClusterData* rows, const ClusterData* cols,
-                       int rowIndex, int colIndex, void* handle, int stratum) const override;
+  typename Types<T>::dp getElement(const ClusterData *rows,
+                                   const ClusterData *cols, int rowIndex,
+                                   int colIndex, void *handle,
+                                   int stratum) const override;
 };
 
 }  // end namespace hmat
