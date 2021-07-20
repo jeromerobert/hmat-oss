@@ -36,6 +36,7 @@ typedef double complex double_complex;
 #endif
 
 #include "hmat/hmat.h"
+#include "examples.h"
 
 /** This is a simple example showing how to use the HMatrix library.
 
@@ -44,39 +45,6 @@ typedef double complex double_complex;
     with the points \f$(x_i)\f$ on a cylinder.
     In the real case we use 1 / r instead.
  */
-
-
-/** Create an open cylinder point cloud.
-
-    \param radius Radius of the cylinder
-    \param step distance between two neighboring points
-    \param n number of points
-    \return a vector of points.
- */
-double* createCylinder(double radius, double step, int n) {
-  double* result = (double*) malloc(3 * n * sizeof(double));
-  double length = 2 * M_PI * radius;
-  int pointsPerCircle = length / step;
-  double angleStep = 2 * M_PI / pointsPerCircle;
-  int i;
-  for (i = 0; i < n; i++) {
-    result[3*i+0] = radius * cos(angleStep * i);
-    result[3*i+1] = radius * sin(angleStep * i),
-    result[3*i+2] = (step * i) / pointsPerCircle;
-  }
-  return result;
-}
-
-/** Write points into file. */
-void pointsToFile(double* points, int size, const char* filename) {
-  int i;
-  FILE * fp = fopen(filename, "w");
-  for (i = 0; i < size; i++) {
-    fprintf(fp, "%e %e %e\n", points[3*i], points[3*i+1], points[3*i+2]);
-  }
-  fclose(fp);
-}
-
 
 /**
   Define interaction between 2 degrees of freedoms  (real case)
