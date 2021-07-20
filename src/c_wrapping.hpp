@@ -299,8 +299,8 @@ inline char switch_flag_conj(char trans) {
 }
 
 template<typename T, template <typename> class E>
-int gemm_dense(char trans_b, char trans_x, char side, void* alpha, hmat_matrix_t* holder,
-               void* vec_x, void* beta, void* vec_y, int nrhs) {
+int gemm_dense(char trans_b, char trans_x, char side, const void* alpha, hmat_matrix_t* holder,
+               void* vec_x, const void* beta, void* vec_y, int nrhs) {
   char trans_y = 'N';
   T alphaT = *((T*)alpha);
   T betaT = *((T*)beta);

@@ -859,8 +859,8 @@ typedef struct
       \param nrhs
       \return 0 for success
     */
-    int (*gemm_dense)(char trans_b, char trans_x, char side, void* alpha, hmat_matrix_t* holder,
-                      void* vec_x, void* beta, void* vec_y, int nrhs);
+    int (*gemm_dense)(char trans_b, char trans_x, char side, const void* alpha, hmat_matrix_t* holder,
+                      void* vec_x, const void* beta, void* vec_y, int nrhs);
     /*! \brief A <- A + alpha Id
 
       \param hmatrix
