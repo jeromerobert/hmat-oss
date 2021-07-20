@@ -2568,6 +2568,19 @@ void HMatrix<T>::extractDiagonal(T* diag) const {
   }
 }
 
+template<typename T> T HMatrix<T>::logdet() const {
+  if(this->isLeaf()) {
+    HMAT_ASSERT(this->isFullMatrix() && (this->isTriLower || this->isTriUpper));
+    return std::log(this->full()->data.diagonalProduct());
+  } else {
+    T r = 0;
+    for (int i=0 ; i<nrChildRow() ; i++) {
+      r += get(i,i)->logdet();
+    }
+    return r;
+  }
+}
+
 /* Solve M.X=B with M hmat LU factorized*/
 template<typename T> void HMatrix<T>::solve(
         HMatrix<T>* b,

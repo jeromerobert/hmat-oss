@@ -328,6 +328,12 @@ public:
     return sqrt(normSqr());
   }
 
+  /**
+   * @brief Return the logarithm of the determinant of this matrix
+   * assuming it is triangular.
+   */
+  T logdet() const;
+
   /*! \brief Return an approximation of the largest eigenvalue via the power method.
    */
   T approximateLargestEigenvalue(int max_iter, double epsilon) const;

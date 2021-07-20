@@ -1360,6 +1360,15 @@ template<typename T> void ScalarArray<T>::addIdentity(T alpha) {
   }
 }
 
+template<typename T> T ScalarArray<T>::diagonalProduct() const {
+  assert(rows == cols);
+  T r = get(0,0);
+  for(int i = 1; i < rows; i++) {
+    r *= get(i,i);
+  }
+  return r;
+}
+
 template<typename T>
 bool ScalarArray<T>::testOrtho() const {
   static char *test = getenv("HMAT_TEST_ORTHO");

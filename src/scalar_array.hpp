@@ -236,6 +236,10 @@ public:
 
     \return the matrix norm.
    */
+
+  /** Return the product of the diagonal values */
+  T diagonalProduct() const;
+
   double norm_abt_Sqr(const ScalarArray<T> &b) const ;
 
   /*! \brief Compute dot product between a[i,*] and b[j,*]
