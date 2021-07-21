@@ -74,6 +74,7 @@ template<typename T>
 static void updateRow(Vector<T>& rowVec, int row, const vector<Vector<T>*>& rows,
                       const vector<Vector<T>*>& cols, int k) {
   for (int l = 0; l < k; l++) {
+    assert(row < cols[l]->rows);
     rowVec.axpy(Constants<T>::mone * (*cols[l])[row], rows[l]);
   }
 }
@@ -452,7 +453,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
       }
     }
     rowPivotCount++;
-  } while (rowPivotCount < maxK);
+  } while (rowPivotCount < maxK && I < rowCount);
 
   ScalarArray<dp_t> *newA, *newB;
   if (k != 0) {
