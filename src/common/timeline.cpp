@@ -69,7 +69,7 @@ void Timeline::init(int numberOfWorker, int rank, bool onlyWorker) {
     }
     enabled_ = true;
     opMask_.set();
-    opMask_[Operation::GEMM] = getenv("HMAT_TIMELINE_GEMM");
+    opMask_[Operation::BLASGEMM] = getenv("HMAT_TIMELINE_GEMM");
     opMask_[Operation::QR] = getenv("HMAT_TIMELINE_QR");
     opMask_[Operation::SVD] = false;
     opMask_[Operation::PRODUCTQ] = false;
