@@ -53,7 +53,7 @@ void interaction_real(void* data, int i, int j, void* result)
   struct context_t* pdata = (struct context_t*) data;
   double* points = pdata->points;
   double r = distanceTo(points + 3 * i, points + 3 * j);
-  *((double*)result) = exp(-fabs(r) / pdata->l);
+  *((double*)result) = exp(-fabs(r) / pdata->l) + (i == j ? nDoF/100. : 0);
 }
 
 void create_geometry(struct context_t* d) {
