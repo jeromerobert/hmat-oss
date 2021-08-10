@@ -164,7 +164,8 @@ int
 GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children,
                                        int currentAxis) const
 {
-  int dim = largestDimension(current, currentAxis);
+  bool x0 = x0_ && current.depth == 0;
+  int dim = x0 ? 0 : largestDimension(current, currentAxis);
   sortByDimension(current, dim);
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(current);
   current.cache_ = bbox;
@@ -173,8 +174,13 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   // Loop on 'divider_' = the number of children created
   for (int i=1 ; i<divider_ ; i++) {
     int middleIndex = previousIndex;
-    double middlePosition = bbox->bbMin()[dim] + (i / (double)divider_) *
-      (bbox->bbMax()[dim] - bbox->bbMin()[dim]);
+    double middlePosition;
+    if(x0) {
+      middlePosition = 0;
+    } else {
+      middlePosition = bbox->bbMin()[dim] + (i / (double)divider_) *
+        (bbox->bbMax()[dim] - bbox->bbMin()[dim]);
+    }
     int* myIndices = current.data.indices() + current.data.offset();
     const DofCoordinates & coord = *current.data.coordinates();
     while (middleIndex < current.data.size() &&

@@ -133,7 +133,10 @@ protected:
  */
 class GeometricBisectionAlgorithm : public AxisAlignClusteringAlgorithm
 {
+  /** If true force the first partitioning using the x=0 plane */
+  bool x0_;
 public:
+  explicit GeometricBisectionAlgorithm(bool x0 = false): x0_(x0) {}
   ClusteringAlgorithm* clone() const { return new GeometricBisectionAlgorithm(*this); }
   std::string str() const { return "GeometricBisectionAlgorithm"; }
 

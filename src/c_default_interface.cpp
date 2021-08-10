@@ -44,7 +44,8 @@ hmat_clustering_algorithm_t * hmat_create_clustering_ntilesrecursive(int nTiles)
 
 hmat_clustering_algorithm_t * hmat_create_clustering_geometric()
 {
-    return (hmat_clustering_algorithm_t*) new GeometricBisectionAlgorithm();
+  bool x0 = getenv("HMAT_GEOM_BISECT_X0") != nullptr;
+  return reinterpret_cast<hmat_clustering_algorithm_t*>(new GeometricBisectionAlgorithm(x0));
 }
 
 hmat_clustering_algorithm_t * hmat_create_clustering_hybrid()
