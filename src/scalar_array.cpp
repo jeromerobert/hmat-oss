@@ -871,11 +871,29 @@ static int findK(Vector<double> &sigma, double epsilon) {
   return i;
 }
 
+struct SigmaPrinter {
+  bool enabled;
+  SigmaPrinter() {
+    enabled = getenv("HMAT_PRINT_SIGMA") != nullptr;
+  }
+  void print(const Vector<double> & sigma) const {
+    if(!enabled)
+      return;
+    // Use a buffer and printf for better output in multi-thread
+    std::stringstream buf;
+    for(int i = 0; i < sigma.rows; i++) {
+      buf << sigma[i] << " ";
+    }
+    printf("[SIGMA] %s\n", buf.str().c_str());
+  }
+};
+static SigmaPrinter sigmaPrinter;
+
 template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
   Vector<double>* sigma = NULL;
 
   svdDecomposition(u, &sigma, v, workAroundFailures);
-
+  sigmaPrinter.print(*sigma);
   // Control of the approximation
   int newK = findK(*sigma, epsilon);
 
