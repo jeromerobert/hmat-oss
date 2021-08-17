@@ -29,7 +29,7 @@ using namespace std;
 namespace hmat {
 
 void JSONDumper::dumpSubTree(int _depth) {
-    string prefix("    ");
+    string prefix("  ");
     for (int i = 0; i < _depth; i++) {
         prefix += "  ";
     }
@@ -74,7 +74,7 @@ void JSONDumper::dumpSubTree(int _depth) {
 
 void JSONDumper::nextChild(bool last) {
     if(!last)
-        out_ << endl << ",";
+        out_ << "," << endl;
     nodeInfo_.str("");
 }
 
@@ -82,10 +82,10 @@ static void
 dump_points(std::ostream& out, const std::string name, const DofCoordinates* points) {
     string delimiter;
     const int dimension = points->dimension();
-    out << "  \"" << name << "\": [" << endl;
-    delimiter = "";
+    out << " \"" << name << "\": [" << endl;
+    delimiter = "  ";
     for (int i = 0; i < points->numberOfDof(); i++) {
-        out << "    " << delimiter << "[";
+        out << delimiter << "[";
         if (dimension > 0) {
             out << points->spanCenter(i, 0);
             for (int dim = 1; dim < dimension; ++dim) {
@@ -124,7 +124,7 @@ void JSONDumper::dumpPoints() {
 void JSONDumper::dump() {
     out_ << "{" << endl;
     dumpMeta();
-    out_ << "  \"tree\":" << endl;
+    out_ << " \"tree\":" << endl;
     dumpSubTree(0);
     out_ << "}" << endl;
 }
