@@ -37,9 +37,7 @@ void JSONDumper::dumpSubTree(int _depth) {
     AxisAlignedBoundingBox cols_bbox(*cols_);
     const int rows_dimension(rows_->coordinates()->dimension());
     const int cols_dimension(cols_->coordinates()->dimension());
-    // TODO: remove isLeaf because it can be deduced form children
-    out_ << prefix << "{\"isLeaf\": " << (nrChild_ == 0 ? "true" : "false") << "," << endl
-      << prefix << " \"depth\": " << _depth << "," << endl
+    out_ << prefix << "{\"depth\": " << _depth << "," << endl
       << prefix << " \"rows\": "
       << "{\"offset\": " << rows_->offset() << ", \"n\": " << rows_->size() << ", "
       << "\"boundingBox\": [[" << rows_bbox.bbMin()[0];
