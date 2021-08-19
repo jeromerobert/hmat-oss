@@ -186,6 +186,7 @@ void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->ratio = 0.0;
     p->max_width = (size_t)-1L;
+    p->wavelength = -1;
 }
 
 hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) {
