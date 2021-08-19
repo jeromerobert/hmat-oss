@@ -207,6 +207,15 @@ public:
     const double * bbMax() const { return bb_ + dimension_; }
     void bbMin(const double * bbMin);
     void bbMax(const double * bbMax);
+    /** @brief Square of the distance between the centers of 2 boxes */
+    double ccDistSqr(const AxisAlignedBoundingBox& other) const {
+      double r = 0;
+      for(unsigned int i = 0; i < dimension_; i++) {
+        double v = (bbMin()[i] + bbMax()[i]) - (other.bbMin()[i] + other.bbMax()[i]);
+        r += v * v;
+      }
+      return r;
+    }
 };
 
 }  // end namespace hmat
