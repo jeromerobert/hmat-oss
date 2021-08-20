@@ -312,8 +312,8 @@ typedef struct {
     double ratio;
     /** maximum block width */
     size_t max_width;
-    /** wavelength */
-    double wavelength;
+    /** A scale factor (default to -1 for "unspecified" */
+    double scale;
 } hmat_admissibility_param_t;
 
 /** Init an hmat_admissibility_param structure with default values */
