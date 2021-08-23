@@ -60,6 +60,23 @@ using std::vector;
 using std::min;
 using std::max;
 
+namespace {
+struct EnvVar {
+  /** */
+  int logAcaPartialMinSize;
+  EnvVar() {
+	// Enable ACA partial verbose mode for blocks larger than a given size.
+    const char * logAcaStr = getenv("HMAT_LOG_ACA_PARTIAL");
+    if(logAcaStr == nullptr) {
+      logAcaPartialMinSize = std::numeric_limits<int>::max();
+    } else {
+      logAcaPartialMinSize = atoi(logAcaStr);
+    }
+  }
+};
+static const EnvVar env;
+} // namespace
+
 namespace hmat {
 
 /** \brief Updates a row to reflect its current value in the matrix.
@@ -361,6 +378,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
   const int rowCount = block.rows->size();
   const int colCount = block.cols->size();
   int maxK = min(rowCount, colCount);
+  bool verbose = maxK > env.logAcaPartialMinSize;
   // Contains false for the rows that were already used as pivot
   vector<bool> rowFree(rowCount, true);
   int rowPivotCount = 0;
@@ -374,7 +392,8 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
   int k = 0;
 
   RandomPivotManager<T> randomPivotManager(block, useRandomPivots ? max(rowCount, colCount) : 0);
-
+  if(verbose)
+    printf("[HMat] Starting ACA Partial on %sx%s\n", block.rows->description().c_str(), block.cols->description().c_str());
   do {
     Vector<dp_t>* bCol = new Vector<dp_t>(block.cols->size());
     // Calculation of row I and its residue
@@ -450,6 +469,10 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
       // <=> ||a_nu||^2 ||b_nu||^2 < compressionEpsilon^2 ||S_nu||^2
       if (ab_norm_2 < compressionEpsilon * compressionEpsilon * estimateSquaredNorm) {
         break;
+      }
+      if(verbose) {
+        printf("%d %g\n", rowPivotCount, sqrt(ab_norm_2/estimateSquaredNorm));
+        fflush(stdout);
       }
     }
     rowPivotCount++;
