@@ -214,7 +214,7 @@ public:
         double v = (bbMin()[i] + bbMax()[i]) - (other.bbMin()[i] + other.bbMax()[i]);
         r += v * v;
       }
-      return r;
+      return r / 4;
     }
 };
 
