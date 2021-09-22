@@ -2688,7 +2688,6 @@ void HMatrix<T>::checkStructure() const {
 
 template<typename T>
 void HMatrix<T>::checkNan() const {
-#if 0
   if (this->isLeaf()) {
     if (isFullMatrix()) {
       full()->checkNan();
@@ -2703,7 +2702,6 @@ void HMatrix<T>::checkNan() const {
       }
     }
   }
-#endif
 }
 
 template<typename T> void HMatrix<T>::setTriLower(bool value)

@@ -938,6 +938,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   ScalarArray<T> *a = workAroundFailures ? copy() : NULL;
 
   assert(lda >= rows);
+  checkNan();
 
   char jobz = 'S';
   int info=0;
@@ -968,7 +969,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   } catch(LapackException & e) {
     // if SVD fails, and if workAroundFailures is set to true, I return a "fake" result that allows
     // computation to proceed. Otherwise, I stop here.
-    if (!workAroundFailures) throw;
+    /*if (!workAroundFailures)*/ throw;
 
     printf("%s overriden...\n", e.what());
     // If rows<cols, then p==rows, 'u' is square, 'v' has the dimensions of 'this'.
@@ -1044,6 +1045,8 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
   if (!useInitPivot) initialPivot=0;
   assert(initialPivot>=0 && initialPivot<=cols);
 
+  checkNan();
+
   ScalarArray<T> *bK = NULL, *restR = NULL, *a = this; // we need this because if initialPivot>0, we will run the end of the computation on a subset of 'this'
 
   // Initial pivot
@@ -1094,6 +1097,9 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
   // temporary data created if initialPivot>0
   if (bK) delete(bK);
   if (restR) delete(restR);
+
+  checkNan();
+  resultR->checkNan();
 
   return;
 }
