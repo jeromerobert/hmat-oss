@@ -59,7 +59,7 @@ jobs:
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-ninja
     - uses: actions/checkout@v2
-    - run: cmake -GNinja -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=D:/a/_temp/msys/msys64/mingw64/include/OpenBLAS .
+    - run: cmake -GNinja -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=D:/a/_temp/msys64/mingw64/include/openblas .
     - run: ninja
     - run: ctest
 
