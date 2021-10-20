@@ -82,9 +82,12 @@ void factorize(HMatrix<T> * m, HODLRNode<T> * node) {
   HMAT_ASSERT_MSG(m->get(0,1) == nullptr, "Not lowered stored matrix");
   if(m00->isLeaf()) {
     m00->lltDecomposition(nullptr);
-    m11->lltDecomposition(nullptr);
   } else {
     factorize(m00, node->child0);
+  }
+  if(m11->isLeaf()) {
+    m11->lltDecomposition(nullptr);
+  } else {
     factorize(m11, node->child1);
   }
   desymmetrize(m);
@@ -173,9 +176,12 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   int r = a10->rank();
   if(a00->isLeaf()) {
     a00->lltDecomposition(nullptr);
-    a11->lltDecomposition(nullptr);
   } else {
     factorizeSym(a00, node->child0);
+  }
+  if(a11->isLeaf()) {
+    a11->lltDecomposition(nullptr);
+  } else {
     factorizeSym(a11, node->child1);
   }
   solveLowerTriangularLeft(a00, a10->rk()->b, a10->cols()->offset(), node->child0);
