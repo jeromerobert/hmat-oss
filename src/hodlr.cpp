@@ -148,15 +148,10 @@ void solveLowerTriangularLeft(HMatrix<T> * const m, ScalarArray<T> *x, int xOffs
 template<typename T>
 T logdet(HMatrix<T> * a, HODLRNode<T> * node) {
   HMAT_ASSERT_MSG(!a->isLeaf(), "Not HODLR matrix");
-  T result = 0;
   auto a00 = a->get(0,0);
   auto a11 = a->get(1,1);
-  if(a00->isLeaf()) {
-    result = a00->logdet() + a11->logdet();
-  } else {
-    result += logdet(a00, node->child0);
-    result += logdet(a11, node->child1);
-  }
+  T result = a00->isLeaf() ? a00->logdet() : logdet(a00, node->child0);
+  result += a11->isLeaf() ? a11->logdet() : logdet(a11, node->child1);
   result += std::log(node->detm11_);
   return result;
 }
