@@ -156,8 +156,82 @@ T logdet(HMatrix<T> * a, HODLRNode<T> * node) {
   return result;
 }
 
+template<typename T> void gemv(char trans, T alpha, HMatrix<T> * const ma, const ScalarArray<T> & x,
+                               T beta, ScalarArray<T> & y, HODLRNode<T> * node, int offset);
+
+template<typename T>
+void checkdebug(HMatrix<T> * const ma, HODLRNode<T> * node, HMatrix<T> * const orig) {
+  int n = ma->rows()->size();
+  ScalarArray<T> idv(n, n);
+  ScalarArray<T> lti(n, n);
+  ScalarArray<T> llti(n, n);
+  ScalarArray<T> ref(n, n);
+  idv.addIdentity(1);
+  gemv<T>('T', 1, ma, idv, 0, lti, node, ma->rows()->offset()); 
+  gemv<T>('N', 1, ma, lti, 0, llti, node, ma->rows()->offset());
+  orig->gemv('N', 1, &idv, 0, &ref);
+  llti.axpy(-1, &ref);
+  printf("[HODLR] %s: %g %g %g\n", ma->description().c_str(), llti.norm() / ref.norm(), llti.norm(), ref.norm());
+
+  // Q11 = I + a.X11.aT
+  // Check that Q11.Q11^T=I - a.bT.b.aT
+  const ScalarArray<T> & a = *ma->get(1,0)->rk()->a;
+  const ScalarArray<T> & b = *ma->get(1,0)->rk()->b;
+  ScalarArray<T> x11at(a.cols, a.rows);
+  x11at.gemm('N', 'T', 1, &node->x11, &a, 0);
+  ScalarArray<T> q11(a.rows, a.rows);
+  q11.addIdentity(1);
+  q11.gemm('N', 'N', 1, &a, &x11at, 1);
+  ScalarArray<T> q11q11t(a.rows, a.rows);
+  q11q11t.gemm('N', 'T', 1, &q11, &q11, 0);
+  q11q11t.addIdentity(-1);
+
+  ScalarArray<T> btb(a.cols, a.cols);
+  btb.gemm('T', 'N', 1, &b, &b, 0);
+  x11at.gemm('N', 'T', 1, &btb, &a, 0);
+  ScalarArray<T> iabtbat(a.rows, a.rows);
+  iabtbat.gemm('N', 'N', -1, &a, &x11at, 1);
+  iabtbat.axpy(-1, &q11q11t);
+  printf("[HODLR] %s: %g %g %g %d\n", ma->description().c_str(), iabtbat.norm() / q11q11t.norm(), iabtbat.norm(), q11q11t.norm(), a.cols);
+}
+
+template<typename T> void checkLLT(ScalarArray<T> & m) {
+  ScalarArray<T> * f = m.copy();
+  f->lltDecomposition();
+  ScalarArray<T> idv(m.rows, m.rows);
+  idv.addIdentity(1);
+  idv.trmm(Side::LEFT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, f);
+  idv.trmm(Side::RIGHT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, f);
+  delete f;
+  idv.axpy(-1, &m);
+  printf("[HODLR] checkLLT %g %g\n", idv.norm() / m.norm(), m.norm()); 
+}
+
+template<typename T> void checkLLm1(ScalarArray<T> & x11, ScalarArray<T> & la) {
+  ScalarArray<T> * x11c = x11.copy();
+  x11c->trsm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  x11c->trsm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+  x11c->trmm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  x11c->trmm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+  x11c->axpy(-1, &x11);
+  printf("[HODLR] checkLLm1 %g %dx%d %g\n", x11c->norm() / x11.norm(), x11.rows, x11.cols, x11.norm()); 
+  if(x11.norm() > 0.8) {
+    printf("ouch !\n");
+  }
+  delete x11c;
+}
+
+template<typename T> double condition(ScalarArray<T> & a) {
+  ScalarArray<T> * aa = a.copy();
+  aa->inverse();
+  double r = aa->norm() / a.norm();
+  delete aa;
+  return r;
+}
+
 template<typename T>
 void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
+  HMatrix<T> * orig = a->copy();
   HMAT_ASSERT_MSG(!a->isLeaf(), "Not HODLR matrix");
   // |a00    |   |P00   |   |I   Rk1|   |P00^t     |
   // |a01 a11| = |   P11| * |Rk0 I  | * |     P11^t|
@@ -191,20 +265,30 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   ScalarArray<T> la(r, r, false);
   la.copyMatrixAtOffset(&ata, 0, 0);
   // Compute L11 (we don't need L00)
+  // checkLLT(la);
   la.lltDecomposition();
   // Compute I + L^t.K.L in node->x11
   node->x11.gemm('T', 'N', -1, a10->rk()->b, a10->rk()->b, 0);
+  printf("c(bT.b)=%g c(La)=%g\n", condition(node->x11), condition(la));
   node->x11.trmm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  printf("c(K) bis=%g\n", condition(node->x11));
   node->x11.trmm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+  printf("||K||=%g ||a10||=%g c(K)=%g\n", node->x11.norm(), a10->norm(), condition(node->x11));
   node->x11.addIdentity(1);
+  printf("M2=%g\n", condition(node->x11));
   // Compute M11 in node->x11
+  // checkLLT(node->x11);
   node->x11.lltDecomposition();
   // We have det(I+U.K.U^t) = det(M11)^2
   node->detm11_ = node->x11.diagonalProduct();
   node->x11.addIdentity(-1);
   // Compute X11
+  // checkLLm1(node->x11, la);
+  printf("c=%g\n", condition(node->x11));
   node->x11.trsm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  printf("c=%g\n", condition(node->x11));
   node->x11.trsm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+  printf("c=%g\n", condition(node->x11));
   // Q^-1 = I - U.(I+X.U^t.U)^-1.X.tV (Woodbury identity)
   // We store (I+X.U^t.U)^-1.X to node->kk to be able to solve later on.
   // Q00 = I so we just need to store what is needed to compute Q11^-1
@@ -217,6 +301,8 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   FactorizationData<T> fd = { Factorization::LU, { pivots }};
   ixutu.solve(&node->kk, fd);
   delete[] pivots;
+  checkdebug(a, node, orig);
+  delete orig;
 }
 
 template<typename T> void gemv(char trans, T alpha, HMatrix<T> * const ma, const ScalarArray<T> & x,
