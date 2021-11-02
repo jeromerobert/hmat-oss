@@ -24,6 +24,16 @@
 
 namespace {
 using namespace hmat;
+
+struct EnvVar {
+  // Disable the QR algorithm for the symetric HODLR factorization
+  bool noQrSym;
+  EnvVar() {
+    noQrSym = getenv("HMAT_HODLR_NOQR") != nullptr;
+  }
+};
+static const EnvVar env;
+
 template<typename T> void desymmetrize(HMatrix<T> * m) {
   auto m10 = m->get(1,0);
   auto m01 = m->internalCopy(m10->colsTree(), m10->rowsTree());
@@ -156,6 +166,124 @@ T logdet(HMatrix<T> * a, HODLRNode<T> * node) {
   return result;
 }
 
+/**
+ * @brief compute the r x r block needed for the GEMV of a HODLR factor
+ *
+ * @param a10 The Rk block of the HODLR factor
+ * @param ata a.a^T (where a10 = a.b^T)
+ * @param node where to store x11 (i.e. the output of this function)
+ * @param la temporary r x r storage
+ */
+template<typename T>
+void computeSymX11(HMatrix<T> * a10,  ScalarArray<T> & ata, HODLRNode<T> * node, ScalarArray<T> & la) {
+  // Cholesky like factorization of I+U.K.U^t:
+  // I+U.K.U^t = (I + U.X.U^t).(I + U.X.U^t)^t = W.W^t where
+  // X=L^-t.(M − I).L^-1 where M.M^t = I + L^t.K.L and L.L^t = U^t.U
+  // We have X00=0, X01=0, X10=I. We just need to compute X11.
+  // Compute U^t.U
+  la.copyMatrixAtOffset(&ata, 0, 0);
+  // Compute L11 (we don't need L00)
+  la.lltDecomposition();
+  // Compute I + L^t.K.L in node->x11
+  node->x11.gemm('T', 'N', -1, a10->rk()->b, a10->rk()->b, 0);
+  node->x11.trmm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  node->x11.trmm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+  node->x11.addIdentity(1);
+  // Compute M11 in node->x11
+  node->x11.lltDecomposition();
+  // We have det(I+U.K.U^t) = det(M11)^2
+  node->detm11_ = node->x11.diagonalProduct();
+  node->x11.addIdentity(-1);
+  // Compute X11
+  node->x11.trsm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
+  node->x11.trsm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
+}
+
+/**
+ * @brief compute the r x r block needed for solving with a HODLR factor
+ *
+ * @param ata a.a^T (where a10 = a.b^T)
+ * @param node where to store kk (i.e. the output of this function)
+ * @param ixutu temporary r x r storage
+ */
+template<typename T>
+void computeSymKK(ScalarArray<T> & ata, HODLRNode<T> * node, ScalarArray<T> & ixutu) {
+  // W^-1 = I - U.(I+X.U^t.U)^-1.X.tU (Woodbury identity)
+  // We store (I+X.U^t.U)^-1.X to node->kk to be able to solve later on.
+  // W00 = I so we just need to store what is needed to compute W11^-1
+  ixutu.gemm('N', 'N', 1, &node->x11, &ata, 0);
+  ixutu.addIdentity(1);
+  int * pivots = new int[ixutu.rows];
+  ixutu.luDecomposition(pivots);
+  node->kk.copyMatrixAtOffset(&node->x11, 0, 0);
+  FactorizationData<T> fd = { Factorization::LU, { pivots }};
+  ixutu.solve(&node->kk, fd);
+  delete[] pivots;
+}
+
+/**
+ * @brief compute the r x r block needed for the GEMV of a HODLR factor
+ * using a QR factorization.
+ *
+ * This is the same as computeSymX11 but supposed to be more precise.
+ * @param a10 The Rk block of the HODLR factor
+ * @param node Where to store x11 (i.e. the output of this function)
+ * @param ra, tmp Needed to compute KK with computeQRSymKK
+ */
+template<typename T>
+void computeQRSymX11(HMatrix<T> * a10, ScalarArray<T> & ra, HODLRNode<T> * node, ScalarArray<T> & tmp) {
+  // Cholesky like factorization of I+U.K.U^t:
+  // I+U.K.U^t = (I + U.X.U^t).(I + U.X.U^t)^t = W.W^t where
+  // X = M − I where M.M^t = I + R.K.R^T and Q.R = U^t.U
+  // We have X00=0, X01=0, X10=Ra.Rb^T. We just need to compute X11.
+  // then store X11'=Ra^-1.X11.Ra^-T
+  // Compute Ra (we don't need Rb)
+  ScalarArray<T> * qrA = a10->rk()->a->copy();
+  qrA->qrDecomposition(&ra);
+  delete qrA;
+  // compute M11=cholesky(I-Ra.b^T.b.Ra^T)
+  node->x11.gemm('T', 'N', -1, a10->rk()->b, a10->rk()->b, 0);
+  node->x11.trmm(Side::LEFT, Uplo::UPPER, 'N', Diag::NONUNIT, 1, &ra);
+  node->x11.trmm(Side::RIGHT, Uplo::UPPER, 'T', Diag::NONUNIT, 1, &ra);
+  node->x11.addIdentity(1);
+  node->x11.lltDecomposition();
+  // We have det(I+U.K.U^t) = det(M11)^2
+  node->detm11_ = node->x11.diagonalProduct();
+  // X = M - I
+  node->x11.addIdentity(-1);
+  // Compute X11'
+  node->x11.trsm(Side::LEFT, Uplo::UPPER, 'N', Diag::NONUNIT, 1, &ra);
+  // Will be needed later to compute KK
+  tmp.copyMatrixAtOffset(&node->x11, 0, 0);
+  node->x11.trsm(Side::RIGHT, Uplo::UPPER, 'T', Diag::NONUNIT, 1, &ra);
+}
+
+/**
+ * @brief compute the r x r block needed for solving with a HODLR factor
+ * from the output of computeQRSymX11.
+ *
+ * @param ata a.a^T (where a10 = a.b^T)
+ * @param node where to store kk (i.e. the output of this function)
+ * @param ixutu temporary r x r storage
+ */
+template<typename T>
+void computeQRSymKK(ScalarArray<T> & ra, HODLRNode<T> * node, ScalarArray<T> & tmp) {
+  // W^-1 = I - U.(I+X.U^t.U)^-1.X.tU (Woodbury identity)
+  // We store (I+X.U^t.U)^-1.X to node->kk to be able to solve later on.
+  // W00 = I so we just need to store what is needed to compute W11^-1
+  // W11^-1 = I-Qa.(X11-1+Qa^T.Qa)-1.Qa^T = I-a.KK.a^T where
+  // KK=(I+Ra^-1.X11.Ra)^-1.X11'
+  // tmp <- Ra^-1.X11.Ra
+  tmp.trmm(Side::RIGHT, Uplo::UPPER, 'N', Diag::NONUNIT, 1, &ra);
+  tmp.addIdentity(1);
+  int * pivots = new int[tmp.rows];
+  tmp.luDecomposition(pivots);
+  node->kk.copyMatrixAtOffset(&node->x11, 0, 0);
+  FactorizationData<T> fd = { Factorization::LU, { pivots }};
+  tmp.solve(&node->kk, fd);
+  delete[] pivots;
+}
+
 template<typename T>
 void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   HMAT_ASSERT_MSG(!a->isLeaf(), "Not HODLR matrix");
@@ -181,42 +309,17 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   }
   solveLowerTriangularLeft(a00, a10->rk()->b, a10->cols()->offset(), node->child0);
   solveLowerTriangularLeft(a11, a10->rk()->a, a10->rows()->offset(), node->child1);
-  // Cholesky like factorization of I+U.K.U^t:
-  // I+U.K.U^t = (I + U.X.U^t).(I + U.X.U^t)^t = Q.Q^t where
-  // X=L^-t.(M − I).L^-1 where M.M^t = I + L^t.K.L and L.L^t = U^t.U
-  // We have X00=0, X01=0, X10=I. We just need to compute X11.
-  // Compute U^t.U
-  ScalarArray<T> ata(r, r, false);
-  ata.gemm('T', 'N', 1, a10->rk()->a, a10->rk()->a, 0);
-  ScalarArray<T> la(r, r, false);
-  la.copyMatrixAtOffset(&ata, 0, 0);
-  // Compute L11 (we don't need L00)
-  la.lltDecomposition();
-  // Compute I + L^t.K.L in node->x11
-  node->x11.gemm('T', 'N', -1, a10->rk()->b, a10->rk()->b, 0);
-  node->x11.trmm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
-  node->x11.trmm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
-  node->x11.addIdentity(1);
-  // Compute M11 in node->x11
-  node->x11.lltDecomposition();
-  // We have det(I+U.K.U^t) = det(M11)^2
-  node->detm11_ = node->x11.diagonalProduct();
-  node->x11.addIdentity(-1);
-  // Compute X11
-  node->x11.trsm(Side::RIGHT, Uplo::LOWER, 'N', Diag::NONUNIT, 1, &la);
-  node->x11.trsm(Side::LEFT, Uplo::LOWER, 'T', Diag::NONUNIT, 1, &la);
-  // Q^-1 = I - U.(I+X.U^t.U)^-1.X.tV (Woodbury identity)
-  // We store (I+X.U^t.U)^-1.X to node->kk to be able to solve later on.
-  // Q00 = I so we just need to store what is needed to compute Q11^-1
-  ScalarArray<T> & ixutu = la; // reuse la (aka L11) storage
-  ixutu.gemm('N', 'N', 1, &node->x11, &ata, 0);
-  ixutu.addIdentity(1);
-  int * pivots = new int[r];
-  ixutu.luDecomposition(pivots);
-  node->kk.copyMatrixAtOffset(&node->x11, 0, 0);
-  FactorizationData<T> fd = { Factorization::LU, { pivots }};
-  ixutu.solve(&node->kk, fd);
-  delete[] pivots;
+  ScalarArray<T> tmp(r, r, false);
+  if(env.noQrSym) {
+    ScalarArray<T> ata(r, r, false);
+    ata.gemm('T', 'N', 1, a10->rk()->a, a10->rk()->a, 0);
+    computeSymX11(a10, ata, node, tmp);
+    computeSymKK(ata, node, tmp);
+  } else {
+    ScalarArray<T> ra(r, r);
+    computeQRSymX11(a10, ra, node, tmp);
+    computeQRSymKK(ra, node, tmp);
+  }
 }
 
 template<typename T> void gemv(char trans, T alpha, HMatrix<T> * const ma, const ScalarArray<T> & x,
@@ -237,8 +340,8 @@ template<typename T> void gemv(char trans, T alpha, HMatrix<T> * const ma, const
   ScalarArray<T> y1(y, offset1 - offset, ma10->rows()->size(), 0, y.cols);
   if(trans == 'N') {
     // |y0|    |L0  |   |I       |   |x0|
-    // |y1| += |  L1| x |a.bT Q11| x |x1|
-    // Q11 = I + a.X11.aT
+    // |y1| += |  L1| x |a.bT W11| x |x1|
+    // W11 = I + a.X11.aT
     // y1 += L1.(x1 + a.(bT.x0 + X11.aT.x1))
     ScalarArray<T> * atx1 = new ScalarArray<T>(r, x.cols, false);
     ScalarArray<T> x11atx1(r, x.cols, false);
@@ -255,7 +358,7 @@ template<typename T> void gemv(char trans, T alpha, HMatrix<T> * const ma, const
     gemv(trans, alpha, ma->get(0,0), x0, beta, y0, node->child0, offset0);
   } else {
     // |y0|    |I b.a^T|   |L0^T    |   |x0|
-    // |y1| += |  Q11^T| x |    L1^T| x |x1|
+    // |y1| += |  W11^T| x |    L1^T| x |x1|
     ScalarArray<T> l1tx1(x1.rows, x1.cols, false);
     // y0 <- beta*y0 + alpha*L0^T*x0
     gemv(trans, alpha, ma->get(0,0), x0, beta, y0, node->child0, offset0);
@@ -291,8 +394,8 @@ template<typename T> struct HODLRNode {
   int * pivot;
   HODLRNode *child0, *child1;
   /**
-   * The determinant of M11 which is also the determinant of Q in the
-   * symmetric decomposition (A=L.Q.Q^t.L^t)
+   * The determinant of M11 which is also the determinant of W in the
+   * symmetric decomposition (A=L.W.W^t.L^t)
    */
   T detm11_;
 
@@ -341,6 +444,7 @@ void HODLR<T>::factorize(HMatrix<T> * m, hmat_progress_t* p) {
 
 template<typename T>
 void HODLR<T>::factorizeSym(HMatrix<T> * m, hmat_progress_t* p) {
+  HMAT_ASSERT_MSG(hmat::Types<T>::IS_REAL::value, "Complex HODLR symmetric factorization is not supported.");
   root = HODLRNode<T>::create(m, true);
   ::factorizeSym(m, root);
 }
