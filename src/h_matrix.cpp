@@ -778,24 +778,28 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const FullMatrix<T>* x, T beta, Fu
 }
 
 /**
+ * Recursively list all leaves of a HMatrix as Rk, converting FullMatrix leaves to Rk if needed.
  * @brief List all Rk matrice in the m matrice.
- * @return true if the matrix contains only rk matrices, fall if it contains
- * both rk and full matrices
+ * @brief tmp list of RkMatrice which where created from FullMatrix
  */
-template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<T>*> & result) {
-    if(m == NULL) {
-        // do nothing
-    } else if(m->isRkMatrix())
-        result.push_back(m->rk());
-    else if(m->isLeaf())
-        return false;
-    else {
-        for(int i = 0; i < m->nrChild(); i++) {
-            if(m->getChild(i) && !listAllRk(m->getChild(i), result))
-                return false;
-        }
-    }
-    return true;
+template <typename T>
+void listAllRk(const HMatrix<T> *m, vector<const RkMatrix<T> *> &result,
+               vector<RkMatrix<T> *> &tmp) {
+  if (m == NULL) {
+    // do nothing
+  } else if(!m->isLeaf()) {
+    for (int i = 0; i < m->nrChild(); i++)
+      listAllRk(m->getChild(i), result, tmp);
+  } else if(m->isNull()) {
+    // do nothing
+  } else if (m->isRkMatrix()) {
+    result.push_back(m->rk());
+  } else {
+    // m is a FullMatrix
+    RkMatrix<T> *tmpRk = truncatedSvd(m->full(), m->lowRankEpsilon());
+    result.push_back(tmpRk);
+    tmp.push_back(tmpRk);
+  }
 }
 
 /**
@@ -817,14 +821,12 @@ template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
         if (!rk())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
         vector<const RkMatrix<T> *> rkLeaves;
-        if (listAllRk(x, rkLeaves)) {
-          vector<T> alphas(rkLeaves.size(), alpha);
-          rk()->formattedAddParts(lowRankEpsilon(), &alphas[0], &rkLeaves[0], rkLeaves.size());
-        } else {
-          // x has contains both full and Rk matrices, this is not
-          // supported yet.
-          HMAT_ASSERT(false);
-        }
+        vector<RkMatrix<T> *> tmpRkLeaves;
+        listAllRk(x, rkLeaves, tmpRkLeaves);
+        vector<T> alphas(rkLeaves.size(), alpha);
+        rk()->formattedAddParts(lowRankEpsilon(), &alphas[0], &rkLeaves[0], rkLeaves.size());
+        for(auto t: tmpRkLeaves)
+          delete t;
         rank_ = rk()->rank();
       } else {
         if (full() == NULL)
