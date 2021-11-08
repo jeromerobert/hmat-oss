@@ -31,7 +31,7 @@
 #include <vector>
 #include <cfloat>
 #include <cstring>
-
+#include <limits>
 #include "cluster_tree.hpp"
 #include "assembly.hpp"
 #include "rk_matrix.hpp"
