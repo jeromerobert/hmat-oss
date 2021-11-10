@@ -188,11 +188,11 @@ private:
 
 public:
     void getLeafValues() {
-        if (this->matrix_->isNull()) {
+        if (this->matrix().isNull()) {
             getNullValues();
-        } else if (this->matrix_->isRkMatrix()) {
+        } else if (this->matrix().isRkMatrix()) {
             getRkValues();
-        } else if (this->matrix_->isFullMatrix()) {
+        } else if (this->matrix().isFullMatrix()) {
             getFullValues();
         } else {
             assert(false);
