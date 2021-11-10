@@ -57,6 +57,8 @@ class IndexSet;
 template<typename T>
 RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double eps);
 
+template<typename T>
+RkMatrix<T>* acaFull(FullMatrix<T>* m, double eps, bool freeinput = false);
 
 // Abstract class to compress a block into an RkMatrix.
 class CompressionAlgorithm
