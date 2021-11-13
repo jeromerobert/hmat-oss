@@ -103,19 +103,19 @@ static void updateCol(Vector<T>& colVec, int col, const vector<Vector<T>*>& cols
 }
 
 
-template<typename T> static void findMax(const FullMatrix<T>* m, int& i, int& j) {
-  if (m->data.lda == m->data.rows) {
+template<typename T> static void findMax(const ScalarArray<T>& m, int& i, int& j) {
+  if (m.lda == m.rows) {
     // quick path
-    int k = proxy_cblas::i_amax(m->data.rows*m->data.cols, m->data.const_ptr(), 1);
-    i = k % m->data.rows ;
-    j = (k - i) / m->data.rows ;
+    int k = proxy_cblas::i_amax(m.rows*m.cols, m.const_ptr(), 1);
+    i = k % m.rows ;
+    j = (k - i) / m.rows ;
   } else {
     i = 0;
     j = 0;
     double maxNorm = 0.;
-    for (int col = 0; col < m->cols(); col++) {
-      int row = proxy_cblas::i_amax(m->data.rows, m->data.const_ptr(0,col), 1);
-      const double norm = squaredNorm<T>(m->get(row, col));
+    for (int col = 0; col < m.cols; col++) {
+      int row = proxy_cblas::i_amax(m.rows, m.const_ptr(0,col), 1);
+      const double norm = squaredNorm<T>(m.get(row, col));
       if (norm > maxNorm) {
         i = row;
         j = col;
@@ -276,19 +276,20 @@ CompressionSVD::compress(const ClusterAssemblyFunction<Z_t>& block) const {
     return doCompressionSVD<Z_t>(block, epsilon_);
 }
 
-template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEpsilon, bool freeinput) {
+template<typename T>
+void acaFull(ScalarArray<T> & m, ScalarArray<T>* & tmpA, ScalarArray<T>* & tmpB, double compressionEpsilon) {
   DECLARE_CONTEXT;
   double estimateSquaredNorm = 0;
-  int maxK = min(m->rows(), m->cols());
+  int maxK = min(m.rows, m.cols);
 
-  ScalarArray<T> * tmpA = new ScalarArray<T>(m->rows(), maxK);
-  ScalarArray<T> * tmpB = new ScalarArray<T>(m->cols(), maxK);
+  tmpA = new ScalarArray<T>(m.rows, maxK);
+  tmpB = new ScalarArray<T>(m.cols, maxK);
   int nu;
 
   for (nu = 0; nu < maxK; nu++) {
     int i_nu, j_nu;
     findMax(m, i_nu, j_nu);
-    const T delta = m->get(i_nu, j_nu);
+    const T delta = m.get(i_nu, j_nu);
     if (squaredNorm(delta) == 0.) {
       break;
     }
@@ -298,14 +299,14 @@ template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEp
       Vector<T> va_nu(*tmpA, nu);
       Vector<T> vb_nu(*tmpB, nu);
 
-      for (int i = 0; i < m->rows(); i++)
-        va_nu[i] = m->get(i, j_nu);
-      for (int j = 0; j < m->cols(); j++)
-        vb_nu[j] = m->get(i_nu, j) / delta;
+      for (int i = 0; i < m.rows; i++)
+        va_nu[i] = m.get(i, j_nu);
+      for (int j = 0; j < m.cols; j++)
+        vb_nu[j] = m.get(i_nu, j) / delta;
 
       // performs the rank 1 operation m := m - va_nu*vb_nu^T
       // in order to nullify m->get(i_nu, j_nu) (the previous maximum value)
-      m->data.rankOneUpdate(-1, va_nu, vb_nu);
+      m.rankOneUpdate(-1, va_nu, vb_nu);
 
       // Update the estimate norm
       // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
@@ -332,9 +333,6 @@ template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEp
       }
     }
   }
-  if(freeinput)
-    delete m;
-
   if (nu == 0) {
     delete tmpA;
     delete tmpB;
@@ -344,24 +342,41 @@ template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEp
     tmpA->resize(nu);
     tmpB->resize(nu);
   }
-  return new RkMatrix<T>(tmpA, m->rows_, tmpB, m->cols_);
+}
+
+template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEpsilon) {
+  DECLARE_CONTEXT;
+  ScalarArray<T> * tmpA;
+  ScalarArray<T> * tmpB;
+  acaFull(m->data, tmpA, tmpB, compressionEpsilon);
+  auto rows = m->rows_;
+  auto cols = m->cols_;
+  return new RkMatrix<T>(tmpA, rows, tmpB, cols);
+}
+
+template<typename T> RkMatrix<typename Types<T>::dp>*
+doCompressionAcaFull(const ClusterAssemblyFunction<T>& block, double eps) {
+  FullMatrix<typename Types<T>::dp> * m = block.assemble();
+  auto r = acaFull<typename Types<T>::dp>(m, eps);
+  delete m;
+  return r;
 }
 
 RkMatrix<Types<S_t>::dp>*
 CompressionAcaFull::compress(const ClusterAssemblyFunction<S_t>& block) const {
-  return acaFull<D_t>(block.assemble(), epsilon_, true);
+  return doCompressionAcaFull(block, epsilon_);
 }
 RkMatrix<Types<D_t>::dp>*
 CompressionAcaFull::compress(const ClusterAssemblyFunction<D_t>& block) const {
-  return acaFull<D_t>(block.assemble(), epsilon_, true);
+  return doCompressionAcaFull(block, epsilon_);
 }
 RkMatrix<Types<C_t>::dp>*
 CompressionAcaFull::compress(const ClusterAssemblyFunction<C_t>& block) const {
-  return acaFull<Z_t>(block.assemble(), epsilon_, true);
+  return doCompressionAcaFull(block, epsilon_);
 }
 RkMatrix<Types<Z_t>::dp>*
 CompressionAcaFull::compress(const ClusterAssemblyFunction<Z_t>& block) const {
-  return acaFull<Z_t>(block.assemble(), epsilon_, true);
+  return doCompressionAcaFull(block, epsilon_);
 }
 
 template<typename T>
@@ -782,10 +797,15 @@ template RkMatrix<D_t>* truncatedSvd(FullMatrix<D_t>* m, double eps);
 template RkMatrix<C_t>* truncatedSvd(FullMatrix<C_t>* m, double eps);
 template RkMatrix<Z_t>* truncatedSvd(FullMatrix<Z_t>* m, double eps);
 
-template RkMatrix<S_t>* acaFull(FullMatrix<S_t>*, double, bool);
-template RkMatrix<D_t>* acaFull(FullMatrix<D_t>*, double, bool);
-template RkMatrix<C_t>* acaFull(FullMatrix<C_t>*, double, bool);
-template RkMatrix<Z_t>* acaFull(FullMatrix<Z_t>*, double, bool);
+template RkMatrix<S_t>* acaFull(FullMatrix<S_t>*, double);
+template RkMatrix<D_t>* acaFull(FullMatrix<D_t>*, double);
+template RkMatrix<C_t>* acaFull(FullMatrix<C_t>*, double);
+template RkMatrix<Z_t>* acaFull(FullMatrix<Z_t>*, double);
+
+template void acaFull(ScalarArray<S_t> &, ScalarArray<S_t>* &, ScalarArray<S_t>* &, double);
+template void acaFull(ScalarArray<D_t> &, ScalarArray<D_t>* &, ScalarArray<D_t>* &, double);
+template void acaFull(ScalarArray<C_t> &, ScalarArray<C_t>* &, ScalarArray<C_t>* &, double);
+template void acaFull(ScalarArray<Z_t> &, ScalarArray<Z_t>* &, ScalarArray<Z_t>* &, double);
 
 template RkMatrix<Types<S_t>::dp>* compress<S_t>(const CompressionAlgorithm* method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(const CompressionAlgorithm* method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);

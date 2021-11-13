@@ -787,7 +787,10 @@ template <typename T> RkMatrix<T> * toRk(const HMatrix<T> *m) {
   assert(!m->isRkMatrix()); // Avoid useless copy
   RkMatrix<T> * r;
   if(m->isLeaf()) {
-    r = acaFull(m->full(), m->lowRankEpsilon());
+    // must copy because acaFull (as truncatedSvd) modify the input
+    FullMatrix<T> * mc = m->full()->copy();
+    r = acaFull(mc, m->lowRankEpsilon());
+    delete mc;
   } else {
     r = new RkMatrix<T>(NULL, m->rows(), NULL, m->cols());
     vector<const RkMatrix<T> *> rkLeaves;
