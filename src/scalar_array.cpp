@@ -62,6 +62,76 @@
 #include <jemalloc/jemalloc.h>
 #endif
 
+namespace {
+struct EnvVar {
+  bool sumCriterion;
+  bool gessd;
+  bool mgsBlas3;
+  bool initPivot;
+  bool mgsAltPivot;
+  bool testOrtho;
+  EnvVar() {
+    sumCriterion = getenv("HMAT_SUM_CRITERION") != nullptr;
+    gessd = getenv("HMAT_GESDD") != nullptr;
+    mgsBlas3 = getenv("HMAT_MGS_BLAS3") != nullptr;
+    initPivot = getenv("HMAT_TRUNC_INITPIV") != nullptr;
+    mgsAltPivot = getenv("HMAT_MGS_ALTPIV") != nullptr;
+    testOrtho = getenv("HMAT_TEST_ORTHO") != nullptr;
+  }
+};
+const EnvVar env;
+
+/*! \brief Returns the number of singular values to keep.
+
+     The stop criterion is (assuming that the singular value
+     are in descending order):
+         sigma [k] / sigma[0] <epsilon
+     except if env. var. HMAT_SUM_CRITERION is set, in which case the criterion is:
+         sigma [k] / SUM (sigma) <epsilon
+
+     \param sigma table of singular values at least maxK elements.
+     \param epsilon tolerance.
+     \return int the number of singular values to keep.
+ */
+int findK(hmat::Vector<double> &sigma, double epsilon) {
+  assert(epsilon >= 0.);
+  double threshold_eigenvalue = 0.0;
+  if (env.sumCriterion) {
+    for (int i = 0; i < sigma.rows; i++) {
+      threshold_eigenvalue += sigma[i];
+    }
+  } else {
+    threshold_eigenvalue = sigma[0];
+  }
+  threshold_eigenvalue *= epsilon;
+  int i = 0;
+  for (i = 0; i < sigma.rows; i++) {
+    if (sigma[i] <= threshold_eigenvalue){
+      break;
+    }
+  }
+  return i;
+}
+
+struct SigmaPrinter {
+  bool enabled;
+  SigmaPrinter() {
+    enabled = getenv("HMAT_PRINT_SIGMA") != nullptr;
+  }
+  void print(const hmat::Vector<double> & sigma) const {
+    if(!enabled)
+      return;
+    // Use a buffer and printf for better output in multi-thread
+    std::stringstream buf;
+    for(int i = 0; i < sigma.rows; i++) {
+      buf << sigma[i] << " ";
+    }
+    printf("[SIGMA] %s\n", buf.str().c_str());
+  }
+};
+static SigmaPrinter sigmaPrinter;
+}
+
 namespace hmat {
 
 Factorization convert_int_to_factorization(int t) {
@@ -838,57 +908,6 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-/*! \brief Returns the number of singular values to keep.
-
-     The stop criterion is (assuming that the singular value
-     are in descending order):
-         sigma [k] / sigma[0] <epsilon
-     except if env. var. HMAT_SUM_CRITERION is set, in which case the criterion is:
-         sigma [k] / SUM (sigma) <epsilon
-
-     \param sigma table of singular values at least maxK elements.
-     \param epsilon tolerance.
-     \return int the number of singular values to keep.
- */
-static int findK(Vector<double> &sigma, double epsilon) {
-  assert(epsilon >= 0.);
-  static char *useSumCriterion = getenv("HMAT_SUM_CRITERION");
-  double threshold_eigenvalue = 0.0;
-  if (useSumCriterion == NULL) {
-    threshold_eigenvalue = sigma[0];
-  } else {
-    for (int i = 0; i < sigma.rows; i++) {
-      threshold_eigenvalue += sigma[i];
-    }
-  }
-  threshold_eigenvalue *= epsilon;
-  int i = 0;
-  for (i = 0; i < sigma.rows; i++) {
-    if (sigma[i] <= threshold_eigenvalue){
-      break;
-    }
-  }
-  return i;
-}
-
-struct SigmaPrinter {
-  bool enabled;
-  SigmaPrinter() {
-    enabled = getenv("HMAT_PRINT_SIGMA") != nullptr;
-  }
-  void print(const Vector<double> & sigma) const {
-    if(!enabled)
-      return;
-    // Use a buffer and printf for better output in multi-thread
-    std::stringstream buf;
-    for(int i = 0; i < sigma.rows; i++) {
-      buf << sigma[i] << " ";
-    }
-    printf("[SIGMA] %s\n", buf.str().c_str());
-  }
-};
-static SigmaPrinter sigmaPrinter;
-
 template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
   Vector<double>* sigma = NULL;
 
@@ -924,7 +943,6 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
 
   template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures) const {
   DECLARE_CONTEXT;
-  static char * useGESDD = getenv("HMAT_GESDD");
   Timeline::Task t(Timeline::SVD, &rows, &cols);
   (void)t;
   // Allocate free space for U, S, V
@@ -955,7 +973,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   }
 
   try {
-    if(useGESDD)
+    if(env.gessd)
       info = sddCall(jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
                      (*u)->lda, (*v)->ptr(), (*v)->lda);
     else
@@ -1014,8 +1032,7 @@ template<typename T> void ScalarArray<T>::orthoColumns(ScalarArray<T> *resultR, 
   }
   // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
   if (initialPivot<cols) {
-    static char *useBlas3 = getenv("HMAT_MGS_BLAS3");
-    if (useBlas3) {
+    if (env.mgsBlas3) {
       ScalarArray<T> aJ(*this, 0, rows, 0, initialPivot); // All the columns of 'this' from 0 to 'initialPivot-1'
       ScalarArray<T> aJ_bK(*resultR, 0, initialPivot, initialPivot, cols-initialPivot); // In 'r': row '0' to 'initialPivot-1', all the columns after column 'initialPivot-1'
       // Compute in 1 operation all the scalar products between a_0,...,a_init-1 and a_init, ..., a_n-1
@@ -1040,8 +1057,7 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
   Timeline::Task t(Timeline::QR, &rows, &cols, &initialPivot);
   (void)t;
 
-  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
-  if (!useInitPivot) initialPivot=0;
+  if (!env.initPivot) initialPivot=0;
   assert(initialPivot>=0 && initialPivot<=cols);
 
   ScalarArray<T> *bK = NULL, *restR = NULL, *a = this; // we need this because if initialPivot>0, we will run the end of the computation on a subset of 'this'
@@ -1174,8 +1190,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   Timeline::Task t(Timeline::MGS, &rows, &cols, &initialPivot);
   (void)t;
 
-  static char *useInitPivot = getenv("HMAT_MGS_INITPIV");
-  if (!useInitPivot) initialPivot=0;
+  if (!env.initPivot) initialPivot=0;
   assert(initialPivot>=0 && initialPivot<=cols);
 
 
@@ -1247,8 +1262,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     int pivot = norm2.absoluteMaxIndex(j);
     double pivmax = norm2[pivot];
 
-    static char *newPivot = getenv("HMAT_MGS_ALTPIV");
-    if (newPivot) {
+    if (env.mgsAltPivot) {
       pivot = norm2_update.absoluteMaxIndex(j);
       pivmax = norm2_update[pivot];
       relative_epsilon = prec * prec;
@@ -1389,7 +1403,6 @@ template<typename T> T ScalarArray<T>::diagonalProduct() const {
 
 template<typename T>
 bool ScalarArray<T>::testOrtho() const {
-  static char *test = getenv("HMAT_TEST_ORTHO");
   // code % 2 == 0 means we are in simple precision (real or complex)
   static double machine_accuracy = Constants<T>::code % 2 == 0 ? 1.19e-7 : 1.11e-16 ;
   static double test_accuracy = Constants<T>::code % 2 == 0 ? 1.e-3 : 1.e-7 ;
@@ -1405,7 +1418,7 @@ bool ScalarArray<T>::testOrtho() const {
   // The norm of the rest should be below 'epsilon x norm of this' to have orthogonality and return true
   double res = sp->norm();
   delete sp;
-  if (test) {
+  if (env.testOrtho) {
     double ratio = res/ref/machine_accuracy/sqrt((double)rows);
     if (ratio > ratioMax) {
       ratioMax = ratio;
