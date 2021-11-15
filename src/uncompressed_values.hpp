@@ -165,7 +165,7 @@ private:
     void getNullValues() {
         for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
             for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
-                getValue(r, c, Constants<T>::zero);
+                getValue(r, c, 0);
             }
         }
     }

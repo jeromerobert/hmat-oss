@@ -89,7 +89,7 @@ hmat::D_t dot(const int n, const hmat::D_t* x, const int incx, const hmat::D_t* 
 
 inline hmat::C_t dot(const int n, const hmat::C_t *x, const int incx,
                      const hmat::C_t *y, const int incy) {
-    hmat::C_t result = hmat::Constants<hmat::C_t>::zero;
+    hmat::C_t result = 0;
 #define _C_T hmat::C_t
     cblas_cdotu_sub(n, _C(x), incx, _C(y), incy,
                     _CC(openblas_complex_float, &result));
@@ -99,7 +99,7 @@ inline hmat::C_t dot(const int n, const hmat::C_t *x, const int incx,
 
 inline hmat::Z_t dot(const int n, const hmat::Z_t *x, const int incx,
                      const hmat::Z_t *y, const int incy) {
-    hmat::Z_t result = hmat::Constants<hmat::Z_t>::zero;
+    hmat::Z_t result = 0;
 #define _C_T hmat::Z_t
     cblas_zdotu_sub(n, _C(x), incx, _C(y), incy,
                     _CC(openblas_complex_double, &result));
@@ -115,7 +115,7 @@ hmat::C_t dotc(const int n, const hmat::C_t* x, const int incx, const hmat::C_t*
 #ifdef HAVE_CBLAS_CDOTC
   return cblas_cdotc(n, x, incx, y, incy);
 #else
-  hmat::C_t result = hmat::Constants<hmat::C_t>::zero;
+  hmat::C_t result = 0;
   #define _C_T hmat::C_t
   cblas_cdotc_sub(n, _C(x), incx, _C(y), incy, _CC(openblas_complex_float, &result));
   #undef _C_T
@@ -127,7 +127,7 @@ hmat::Z_t dotc(const int n, const hmat::Z_t* x, const int incx, const hmat::Z_t*
 #ifdef HAVE_CBLAS_CDOTC
   return cblas_zdotc(n, x, incx, y, incy);
 #else
-  hmat::Z_t result = hmat::Constants<hmat::Z_t>::zero;
+  hmat::Z_t result = 0;
   #define _C_T hmat::Z_t
   cblas_zdotc_sub(n, _C(x), incx, _C(y), incy, _CC(openblas_complex_double, &result));
   #undef _C_T
@@ -452,11 +452,11 @@ void imatcopy(const size_t rows, const size_t cols, T* m);
 
 inline
 void imatcopy(const size_t rows, const size_t cols, hmat::S_t* m) {
-  mkl_simatcopy('C', 'T', rows, cols, hmat::Constants<hmat::S_t>::pone, m, rows, cols);
+  mkl_simatcopy('C', 'T', rows, cols, 1, m, rows, cols);
 }
 inline
 void imatcopy(const size_t rows, const size_t cols, hmat::D_t* m) {
-  mkl_dimatcopy('C', 'T', rows, cols, hmat::Constants<hmat::D_t>::pone, m, rows, cols);
+  mkl_dimatcopy('C', 'T', rows, cols, 1, m, rows, cols);
 }
 inline
 void imatcopy(const size_t rows, const size_t cols, hmat::C_t* m) {
@@ -474,11 +474,11 @@ void omatcopy(size_t rows, size_t cols, const T* m, T* copy);
 
 inline
 void omatcopy(size_t rows, size_t cols, const hmat::S_t* m, hmat::S_t* copy) {
-  mkl_somatcopy('C', 'T', rows, cols, hmat::Constants<hmat::S_t>::pone, m, rows, copy, cols);
+  mkl_somatcopy('C', 'T', rows, cols, 1, m, rows, copy, cols);
 }
 inline
 void omatcopy(size_t rows, size_t cols, const hmat::D_t* m, hmat::D_t* copy) {
-  mkl_domatcopy('C', 'T', rows, cols, hmat::Constants<hmat::D_t>::pone, m, rows, copy, cols);
+  mkl_domatcopy('C', 'T', rows, cols, 1, m, rows, copy, cols);
 }
 inline
 void omatcopy(size_t rows, size_t cols, const hmat::C_t* m, hmat::C_t* copy) {

@@ -24,21 +24,6 @@
 
 namespace hmat {
 
-template<> const S_t Constants<S_t>::zero = 0.;
-template<> const D_t Constants<D_t>::zero = 0.;
-template<> const C_t Constants<C_t>::zero(0., 0.);
-template<> const Z_t Constants<Z_t>::zero(0., 0.);
-
-template<> const S_t Constants<S_t>::pone = 1.;
-template<> const D_t Constants<D_t>::pone = 1.;
-template<> const C_t Constants<C_t>::pone(1., 0.);
-template<> const Z_t Constants<Z_t>::pone(1., 0.);
-
-template<> const S_t Constants<S_t>::mone = -1.;
-template<> const D_t Constants<D_t>::mone = -1.;
-template<> const C_t Constants<C_t>::mone(-1., 0.);
-template<> const Z_t Constants<Z_t>::mone(-1., 0.);
-
 template<> const size_t Multipliers<S_t>::add = 1;
 template<> const size_t Multipliers<S_t>::mul = 1;
 template<> const size_t Multipliers<D_t>::add = 1;

@@ -248,7 +248,7 @@ template<typename T> void ScalarArray<T>::resize(int col_num) {
 
 template<typename T> void ScalarArray<T>::clear() {
   assert(lda == rows);
-  std::fill(m, m + ((size_t) rows) * cols, Constants<T>::zero);
+  std::fill(m, m + ((size_t) rows) * cols, 0);
   setOrtho(1); // we dont use ptr(): buffer filled with 0 is orthogonal
 }
 
@@ -267,7 +267,7 @@ template<typename T> size_t ScalarArray<T>::storedZeros() const {
 template<typename T> void ScalarArray<T>::scale(T alpha) {
   increment_flops(Multipliers<T>::mul * ((size_t) rows) * cols);
   if (lda == rows) {
-    if (alpha == Constants<T>::zero) {
+    if (alpha == T(0)) {
       this->clear();
     } else {
       // Warning: check for overflow
@@ -281,9 +281,9 @@ template<typename T> void ScalarArray<T>::scale(T alpha) {
     }
   } else {
     T* x = ptr();
-    if (alpha == Constants<T>::zero) {
+    if (alpha == T(0)) {
       for (int col = 0; col < cols; col++) {
-        std::fill(x, x + rows, Constants<T>::zero);
+        std::fill(x, x + rows, 0);
         x += lda;
       }
     } else {
@@ -293,7 +293,7 @@ template<typename T> void ScalarArray<T>::scale(T alpha) {
       }
     }
   }
-  if (alpha == Constants<T>::zero) setOrtho(1); // buffer filled with 0 is orthogonal
+  if (alpha == T(0)) setOrtho(1); // buffer filled with 0 is orthogonal
 }
 
 template<typename T> void ScalarArray<T>::transpose() {
@@ -489,7 +489,7 @@ void ScalarArray<T>::axpy(T alpha, const ScalarArray<T>* a) {
   size_t size = ((size_t) rows) * cols;
 
   increment_flops(Multipliers<T>::add * size
-		  + (alpha == Constants<T>::pone ? 0 : Multipliers<T>::mul * size));
+		  + (alpha == T(1) ? 0 : Multipliers<T>::mul * size));
   // Fast path
   if ((lda == rows) && (a->lda == a->rows) && (size < 1000000000)) {
     proxy_cblas::axpy(size, alpha, a->const_ptr(), 1, ptr(), 1);
@@ -504,7 +504,7 @@ void ScalarArray<T>::axpy(T alpha, const ScalarArray<T>* a) {
 template<typename T>
 double ScalarArray<T>::normSqr() const {
   size_t size = ((size_t) rows) * cols;
-  T result = Constants<T>::zero;
+  T result = 0;
 
   // Fast path
   if ((size < 1000000000) && (lda == rows)) {
@@ -633,7 +633,7 @@ void ScalarArray<T>::checkNan() const {
 template<typename T> bool ScalarArray<T>::isZero() const {
   for(int i = 0; i < rows; i++)
     for(int j = 0; j < cols; j++)
-      if (get(i, j) != Constants<T>::zero)
+      if (get(i, j) != T(0))
         return false;
   return true;
 }
@@ -707,7 +707,7 @@ void assertPositive(const T v, const int j, const char * const where) {
 
 template<typename T, typename std::enable_if<!hmat::Types<T>::IS_REAL::value, T*>::type = nullptr>
 void assertPositive(const T v, const int j, const char * const where) {
-    if(v == Constants<T>::zero)
+    if(v == T(0))
       throw InvalidDiagonalException<T>(v, j, where);
 }
 
@@ -740,7 +740,7 @@ void ScalarArray<T>::ldltDecomposition(Vector<T>& diagonal) {
         get(k,j) -= get(k,i) * v[i];
 
     for (int k = j+1; k < n; k++) {
-      if (v[j] == Constants<T>::zero)
+      if (v[j] == T(0))
         throw InvalidDiagonalException<T>(v[j], j, "ldltDecomposition");
       get(k,j) /= v[j];
     }
@@ -748,9 +748,9 @@ void ScalarArray<T>::ldltDecomposition(Vector<T>& diagonal) {
 
   for(int i = 0; i < n; i++) {
     diagonal[i] = get(i,i);
-    get(i,i) = Constants<T>::pone;
+    get(i,i) = 1;
     for (int j = i + 1; j < n; j++)
-      get(i,j) = Constants<T>::zero;
+      get(i,j) = 0;
   }
 
   delete[] v;
@@ -797,7 +797,7 @@ void ScalarArray<T>::lltDecomposition() {
 
   for (int j = 0; j < n; j++) {
         for(int i = 0; i < j; i++) {
-            get(i,j) = Constants<T>::zero;
+            get(i,j) = 0;
         }
     }
 }
@@ -994,7 +994,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
     if (rows<cols) {
       for (int i=0 ; i<rows ; i++)
         for (int j=0 ; j<p ; j++)
-          (*u)->get(i,j) = i==j ? Constants<T>::pone : Constants<T>::zero ;
+          (*u)->get(i,j) = i==j ? 1 : 0 ;
       (*u)->setOrtho(1);
       delete *v;
       *v = a ;
@@ -1006,12 +1006,12 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
       *u = a ;
       for (int i=0 ; i<p ; i++)
         for (int j=0 ; j<cols ; j++)
-          (*v)->get(i,j) = i==j ? Constants<T>::pone : Constants<T>::zero ;
+          (*v)->get(i,j) = i==j ? 1 : 0 ;
       (*v)->setOrtho(1);
     }
     // Fake 'sigma' is all 1
     for (int i=0 ; i<p ; i++)
-      (**sigma)[i] = Constants<double>::pone ;
+      (**sigma)[i] = 1;
   }
 
   return info;
@@ -1027,7 +1027,7 @@ template<typename T> void ScalarArray<T>::orthoColumns(ScalarArray<T> *resultR, 
     // Normalisation of column j
     Vector<T> aj(*this, j);
     resultR->get(j,j) = aj.norm();
-    T coef = Constants<T>::pone / resultR->get(j,j);
+    T coef = T(1) / resultR->get(j,j);
     aj.scale(coef);
   }
   // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
@@ -1036,17 +1036,17 @@ template<typename T> void ScalarArray<T>::orthoColumns(ScalarArray<T> *resultR, 
       ScalarArray<T> aJ(*this, 0, rows, 0, initialPivot); // All the columns of 'this' from 0 to 'initialPivot-1'
       ScalarArray<T> aJ_bK(*resultR, 0, initialPivot, initialPivot, cols-initialPivot); // In 'r': row '0' to 'initialPivot-1', all the columns after column 'initialPivot-1'
       // Compute in 1 operation all the scalar products between a_0,...,a_init-1 and a_init, ..., a_n-1
-      aJ_bK.gemm('C', 'N', Constants<T>::pone, &aJ, &bK, Constants<T>::zero);
+      aJ_bK.gemm('C', 'N', 1, &aJ, &bK, 0);
       // Update a_init, ..., a_n-1
-      bK.gemm('N', 'N', Constants<T>::mone, &aJ, &aJ_bK, Constants<T>::pone);
+      bK.gemm('N', 'N', -1, &aJ, &aJ_bK, 1);
     } else {
       for(int j = 0; j < initialPivot; ++j) {
         Vector<T> aj(*this, j);
         ScalarArray<T> aj_bK(*resultR, j, 1, initialPivot, cols-initialPivot); // In 'r': row 'j', all the columns after column 'initialPivot'
         // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
-        aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
+        aj_bK.gemm('C', 'N', 1, &aj, &bK, 0);
         // Update a_firstcol, ..., a_n
-        bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+        bK.rankOneUpdateT(-1, aj, aj_bK);
       }
     }
   } // if (initialPivot<cols)
@@ -1297,7 +1297,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       // Normalisation of qj
       r.get(j,j) = sqrt(norm2[j]);
       Vector<T> aj(*this, j);
-      T coef = Constants<T>::pone / r.get(j,j);
+      T coef = T(1) / r.get(j,j);
       aj.scale(coef);
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
@@ -1306,9 +1306,9 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
         ScalarArray<T> bK(*this, 0, rows, firstcol, cols-firstcol); // All the columns of 'this' after column 'firstcol'
         ScalarArray<T> aj_bK(r, j, 1, firstcol, cols-firstcol); // In 'r': row 'j', all the columns after column 'firstcol'
         // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n
-        aj_bK.gemm('C', 'N', Constants<T>::pone, &aj, &bK, Constants<T>::zero);
+        aj_bK.gemm('C', 'N', 1, &aj, &bK, 0);
         // Update a_firstcol, ..., a_n
-        bK.rankOneUpdateT(Constants<T>::mone, aj, aj_bK);
+        bK.rankOneUpdateT(-1, aj, aj_bK);
         // Update the norms
         for(int k = firstcol; k < cols; ++k) {
           double rjk = std::abs(r.get(j,k));
@@ -1352,7 +1352,7 @@ void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inv
     if (inverse) {
       ScalarArray<T> *d2 = new ScalarArray<T>(rows,1);
       for (int i = 0; i < rows; i++)
-        d2->get(i) = Constants<T>::pone / d->get(i);
+        d2->get(i) = T(1) / d->get(i);
       d = d2;
     }
     for (int j = 0; j < cols; j++) {
@@ -1363,7 +1363,7 @@ void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inv
     if (inverse) delete(d);
   } else { // column j is multiplied by d[j] or 1/d[j]
     for (int j = 0; j < cols; j++) {
-      T diag_val = inverse ? Constants<T>::pone / d->get(j,0) : d->get(j);
+      T diag_val = inverse ? T(1) / d->get(j,0) : d->get(j);
       proxy_cblas::scal(rows, diag_val, ptr(0,j), 1);
     }
   }
@@ -1411,10 +1411,10 @@ bool ScalarArray<T>::testOrtho() const {
   if (ref==0.) return true;
   ScalarArray<T> *sp = new ScalarArray<T>(cols, cols);
   // Compute the scalar product sp = X^H.X
-  sp->gemm('C', 'N', Constants<T>::pone, this, this, Constants<T>::zero);
+  sp->gemm('C', 'N', 1, this, this, 0);
   // Nullify the diagonal elements
   for (int i=0 ; i<cols ; i++)
-    sp->get(i,i) = Constants<T>::zero;
+    sp->get(i,i) = 0;
   // The norm of the rest should be below 'epsilon x norm of this' to have orthogonality and return true
   double res = sp->norm();
   delete sp;

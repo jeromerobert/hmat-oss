@@ -106,7 +106,7 @@ namespace hmat {
           for (int j=0 ; j<i ; j++) {
             const Mat* u_ji = (uplo == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
             if (b->get(k, j) && u_ji)
-              b->get(k, i)->gemm('N', uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, b->get(k, j), u_ji, Constants<T>::pone);
+              b->get(k, i)->gemm('N', uplo == Uplo::LOWER ? 'T' : 'N', -1, b->get(k, j), u_ji, 1);
           }
           // Solve the i-th diagonal system
           me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), algo, diag, uplo);
@@ -208,8 +208,8 @@ namespace hmat {
           if (!b->get(i, k)) continue;
           for (int j=0 ; j<i ; j++)
             if (me()->get(i,j) && b->get(j,k))
-              b->get(i, k)->gemm('N', 'N', Constants<T>::mone, me()->get(i, j), b->get(j,k),
-                                 Constants<T>::pone, mainOp);
+              b->get(i, k)->gemm('N', 'N', -1, me()->get(i, j), b->get(j,k),
+                                 1, mainOp);
           // Solve the i-th diagonal system
           me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), algo, diag, uplo, mainOp);
         }
@@ -277,7 +277,7 @@ namespace hmat {
         for (int j=k+1 ; j<me()->nrChildRow() ; j++)
           // Hij <- Hij - Lik Ukj
           if (me()->get(i,j) && me()->get(k,j))
-            me()->get(i,j)->gemm('N', 'N', Constants<T>::mone, me()->get(i,k), me()->get(k,j), Constants<T>::pone);
+            me()->get(i,j)->gemm('N', 'N', -1, me()->get(i,k), me()->get(k,j), 1);
       }
     }
 
@@ -315,7 +315,7 @@ namespace hmat {
         if (j!=k) {
           // Mkj <- Mkk^-1 Mkj we use a temp matrix X because this type of product is not allowed with gemm (beta=0 erases Mkj before using it !)
           Mat* x = me()->get(k,j)->copy();
-          me()->get(k,j)->gemm('N', 'N', Constants<T>::pone, me()->get(k,k), x, Constants<T>::zero);
+          me()->get(k,j)->gemm('N', 'N', 1, me()->get(k,k), x, 0);
           x->destroy();
         }
       // Update the rest of matrix M
@@ -324,13 +324,13 @@ namespace hmat {
         for (int j=0 ; j<me()->nrChildCol() ; j++)
           if (i!=k && j!=k)
             // Mij <- Mij - Mik Mkk^-1 Mkj (with Mkk-1.Mkj allready stored in Mkj)
-            me()->get(i,j)->gemm('N', 'N', Constants<T>::mone, me()->get(i,k), me()->get(k,j), Constants<T>::pone);
+            me()->get(i,j)->gemm('N', 'N', -1, me()->get(i,k), me()->get(k,j), 1);
       // Update column 'k' = right-multiplied by -M_kk-1
       for (int i=0 ; i<me()->nrChildRow() ; i++)
         if (i!=k) {
           // Mik <- - Mik Mkk^-1
           Mat* x = me()->get(i,k)->copy();
-          me()->get(i,k)->gemm('N', 'N', Constants<T>::mone, x, me()->get(k,k), Constants<T>::zero);
+          me()->get(i,k)->gemm('N', 'N', -1, x, me()->get(k,k), 0);
           x->destroy();
         }
     }
@@ -376,7 +376,7 @@ namespace hmat {
         for (int j=k+1 ; j<=i ; j++)
           // Hij <- Hij - Lik tLjk
           if (me()->get(i,j) && me()->get(j,k))
-            me()->get(i,j)->gemm('N', 'T', Constants<T>::mone, me()->get(i,k), me()->get(j,k), Constants<T>::pone);
+            me()->get(i,j)->gemm('N', 'T', -1, me()->get(i,k), me()->get(j,k), 1);
       }
     }
   }
@@ -409,8 +409,8 @@ namespace hmat {
           for (int j=0 ; j<i ; j++) {
             const Mat* u_ji = (uplo == Uplo::LOWER ? me()->get(i, j) : me()->get(j, i));
             if(u_ji && b->get(j,k))
-              b->get(j,k)->gemm(uplo == Uplo::LOWER ? 'T' : 'N', 'N', Constants<T>::mone, u_ji,
-                                b->get(i,k), Constants<T>::pone, mainOp);
+              b->get(j,k)->gemm(uplo == Uplo::LOWER ? 'T' : 'N', 'N', -1, u_ji,
+                                b->get(i,k), 1, mainOp);
           }
         }
       }

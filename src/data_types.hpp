@@ -50,9 +50,6 @@ typedef enum {
 
 template<typename T> class Constants {
 public:
-  static const T zero;
-  static const T pone;
-  static const T mone;
   static const int code;
 };
 

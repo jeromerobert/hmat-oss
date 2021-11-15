@@ -135,10 +135,10 @@ template <typename T> class UncompressedBlock:
         T *toFill = this->values_;
         const int rowSize = this->rowIndexSet_.size();
         if (this->ld() == rowSize) {
-             std::fill(toFill, toFill + ((size_t)rowSize) * this->colIndexSet_.size(), Constants<T>::zero);
+             std::fill(toFill, toFill + ((size_t)rowSize) * this->colIndexSet_.size(), 0);
         } else {
             for (int col = 0; col < this->colIndexSet_.size(); col++) {
-                 std::fill(toFill, toFill + rowSize, Constants<T>::zero);
+                 std::fill(toFill, toFill + rowSize, 0);
                  toFill += this->ld();
             }
         }

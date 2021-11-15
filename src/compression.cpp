@@ -92,7 +92,7 @@ static void updateRow(Vector<T>& rowVec, int row, const vector<Vector<T>*>& rows
                       const vector<Vector<T>*>& cols, int k) {
   for (int l = 0; l < k; l++) {
     assert(row < cols[l]->rows);
-    rowVec.axpy(Constants<T>::mone * (*cols[l])[row], rows[l]);
+    rowVec.axpy(-(*cols[l])[row], rows[l]);
   }
 }
 
@@ -429,7 +429,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
       continue;
     }
 
-    if ((*bCol)[J] == Constants<dp_t>::zero) {
+    if ((*bCol)[J] == dp_t(0)) {
       delete bCol;
       // We look for another row which has not already been used.
       I = 0;
@@ -438,7 +438,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
       }
     } else {
       // Find pivot and scale column B
-      dp_t pivot = Constants<dp_t>::pone / (*bCol)[J];
+      dp_t pivot = 1. / (*bCol)[J];
       bCol->scale(pivot);
       bCols.push_back(bCol);
 
@@ -580,7 +580,7 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
       // Calculate a
       block.getCol(j_star, *aVec);
       updateCol<dp_t>(*aVec, j_star, aCols, bCols, k);
-      if(pivot != Constants<dp_t>::zero) aVec->scale(Constants<dp_t>::pone / pivot);
+      if(pivot != dp_t(0)) aVec->scale(1. / pivot);
     } else {
       // j_star is fixed, we look for i_star
       block.getCol(j_star, *aVec);
@@ -590,7 +590,7 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
       // Calculate b
       block.getRow(i_star, *bVec);
       updateRow<dp_t>(*bVec, i_star, bCols, aCols, k);
-      if(pivot != Constants<dp_t>::zero) bVec->scale(Constants<dp_t>::pone / pivot);
+      if(pivot != dp_t(0)) bVec->scale(1. / pivot);
     }
 
     rowFree[i_star] = false;
@@ -621,8 +621,8 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
     }
 
     // Update of a_ref and b_ref
-    aRef.axpy(Constants<dp_t>::mone * (*bCols[k - 1])[j_ref], aCols[k - 1]);
-    bRef.axpy(Constants<dp_t>::mone * (*aCols[k - 1])[i_ref], bCols[k - 1]);
+    aRef.axpy(-(*bCols[k - 1])[j_ref], aCols[k - 1]);
+    bRef.axpy(-(*aCols[k - 1])[i_ref], bCols[k - 1]);
     const bool needNewA = aRef.isZero() || (j_star == j_ref);
     const bool needNewB = bRef.isZero() || (i_star == i_ref);
 
@@ -723,7 +723,7 @@ RkMatrix<typename Types<T>::dp>* compress(
             // Pass a negative value to tell formattedAddParts to not call truncate()
             // FIXME: investigate why calling truncate from formattedAddParts or here
             //        gives different results
-            rk->formattedAddParts(-epsilon, &Constants<dp_t>::pone, &stratumRk, 1);
+            rk->axpy(-epsilon, 1, stratumRk);
             rk->truncate(epsilon);
         }
         delete stratumRk;
@@ -752,7 +752,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
       HMAT_ASSERT(false);
     }
 
-    rkFull->axpy(Constants<T>::mone, full);
+    rkFull->axpy(-1, full);
     double diffNorm = rkFull->norm();
     if (diffNorm > HMatrix<T>::validationErrorThreshold * fullNorm ) {
       std::cout << block.rows->description() << "x" << block.cols->description() << std::endl

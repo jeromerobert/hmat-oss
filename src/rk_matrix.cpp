@@ -65,7 +65,7 @@ template<typename T> ScalarArray<T>* RkMatrix<T>::evalArray(ScalarArray<T>* resu
   if(result==NULL)
     result = new ScalarArray<T>(rows->size(), cols->size());
   if (rank())
-    result->gemm('N', 'T', Constants<T>::pone, a, b, Constants<T>::zero);
+    result->gemm('N', 'T', 1, a, b, 0);
   else
     result->clear();
   return result;
@@ -104,7 +104,7 @@ template<typename T> void RkMatrix<T>::clear() {
 template<typename T>
 void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y, Side side) const {
   if (rank() == 0) {
-    if (beta != Constants<T>::pone) {
+    if (beta != T(1)) {
       y->scale(beta);
     }
     return;
@@ -113,18 +113,18 @@ void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, Sca
     if (trans == 'N') {
       // Compute Y <- Y + alpha * A * B^T * X
       ScalarArray<T> z(b->cols, x->cols);
-      z.gemm('T', 'N', Constants<T>::pone, b, x, Constants<T>::zero);
+      z.gemm('T', 'N', 1, b, x, 0);
       y->gemm('N', 'N', alpha, a, &z, beta);
     } else if (trans == 'T') {
       // Compute Y <- Y + alpha * B * A^T * X
       ScalarArray<T> z(a->cols, x->cols);
-      z.gemm('T', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
+      z.gemm('T', 'N', 1, a, x, 0);
       y->gemm('N', 'N', alpha, b, &z, beta);
     } else {
       assert(trans == 'C');
       // Compute Y <- Y + alpha * (A*B^T)^H * X = Y + alpha * conj(B) * A^H * X
       ScalarArray<T> z(a->cols, x->cols);
-      z.gemm('C', 'N', Constants<T>::pone, a, x, Constants<T>::zero);
+      z.gemm('C', 'N', 1, a, x, 0);
       ScalarArray<T> * newB = b->copy();
       newB->conjugate();
       y->gemm('N', 'N', alpha, newB, &z, beta);
@@ -134,12 +134,12 @@ void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, Sca
     if (trans == 'N') {
       // Compute Y <- Y + alpha * X * A * B^T
       ScalarArray<T> z(x->rows, a->cols);
-      z.gemm('N', 'N', Constants<T>::pone, x, a, Constants<T>::zero);
+      z.gemm('N', 'N', 1, x, a, 0);
       y->gemm('N', 'T', alpha, &z, b, beta);
     } else if (trans == 'T') {
       // Compute Y <- Y + alpha * X * B * A^T
       ScalarArray<T> z(x->rows, b->cols);
-      z.gemm('N', 'N', Constants<T>::pone, x, b, Constants<T>::zero);
+      z.gemm('N', 'N', 1, x, b, 0);
       y->gemm('N', 'T', alpha, &z, a, beta);
     } else {
       assert(trans == 'C');
@@ -147,7 +147,7 @@ void RkMatrix<T>::gemv(char trans, T alpha, const ScalarArray<T>* x, T beta, Sca
       ScalarArray<T> * newB = b->copy();
       newB->conjugate();
       ScalarArray<T> z(x->rows, b->cols);
-      z.gemm('N', 'N', Constants<T>::pone, x, newB, Constants<T>::zero);
+      z.gemm('N', 'N', 1, x, newB, 0);
       delete newB;
       y->gemm('N', 'C', alpha, &z, a, beta);
     }
@@ -232,7 +232,7 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
     // then add the regular part of the product by Q
     ScalarArray<T> sub_ab2(*ab, 0, ab->rows, 0, initialPivot);
     ScalarArray<T> sub_uv2(* uv, 0, initialPivot, 0,  uv->cols);
-    newAB->gemm('N', 'N', Constants<T>::pone, &sub_ab2, &sub_uv2, Constants<T>::pone);
+    newAB->gemm('N', 'N', 1, &sub_ab2, &sub_uv2, 1);
   } else {
     // If no initialPivotA, then no gemm, just a productQ()
     newAB->copyMatrixAtOffset( uv, 0, 0);
@@ -315,7 +315,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
     // R <- Ra Rb^t
     ScalarArray<T> r(rank(), rank());
-    r.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+    r.gemm('N','T', 1, &ra, &rb , 0);
 
     // truncated SVD of Ra Rb^t (allows failure)
     newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
@@ -371,7 +371,7 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
   //  (ra*rb^T) = U*S*S*Vt
   // and M = (a*U*S)*(S*Vt*b^T) = (a*U*S)*(b*(S*Vt)^T)^T
   ScalarArray<T> matR(kA, kB);
-  matR.gemm('N','T', Constants<T>::pone, &ra, &rb , Constants<T>::zero);
+  matR.gemm('N','T', 1, &ra, &rb , 0);
 
   // truncatedSVD (allows failure)
   ScalarArray<T>* ur = NULL;
@@ -388,10 +388,10 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
     this comes from Gram-Schmidt procedure not Householder
   */
   ScalarArray<T> *newA = new ScalarArray<T>(a->rows, newK);
-  newA->gemm('N', 'N', Constants<T>::pone, a, ur, Constants<T>::zero);
+  newA->gemm('N', 'N', 1, a, ur, 0);
 
   ScalarArray<T> *newB = new ScalarArray<T>(b->rows, newK);
-  newB->gemm('N', 'N', Constants<T>::pone, b, vr, Constants<T>::zero);
+  newB->gemm('N', 'N', 1, b, vr, 0);
 
   newA->setOrtho(ur->getOrtho());
   newB->setOrtho(vr->getOrtho());
@@ -515,14 +515,14 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
 
   // If needed, put 'this' in first position in usedParts[]
   if (rank()) {
-    usedAlpha[0] = Constants<T>::pone ;
+    usedAlpha[0] = 1 ;
     usedParts[notNullParts++] = this ;
     rankTotal += rank();
   }
 
   for (int i = 0; i < n; i++) {
     // exclude the NULL and 0-rank matrices
-    if (!parts[i] || parts[i]->rank() == 0 || parts[i]->rows->size() == 0 || parts[i]->cols->size() == 0 || alpha[i]==Constants<T>::zero)
+    if (!parts[i] || parts[i]->rank() == 0 || parts[i]->rows->size() == 0 || parts[i]->cols->size() == 0 || alpha[i] == T(0))
       continue;
     // Check that partial RkMatrix indices are subsets of their global indices set.
     assert(parts[i]->rows->isSubset(*rows));
@@ -590,7 +590,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
     int rowOffset = usedParts[i]->rows->offset() - rows->offset();
     resultA->copyMatrixAtOffset(usedParts[i]->a, rowOffset, rankOffset);
     // Scaling the matrix already in place inside resultA
-    if (usedAlpha[i] != Constants<T>::pone) {
+    if (usedAlpha[i] != T(1)) {
       ScalarArray<T> tmp(*resultA, rowOffset, usedParts[i]->a->rows, rankOffset, usedParts[i]->a->cols);
       tmp.scale(usedAlpha[i]);
     }
@@ -697,28 +697,28 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   if (transR == 'C') {
     newA->conjugate();
     if (transM == 'N') {
-      newB->gemm('C', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
+      newB->gemm('C', 'N', 1, &m->data, rb, 0);
       newB->conjugate();
     } else if (transM == 'T') {
       ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
-      newB->gemm('N', 'N', Constants<T>::pone, &m->data, conjB, Constants<T>::zero);
+      newB->gemm('N', 'N', 1, &m->data, conjB, 0);
       delete conjB;
     } else {
       assert(transM == 'C');
-      newB->gemm('N', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
+      newB->gemm('N', 'N', 1, &m->data, rb, 0);
       newB->conjugate();
     }
   } else {
     if (transM == 'N') {
-      newB->gemm('T', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
+      newB->gemm('T', 'N', 1, &m->data, rb, 0);
     } else if (transM == 'T') {
-      newB->gemm('N', 'N', Constants<T>::pone, &m->data, rb, Constants<T>::zero);
+      newB->gemm('N', 'N', 1, &m->data, rb, 0);
     } else {
       assert(transM == 'C');
       ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
-      newB->gemm('N', 'N', Constants<T>::pone, &m->data, conjB, Constants<T>::zero);
+      newB->gemm('N', 'N', 1, &m->data, conjB, 0);
       newB->conjugate();
       delete conjB;
     }
@@ -757,18 +757,18 @@ RkMatrix<T>* RkMatrix<T>::multiplyFullRk(char transM, char transR,
     if (transM == 'N') {
       ScalarArray<T> *conjA = ra->copy();
       conjA->conjugate();
-      newA->gemm('N', 'N', Constants<T>::pone, &m->data, conjA, Constants<T>::zero);
+      newA->gemm('N', 'N', 1, &m->data, conjA, 0);
       delete conjA;
     } else if (transM == 'T') {
-      newA->gemm('C', 'N', Constants<T>::pone, &m->data, ra, Constants<T>::zero);
+      newA->gemm('C', 'N', 1, &m->data, ra, 0);
       newA->conjugate();
     } else {
       assert(transM == 'C');
-      newA->gemm('T', 'N', Constants<T>::pone, &m->data, ra, Constants<T>::zero);
+      newA->gemm('T', 'N', 1, &m->data, ra, 0);
       newA->conjugate();
     }
   } else {
-    newA->gemm(transM, 'N', Constants<T>::pone, &m->data, ra, Constants<T>::zero);
+    newA->gemm(transM, 'N', 1, &m->data, ra, 0);
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, mRows, newB, rkCols);
   return result;
@@ -809,28 +809,28 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkH(char transR, char transH,
   if (transR == 'C') {
     newA->conjugate();
     if (transH == 'N') {
-      h->gemv('C', Constants<T>::pone, rb, Constants<T>::zero, newB);
+      h->gemv('C', 1, rb, 0, newB);
       newB->conjugate();
     } else if (transH == 'T') {
       ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
-      h->gemv('N', Constants<T>::pone, conjB, Constants<T>::zero, newB);
+      h->gemv('N', 1, conjB, 0, newB);
       delete conjB;
     } else {
       assert(transH == 'C');
-      h->gemv('N', Constants<T>::pone, rb, Constants<T>::zero, newB);
+      h->gemv('N', 1, rb, 0, newB);
       newB->conjugate();
     }
   } else {
     if (transH == 'N') {
-      h->gemv('T', Constants<T>::pone, rb, Constants<T>::zero, newB);
+      h->gemv('T', 1, rb, 0, newB);
     } else if (transH == 'T') {
-      h->gemv('N', Constants<T>::pone, rb, Constants<T>::zero, newB);
+      h->gemv('N', 1, rb, 0, newB);
     } else {
       assert(transH == 'C');
       ScalarArray<T> *conjB = rb->copy();
       conjB->conjugate();
-      h->gemv('N', Constants<T>::pone, conjB, Constants<T>::zero, newB);
+      h->gemv('N', 1, conjB, 0, newB);
       delete conjB;
       newB->conjugate();
     }
@@ -875,18 +875,18 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
     if (transH == 'N') {
       ScalarArray<T> *conjA = ra->copy();
       conjA->conjugate();
-      h->gemv('N', Constants<T>::pone, conjA, Constants<T>::zero, newA);
+      h->gemv('N', 1, conjA, 0, newA);
       delete conjA;
     } else if (transH == 'T') {
-      h->gemv('C', Constants<T>::pone, ra, Constants<T>::zero, newA);
+      h->gemv('C', 1, ra, 0, newA);
       newA->conjugate();
     } else {
       assert(transH == 'C');
-      h->gemv('T', Constants<T>::pone, ra, Constants<T>::zero, newA);
+      h->gemv('T', 1, ra, 0, newA);
       newA->conjugate();
     }
   } else {
-    h->gemv(transH, Constants<T>::pone, ra, Constants<T>::zero, newA);
+    h->gemv(transH, 1, ra, 0, newA);
   }
   RkMatrix<T>* result = new RkMatrix<T>(newA, newRows, newB, rkCols);
   return result;
@@ -925,15 +925,15 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
 
   ScalarArray<T> tmp(r1->rank(), r2->rank(), false);
   if (trans1 == 'C' && trans2 == 'C') {
-    tmp.gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.gemm('T', 'N', 1, b1, a2, 0);
     tmp.conjugate();
   } else if (trans1 == 'C') {
-    tmp.gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.gemm('C', 'N', 1, b1, a2, 0);
   } else if (trans2 == 'C') {
-    tmp.gemm('C', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.gemm('C', 'N', 1, b1, a2, 0);
     tmp.conjugate();
   } else {
-    tmp.gemm('T', 'N', Constants<T>::pone, b1, a2, Constants<T>::zero);
+    tmp.gemm('T', 'N', 1, b1, a2, 0);
   }
 
   ScalarArray<T> *newA=NULL, *newB=NULL;
@@ -944,15 +944,16 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     ScalarArray<T>* vr = NULL;
     // truncated SVD tmp = ur.t^vr
     int newK = tmp.truncatedSvdDecomposition(&ur, &vr, epsilon, true);
+    //printf("%d %d\n", newK, std::min(tmp.rows, tmp.cols));
     if (newK > 0) {
       /* Now compute newA = a1.ur and newB = b2.vr */
       newA = new ScalarArray<T>(a1->rows, newK, false);
       if (trans1 == 'C') ur->conjugate();
-      newA->gemm('N', 'N', Constants<T>::pone, a1, ur, Constants<T>::zero);
+      newA->gemm('N', 'N', 1, a1, ur, 0);
       if (trans1 == 'C') newA->conjugate();
       newB = new ScalarArray<T>(b2->rows, newK, false);
       if (trans2 == 'C') vr->conjugate();
-      newB->gemm('N', 'N', Constants<T>::pone, b2, vr, Constants<T>::zero);
+      newB->gemm('N', 'N', 1, b2, vr, 0);
       if (trans2 == 'C') newB->conjugate();
       delete ur;
       delete vr;
@@ -965,15 +966,15 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
       if (trans1 == 'C') newA->conjugate();
       newB = new ScalarArray<T>(b2->rows, r1->rank());
       if (trans2 == 'C') {
-        newB->gemm('N', 'C', Constants<T>::pone, b2, &tmp, Constants<T>::zero);
+        newB->gemm('N', 'C', 1, b2, &tmp, 0);
         newB->conjugate();
       } else {
-        newB->gemm('N', 'T', Constants<T>::pone, b2, &tmp, Constants<T>::zero);
+        newB->gemm('N', 'T', 1, b2, &tmp, 0);
       }
     } else { // newA = a1.tmp, newB = b2
       newA = new ScalarArray<T>(a1->rows, r2->rank());
       if (trans1 == 'C') tmp.conjugate(); // be careful if you re-use tmp after this...
-      newA->gemm('N', 'N', Constants<T>::pone, a1, &tmp, Constants<T>::zero);
+      newA->gemm('N', 'N', 1, a1, &tmp, 0);
       if (trans1 == 'C') newA->conjugate();
       newB = b2->copy();
       if (trans2 == 'C') newB->conjugate();

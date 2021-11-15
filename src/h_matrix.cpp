@@ -573,7 +573,7 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
   Vector<T>  xv1(nrow);
   Vector<T>* x  = &xv;
   Vector<T>* x1 = &xv1;
-  T ev = Constants<T>::zero;
+  T ev = 0;
   for (int i = 0; i < nrow; i++)
     xv[i] = static_cast<T>(rand()/(double)RAND_MAX);
   double normx = x->norm();
@@ -589,7 +589,7 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
     // Compute x(k+1) = A x(k)
     //        ev(k+1) = <x(k+1),x(k)>
     //         x(k+1) = x(k+1) / ||x(k+1)||
-    gemv('N', Constants<T>::pone, x, Constants<T>::zero, x1);
+    gemv('N', 1, x, 0, x1);
     ev = Vector<T>::dot(x,x1);
     // new abs(ev)
     aev = std::abs(ev);
@@ -608,9 +608,9 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
 
 template<typename T>
 void HMatrix<T>::scale(T alpha) {
-  if(alpha == Constants<T>::zero) {
+  if(alpha == T(0)) {
     this->clear();
-  } else if(alpha == Constants<T>::pone) {
+  } else if(alpha == T(1)) {
     return;
   } else if (this->isLeaf()) {
     if (isNull()) {
@@ -654,7 +654,7 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
     }
   }
   if (allRkLeaves) {
-    std::vector<T> alpha(this->nrChild(), Constants<T>::pone);
+    std::vector<T> alpha(this->nrChild(), 1);
     RkMatrix<T> * candidate = new RkMatrix<T>(NULL, rows(), NULL, cols());
     candidate->formattedAddParts(epsilon, &alpha[0], childrenArray, this->nrChild());
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
@@ -719,7 +719,7 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
     assert((matTrans != 'N' ? cols()->size() : rows()->size()) == x->cols);
     assert((matTrans != 'N' ? rows()->size() : cols()->size()) == y->cols);
   }
-  if (beta != Constants<T>::pone) {
+  if (beta != T(1)) {
     y->scale(beta);
   }
 
@@ -747,12 +747,12 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
             // get the rows subset of X aligned with 'trans(child)' cols and Y aligned with 'trans(child)' rows
             const ScalarArray<T> subX(*x, colsOffset, colsSize, 0, x->cols);
             ScalarArray<T> subY(*y, rowsOffset, rowsSize, 0, y->cols);
-            child->gemv(trans, alpha, &subX, Constants<T>::pone, &subY, side);
+            child->gemv(trans, alpha, &subX, 1, &subY, side);
           } else {
             // get the columns subset of X aligned with 'trans(child)' rows and Y aligned with 'trans(child)' columns
             const ScalarArray<T> subX(*x, 0, x->rows, rowsOffset, rowsSize);
             ScalarArray<T> subY(*y, 0, y->rows, colsOffset, colsSize);
-            child->gemv(trans, alpha, &subX, Constants<T>::pone, &subY, side);
+            child->gemv(trans, alpha, &subX, 1, &subY, side);
           }
         }
         else continue;
@@ -762,12 +762,12 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
     // We are on a leaf of the matrix 'this'
     if (isFullMatrix()) {
       if (side == Side::LEFT) {
-        y->gemm(matTrans, 'N', alpha, &full()->data, x, Constants<T>::pone);
+        y->gemm(matTrans, 'N', alpha, &full()->data, x, 1);
       } else {
-        y->gemm('N', matTrans, alpha, x, &full()->data, Constants<T>::pone);
+        y->gemm('N', matTrans, alpha, x, &full()->data, 1);
       }
     } else if(!isNull()){
-      rk()->gemv(matTrans, alpha, x, Constants<T>::pone, y, side);
+      rk()->gemv(matTrans, alpha, x, 1, y, side);
     }
   }
 }
@@ -970,7 +970,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
     } else {
        assert(!isAssembled() || full() == NULL);
        full(subMat->copy());
-       if(alpha != Constants<T>::pone)
+       if(alpha != T(1))
          full()->scale(alpha);
     }
     delete subMat;
@@ -1326,7 +1326,7 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
                         char tB = transB;
                         const HMatrix<T> * childB = b->getChildForGEMM(tB, l, jB);
                         if(childB)
-                          child->gemm(tA, tB, alpha, childA, childB, Constants<T>::pone);
+                          child->gemm(tA, tB, alpha, childA, childB, 1);
                       }
                     }
                   }
@@ -1370,7 +1370,7 @@ template<typename T> void fullHHGemm(HMatrix<T> *c, char transA, char transB, T 
   } else if(!a->isRecursivelyNull() && !b->isRecursivelyNull()) {
     if(c->full() == NULL)
       c->full(new FullMatrix<T>(c->rows(), c->cols()));
-    c->gemm(transA, transB, alpha, a, b, Constants<T>::pone);
+    c->gemm(transA, transB, alpha, a, b, 1);
   }
 }
 
@@ -1450,7 +1450,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         fullMat = rkMat->eval();
         delete rkMat;
     } else if(a->isLeaf() && b->isLeaf() && isFullMatrix()){
-        full()->gemm(transA, transB, alpha, a->full(), b->full(), Constants<T>::pone);
+        full()->gemm(transA, transB, alpha, a->full(), b->full(), 1);
         return;
     } else {
       // if a or b is a leaf, it is Full (since Rk have been treated before)
@@ -1569,13 +1569,13 @@ FullMatrix<T>* multiplyHFull(char transH, char transM,
     new FullMatrix<T>((transH == 'N' ? h->rows() : h->cols()),
                       (transM == 'N' ? mat->cols_ : mat->rows_));
   if (transM == 'N') {
-    h->gemv(transH, Constants<T>::pone, mat, Constants<T>::zero, result);
+    h->gemv(transH, 1, mat, 0, result);
   } else {
     FullMatrix<T>* matT = mat->copyAndTranspose();
     if (transM == 'C') {
       matT->conjugate();
     }
-    h->gemv(transH, Constants<T>::pone, matT, Constants<T>::zero, result);
+    h->gemv(transH, 1, matT, 0, result);
     delete matT;
   }
   return result;
@@ -1649,8 +1649,8 @@ FullMatrix<T>* HMatrix<T>::multiplyFullMatrix(char transA, char transB,
     const IndexSet* aRows = (transA == 'N')? a->rows() : a->cols();
     const IndexSet* bCols = (transB == 'N')? b->cols() : b->rows();
     result = new FullMatrix<T>(aRows, bCols);
-    result->gemm(transA, transB, Constants<T>::pone, a->full(), b->full(),
-                 Constants<T>::zero);
+    result->gemm(transA, transB, 1, a->full(), b->full(),
+                 0);
   } else if(a->isNull() || b->isNull()) {
     return NULL;
   } else {
@@ -1965,10 +1965,10 @@ void HMatrix<T>::inverse() {
             // Mkj <- Mkk^-1 Mkj we use a temp matrix X because this type of product is not allowed with gemm (beta=0 erases Mkj before using it !)
           if (j<k) { // under the diag we store TMj=Mkj
             TM[j] = get(k,j)->copy();
-            get(k,j)->gemm('N', 'N', Constants<T>::pone, get(k,k), TM[j], Constants<T>::zero);
+            get(k,j)->gemm('N', 'N', 1, get(k,k), TM[j], 0);
           } else if (j>k) { // above the diag : Mkj = t Mjk, we store TMj=-Mjk.tMkk-1 = -Mjk.Mkk-1 (Mkk est sym)
             TM[j] = Zero(get(j,k));
-            TM[j]->gemm('N', 'T', Constants<T>::mone, get(j,k), get(k,k), Constants<T>::zero);
+            TM[j]->gemm('N', 'T', -1, get(j,k), get(k,k), 0);
           }
         }
       // Update the rest of matrix M
@@ -1979,13 +1979,13 @@ void HMatrix<T>::inverse() {
               // Mij <- Mij - Mik (Mkk^-1 Mkj) (with Mkk-1.Mkj allready stored in Mkj and TMj=Mjk.tMkk-1)
               // cas k < j <     i        Mkj n'existe pas, on prend t{TMj} = -Mkk-1Mkj
               if (k<j)
-                get(i,j)->gemm('N', 'T', Constants<T>::pone, get(i,k), TM[j], Constants<T>::pone);
+                get(i,j)->gemm('N', 'T', 1, get(i,k), TM[j], 1);
               // cas     j < k < i        Toutes les matrices existent sous la diag
               else if (k<i)
-            get(i,j)->gemm('N', 'N', Constants<T>::mone, get(i,k), get(k,j), Constants<T>::pone);
+            get(i,j)->gemm('N', 'N', -1, get(i,k), get(k,j), 1);
               // cas     j <     i < k    Mik n'existe pas, on prend TM[i] = Mki
               else
-                get(i,j)->gemm('T', 'N', Constants<T>::mone, TM[i], get(k,j), Constants<T>::pone);
+                get(i,j)->gemm('T', 'N', -1, TM[i], get(k,j), 1);
             }
       // Update column 'k' = right-multiplied by -M_kk-1
       for (int i=0 ; i<nrChildRow() ; i++)
@@ -2020,7 +2020,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
     b->evalPart(&bFull, b->rows(), b->cols());
     this->solveLowerTriangularLeft(&bFull, algo, diag, uplo);
     b->clear();
-    b->axpy(Constants<T>::pone, &bFull);
+    b->axpy(1, &bFull);
   } else if(b->isNull()) {
     // nothing to do
   } else {
@@ -2065,7 +2065,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(uplo == Uplo::LOWER ? 'N' : 'T', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i]);
+          u_ji->gemv(uplo == Uplo::LOWER ? 'N' : 'T', -1, &sub[j], 1, &sub[i]);
       }
       // Solve the i-th diagonal system
       get(i, i)->solveLowerTriangularLeft(&sub[i], algo, diag, uplo);
@@ -2095,7 +2095,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
     b->evalPart(&bFull, b->rows(), b->cols());
     this->solveUpperTriangularRight(&bFull, algo, diag, uplo);
     b->clear();
-    b->axpy(Constants<T>::pone, &bFull);
+    b->axpy(1, &bFull);
   } else if(b->isNull()) {
     // nothing to do
   } else {
@@ -2145,7 +2145,7 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[j], Constants<T>::pone, &sub[i], Side::RIGHT);
+          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', -1, &sub[j], 1, &sub[i], Side::RIGHT);
       }
       // Solve the i-th diagonal system
       get(i, i)->solveUpperTriangularRight(&sub[i], algo, diag, uplo);
@@ -2177,7 +2177,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
     b->evalPart(&bFull, b->rows(), b->cols());
     this->solveUpperTriangularLeft(&bFull, algo, diag, uplo);
     b->clear();
-    b->axpy(Constants<T>::pone, &bFull);
+    b->axpy(1, &bFull);
   } else if(b->isNull()) {
     // nothing to do
   } else {
@@ -2226,7 +2226,7 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo,
       for (int j=0 ; j<i ; j++) {
         const HMatrix<T>* u_ji = (uplo == Uplo::LOWER ? get(i, j) : get(j, i));
         if (u_ji)
-          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', Constants<T>::mone, &sub[i], Constants<T>::pone, &sub[j]);
+          u_ji->gemv(uplo == Uplo::LOWER ? 'T' : 'N', -1, &sub[i], 1, &sub[j]);
       }
     }
   }
@@ -2280,7 +2280,7 @@ void HMatrix<T>::mdntProduct(const HMatrix<T>* m, const HMatrix<T>* d, const HMa
 
   HMatrix<T>* x = m->copy();
   x->multiplyWithDiag(d); // x=M.D
-  this->gemm('N', 'T', Constants<T>::mone, x, n, Constants<T>::pone); // this -= M.D.tN
+  this->gemm('N', 'T', -1, x, n, 1); // this -= M.D.tN
   delete x;
 }
 
@@ -2311,7 +2311,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       RkMatrix<T>* rkMat = RkMatrix<T>::multiplyRkRk('N', 'T', m_copy->rk(), m->rk(), m->lowRankEpsilon());
       delete m_copy;
 
-      this->axpy(Constants<T>::mone, rkMat);
+      this->axpy(-1, rkMat);
       delete rkMat;
     } else if(m->isFullMatrix()){
       HMatrix<T>* copy_m = m->copy();
@@ -2322,7 +2322,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       HMAT_ASSERT(fullMat);
       delete copy_m;
 
-      this->axpy(Constants<T>::mone, fullMat);
+      this->axpy(-1, fullMat);
       delete fullMat;
     } else {
       // m is a null matrix (either Rk or Full) so nothing to do.
@@ -2347,7 +2347,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         FullMatrix<T>* fullMat = rkMat->eval();
         delete m_copy;
         delete rkMat;
-        full()->axpy(Constants<T>::mone, fullMat);
+        full()->axpy(-1, fullMat);
         delete fullMat;
       }
     } else if (m->isFullMatrix()) {
@@ -2365,7 +2365,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         d->extractDiagonal(diag.ptr());
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, Side::RIGHT);
       }
-      full()->gemm('N', 'T', Constants<T>::mone, &mTmp, m->full(), Constants<T>::pone);
+      full()->gemm('N', 'T', -1, &mTmp, m->full(), 1);
     } else if (!m->isLeaf()){
       FullMatrix<T> mTmp(m->rows(), m->cols());
       m->evalPart(&mTmp, m->rows(), m->cols());
@@ -2378,7 +2378,7 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
         d->extractDiagonal(diag.ptr());
         mTmp.multiplyWithDiagOrDiagInv(&diag, false, Side::RIGHT);
       }
-      full()->gemm('N', 'T', Constants<T>::mone, &mTmp, &mTmpCopy, Constants<T>::pone);
+      full()->gemm('N', 'T', -1, &mTmp, &mTmpCopy, 1);
     }
   }
 }
