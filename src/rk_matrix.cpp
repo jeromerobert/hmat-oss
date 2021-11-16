@@ -260,7 +260,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // and compress it with RkMatrix::fromMatrix().
   if (rank() > std::min(rows->size(), cols->size())) {
     FullMatrix<T>* tmp = eval();
-    RkMatrix<T>* rk = acaFull(tmp, epsilon);
+    RkMatrix<T>* rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
     delete tmp;
     // "Move" rk into this, and delete the old "this".
     swap(*rk);
@@ -654,7 +654,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const FullMa
     ScalarArray<T> sub(me->data, rowOffset, maxRow, colOffset, maxCol);
     sub.axpy(alpha[i], &parts[i]->data);
   }
-  RkMatrix<T>* result = acaFull(me, epsilon);
+  RkMatrix<T>* result = truncatedSvd(me, epsilon); // TODO compress with something else than SVD
   delete me;
   swap(*result);
   delete result;
@@ -1057,7 +1057,7 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        rk = acaFull(fullMat, epsilon);
+        rk = truncatedSvd(fullMat, epsilon); // TODO compress with something else than SVD
         delete fullMat;
       }
     }
