@@ -113,6 +113,19 @@ int findK(hmat::Vector<T> &sigma, double epsilon) {
     }
   }
   return i;
+  // Criteria for Frobenius norm (see Eckart–Young–Mirsky theorem)
+  /*double sigma2sum = 0;
+  for(int i = 0; i < sigma.rows; i++) {
+    sigma2sum += sigma[i] * sigma[i];
+  }
+  double threshold = sigma2sum * epsilon * epsilon;
+  int i = 0;
+  for(; i < sigma.rows; i++) {
+    if(sigma2sum < threshold)
+      break;
+    sigma2sum -= sigma[i] * sigma[i];
+  }
+  return i;*/
 }
 
 struct SigmaPrinter {
