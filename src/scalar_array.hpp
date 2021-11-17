@@ -397,7 +397,7 @@ public:
       \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
       \return the rank of the approximation
    */
-  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false) const;
+  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false, bool logging=false) const;
 
   /*! \brief Orthogonalization between columns of 'this'
 

@@ -914,11 +914,12 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
+template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures, bool logging) const {
   Vector<typename Types<T>::real>* sigma = NULL;
 
   svdDecomposition(u, &sigma, v, workAroundFailures);
-  sigmaPrinter.print(*sigma);
+  if(logging)
+    sigmaPrinter.print(*sigma);
   // Control of the approximation
   int newK = findK(*sigma, epsilon);
 

@@ -279,9 +279,11 @@ CompressionSVD::compress(const ClusterAssemblyFunction<Z_t>& block) const {
 template<typename T>
 void acaFull(ScalarArray<T> & m, ScalarArray<T>* & tmpA, ScalarArray<T>* & tmpB, double compressionEpsilon) {
   DECLARE_CONTEXT;
+  double thisN = m.norm();
+  m.scale(1. / thisN);
   double estimateSquaredNorm = 0;
   int maxK = min(m.rows, m.cols);
-
+  ScalarArray<T> * mcopy = m.copy();
   tmpA = new ScalarArray<T>(m.rows, maxK);
   tmpB = new ScalarArray<T>(m.cols, maxK);
   int nu;
@@ -342,6 +344,36 @@ void acaFull(ScalarArray<T> & m, ScalarArray<T>* & tmpA, ScalarArray<T>* & tmpB,
     tmpA->resize(nu);
     tmpB->resize(nu);
   }
+
+  ScalarArray<T> * ucheck, *vcheck;
+  ScalarArray<T> * thiscopy2 = mcopy->copy();
+  mcopy->truncatedSvdDecomposition(&ucheck, &vcheck, compressionEpsilon, false, false);
+  ScalarArray<T> test(tmpA->rows, tmpB->rows);
+  test.gemm('N', 'T', 1, tmpA, tmpB, 0); test.axpy(-1, thiscopy2);
+  double acaError = test.norm() / compressionEpsilon;
+  test.gemm('N', 'T', 1, ucheck, vcheck, 0); test.axpy(-1, thiscopy2);
+  double svdError = test.norm() / compressionEpsilon;
+  if(acaError > 1.2 || svdError > 1.2 || true) {
+    printf("SVDACA %d, %d, %g, %d, %g, %d\n", m.rows, m.cols, svdError, ucheck->cols, acaError, tmpA->cols);
+    /*printf("[\n");
+    for(int i = 0; i < m.rows; i++) {
+      printf("[");
+      for(int j = 0; j < m.cols; j++) {
+        printf("%g, ", std::abs(thiscopy2->get(i, j)));
+      }
+      printf("]\n");
+    }
+    printf("]\n");
+    thiscopy2->truncatedSvdDecomposition(&ucheck, &vcheck, compressionEpsilon, false, true);*/
+  }
+  delete ucheck;
+  delete vcheck;
+  /*assert(acaError <= svdError*1.1 || acaError < epsilon);
+  assert((*u)->cols < std::min(rows, cols));*/
+  delete thiscopy2;
+  delete mcopy;
+  tmpA->scale(sqrt(thisN));
+  tmpB->scale(sqrt(thisN));
 }
 
 template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEpsilon) {
