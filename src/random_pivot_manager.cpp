@@ -31,14 +31,16 @@ namespace hmat {
     usedPivots_ +=1;
     if (pivots_.empty())
       return;
-
+#ifndef NDEBUG
     int numberOfPivotsToRemove = 0;
-
+#endif
     for (int i = 0; i < pivots_.size(); ++i) {
       Pivot<dp_t> &pivot = pivots_[i];
       pivot.value_ -= (*row)[pivot.col_] * (*col)[pivot.row_];
+#ifndef NDEBUG
       if (pivot.row_ == rowIndex || pivot.col_ == colIndex)
         numberOfPivotsToRemove += 1;
+#endif
     }
     std::sort(pivots_.begin(), pivots_.end(), Pivot<dp_t>::ComparerLower);
     int size;
