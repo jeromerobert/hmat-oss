@@ -199,8 +199,8 @@ int full_gemm(char transA, char transB, int mc, int nc, void* c,
 }
 
 template<typename T, template <typename> class E>
-int gemm(char trans_a, char trans_b, void *alpha, hmat_matrix_t * holder,
-                   hmat_matrix_t * holder_b, void *beta, hmat_matrix_t * holder_c) {
+int gemm(char trans_a, char trans_b, const void *alpha, hmat_matrix_t * holder,
+         hmat_matrix_t * holder_b, const void *beta, hmat_matrix_t * holder_c) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat_a = (hmat::HMatInterface<T>*)holder;
   hmat::HMatInterface<T>* hmat_b = (hmat::HMatInterface<T>*)holder_b;

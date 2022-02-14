@@ -802,8 +802,8 @@ typedef struct
       \param hmatrix_c
       \return 0 for success
     */
-    int (*gemm)(char trans_a, char trans_b, void* alpha, hmat_matrix_t* hmatrix,
-                     hmat_matrix_t* hmatrix_b, void* beta, hmat_matrix_t* hmatrix_c);
+    int (*gemm)(char trans_a, char trans_b, const void* alpha, hmat_matrix_t* hmatrix,
+                hmat_matrix_t* hmatrix_b, const void* beta, hmat_matrix_t* hmatrix_c);
 
     /*! \brief y := y + a * x */
     int (*axpy)(void* a, hmat_matrix_t* x, hmat_matrix_t* hmatrix_y);
