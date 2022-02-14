@@ -700,6 +700,9 @@ int get_block(struct hmat_get_values_context_t *ctx) {
   DISABLE_THREADING_IN_BLOCK;
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)ctx->matrix;
     try {
+        HMAT_ASSERT_MSG(hmat->factorization() != hmat::Factorization::HODLRSYM &&
+                        hmat->factorization() != hmat::Factorization::HODLR,
+                        "Unsupported operation");
         hmat::IndexSet rows(ctx->row_offset, ctx->row_size);
         hmat::IndexSet cols(ctx->col_offset, ctx->col_size);
         typename E<T>::UncompressedBlock view;
@@ -735,6 +738,9 @@ int get_values(struct hmat_get_values_context_t *ctx) {
     // No need to call DISABLE_THREADING_IN_BLOCK here, there is no BLAS call
     hmat::HMatInterface<T> *hmat = (hmat::HMatInterface<T> *)ctx->matrix;
     try {
+        HMAT_ASSERT_MSG(hmat->factorization() != hmat::Factorization::HODLRSYM &&
+                        hmat->factorization() != hmat::Factorization::HODLR,
+                        "Unsupported operation");
         typename E<T>::UncompressedValues view;
         const E<T>& engine = reinterpret_cast<const E<T>&>(hmat->engine());
         view.uncompress(engine.getHandle(),

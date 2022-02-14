@@ -106,6 +106,15 @@ void facto_gemv(struct context_t* ctx, hmat_factorization_t f,
   printf("Facto+GEMV timer: %gs\n", time_diff(start, end));
 }
 
+void check_unsupported(struct context_t* ctx, hmat_matrix_t * matrix) {
+  // Check that gemm on a factorized HOLDR is reported as unsupported
+  HMAT_ASSERT(ctx->hmat.gemm('N', 'N', &one, matrix, matrix, &zero, matrix));
+  struct hmat_get_values_context_t gvctx = { 0 };
+  gvctx.matrix = matrix;
+  // get_values is also unsupported
+  HMAT_ASSERT(ctx->hmat.get_values(&gvctx));
+}
+
 void assert_equals(float * v1, float * v2, int n, double tol) {
   double diffnorm = 0;
   double norm = 0;
@@ -149,6 +158,7 @@ int main(int argc, char **argv) {
 
   printf("\nHODLR factorization\n");
   facto_gemv(&ctx, hmat_factorization_hodlrsym, matrix, vector, &hodlr_matrix, &vector_hodlr);
+  check_unsupported(&ctx, hodlr_matrix);
   // There is not truncate in HOLDR factorization so the error does not depends on epsilon
   assert_equals(vector_nf, vector_hodlr, ctx.n, 1e-9);
   float hodlrlogdet = 0;

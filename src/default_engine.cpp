@@ -152,6 +152,11 @@ template<typename T>
 void DefaultEngine<T>::gemm(char transA, char transB, T alpha,
                                       const IEngine<T>& a,
                                       const IEngine<T>& b, T beta) {
+  HMAT_ASSERT_MSG(!hodlr.isFactorized(), "Unsupported operation");
+  HMAT_ASSERT_MSG(!static_cast<const DefaultEngine &>(a).hodlr.isFactorized(),
+                  "Unsupported operation");
+  HMAT_ASSERT_MSG(!static_cast<const DefaultEngine &>(b).hodlr.isFactorized(),
+                  "Unsupported operation");
   this->hmat->gemm(transA, transB, alpha, a.hmat, b.hmat, beta);
 }
 
