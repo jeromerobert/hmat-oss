@@ -2610,7 +2610,7 @@ void HMatrix<T>::extractDiagonal(T* diag) const {
   }
 }
 
-template<typename T> T HMatrix<T>::logdet() const {
+template<typename T> typename Types<T>::dp HMatrix<T>::logdet() const {
   if(this->isLeaf()) {
     HMAT_ASSERT(this->isFullMatrix() && (this->isTriLower || this->isTriUpper));
     return std::log(this->full()->data.diagonalProduct());

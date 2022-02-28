@@ -238,7 +238,7 @@ public:
    */
 
   /** Return the product of the diagonal values */
-  T diagonalProduct() const;
+  typename Types<T>::dp diagonalProduct() const;
 
   double norm_abt_Sqr(const ScalarArray<T> &b) const ;
 

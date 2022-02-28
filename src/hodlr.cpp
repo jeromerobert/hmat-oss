@@ -156,11 +156,11 @@ void solveLowerTriangularLeft(HMatrix<T> * const m, ScalarArray<T> *x, int xOffs
 }
 
 template<typename T>
-T logdet(HMatrix<T> * a, HODLRNode<T> * node) {
+typename Types<T>::dp logdet(HMatrix<T> * a, HODLRNode<T> * node) {
   HMAT_ASSERT_MSG(!a->isLeaf(), "Not HODLR matrix");
   auto a00 = a->get(0,0);
   auto a11 = a->get(1,1);
-  T result = a00->isLeaf() ? a00->logdet() : logdet(a00, node->child0);
+  auto result = a00->isLeaf() ? a00->logdet() : logdet(a00, node->child0);
   result += a11->isLeaf() ? a11->logdet() : logdet(a11, node->child1);
   result += std::log(node->detm11_);
   return result;
@@ -475,7 +475,7 @@ template<typename T> bool HODLR<T>::isFactorized() const {
   return root != nullptr;
 }
 
-template<typename T> T HODLR<T>::logdet(HMatrix<T> * const m) const {
+template<typename T> typename Types<T>::dp HODLR<T>::logdet(HMatrix<T> * const m) const {
   HMAT_ASSERT_MSG(root != nullptr && root->isSymmetric(), "logdet is only supported for symmetrically factorized HODLR matrices");
   return ::logdet(m, root);
 }

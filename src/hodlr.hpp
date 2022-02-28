@@ -20,7 +20,7 @@
   http://github.com/jeromerobert/hmat-oss
 */
 #include "hmat/hmat.h"
-
+#include "data_types.hpp"
 namespace hmat {
 template<typename T> class HMatrix;
 template<typename T> class ScalarArray;
@@ -48,7 +48,7 @@ public:
   void solveSymUpper(HMatrix<T> * const a, ScalarArray<T> & b) const;
   bool isFactorized() const;
   void gemv(char trans, T alpha, HMatrix<T> * const a, ScalarArray<T> & x, T beta, ScalarArray<T> & y) const;
-  T logdet(HMatrix<T> * const a) const;
+  typename Types<T>::dp logdet(HMatrix<T> * const a) const;
   ~HODLR();
 };
 }

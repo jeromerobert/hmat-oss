@@ -77,7 +77,7 @@ namespace hmat {
     virtual void solve(IEngine<T>& b, Factorization) const = 0;
 
     virtual void scale(T alpha) = 0;
-    virtual T logdet() const = 0;
+    virtual typename hmat::Types<T>::dp logdet() const = 0;
     virtual double norm() const = 0;
   protected:
     hmat_progress_t *progress_;

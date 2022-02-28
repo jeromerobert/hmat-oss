@@ -153,18 +153,20 @@ int main(int argc, char **argv) {
   printf("LLT factorization\n");
   facto_gemv(&ctx, hmat_factorization_llt, matrix, vector, &llt_matrix, &vector_llt);
   assert_equals(vector_nf, vector_llt, ctx.n, epsilon*1e-3);
-  float lltlogdet = 0;
+  double lltlogdet = 0;
   ctx.hmat.logdet(llt_matrix, &lltlogdet);
+  float lltlogdetf = lltlogdet;
 
   printf("\nHODLR factorization\n");
   facto_gemv(&ctx, hmat_factorization_hodlrsym, matrix, vector, &hodlr_matrix, &vector_hodlr);
   check_unsupported(&ctx, hodlr_matrix);
   // There is not truncate in HOLDR factorization so the error does not depends on epsilon
   assert_equals(vector_nf, vector_hodlr, ctx.n, 1e-9);
-  float hodlrlogdet = 0;
+  double hodlrlogdet = 0;
   ctx.hmat.logdet(hodlr_matrix, &hodlrlogdet);
+  float hodlrlogdetf = hodlrlogdet;
   printf("logdet with LLT: %g, logdet with HODLR: %g\n", lltlogdet, hodlrlogdet);
-  assert_equals(&lltlogdet, &hodlrlogdet, 1, epsilon*1e-5);
+  assert_equals(&lltlogdetf, &hodlrlogdetf, 1, epsilon*1e-5);
   free(ctx.points);
   free(vector);
   free(vector_nf);

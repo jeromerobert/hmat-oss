@@ -415,11 +415,11 @@ double norm(hmat_matrix_t* holder) {
 }
 
 template<typename T, template <typename> class E>
-int logdet(hmat_matrix_t* holder, void * result) {
+int logdet(hmat_matrix_t* holder, double * result) {
   DECLARE_CONTEXT;
   try {
-    T r = reinterpret_cast<hmat::HMatInterface<T>*>(holder)->engine().logdet();
-    *static_cast<T*>(result)=r;
+    auto r = reinterpret_cast<hmat::HMatInterface<T>*>(holder)->engine().logdet();
+    *reinterpret_cast<typename hmat::Types<T>::dp*>(result)=r;
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;

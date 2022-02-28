@@ -332,7 +332,7 @@ public:
    * @brief Return the logarithm of the determinant of this matrix
    * assuming it is triangular.
    */
-  T logdet() const;
+  typename Types<T>::dp logdet() const;
 
   /*! \brief Return an approximation of the largest eigenvalue via the power method.
    */

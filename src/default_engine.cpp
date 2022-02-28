@@ -138,7 +138,7 @@ void DefaultEngine<T>::gemv(char trans, T alpha, ScalarArray<T>& x,
   }
 }
 
-template<typename T> T DefaultEngine<T>::logdet() const {
+template<typename T> typename Types<T>::dp DefaultEngine<T>::logdet() const {
   if(hodlr.isFactorized()) {
     return this->hodlr.logdet(this->hmat);
   } else if(this->hmat->isTriLower) {

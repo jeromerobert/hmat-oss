@@ -684,7 +684,7 @@ typedef struct
     double (*norm)(hmat_matrix_t* hmatrix);
 
     /*! \brief Compute the logarithm of the determinante of a HMatrix. */
-    int (*logdet)(hmat_matrix_t* hmatrix, void * result);
+    int (*logdet)(hmat_matrix_t* hmatrix, double * result);
 
     /*! \brief Inverse a HMatrix in place.
 

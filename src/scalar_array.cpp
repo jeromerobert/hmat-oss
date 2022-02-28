@@ -1392,9 +1392,9 @@ template<typename T> void ScalarArray<T>::addIdentity(T alpha) {
   }
 }
 
-template<typename T> T ScalarArray<T>::diagonalProduct() const {
+template<typename T> typename Types<T>::dp ScalarArray<T>::diagonalProduct() const {
   assert(rows == cols);
-  T r = get(0,0);
+  typename Types<T>::dp r = get(0,0);
   for(int i = 1; i < rows; i++) {
     r *= get(i,i);
   }
