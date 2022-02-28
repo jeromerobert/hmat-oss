@@ -44,7 +44,8 @@ public:
   /** @brief solve with a Rk RHS */
   void solve(HMatrix<T> * const a, HMatrix<T> *b) const;
   void solve(HMatrix<T> * const a, ScalarArray<T> & b) const;
-  void solveSym(HMatrix<T> * const a, ScalarArray<T> & b) const;
+  void solveSymLower(HMatrix<T> * const a, ScalarArray<T> & b) const;
+  void solveSymUpper(HMatrix<T> * const a, ScalarArray<T> & b) const;
   bool isFactorized() const;
   void gemv(char trans, T alpha, HMatrix<T> * const a, ScalarArray<T> & x, T beta, ScalarArray<T> & y) const;
   T logdet(HMatrix<T> * const a) const;

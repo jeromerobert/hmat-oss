@@ -198,7 +198,8 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, Factorization algo) const {
       this->hodlr.solve(this->hmat, b);
       break;
   case Factorization::HODLRSYM:
-      this->hodlr.solveSym(this->hmat, b);
+      this->hodlr.solveSymLower(this->hmat, b);
+      this->hodlr.solveSymUpper(this->hmat, b);
       break;
   default:
      // not supported
@@ -217,11 +218,19 @@ void DefaultEngine<T>::solve(IEngine<T>& b, Factorization f) const {
 
 template<typename T>
 void DefaultEngine<T>::solveLower(ScalarArray<T>& b, Factorization algo, bool transpose) const {
-  Diag diag = (algo == Factorization::LU || algo == Factorization::LDLT) ? Diag::UNIT : Diag::NONUNIT;
-  if (transpose)
-    this->hmat->solveUpperTriangularLeft(&b, algo, diag, Uplo::LOWER);
-  else
-    this->hmat->solveLowerTriangularLeft(&b, algo, diag, Uplo::LOWER);
+  HMAT_ASSERT_MSG(algo != Factorization::HODLR, "solver lower not supported for non-symetric HODLR.");
+  if(algo == Factorization::HODLRSYM) {
+    if(transpose)
+      this->hodlr.solveSymUpper(this->hmat, b);
+    else
+      this->hodlr.solveSymLower(this->hmat, b);
+  } else {
+    Diag diag = (algo == Factorization::LU || algo == Factorization::LDLT) ? Diag::UNIT : Diag::NONUNIT;
+    if (transpose)
+      this->hmat->solveUpperTriangularLeft(&b, algo, diag, Uplo::LOWER);
+    else
+      this->hmat->solveLowerTriangularLeft(&b, algo, diag, Uplo::LOWER);
+  }
 }
 
 template<typename T> void DefaultEngine<T>::copy(IEngine<T> & result, bool structOnly) const {

@@ -450,11 +450,17 @@ void HODLR<T>::factorizeSym(HMatrix<T> * m, hmat_progress_t* p) {
 }
 
 template<typename T>
-void HODLR<T>::solveSym(HMatrix<T> * const m, ScalarArray<T> &x) const {
+void HODLR<T>::solveSymUpper(HMatrix<T> * const m, ScalarArray<T> &x) const {
+  assert(x.rows == m->rows()->size());
+  assert(m->cols()->size() == m->rows()->size());
+  ::solveUpperTriangularLeft(m, &x, 0, root);
+}
+
+template<typename T>
+void HODLR<T>::solveSymLower(HMatrix<T> * const m, ScalarArray<T> &x) const {
   assert(x.rows == m->rows()->size());
   assert(m->cols()->size() == m->rows()->size());
   ::solveLowerTriangularLeft(m, &x, 0, root);
-  ::solveUpperTriangularLeft(m, &x, 0, root);
 }
 
 template<typename T> void HODLR<T>::gemv(char trans, T alpha, HMatrix<T> * const a, ScalarArray<T> & x, T beta, ScalarArray<T> & y) const {
