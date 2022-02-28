@@ -207,14 +207,6 @@ void HMatInterface<T>::transpose() {
   engine_->hmat->checkStructure();
 }
 
-
-template<typename T>
-double HMatInterface<T>::norm() const {
-  DISABLE_THREADING_IN_BLOCK;
-  DECLARE_CONTEXT;
-  return engine_->hmat->norm();
-}
-
 template<typename T>
 void HMatInterface<T>::scale(T alpha) {
   DISABLE_THREADING_IN_BLOCK;

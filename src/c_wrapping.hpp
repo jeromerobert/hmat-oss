@@ -411,7 +411,7 @@ int init() {
 template<typename T, template <typename> class E>
 double norm(hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
-  return ((hmat::HMatInterface<T>*)holder)->norm();
+  return reinterpret_cast<hmat::HMatInterface<T>*>(holder)->engine().norm();
 }
 
 template<typename T, template <typename> class E>

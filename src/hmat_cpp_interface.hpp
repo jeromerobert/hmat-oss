@@ -277,9 +277,6 @@ public:
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */
   void solveLower(ScalarArray<T>& b, bool transpose=false) const;
-  /** Return an approximation of the Frobenius norm of this.
-   */
-  double norm() const;
   /** this <- alpha * this
    */
   void scale(T alpha);

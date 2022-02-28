@@ -148,6 +148,10 @@ template<typename T> T DefaultEngine<T>::logdet() const {
   }
 }
 
+template<typename T> double DefaultEngine<T>::norm() const {
+  return this->hmat->norm();
+}
+
 template<typename T>
 void DefaultEngine<T>::gemm(char transA, char transB, T alpha,
                                       const IEngine<T>& a,

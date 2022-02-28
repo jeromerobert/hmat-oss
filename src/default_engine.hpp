@@ -62,6 +62,7 @@ public:
   void scale(T alpha) override;
   void info(hmat_info_t &i) const override;
   T logdet() const override;
+  double norm() const override;
 };
 
 }  // end namespace hmat

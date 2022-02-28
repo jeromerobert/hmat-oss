@@ -78,6 +78,7 @@ namespace hmat {
 
     virtual void scale(T alpha) = 0;
     virtual T logdet() const = 0;
+    virtual double norm() const = 0;
   protected:
     hmat_progress_t *progress_;
   };
