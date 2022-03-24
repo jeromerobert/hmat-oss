@@ -771,29 +771,29 @@ void ScalarArray<T>::lltDecomposition() {
   const size_t muls = n3 / 6 + n2 / 2 + n / 3;
   const size_t adds = n3 / 6 - n / 6;
     increment_flops(Multipliers<T>::add * adds + Multipliers<T>::mul * muls);
+  if(hmat::Types<T>::IS_REAL::value) {
+    // For real matrices, we can use the lapack version.
+    // (There is no L.Lt factorisation for complex matrices in lapack)
+    int info = proxy_lapack::potrf('L', rows, m, lda);
+    if(info != 0)
+      assertPositive(T(-1), info, "potrf");
+  } else {
+    for (int j = 0; j < n; j++) {
+      for (int k = 0; k < j; k++)
+        get(j,j) -= get(j,k) * get(j,k);
+      assertPositive(get(j, j), j, "lltDecomposition");
 
-  for (int j = 0; j < n; j++) {
-    for (int k = 0; k < j; k++)
-      get(j,j) -= get(j,k) * get(j,k);
-    assertPositive(get(j, j), j, "lltDecomposition");
+      get(j,j) = std::sqrt(get(j,j));
 
-    get(j,j) = std::sqrt(get(j,j));
+      for (int k = 0; k < j; k++)
+        for (int i = j+1; i < n; i++)
+          get(i,j) -= get(i,k) * get(j,k);
 
-    for (int k = 0; k < j; k++)
-      for (int i = j+1; i < n; i++)
-        get(i,j) -= get(i,k) * get(j,k);
-
-    for (int i = j+1; i < n; i++) {
-      get(i,j) /= get(j,j);
+      for (int i = j+1; i < n; i++) {
+        get(i,j) /= get(j,j);
+      }
     }
   }
-
-  // For real matrices, we could use the lapack version, could be faster
-  // (There is no L.Lt factorisation for complex matrices in lapack)
-  //    int info = proxy_lapack::potrf('L', this->rows(), this->data.m, this->data.lda);
-  //    if(info != 0)
-  //        // throw a pointer to be compliant with the Status class
-  //        throw hmat::LapackException("potrf", info);
 
   for (int j = 0; j < n; j++) {
         for(int i = 0; i < j; i++) {
