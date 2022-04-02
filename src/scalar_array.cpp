@@ -988,7 +988,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
     // computation to proceed. Otherwise, I stop here.
     if (!workAroundFailures) throw;
 
-    printf("%s overriden...\n", e.what());
+    printf("%s overridden...\n", e.what());
     // If rows<cols, then p==rows, 'u' is square, 'v' has the dimensions of 'this'.
     // fake 'u' is identity, fake 'v' is 'this^T'
     if (rows<cols) {
