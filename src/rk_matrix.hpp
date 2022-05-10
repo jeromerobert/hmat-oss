@@ -278,9 +278,6 @@ public:
   /*! Conjugate the content of the complex matrix */
   void conjugate();
 
-  /** Return the memory size of the a*b product */
-  static size_t computeRkRkMemorySize(char transA, char transB, const RkMatrix<T>* a, const RkMatrix<T>* b);
-
   /** Simpler accessor for the data.
 
       There is only 1 type to because we cant modify the data.
