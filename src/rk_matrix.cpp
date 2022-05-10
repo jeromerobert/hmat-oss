@@ -984,16 +984,6 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
 }
 
 template<typename T>
-size_t RkMatrix<T>::computeRkRkMemorySize(char trans1, char trans2,
-                                                const RkMatrix<T>* r1, const RkMatrix<T>* r2)
-{
-    ScalarArray<T>* b2 = (trans2 == 'N' ? r2->b : r2->a);
-    ScalarArray<T>* a1 = (trans1 == 'N' ? r1->a : r1->b);
-    return b2 == NULL ? 0 : b2->memorySize() +
-           a1 == NULL ? 0 : a1->rows * r2->rank() * sizeof(T);
-}
-
-template<typename T>
 void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, Side side) {
   assert(*d->rows() == *d->cols());
   assert(side == Side::RIGHT || (*rows == *d->cols()));
