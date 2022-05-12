@@ -34,6 +34,8 @@
 #include "common/timeline.hpp"
 #include "lapack_exception.hpp"
 
+#include <algorithm>
+
 namespace hmat {
 
 /** RkApproximationControl */
