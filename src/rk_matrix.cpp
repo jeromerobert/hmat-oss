@@ -1030,9 +1030,13 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
       } // j loop
     } // i loop
     // Reconstruction of C by adding the parts
-    T alphaV[nSubRks];
-    std::fill_n(alphaV, nSubRks, 1);
-    formattedAddParts(epsilon, alphaV, subRks, nSubRks);
+    // This test is not needed, it is there only to workaround bogus warning from GCC 12:
+    //   error: ‘<unknown>’ may be used uninitialized [-Werror=maybe-uninitialized]
+    if (nSubRks > 0) {
+      T alphaV[nSubRks];
+      std::fill_n(alphaV, nSubRks, 1);
+      formattedAddParts(epsilon, alphaV, subRks, nSubRks);
+    }
     for (int i = 0; i < nSubRks; i++) {
       delete subRks[i];
     }
