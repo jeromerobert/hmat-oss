@@ -144,8 +144,13 @@ option(HMAT_DISABLE_OPENMP "Let HMat disable OpenMP (require OpenMP support)" ON
 if(HMAT_DISABLE_OPENMP)
     find_package(OpenMP)
     if(OpenMP_FOUND)
-        target_compile_options(hmat PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>$<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>")
+        separate_arguments(OpenMP_C_OPTIONS NATIVE_COMMAND "${OpenMP_C_FLAGS}")
+        separate_arguments(OpenMP_CXX_OPTIONS NATIVE_COMMAND "${OpenMP_CXX_FLAGS}")
+        target_compile_options(hmat PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_OPTIONS}>$<$<COMPILE_LANGUAGE:C>:${OpenMP_C_OPTIONS}>")
         target_link_libraries(hmat PRIVATE ${OpenMP_C_LIBRARIES})
+        if (OpenMP_C_INCLUDE_DIRS) # since 3.16
+          target_include_directories(hmat PRIVATE ${OpenMP_C_INCLUDE_DIRS})
+        endif ()
     endif()
 endif()
 
