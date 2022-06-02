@@ -765,7 +765,6 @@ RkMatrix<typename Types<T>::dp>* compress(
         nloop = block.info.number_of_strata;
     }
     RkMatrix<dp_t>* rk = compressOneStratum(method, block);
-    rk->truncate(epsilon);
     for(block.stratum = 1; block.stratum < nloop; block.stratum++) {
         assert(method->isIncremental(*rows, *cols));
         RkMatrix<dp_t>* stratumRk = compressOneStratum(method, block);
