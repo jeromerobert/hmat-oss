@@ -1053,9 +1053,7 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
       assert(ha->isFullMatrix() || hb->isFullMatrix());
       FullMatrix<T>* fullMat = HMatrix<T>::multiplyFullMatrix(transHA, transHB, ha, hb);
       if(fullMat) {
-        // It's been a SVD for a long time so we set a smaller epsilon to be conservative.
-        // More tests would be needed to use epsilon.
-        rk = acaFull(fullMat, epsilon/10);
+        rk = acaFull(fullMat, epsilon);
         delete fullMat;
       }
     }
