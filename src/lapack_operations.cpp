@@ -36,195 +36,37 @@
 using namespace std;
 
 namespace hmat {
-
-// Implementation
-
-template<> int svdCall<hmat::S_t>(char jobu, char jobv, int m, int n, hmat::S_t* a,
-                            int lda, double* sigma, hmat::S_t* u, int ldu, hmat::S_t* vt,
-                            int ldvt) {
-  int result;
-  int p = min(m, n);
-  float* sigmaFloat = new float[p];
-  int workSize;
-  hmat::S_t workSize_S;
-
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_S, -1);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  workSize = (int) workSize_S + 1;
-  hmat::S_t* work = new hmat::S_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  delete[] work;
-
-  for (int i = 0; i < p; i++) {
-    sigma[i] = sigmaFloat[i];
-  }
-  delete[] sigmaFloat;
-  return result;
-}
-template<> int svdCall<hmat::D_t>(char jobu, char jobv, int m, int n, hmat::D_t* a,
-                            int lda, double* sigma, hmat::D_t* u, int ldu, hmat::D_t* vt,
-                            int ldvt) {
-  int workSize;
-  hmat::D_t workSize_D;
-  int result;
-
-  // We request the right size for WORK
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_D, -1);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  workSize = (int) workSize_D + 1;
-  hmat::D_t* work = new hmat::D_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  delete[] work;
-  return result;
-}
-template<> int svdCall<hmat::C_t>(char jobu, char jobv, int m, int n, hmat::C_t* a,
-                            int lda, double* sigma, hmat::C_t* u, int ldu, hmat::C_t* vt,
-                            int ldvt) {
-  int result;
-  int workSize;
-  hmat::C_t workSize_C;
-  int p = min(m, n);
-  float* sigmaFloat = new float[p];
-
-  // We request the right size for WORK
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_C, -1);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  workSize = (int) workSize_C.real() + 1;
-  hmat::C_t* work = new hmat::C_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  delete[] work;
-
-  for (int i = 0; i < p; i++) {
-    sigma[i] = sigmaFloat[i];
-  }
-  delete[] sigmaFloat;
-  return result;
-}
-template<> int svdCall<hmat::Z_t>(char jobu, char jobv, int m, int n, hmat::Z_t* a,
-                            int lda, double* sigma, hmat::Z_t* u, int ldu, hmat::Z_t* vt,
-                            int ldvt) {
-  int result;
-  int workSize;
-  hmat::Z_t workSize_Z;
-
-  // We request the right size for WORK
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_Z, -1);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  workSize = (int) workSize_Z.real() + 1;
-  hmat::Z_t* work = new hmat::Z_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize);
-  if(result != 0)
-      throw hmat::LapackException("gesvd", result);
-  delete[] work;
+template <typename T>
+int svdCall(char jobu, char jobv, int m, int n, T *a, int lda,
+            typename hmat::Types<T>::real *sigma, T *u, int ldu, T *vt,
+            int ldvt) {
+  auto superb = new typename hmat::Types<T>::real[min(m, n)];
+  int result = proxy_lapack::gesvd(jobu, jobv, m, n, a, lda, sigma, u, ldu, vt,
+                                   ldvt, superb);
+  if (result != 0)
+    throw hmat::LapackException("gesvd", result);
+  delete[] superb;
   return result;
 }
 
-// Implementation
-template<> int sddCall<hmat::S_t>(char jobz, int m, int n, hmat::S_t* a, int lda,
-                            double* sigma, hmat::S_t* u, int ldu, hmat::S_t* vt, int ldvt) {
-  int result;
-  int p = min(m, n);
-  float* sigmaFloat = new float[p];
-  int workSize;
-  hmat::S_t workSize_S;
-  int* iwork = new int[8*p];
-
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_S, -1, iwork);
-  HMAT_ASSERT(!result);
-  workSize = (int) workSize_S + 1;
-  hmat::S_t* work = new hmat::S_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize, iwork);
-  HMAT_ASSERT(!result);
-  delete[] work;
-  delete[] iwork;
-
-  for (int i = 0; i < p; i++) {
-    sigma[i] = sigmaFloat[i];
-  }
-  delete[] sigmaFloat;
-  return result;
+template <typename T>
+int sddCall(char jobz, int m, int n, T *a, int lda,
+            typename hmat::Types<T>::real *sigma, T *u, int ldu, T *vt,
+            int ldvt) {
+  return proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt);
 }
 
-template<> int sddCall<hmat::D_t>(char jobz, int m, int n, hmat::D_t* a, int lda,
-                            double* sigma, hmat::D_t* u, int ldu, hmat::D_t* vt, int ldvt) {
-  int workSize;
-  hmat::D_t workSize_D;
-  int result;
-  int* iwork = new int[8*min(m, n)];
+template int svdCall(char jobu, char jobv, int m, int n, S_t *a, int lda,
+                     S_t *sigma, S_t *u, int ldu, S_t *vt, int ldvt);
+template int svdCall(char jobu, char jobv, int m, int n, D_t *a, int lda,
+                     D_t *sigma, D_t *u, int ldu, D_t *vt, int ldvt);
+template int svdCall(char jobu, char jobv, int m, int n, C_t *a, int lda,
+                     S_t *sigma, C_t *u, int ldu, C_t *vt, int ldvt);
+template int svdCall(char jobu, char jobv, int m, int n, Z_t *a, int lda,
+                     D_t *sigma, Z_t *u, int ldu, Z_t *vt, int ldvt);
 
-  // We request the right size for WORK
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_D, -1, iwork);
-  HMAT_ASSERT(!result);
-  workSize = (int) workSize_D + 1;
-  hmat::D_t* work = new hmat::D_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize, iwork);
-  HMAT_ASSERT(!result);
-  delete[] work;
-  delete[] iwork;
-  return result;
-}
-
-template<> int sddCall<hmat::C_t>(char jobz, int m, int n, hmat::C_t* a, int lda,
-                            double* sigma, hmat::C_t* u, int ldu, hmat::C_t* vt, int ldvt) {
-  int result;
-  int workSize;
-  hmat::C_t workSize_C;
-  int p = min(m, n);
-  float* sigmaFloat = new float[p];
-  int* iwork = new int[8*p];
-
-  // We request the right size for WORK
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, &workSize_C, -1, iwork);
-  HMAT_ASSERT(!result);
-  workSize = (int) workSize_C.real() + 1;
-  hmat::C_t* work = new hmat::C_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigmaFloat, u, ldu, vt, ldvt, work, workSize, iwork);
-  HMAT_ASSERT(!result);
-  delete[] work;
-  delete[] iwork;
-
-  for (int i = 0; i < p; i++) {
-    sigma[i] = sigmaFloat[i];
-  }
-  delete[] sigmaFloat;
-  return result;
-}
-
-template<> int sddCall<hmat::Z_t>(char jobz, int m, int n, hmat::Z_t* a, int lda,
-                            double* sigma, hmat::Z_t* u, int ldu, hmat::Z_t* vt, int ldvt) {
-  int result;
-  int workSize;
-  hmat::Z_t workSize_Z;
-  int* iwork = new int[8*min(m,n)];
-
-  // We request the right size for WORK
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, &workSize_Z, -1, iwork);
-  HMAT_ASSERT(!result);
-  workSize = (int) workSize_Z.real() + 1;
-  hmat::Z_t* work = new hmat::Z_t[workSize];
-  HMAT_ASSERT(work) ;
-  result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt, work, workSize, iwork);
-  HMAT_ASSERT(!result);
-  delete[] work;
-  delete[] iwork;
-  return result;
-}
-
+template int sddCall(char jobz, int m, int n, S_t* a, int lda, S_t* sigma, S_t* u, int ldu, S_t* vt, int ldvt);
+template int sddCall(char jobz, int m, int n, D_t* a, int lda, D_t* sigma, D_t* u, int ldu, D_t* vt, int ldvt);
+template int sddCall(char jobz, int m, int n, C_t* a, int lda, S_t* sigma, C_t* u, int ldu, C_t* vt, int ldvt);
+template int sddCall(char jobz, int m, int n, Z_t* a, int lda, D_t* sigma, Z_t* u, int ldu, Z_t* vt, int ldvt);
 }  // end namespace hmat
