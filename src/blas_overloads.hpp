@@ -29,19 +29,24 @@
 #include <assert.h>
 #include "data_types.hpp"
 
-#define armpl_singlecomplex_t hmat::C_t
-#define armpl_doublecomplex_t hmat::Z_t
-
 #ifdef HAVE_MKL_CBLAS_H
-#define MKL_Complex8 hmat::C_t
-#define MKL_Complex16 hmat::Z_t
-#include <mkl_cblas.h>
+  #define MKL_Complex8 hmat::C_t
+  #define MKL_Complex16 hmat::Z_t
+  #include <mkl_lapacke.h>
 #else
-#include <cblas.h>
-#endif
-
-#ifdef HAVE_MKL_IMATCOPY
-#include <mkl_trans.h>
+  #define armpl_singlecomplex_t hmat::C_t
+  #define armpl_doublecomplex_t hmat::Z_t
+  #define lapack_complex_float hmat::C_t
+  #define lapack_complex_double hmat::Z_t
+  // OpenBLAS have a dirty lapack_make_complex_float in a public header
+  #ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+  #endif
+  #include <lapacke.h>
+  #ifdef __clang__
+    #pragma clang diagnostic pop
+  #endif
 #endif
 
 namespace proxy_cblas {
