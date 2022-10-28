@@ -93,7 +93,8 @@ const EnvVar env;
      \param epsilon tolerance.
      \return int the number of singular values to keep.
  */
-int findK(hmat::Vector<double> &sigma, double epsilon) {
+template <typename T>
+int findK(hmat::Vector<T> &sigma, double epsilon) {
   assert(epsilon >= 0.);
   double threshold_eigenvalue = 0.0;
   if (env.sumCriterion) {
@@ -118,7 +119,7 @@ struct SigmaPrinter {
   SigmaPrinter() {
     enabled = getenv("HMAT_PRINT_SIGMA") != nullptr;
   }
-  void print(const hmat::Vector<double> & sigma) const {
+  template <typename T> void print(const hmat::Vector<T> & sigma) const {
     if(!enabled)
       return;
     // Use a buffer and printf for better output in multi-thread
@@ -893,23 +894,14 @@ void ScalarArray<T>::inverse() {
   }
   info = proxy_lapack::getrf(rows, cols, ptr(), lda, ipiv);
   HMAT_ASSERT(!info);
-  // We call it twice: the first time to know the optimal size of
-  // temporary arrays, and the second time for real calculation.
-  int workSize;
-  T workSize_req;
-  info = proxy_lapack::getri(rows, ptr(), lda, ipiv, &workSize_req, -1);
-  workSize = (int) real(workSize_req) + 1;
-  T* work = new T[workSize];
-  HMAT_ASSERT(work);
-  info = proxy_lapack::getri(rows, ptr(), lda, ipiv, work, workSize);
-  delete[] work;
+  info = proxy_lapack::getri(rows, ptr(), lda, ipiv);
   if (info)
     throw LapackException("getri", info);
   delete[] ipiv;
 }
 
 template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
-  Vector<double>* sigma = NULL;
+  Vector<typename Types<T>::real>* sigma = NULL;
 
   svdDecomposition(u, &sigma, v, workAroundFailures);
   sigmaPrinter.print(*sigma);
@@ -941,7 +933,11 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   return newK;
 }
 
-  template<typename T> int ScalarArray<T>::svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures) const {
+template <typename T>
+int ScalarArray<T>::svdDecomposition(ScalarArray<T> **u,
+                                     Vector<typename Types<T>::real> **sigma,
+                                     ScalarArray<T> **v,
+                                     bool workAroundFailures) const {
   DECLARE_CONTEXT;
   Timeline::Task t(Timeline::SVD, &rows, &cols);
   (void)t;
@@ -949,7 +945,7 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   int p = std::min(rows, cols);
 
   *u = new ScalarArray<T>(rows, p, false);
-  *sigma = new Vector<double>(p);
+  *sigma = new Vector<typename Types<T>::real>(p);
   *v = new ScalarArray<T>(p, cols, false); // We create v in transposed shape (as expected by lapack zgesvd)
 
   // To be prepared for working around a failure in SVD, I must do a copy of 'this'
@@ -1082,18 +1078,7 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
     size_t additions = mm * n * n + (n * n * n) / 3 + 2 * mm * n - (n * n) / 2 + (5 * n) / 6;
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
-  int info;
-  int workSize;
-  T workSize_S;
-  // int info = LAPACKE_sgeqrf(LAPACK_COL_MAJOR, rows, cols, m, rows, *tau);
-  info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau, &workSize_S, -1);
-  HMAT_ASSERT(!info);
-  workSize = (int) hmat::real(workSize_S) + 1;
-  T* work = new T[workSize];// TODO Mettre dans la pile ??
-  HMAT_ASSERT(work) ;
-  info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau, work, workSize);
-  delete[] work;
-
+  int info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau);
   HMAT_ASSERT(!info);
 
   // Copy the 'r' factor in the upper part of resultR
@@ -1147,9 +1132,6 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   Timeline::Task t(Timeline::PRODUCTQ, &cols, &c->rows, &c->cols);
   (void)t;
   assert((side == 'L') ? rows == c->rows : rows == c->cols);
-  int info;
-  int workSize;
-  T workSize_req;
   {
     size_t _m = c->rows, _n = c->cols, _k = cols;
     size_t muls = 2 * _m * _n * _k - _n * _k * _k + 2 * _n * _k;
@@ -1164,24 +1146,8 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   memcpy(tau, const_ptr(0, cols-1), sizeof(T)*std::min(rows, cols));
 
   // We don't use c->ptr() on purpose, because c->is_ortho is preserved here (Q is orthogonal)
-  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, &workSize_req, -1);
+  int info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda);
   HMAT_ASSERT(!info);
-  workSize = (int) hmat::real(workSize_req) + 1;
-
-  // If the previous call to 'or_un_mqr' does not give us a large enough work
-  // space size, we set the latter to the count of rows or columns of the matrix
-  // depending on the value of 'side'. 
-  if(side == 'L') {
-    workSize = workSize < c->rows ? c->rows : workSize;
-  } else if(side == 'R') {
-    workSize = workSize < c->cols ? c->cols : workSize;
-  }
-
-  T* work = new T[workSize];
-  HMAT_ASSERT(work);
-  info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda, work, workSize);
-  HMAT_ASSERT(!info);
-  delete[] work;
   return 0;
 }
 
@@ -1370,7 +1336,7 @@ void ScalarArray<T>::multiplyWithDiagOrDiagInv(const ScalarArray<T>* d, bool inv
 }
 
 template<typename T>
-void ScalarArray<T>::multiplyWithDiag(const ScalarArray<double>* d) {
+void ScalarArray<T>::multiplyWithDiag(const ScalarArray<typename hmat::Types<T>::real>* d) {
   assert(d);
   assert(cols <= d->rows); // d can be larger than needed
   assert(d->cols==1);
@@ -1380,8 +1346,8 @@ void ScalarArray<T>::multiplyWithDiag(const ScalarArray<double>* d) {
     increment_flops(Multipliers<T>::mul * _rows * _cols);
   }
   for (int j = 0; j < cols; j++) {
-    T diag_val = T(d->get(j));
-    proxy_cblas::scal(rows, diag_val, m+j*lda, 1); // We don't use ptr() on purpose, because is_ortho is preserved here
+    // We don't use ptr() on purpose, because is_ortho is preserved here
+    proxy_cblas::scal(rows, d->get(j), m+j*lda, 1);
   }
 }
 

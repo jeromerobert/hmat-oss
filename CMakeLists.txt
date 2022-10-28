@@ -193,13 +193,17 @@ if (NOT MKL_FOUND)
             set(BLAS_FOUND ON)
             set(BLAS_LIBRARIES openblas)
             set(CBLAS_INCLUDE_DIR /usr/include/openblas)
-            set(LAPACK_LIBRARIES openblas)
+            set(LAPACKE_LIBRARIES openblas)
             unset(BLAS_LINKER_FLAGS)
         endif()
     endif()
     if(NOT is_debian_openblas)
         find_package(BLAS REQUIRED)
-        find_package(LAPACK REQUIRED)
+        find_package(LAPACKE)
+        if(NOT LAPACKE_FOUND)
+            find_package(PkgConfig)
+            pkg_check_modules (LAPACKE lapacke)
+        endif()
     endif()
 endif()
 
@@ -241,14 +245,14 @@ endif()
 target_include_directories(hmat PRIVATE ${CBLAS_INCLUDE_DIR})
 
 if(BUILD_SHARED_LIBS)
-    target_link_options(hmat PRIVATE "${LAPACK_LINKER_FLAGS};${BLAS_LINKER_FLAGS}")
+    target_link_options(hmat PRIVATE "${BLAS_LINKER_FLAGS}")
 else()
-    set_target_properties(hmat PROPERTIES STATIC_LIBRARY_OPTIONS "${LAPACK_LINKER_FLAGS};${BLAS_LINKER_FLAGS}")
+    set_target_properties(hmat PROPERTIES STATIC_LIBRARY_OPTIONS "${BLAS_LINKER_FLAGS}")
 endif()
 
 target_link_libraries(hmat
     PRIVATE
-        ${LAPACK_LIBRARIES}
+        ${LAPACKE_LIBRARIES}
         ${CBLAS_LIBRARIES}
         ${BLAS_LIBRARIES}
 )

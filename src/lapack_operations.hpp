@@ -29,11 +29,14 @@
 
 namespace hmat {
 
-  template<typename T> int sddCall(char jobz, int m, int n, T* a, int lda,
-                                   double* sigma, T* u, int ldu, T* vt, int ldvt);
-  template<typename T> int svdCall(char jobu, char jobv, int m, int n, T* a,
-                                   int lda, double* sigma, T* u, int ldu, T* vt,
-                                   int ldvt);
+template <typename T>
+int sddCall(char jobz, int m, int n, T *a, int lda,
+            typename hmat::Types<T>::real *sigma, T *u, int ldu, T *vt,
+            int ldvt);
+template <typename T>
+int svdCall(char jobu, char jobv, int m, int n, T *a, int lda,
+            typename hmat::Types<T>::real *sigma, T *u, int ldu, T *vt,
+            int ldvt);
 
 }  // end namespace hmat
 

@@ -385,7 +385,7 @@ public:
       \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
       \return 0 for success, lapack error code otherwise.
    */
-  int svdDecomposition(ScalarArray<T>** u, Vector<double>** sigma, ScalarArray<T>** v, bool workAroundFailures=false) const;
+  int svdDecomposition(ScalarArray<T>** u, Vector<typename Types<T>::real>** sigma, ScalarArray<T>** v, bool workAroundFailures=false) const;
 
   /** Makes an truncated SVD of 'this' with accuracy 'epsilon'.
 
@@ -497,7 +497,7 @@ public:
 
      \param d  D
   */
-  void multiplyWithDiag(const ScalarArray<double>* d) ;
+  void multiplyWithDiag(const ScalarArray<typename Types<T>::real>* d) ;
 
   /*! \brief Computes if 'this' has orthogonal columns
 
