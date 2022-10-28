@@ -23,11 +23,12 @@
 /* Declarations of LAPACK functions used by hmat*/
 #ifndef _LAPACK_OVERLOADS_HPP
 #define _LAPACK_OVERLOADS_HPP
+#include "config.h"
 
 #include "data_types.hpp"
 #include <algorithm>
 
-#ifdef HAVE_MKL_CBLAS_H
+#ifdef HAVE_MKL_H
   #define MKL_Complex8 hmat::C_t
   #define MKL_Complex16 hmat::Z_t
   #include <mkl_lapacke.h>
