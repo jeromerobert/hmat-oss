@@ -398,7 +398,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
   vector<Vector<dp_t>*> aCols;
   vector<Vector<dp_t>*> bCols;
 
-  int I = 0;
+  int row_index = 0;
   int J = 0;
   int k = 0;
 
@@ -408,9 +408,9 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
   do {
     Vector<dp_t>* bCol = new Vector<dp_t>(block.cols->size());
     // Calculation of row I and its residue
-    block.getRow(I, *bCol);
-    updateRow(*bCol, I, bCols, aCols, k);
-    rowFree[I] = false;
+    block.getRow(row_index, *bCol);
+    updateRow(*bCol, row_index, bCols, aCols, k);
+    rowFree[row_index] = false;
 
     // Find max and argmax of the residue
     double maxNorm2 = 0.;
@@ -423,8 +423,8 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
     }
 
     Pivot<dp_t > randomOrDefaultPivot = randomPivotManager.GetPivot();
-    if(I!=randomOrDefaultPivot.row_ && squaredNorm(randomOrDefaultPivot.value_) > maxNorm2){
-      I = randomOrDefaultPivot.row_;
+    if(row_index!=randomOrDefaultPivot.row_ && squaredNorm(randomOrDefaultPivot.value_) > maxNorm2){
+      row_index = randomOrDefaultPivot.row_;
       delete bCol;
       continue;
     }
@@ -432,9 +432,9 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
     if ((*bCol)[J] == dp_t(0)) {
       delete bCol;
       // We look for another row which has not already been used.
-      I = 0;
-      while (!rowFree[I]) {
-        I++;
+      row_index = 0;
+      while (!rowFree[row_index]) {
+        row_index++;
       }
     } else {
       // Find pivot and scale column B
@@ -446,7 +446,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
       Vector<dp_t>* aCol = new Vector<dp_t>(block.rows->size());
       block.getCol(J, *aCol);
       updateCol(*aCol, J, aCols, bCols, k);
-      randomPivotManager.AddUsedPivot(bCol, aCol, I, J);
+      randomPivotManager.AddUsedPivot(bCol, aCol, row_index, J);
       colFree[J] = false;
       aCols.push_back(aCol);
 
@@ -456,7 +456,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
         const double norm2 = squaredNorm<dp_t>((*aCol)[i]);
         if (rowFree[i] && norm2 > maxNorm2) {
           maxNorm2 = norm2;
-          I = i;
+          row_index = i;
         }
       }
 
@@ -487,7 +487,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
       }
     }
     rowPivotCount++;
-  } while (rowPivotCount < maxK && I < rowCount);
+  } while (rowPivotCount < maxK && row_index < rowCount);
 
   ScalarArray<dp_t> *newA, *newB;
   if (k != 0) {
