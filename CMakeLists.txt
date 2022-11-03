@@ -47,7 +47,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMake)
 
 if(NOT HMAT_VERSION)
     include(GitVersion)
-    git_version(HMAT 1.7.1)
+    git_version(HMAT 1.8.0)
 endif()
 set(HMAT_SO_VERSION 2)
 
