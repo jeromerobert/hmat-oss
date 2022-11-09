@@ -185,7 +185,7 @@ namespace trace {
       if (index != 0) {
         name = strdup("Worker #XXX - 0xXXXXXXXXXXXXXXXX"); // Worker ID - enclosing
         assert(name);
-        sprintf(name, "Worker #%03d - %p", index, enclosing); // Recuperer le nom de cet enclosing !
+        snprintf(name, strlen(name)+1, "Worker #%03d - %p", index, enclosing); // Recuperer le nom de cet enclosing !
       }
       current = new Node(name, NULL);
       currentNodes[index][enclosing] = current;
