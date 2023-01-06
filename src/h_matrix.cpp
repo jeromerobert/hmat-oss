@@ -930,12 +930,13 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       // In this case, the matrix has small size
       // then evaluating the Rk-matrix is cheaper
       FullMatrix<T>* rkMat = newRk->eval();
-      if(isFullMatrix()) {
-        full()->axpy(alpha, rkMat);
-        delete rkMat;
-      } else {
+      bool thisSuperSetb = this->rows()->isStrictSuperSet(*b->rows) || this->cols()->isStrictSuperSet(*b->cols);
+      if(full() == NULL && !thisSuperSetb) {
         rkMat->scale(alpha);
         full(rkMat);
+      } else {
+        this->axpy(alpha, rkMat);
+        delete rkMat;
       }
     }
     if (needResizing) {
@@ -948,9 +949,9 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
   DECLARE_CONTEXT;
+  bool bSuperSetThis = b->rows_->isStrictSuperSet(*this->rows()) || b->cols_->isStrictSuperSet(*this->cols());
+  bool thisSuperSetb = this->rows()->isStrictSuperSet(*b->rows_) || this->cols()->isStrictSuperSet(*b->cols_);
   // this += alpha * b
-  assert(b->rows_->isSuperSet(*this->rows()) && b->cols_->isSuperSet(*this->cols()));
-
   // If 'this' is not a leaf, we recurse with the same 'b'
   if (!this->isLeaf()) {
     for (int i = 0; i < this->nrChild(); i++) {
@@ -959,21 +960,31 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
         child->axpy(alpha, b);
     }
   } else {
-    const FullMatrix<T>* subMat = b->subset(rows(), cols());
+    const FullMatrix<T>* subMat = bSuperSetThis ? b->subset(rows(), cols()) : b;
     if (isRkMatrix()) {
+      assert(b->rows_->isSuperSet(*this->rows()) && b->cols_->isSuperSet(*this->cols()));
       if(!rk())
         rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
       rk()->axpy(lowRankEpsilon(), alpha, subMat);
       rank_ = rk()->rank();
-    } else if(isFullMatrix()){
-       full()->axpy(alpha, subMat);
     } else {
-       assert(!isAssembled() || full() == NULL);
-       full(subMat->copy());
-       if(alpha != T(1))
-         full()->scale(alpha);
+      if(isFullMatrix() || thisSuperSetb){
+        if(thisSuperSetb && full() == NULL) {
+          full(new FullMatrix<T>(this->rows(), this->cols()));
+        }
+        auto subThis = thisSuperSetb ? this->subset(b->rows_, b->cols_) : this;
+        subThis->full()->axpy(alpha, subMat);
+        if(thisSuperSetb)
+          delete subThis;
+      } else {
+        assert(!isAssembled() || full() == NULL);
+        full(subMat->copy());
+        if(alpha != T(1))
+          full()->scale(alpha);
+      }
     }
-    delete subMat;
+    if(bSuperSetThis)
+      delete subMat;
   }
 }
 
