@@ -185,7 +185,13 @@ namespace trace {
       if (index != 0) {
         name = strdup("Worker #XXX - 0xXXXXXXXXXXXXXXXX"); // Worker ID - enclosing
         assert(name);
-        snprintf(name, strlen(name)+1, "Worker #%03d - %p", index, enclosing); // Recuperer le nom de cet enclosing !
+#ifdef _MSC_VER
+        // old Visual C++ do not have snprintf
+        sprintf(name,
+#else
+        snprintf(name, strlen(name)+1,
+#endif
+        "Worker #%03d - %p", index, enclosing);
       }
       current = new Node(name, NULL);
       currentNodes[index][enclosing] = current;
