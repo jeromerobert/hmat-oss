@@ -419,8 +419,8 @@ template<typename T> void RkMatrix<T>::axpy(double epsilon, T alpha, const FullM
   formattedAddParts(epsilon, &alpha, &mat, 1);
 }
 
-template<typename T> void RkMatrix<T>::axpy(double epsilon, T alpha, const RkMatrix<T>* mat) {
-  formattedAddParts(epsilon, &alpha, &mat, 1);
+template<typename T> void RkMatrix<T>::axpy(double epsilon, T alpha, const RkMatrix<T>* mat, bool validRecomp ) {
+  formattedAddParts(epsilon, &alpha, &mat, 1, validRecomp);
 }
 
 /*! \brief Try to optimize the order of the Rk matrix to maximize initialPivot
@@ -629,8 +629,39 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
 
   assert(rankOffset==rankTotal);
   // If only one of the parts is non-zero, then the recompression is not necessary
-  if (notNullParts > 1 && epsilon >= 0)
-    truncate(epsilon, initialPivotA, initialPivotB);
+  if (notNullParts > 1 && epsilon >= 0){
+    if(HMatrix<T>::validateRecompression)
+      {
+        RkMatrix<T> *copy=RkMatrix<T>::copy();
+        clock_t t1=clock();
+        truncate(epsilon , initialPivotA , initialPivotB);
+        clock_t t2=clock()-t1;
+        clock_t t3=clock();
+        copy->acaTruncateTer(epsilon);
+        clock_t t4=clock()-t3;
+        ScalarArray<T> mat1(rows->size(), cols->size());
+        ScalarArray<T> mat2(rows->size(), cols->size());
+        mat1.gemm('N', 'T', 1, copy->a , copy->b , 0);
+        mat2.gemm('N', 'T', 1, a ,b , 0);
+        double norm_classic=mat2.norm();
+        for (int i = 0 ; i < rows->size() ; i++)
+        {
+          for (int j =0 ; j<cols->size() ; j++)
+          {
+            mat1.get(i,j)-=mat2.get(i,j);
+          }
+        }
+        std::cout<<std::scientific<<"test de recompression :\n"
+                  <<"||addClassic(R1,R2)-addToTest(R1,R2)||/||addClassic(R1,R2)|| ="<<mat1.norm()/norm_classic<<std::endl
+                  <<" rang avec méthode classique = "<<rank()<<std::endl
+                  <<" rang avec méthode testée = "<<copy->rank()<<std::endl
+                  <<" durée recompression méthode classique = "<<(double)t2/(CLOCKS_PER_SEC)<<" sec "<<std::endl
+                  <<" durée recompression méthode testée = "<<(double)t4/(CLOCKS_PER_SEC)<<" sec "<<std::endl;
+      }
+    
+    else
+      truncate(epsilon , initialPivotA , initialPivotB);    
+  }
 }
 
 template<typename T>

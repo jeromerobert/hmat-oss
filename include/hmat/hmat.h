@@ -1003,6 +1003,8 @@ typedef struct
   int validateNullRowCol;
   /*! \brief Validate the rk-matrices after compression */
   int validateCompression;
+
+  int validateRecompression;
   /*! \brief Dump trace at the end of the algorithms (depends on the runtime) */
   int dumpTrace;
   /*! \brief For blocks above error threshold, re-run the compression algorithm */

@@ -27,7 +27,7 @@
 #include "full_matrix.hpp"
 #include "compression.hpp"
 #include "common/my_assert.h"
-
+#include <iostream>
 namespace hmat {
 
 template<typename T> class HMatrix;
@@ -143,12 +143,13 @@ public:
       \param mat
    */
   void axpy(double epsilon, T alpha, const FullMatrix<T>* mat);
+  
   /** this <- this + alpha * mat
 
       \param alpha
       \param mat
    */
-  void axpy(double epsilon, T alpha, const RkMatrix<T>* mat);
+  void axpy(double epsilon, T alpha, const RkMatrix<T>* mat, bool validRecomp=false);
   /** Adds a list of RkMatrix to a RkMatrix.
 
       In this function, RkMatrix may include some
