@@ -151,6 +151,17 @@ public:
     CompressionAcaRandom* clone() const { return new CompressionAcaRandom(epsilon_); }
 };
 
+class CompressionRRQR : public CompressionAlgorithm
+{
+    public :
+        explicit CompressionRRQR (double epsilon) : CompressionAlgorithm(epsilon){}
+        CompressionRRQR* clone() const { return new CompressionRRQR(epsilon_); }
+        RkMatrix<Types<S_t>::dp>* compress(const ClusterAssemblyFunction<S_t>& block) const;
+        RkMatrix<Types<D_t>::dp>* compress(const ClusterAssemblyFunction<D_t>& block) const;
+        RkMatrix<Types<C_t>::dp>* compress(const ClusterAssemblyFunction<C_t>& block) const;
+        RkMatrix<Types<Z_t>::dp>* compress(const ClusterAssemblyFunction<Z_t>& block) const;
+    
+};
 
 template<typename T>
 RkMatrix<typename Types<T>::dp>*

@@ -1151,6 +1151,85 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   return 0;
 }
 
+template <typename T> void ScalarArray<T>::cpqrDecomposition(int **sigma, double **tau ,int *rank, double epsilon)
+{ 
+  double normSqr=0;
+  int iter=0;
+  int min_dim=std::min(cols , rows);
+  *sigma=(int*)malloc(min_dim*sizeof(int));
+  *tau=(double*)malloc(min_dim*sizeof(double));
+  char transA;
+  if(std::is_same<Z_t, T>::value || std::is_same<C_t, T>::value) transA='C';
+  else transA='T';
+  double normSqrCol[cols];
+  int pivot=0;
+  double max_norm=0;
+  for (int i = 0 ; i<cols ; i++)
+  {
+    Vector<T> col_i(*this , i);
+    normSqrCol[i]=col_i.normSqr();
+    if (max_norm < normSqrCol[i])
+    {
+      max_norm=normSqrCol[i];
+      pivot=i;
+    }
+    normSqr+=normSqrCol[i];
+  }
+  double norm_init=sqrt(normSqr);
+  while (sqrt(normSqr) > epsilon*norm_init && iter < min_dim)
+  {
+    (*sigma)[iter]=pivot;
+    T x1=get(iter , pivot); 
+    //Swap the columns and the coeficients of normSqrCol
+    
+    for (int i = 0 ; i<rows; i++ )
+    {
+      T tmp=get(i , iter);
+      get(i, iter)=get(i , pivot);
+      get(i , pivot)=tmp;
+    }
+    double tmp=normSqrCol[iter];
+    normSqrCol[iter]=normSqrCol[pivot];
+    normSqrCol[pivot]=tmp;
+    
+    //Construction of Householder vector
+
+    ScalarArray<T> remainder(*this , iter , rows-iter , iter , cols-iter);
+    Vector<T> v_house(rows-iter);
+    T mu=sqrt(normSqrCol[iter]);
+    T alpha=abs(x1)!=0 ? x1+(x1/abs(x1))*mu : mu;
+    v_house[0]=abs(x1)!=0 ? 1 : 0;
+    for (int i = 1 ; i<rows-iter ; i++)
+    {
+      v_house[i]=remainder.get(i,0)/alpha;
+    }
+
+    //Householder update (only changes the bottom right part of m[iter : , iter :]=remainder)
+    
+    double beta=(-2/v_house.normSqr());
+    (*tau)[iter]=beta;//needed to later re-construct Q from this
+    ScalarArray <T> w_house(1,cols-iter);
+    w_house.gemm(transA , 'N' , beta ,&v_house , &remainder ,  0);
+    remainder.rankOneUpdateT(1 , v_house , w_house);
+    max_norm=0;
+    for(int i = 1 ; i < cols-iter ; i++)
+    {
+      normSqrCol[i+iter]-=std::pow(abs(remainder.get(0 , i)),2);
+      normSqr-=std::pow(abs(remainder.get(0 , i)),2);
+      if(normSqrCol[i]>max_norm)
+      {
+        max_norm=normSqrCol[i+iter];
+        pivot=i+iter;
+      }
+    }
+    normSqr-=std::pow(abs(remainder.get(0,0)),2);
+    memcpy(&m[(iter)*rows+iter+1], &v_house.m[1] , (rows-iter-1)*sizeof(T));//storing v_house in the low part of this
+    iter++;
+  }
+  *sigma=(int*)realloc(*sigma , sizeof(int)*iter);
+  *rank=iter;
+  *tau=(double*)realloc(*tau, sizeof(double)*iter);
+}
 template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *result, double prec, int initialPivot ) {
   DECLARE_CONTEXT;
   Timeline::Task t(Timeline::MGS, &rows, &cols, &initialPivot);

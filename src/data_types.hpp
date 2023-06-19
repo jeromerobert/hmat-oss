@@ -132,6 +132,28 @@ return x_r*x_r + x_i*x_i;
 }
 
 template<typename T>
+T abs (const T x);
+
+
+
+template <>
+inline S_t abs(const S_t x){
+  return x>0 ? x : -x;
+}
+
+template <>
+inline D_t abs(const D_t x){
+  return x>0 ? x : -x;
+}
+template <>
+inline Z_t abs(const Z_t x){
+  return std::abs(x);
+}
+template <>
+inline C_t abs(const C_t x){
+  return std::abs(x);
+}
+template<typename T>
 T conj(const T x) {
   return x;
 }

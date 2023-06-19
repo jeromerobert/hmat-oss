@@ -791,6 +791,99 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
   return rk;
 }
 
+template <typename T>
+void rankRevealingQR(ScalarArray<T> &t , ScalarArray<T> * &a , ScalarArray<T> * &b , double epsilon)
+{
+  double *tau=new double; 
+  int *sigma=new int;
+  int rank;
+  int nb_row=t.rows;
+  int nb_col=t.cols;
+  t.cpqrDecomposition(&sigma, &tau, &rank , epsilon);
+  a=new ScalarArray<T> (nb_row , nb_row);
+  b=new ScalarArray<T> (nb_col , rank);
+  char transA;
+  if(std::is_same<Z_t, T>::value || std::is_same<C_t, T>::value) transA='C';
+  else transA='T';
+  for (int i = 0 ; i< nb_row ; i++)
+  {
+    a->get(i,i)=1;
+  }
+  //remplissage de b avec les rank premières ligne de R
+  for (int i = 0 ; i < rank ; i++)
+  {
+    for (int j =0 ; j<nb_col ; j++)
+    {
+      b->get(j,i)= j >= i ? t.get(i,j) : 0;
+    }
+  }
+  //calcul des rank premières colonnes de Q
+  for (int k = 0 ; k<rank ; k++)
+  {
+    //Construction of k-th full Houseolder vector
+    Vector<T> v_k(nb_row , true);
+    v_k[k]=1;
+    memcpy(&(v_k[k+1]), &(t.get(k+1,k)), (nb_row-k-1)*sizeof(T));
+    ScalarArray<T> w_k(1,nb_row);
+    double beta=tau[k];
+    w_k.gemm(transA , 'N' , beta ,  &v_k ,a, 0);
+    for (int i = k ; i < nb_row; i++)
+    {
+      for (int j = 0 ; j < nb_row ; j++)
+      {
+        a->get(i,j)+=v_k[i]*w_k.get(0,j);
+      }
+    }
+  }
+  a->transpose();
+  a->conjugate();
+  //Swapping the column of B according to sigma
+  for (int i = 0 ; i< rank ; i++)
+  {
+    for (int j = 0 ; j < rank ; j++)
+    {
+      T tmp=b->get(rank-i-1,j);
+      b->get(rank-i-1,j)=b->get(sigma[rank-1-i],j);
+      b->get(sigma[rank-i-1],j)=tmp;
+    }
+  }
+  delete(tau);
+  delete(sigma);  
+  a->resize(rank);
+}
+template <typename T>
+RkMatrix <T>* rankRevealingQR(FullMatrix<T> *m , double epsilon)
+{
+  ScalarArray<T> *A;
+  ScalarArray <T> *B;
+  rankRevealingQR(m->data , A , B , epsilon);
+  return new RkMatrix<T>(A , m->rows_ , B , m->cols_);
+}
+
+template<typename T> RkMatrix<typename Types<T>::dp>*
+doCompressionRRQR(const ClusterAssemblyFunction<T>& block, double eps) {
+  FullMatrix<typename Types<T>::dp> * m = block.assemble();
+  auto r = rankRevealingQR<typename Types<T>::dp>(m, eps);
+  delete m;
+  return r;
+}
+
+RkMatrix<Types<S_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<S_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
+RkMatrix<Types<D_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<D_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
+RkMatrix<Types<C_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<C_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
+RkMatrix<Types<Z_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<Z_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
 // Declaration of the used templates
 template RkMatrix<S_t>* truncatedSvd(FullMatrix<S_t>* m, double eps);
 template RkMatrix<D_t>* truncatedSvd(FullMatrix<D_t>* m, double eps);
@@ -807,6 +900,10 @@ template void acaFull(ScalarArray<D_t> &, ScalarArray<D_t>* &, ScalarArray<D_t>*
 template void acaFull(ScalarArray<C_t> &, ScalarArray<C_t>* &, ScalarArray<C_t>* &, double);
 template void acaFull(ScalarArray<Z_t> &, ScalarArray<Z_t>* &, ScalarArray<Z_t>* &, double);
 
+template RkMatrix<S_t>* rankRevealingQR(FullMatrix<S_t>* m, double eps);
+template RkMatrix<D_t>* rankRevealingQR(FullMatrix<D_t>* m, double eps);
+template RkMatrix<C_t>* rankRevealingQR(FullMatrix<C_t>* m, double eps);
+template RkMatrix<Z_t>* rankRevealingQR(FullMatrix<Z_t>* m, double eps);
 template RkMatrix<Types<S_t>::dp>* compress<S_t>(const CompressionAlgorithm* method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(const CompressionAlgorithm* method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
 template RkMatrix<Types<C_t>::dp>* compress<C_t>(const CompressionAlgorithm* method, const Function<C_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);

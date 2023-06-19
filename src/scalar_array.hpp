@@ -433,6 +433,7 @@ public:
       \return 0 for success
    */
   int productQ(char side, char trans, ScalarArray<T>* c) const;
+  void cpqrDecomposition(int **sigma, double **tau, int *rank,  double epsilon);
 
 
   /** @brief Wrapper for Lapack trmm with B=this */
