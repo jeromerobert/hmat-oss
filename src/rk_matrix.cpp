@@ -337,6 +337,39 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   b = newB;
 }
 
+template <typename T>
+void RkMatrix<T>::validateRecompression(double epsilon , int initialPivotA , int initialPivotB)
+{
+        RkMatrix<T> *copy=RkMatrix<T>::copy();
+        auto start1 = std::chrono::high_resolution_clock::now();
+        truncate(epsilon , initialPivotA , initialPivotB);
+        auto end1 = std::chrono::high_resolution_clock::now();
+        auto start2 = std::chrono::high_resolution_clock::now();
+        copy->truncateAlter(epsilon);
+        auto end2 = std::chrono::high_resolution_clock::now();
+        double exec_time_truncate=std::chrono::duration_cast<std::chrono::nanoseconds>(end1-start1).count();
+        double exec_time_truncateAlter=std::chrono::duration_cast<std::chrono::nanoseconds>(end2-start2).count();
+        exec_time_truncate*=1e-9;
+        exec_time_truncateAlter*=1e-9;
+        ScalarArray<T> mat1(rows->size(), cols->size());
+        ScalarArray<T> mat2(rows->size(), cols->size());
+        mat1.gemm('N', 'T', 1, copy->a , copy->b , 0);
+        mat2.gemm('N', 'T', 1, a ,b , 0);
+        double norm_classic=mat2.norm();
+        for (int i = 0 ; i < rows->size() ; i++)
+        {
+          for (int j =0 ; j<cols->size() ; j++)
+          {
+            mat1.get(i,j)-=mat2.get(i,j);
+          }
+        }
+        std::cout<<std::scientific<<"recompression test :\n"
+                  <<"||addClassic(R1,R2)-addToTest(R1,R2)||/||addClassic(R1,R2)|| ="<<mat1.norm()/norm_classic<<std::endl
+                  <<" rank with classical method = "<<rank()<<std::endl
+                  <<" rank with tested method = "<<copy->rank()<<std::endl
+                  <<" recompression time with classical method = "<<exec_time_truncate<<std::setprecision(9)<<" s"<<std::endl
+                  <<" recompression time with tested method = "<<exec_time_truncateAlter<<" s"<<std::endl;
+}
 template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
   if (rank() == 0) {
@@ -630,35 +663,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   assert(rankOffset==rankTotal);
   // If only one of the parts is non-zero, then the recompression is not necessary
   if (notNullParts > 1 && epsilon >= 0){
-    if(HMatrix<T>::validateRecompression)
-      {
-        RkMatrix<T> *copy=RkMatrix<T>::copy();
-        clock_t t1=clock();
-        truncate(epsilon , initialPivotA , initialPivotB);
-        clock_t t2=clock()-t1;
-        clock_t t3=clock();
-        copy->acaTruncateTer(epsilon);
-        clock_t t4=clock()-t3;
-        ScalarArray<T> mat1(rows->size(), cols->size());
-        ScalarArray<T> mat2(rows->size(), cols->size());
-        mat1.gemm('N', 'T', 1, copy->a , copy->b , 0);
-        mat2.gemm('N', 'T', 1, a ,b , 0);
-        double norm_classic=mat2.norm();
-        for (int i = 0 ; i < rows->size() ; i++)
-        {
-          for (int j =0 ; j<cols->size() ; j++)
-          {
-            mat1.get(i,j)-=mat2.get(i,j);
-          }
-        }
-        std::cout<<std::scientific<<"test de recompression :\n"
-                  <<"||addClassic(R1,R2)-addToTest(R1,R2)||/||addClassic(R1,R2)|| ="<<mat1.norm()/norm_classic<<std::endl
-                  <<" rang avec méthode classique = "<<rank()<<std::endl
-                  <<" rang avec méthode testée = "<<copy->rank()<<std::endl
-                  <<" durée recompression méthode classique = "<<(double)t2/(CLOCKS_PER_SEC)<<" sec "<<std::endl
-                  <<" durée recompression méthode testée = "<<(double)t4/(CLOCKS_PER_SEC)<<" sec "<<std::endl;
-      }
-    
+    if(HMatrix<T>::validateRecompression)validateRecompression(epsilon , initialPivotA , initialPivotB);
     else
       truncate(epsilon , initialPivotA , initialPivotB);    
   }

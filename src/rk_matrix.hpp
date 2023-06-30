@@ -28,6 +28,7 @@
 #include "compression.hpp"
 #include "common/my_assert.h"
 #include <iostream>
+#include <chrono>
 namespace hmat {
 
 template<typename T> class HMatrix;
@@ -131,6 +132,7 @@ public:
    */
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
   /** Add randomness to the RkMatrix */
+  void validateRecompression(double epsilon , int initialPivotA , int initialPivotB);
   void addRand(double epsilon);
   /*! \brief Return square of the Frobenius norm of the matrix.
 

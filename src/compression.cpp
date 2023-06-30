@@ -800,56 +800,32 @@ void rankRevealingQR(ScalarArray<T> &t , ScalarArray<T> * &a , ScalarArray<T> * 
   int nb_row=t.rows;
   int nb_col=t.cols;
   t.cpqrDecomposition(&sigma, &tau, &rank , epsilon);
-  a=new ScalarArray<T> (nb_row , nb_row);
-  b=new ScalarArray<T> (nb_col , rank);
-  char transA;
+  a=new ScalarArray<T> (nb_row , rank);
+  b=new ScalarArray<T> (rank , nb_col);
+  char transA='T';
   if(std::is_same<Z_t, T>::value || std::is_same<C_t, T>::value) transA='C';
-  else transA='T';
-  for (int i = 0 ; i< nb_row ; i++)
+  
+  //filling B with the first rank lines of R swapped according to sigma
+  
+  for (int i = 0 ; i < nb_col ; i++)
   {
-    a->get(i,i)=1;
+    memcpy(b->ptr(0,sigma[i]), t.ptr(0, i), sizeof(T)*(min((i+1),rank)));
   }
-  //remplissage de b avec les rank premières ligne de R
-  for (int i = 0 ; i < rank ; i++)
+  b->transpose();
+
+  //Computing the first rank columns of Q in a
+  
+  for (int i = 0 ; i< rank ; i++)a->get(i,i)=1;
+
+  for (int k = rank-1 ; k>=0 ; k--)//start from rank-1 because we make the product by H_1*H_2...H_rank
   {
-    for (int j =0 ; j<nb_col ; j++)
-    {
-      b->get(j,i)= j >= i ? t.get(i,j) : 0;
-    }
-  }
-  //calcul des rank premières colonnes de Q
-  for (int k = 0 ; k<rank ; k++)
-  {
-    //Construction of k-th full Houseolder vector
     Vector<T> v_k(nb_row , true);
     v_k[k]=1;
     memcpy(&(v_k[k+1]), &(t.get(k+1,k)), (nb_row-k-1)*sizeof(T));
-    ScalarArray<T> w_k(1,nb_row);
-    double beta=tau[k];
-    w_k.gemm(transA , 'N' , beta ,  &v_k ,a, 0);
-    for (int i = k ; i < nb_row; i++)
-    {
-      for (int j = 0 ; j < nb_row ; j++)
-      {
-        a->get(i,j)+=v_k[i]*w_k.get(0,j);
-      }
-    }
-  }
-  a->transpose();
-  a->conjugate();
-  //Swapping the column of B according to sigma
-  for (int i = 0 ; i< rank ; i++)
-  {
-    for (int j = 0 ; j < rank ; j++)
-    {
-      T tmp=b->get(rank-i-1,j);
-      b->get(rank-i-1,j)=b->get(sigma[rank-1-i],j);
-      b->get(sigma[rank-i-1],j)=tmp;
-    }
+    a->reflect(v_k, tau[k], transA);
   }
   delete(tau);
   delete(sigma);  
-  a->resize(rank);
 }
 template <typename T>
 RkMatrix <T>* rankRevealingQR(FullMatrix<T> *m , double epsilon)

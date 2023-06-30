@@ -1151,6 +1151,16 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   return 0;
 }
 
+
+template <typename T>
+void ScalarArray<T>::reflect(Vector<T> &v_house, double beta, char transA)
+{
+    assert(abs(beta) >= abs(std::numeric_limits<T>::epsilon()));
+    ScalarArray<T> w_house(1,cols);
+    w_house.gemm(transA , 'N' , beta ,  &v_house ,this, 0);
+    rankOneUpdateT(1,v_house, w_house);
+}
+
 template <typename T> void ScalarArray<T>::cpqrDecomposition(int **sigma, double **tau ,int *rank, double epsilon)
 { 
   double normSqr=0;
@@ -1158,6 +1168,11 @@ template <typename T> void ScalarArray<T>::cpqrDecomposition(int **sigma, double
   int min_dim=std::min(cols , rows);
   *sigma=(int*)malloc(min_dim*sizeof(int));
   *tau=(double*)malloc(min_dim*sizeof(double));
+  //sigma will be modifief each iteration to keep track of the columns transpositions
+  for (int i =0 ; i < cols ; i++)
+  {
+    (*sigma)[i]=i;
+  }
   char transA;
   if(std::is_same<Z_t, T>::value || std::is_same<C_t, T>::value) transA='C';
   else transA='T';
@@ -1178,20 +1193,20 @@ template <typename T> void ScalarArray<T>::cpqrDecomposition(int **sigma, double
   double norm_init=sqrt(normSqr);
   while (sqrt(normSqr) > epsilon*norm_init && iter < min_dim)
   {
-    (*sigma)[iter]=pivot;
     T x1=get(iter , pivot); 
-    //Swap the columns and the coeficients of normSqrCol
-    
-    for (int i = 0 ; i<rows; i++ )
-    {
-      T tmp=get(i , iter);
-      get(i, iter)=get(i , pivot);
-      get(i , pivot)=tmp;
-    }
-    double tmp=normSqrCol[iter];
+    //Swap the columns, the coeficients of normSqrCol and update sigma
+    T *tmp=(T*)malloc(sizeof(T)*rows);
+    memcpy(tmp, &get(0,iter), sizeof(T)*rows);
+    memcpy (&get(0,iter), &get(0,pivot), sizeof(T)*rows);
+    memcpy (&get(0,pivot), tmp, sizeof(T)*rows);
+    delete(tmp);
+    double tmp_d=normSqrCol[iter];
     normSqrCol[iter]=normSqrCol[pivot];
-    normSqrCol[pivot]=tmp;
-    
+    normSqrCol[pivot]=tmp_d;
+    int tmpInt=(*sigma)[iter];
+    (*sigma)[iter]=(*sigma)[pivot];
+    (*sigma)[pivot]=tmpInt;
+
     //Construction of Householder vector
 
     ScalarArray<T> remainder(*this , iter , rows-iter , iter , cols-iter);
@@ -1205,12 +1220,14 @@ template <typename T> void ScalarArray<T>::cpqrDecomposition(int **sigma, double
     }
 
     //Householder update (only changes the bottom right part of m[iter : , iter :]=remainder)
-    
     double beta=(-2/v_house.normSqr());
     (*tau)[iter]=beta;//needed to later re-construct Q from this
     ScalarArray <T> w_house(1,cols-iter);
     w_house.gemm(transA , 'N' , beta ,&v_house , &remainder ,  0);
     remainder.rankOneUpdateT(1 , v_house , w_house);
+
+    //norm udpate and determination of the next pivot
+
     max_norm=0;
     for(int i = 1 ; i < cols-iter ; i++)
     {
@@ -1226,7 +1243,6 @@ template <typename T> void ScalarArray<T>::cpqrDecomposition(int **sigma, double
     memcpy(&m[(iter)*rows+iter+1], &v_house.m[1] , (rows-iter-1)*sizeof(T));//storing v_house in the low part of this
     iter++;
   }
-  *sigma=(int*)realloc(*sigma , sizeof(int)*iter);
   *rank=iter;
   *tau=(double*)realloc(*tau, sizeof(double)*iter);
 }

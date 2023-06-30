@@ -66,6 +66,8 @@ void acaFull(ScalarArray<T> & m, ScalarArray<T>* & u, ScalarArray<T>* & v, doubl
 template<typename T>
 RkMatrix<T>* acaFull(FullMatrix<T>* m, double eps);
 
+template <typename T>
+RkMatrix<T>*rankRevealingQR(FullMatrix<T>*m , double eps);
 // Abstract class to compress a block into an RkMatrix.
 class CompressionAlgorithm
 {
