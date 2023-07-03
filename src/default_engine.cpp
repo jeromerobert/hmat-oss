@@ -58,6 +58,7 @@ static void setTemplatedParameters(const HMatSettings& s) {
   RkMatrix<T>::approx.coarseningEpsilon = s.coarseningEpsilon;
   HMatrix<T>::validateNullRowCol = s.validateNullRowCol;
   HMatrix<T>::validateCompression = s.validateCompression;
+  HMatrix<T>::validateRecompression = s.validateRecompression;
   HMatrix<T>::validationErrorThreshold = s.validationErrorThreshold;
   HMatrix<T>::validationReRun = s.validationReRun;
   HMatrix<T>::validationDump = s.validationDump;

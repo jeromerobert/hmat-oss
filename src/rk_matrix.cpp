@@ -33,8 +33,10 @@
 #include "common/my_assert.h"
 #include "common/timeline.hpp"
 #include "lapack_exception.hpp"
+#include <iomanip>
 
 #include <algorithm>
+#include <chrono>
 
 namespace hmat {
 
@@ -337,6 +339,100 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   b = newB;
 }
 
+template<typename T> 
+void RkMatrix<T>::truncateAlter(double epsilon)
+{
+  int *sigma_a=nullptr;
+  int *sigma_b=nullptr;
+  double *tau_a=nullptr;
+  double *tau_b=nullptr;
+  int rank_a;
+  int rank_b;
+  char transA='T';
+  if (std::is_same<T,C_t>::value || std::is_same<T,Z_t>::value) transA='C';
+  a->cpqrDecomposition(sigma_a, tau_a, &rank_a, epsilon);
+  b->cpqrDecomposition(sigma_b, tau_b, &rank_b, epsilon);
+  IndexSet row_(0,rank_a);
+  IndexSet col_(0,rank_b);
+  ScalarArray<T> coef(rank_a,rank_b,true);
+  ScalarArray<T> R_a(rank_a, rank(), true);
+  ScalarArray<T> R_b(rank_b, rank(), true);
+
+  //construction de R_a et R_b according to sigma_a and sigma_b
+
+  for (int j = 0 ; j < rank() ; j++)
+  {
+    memcpy(&R_a.get(0,sigma_a[j]), &a->get(0,j), sizeof(T)*std::min(j+1,rank_a));
+    memcpy(&R_b.get(0,sigma_b[j]), &b->get(0,j), sizeof(T)*std::min(j+1,rank_b));
+  }
+  delete sigma_a;
+  delete sigma_b;
+  coef.gemm('N', 'T', 1 , &R_a , &R_b , 0);
+  FullMatrix<T> midMat(&coef ,&row_ ,&col_);
+  RkMatrix<T> *RkMid=rankRevealingQR(&midMat , epsilon);
+  ScalarArray<T> *newA=new ScalarArray<T>(a->rows, RkMid->rank(), true);
+  ScalarArray<T>*newB=new ScalarArray<T>(b->rows, RkMid->rank(), true);
+  newA->copyMatrixAtOffset(RkMid->a , 0 , 0);
+  newB->copyMatrixAtOffset(RkMid->b , 0 , 0);
+
+  //product by Q_A and Q_B
+
+  for (int k = rank_a-1 ; k>=0 ; k--)
+  {
+    Vector<T> v_k(a->rows , true);
+    v_k[k]=1;
+    memcpy(&(v_k[k+1]), &(a->get(k+1,k)), (a->rows-k-1)*sizeof(T));
+    newA->reflect(v_k, tau_a[k], transA);
+  }
+  for (int k = rank_b-1 ; k>=0 ; k--)
+  {
+    Vector<T> v_k(b->rows , true);
+    v_k[k]=1;
+    memcpy(&(v_k[k+1]), &(b->get(k+1,k)), (b->rows-k-1)*sizeof(T));
+    newB->reflect(v_k, tau_b[k], transA);
+  }
+  delete tau_a;
+  delete tau_b;
+  delete a;
+  a=newA;
+  delete b;
+  b=newB;
+}
+
+template <typename T>
+void RkMatrix<T>::validateRecompression(double epsilon , int initialPivotA , int initialPivotB)
+{
+        RkMatrix<T> *copy=RkMatrix<T>::copy();
+        auto start1 = std::chrono::high_resolution_clock::now();
+        truncate(epsilon , initialPivotA , initialPivotB);
+        auto end1 = std::chrono::high_resolution_clock::now();
+        auto start2 = std::chrono::high_resolution_clock::now();
+        copy->truncateAlter(epsilon);
+        auto end2 = std::chrono::high_resolution_clock::now();
+        double exec_time_truncate=std::chrono::duration_cast<std::chrono::nanoseconds>(end1-start1).count();
+        double exec_time_truncateAlter=std::chrono::duration_cast<std::chrono::nanoseconds>(end2-start2).count();
+        exec_time_truncate*=1e-9;
+        exec_time_truncateAlter*=1e-9;
+        ScalarArray<T> mat1(rows->size(), cols->size());
+        ScalarArray<T> mat2(rows->size(), cols->size());
+        mat1.gemm('N', 'T', 1, copy->a , copy->b , 0);
+        mat2.gemm('N', 'T', 1, a ,b , 0);
+        double norm_classic=mat2.norm();
+        for (int i = 0 ; i < rows->size() ; i++)
+        {
+          for (int j =0 ; j<cols->size() ; j++)
+          {
+            mat1.get(i,j)-=mat2.get(i,j);
+          }
+        }
+        std::cout<<std::scientific<<"recompression test :\n"
+                  <<"||addClassic(R1,R2)-addToTest(R1,R2)||/||addClassic(R1,R2)|| ="<<mat1.norm()/norm_classic<<std::endl
+                  <<" rank with classical method = "<<rank()<<std::endl
+                  <<" rank with tested method = "<<copy->rank()<<std::endl
+                  <<" recompression time with classical method = "<<exec_time_truncate<<std::setprecision(9)<<" s"<<std::endl
+                  <<" recompression time with tested method = "<<exec_time_truncateAlter<<" s"<<std::endl;
+        delete copy;
+}
 template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
   if (rank() == 0) {
@@ -631,6 +727,11 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   // If only one of the parts is non-zero, then the recompression is not necessary
   if (notNullParts > 1 && epsilon >= 0)
     truncate(epsilon, initialPivotA, initialPivotB);
+  if (notNullParts > 1 && epsilon >= 0){
+    if(HMatrix<T>::validateRecompression)validateRecompression(epsilon , initialPivotA , initialPivotB);
+    else
+      truncate(epsilon , initialPivotA , initialPivotB);    
+  }
 }
 
 template<typename T>

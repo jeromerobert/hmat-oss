@@ -434,6 +434,28 @@ public:
    */
   int productQ(char side, char trans, ScalarArray<T>* c) const;
 
+/** 
+ this=(I-2v_house*v_house^t/(v_house^t*v_house)*this
+ make the reflection with reflectors v_house on this 
+*/
+  void reflect(Vector<T> &v_house, double beta, char transA);
+/**
+ Pivoted QR decomposition.
+ with this filled as in LAPACK geqp3
+
+ H_rank*...H_1*this=[R11 | R12]
+                    [  0 | R22]
+  with R11 triangular
+       ||R22||< epsilon*||this||
+ 
+    \param sigma the inverse permutation of the columns (use later to reconstuct R)
+    \param tau such that H_k=(I+tau[k]v_house*v_house^t) (as in LAPACK geqp3 and geqrf)
+    \param rank number of reflections
+    \param epsilon maximal relative norm for the residual 
+*/
+  void cpqrDecomposition(int * &sigma, double  * &tau, int *rank,  double epsilon);
+
+  void cpqrBlock( double **tau , int *rank, double epsilon);
 
   /** @brief Wrapper for Lapack trmm with B=this */
   void trmm(Side side, Uplo uplo, char transA, Diag diag, T alpha, const ScalarArray<T> * a);
@@ -537,6 +559,7 @@ public:
   public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
+    Vector(int _rows, bool b):ScalarArray<T>(_rows , 1 ,b){}
     /** \brief Create Vector with column 'col' of existing ScalarArray
      */
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}

@@ -77,6 +77,7 @@ public:
   bool coarsening; ///< Coarsen the matrix structure after assembly.
   bool validateNullRowCol; ///< Validate the detection of null rows and columns
   bool validateCompression; ///< Validate the rk-matrices after compression
+  bool validateRecompression;
   bool validationReRun; ///< For blocks above error threshold, re-run the compression algorithm
   bool dumpTrace; ///< Dump trace at the end of the algorithms (depends on the runtime)
   bool validationDump; ///< For blocks above error threshold, dump the faulty block to disk
@@ -88,7 +89,7 @@ private:
                    coarseningEpsilon(1e-4),
                    maxLeafSize(200),
                    coarsening(false),
-                   validateNullRowCol(false), validateCompression(false),
+                   validateNullRowCol(false), validateCompression(false), validateRecompression(false),
                    validationReRun(false), dumpTrace(false), validationDump(false), validationErrorThreshold(0.) {
     setParameters();
   }

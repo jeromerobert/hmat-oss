@@ -250,6 +250,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
     settings->coarsening = settingsCxx.coarsening;
     settings->validateNullRowCol = settingsCxx.validateNullRowCol;
     settings->validateCompression = settingsCxx.validateCompression;
+    settingsCxx.validateRecompression=settings->validateRecompression;
     settings->validationErrorThreshold = settingsCxx.validationErrorThreshold;
     settings->validationReRun = settingsCxx.validationReRun;
     settings->dumpTrace = settingsCxx.dumpTrace;
@@ -267,6 +268,7 @@ int hmat_set_parameters(hmat_settings_t* settings)
     settingsCxx.coarsening = settings->coarsening;
     settingsCxx.validateNullRowCol = settings->validateNullRowCol;
     settingsCxx.validateCompression = settings->validateCompression;
+    settingsCxx.validateRecompression=settings->validateRecompression;
     settingsCxx.validationErrorThreshold = settings->validationErrorThreshold;
     settingsCxx.validationReRun = settings->validationReRun;
     settingsCxx.dumpTrace = settings->dumpTrace;
@@ -349,6 +351,9 @@ hmat_compression_algorithm_t* hmat_create_compression_aca_plus(double epsilon) {
 
 hmat_compression_algorithm_t* hmat_create_compression_aca_random(double epsilon) {
     return static_cast<hmat_compression_algorithm_t*>((void*) new hmat::CompressionAcaRandom(epsilon));
+}
+hmat_compression_algorithm_t* hmat_create_compression_rrqr(double epsilon) {
+    return reinterpret_cast<hmat_compression_algorithm_t*>(new hmat::CompressionRRQR(epsilon));
 }
 
 void hmat_delete_compression(const hmat_compression_algorithm_t* algo) {

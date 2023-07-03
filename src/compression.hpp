@@ -66,6 +66,11 @@ void acaFull(ScalarArray<T> & m, ScalarArray<T>* & u, ScalarArray<T>* & v, doubl
 template<typename T>
 RkMatrix<T>* acaFull(FullMatrix<T>* m, double eps);
 
+template<typename T>
+void rankRevealingQR(ScalarArray<T> & m, ScalarArray<T>* & u, ScalarArray<T>* & v, double eps);
+
+template <typename T>
+RkMatrix<T>*rankRevealingQR(FullMatrix<T>*m , double eps);
 // Abstract class to compress a block into an RkMatrix.
 class CompressionAlgorithm
 {
@@ -152,6 +157,17 @@ public:
 };
 
 
+class CompressionRRQR : public CompressionAlgorithm
+{
+    public :
+        explicit CompressionRRQR (double epsilon) : CompressionAlgorithm(epsilon){}
+        CompressionRRQR* clone() const { return new CompressionRRQR(epsilon_); }
+        RkMatrix<Types<S_t>::dp>* compress(const ClusterAssemblyFunction<S_t>& block) const;
+        RkMatrix<Types<D_t>::dp>* compress(const ClusterAssemblyFunction<D_t>& block) const;
+        RkMatrix<Types<C_t>::dp>* compress(const ClusterAssemblyFunction<C_t>& block) const;
+        RkMatrix<Types<Z_t>::dp>* compress(const ClusterAssemblyFunction<Z_t>& block) const;
+    
+};
 template<typename T>
 RkMatrix<typename Types<T>::dp>*
 compress(const CompressionAlgorithm* compression, const Function<T>& f,

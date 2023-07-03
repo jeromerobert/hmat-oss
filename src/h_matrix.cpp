@@ -50,6 +50,7 @@ template<typename T> bool HMatrix<T>::coarsening = false;
 template<typename T> bool HMatrix<T>::recompress = false;
 template<typename T> bool HMatrix<T>::validateNullRowCol = false;
 template<typename T> bool HMatrix<T>::validateCompression = false;
+template<typename T> bool HMatrix<T>::validateRecompression=false;
 template<typename T> bool HMatrix<T>::validationReRun = false;
 template<typename T> bool HMatrix<T>::validationDump = false;
 template<typename T> double HMatrix<T>::validationErrorThreshold = 0;
