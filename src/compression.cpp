@@ -791,6 +791,75 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
   return rk;
 }
 
+template <typename T>
+void rankRevealingQR(ScalarArray<T> &t , ScalarArray<T> * &a , ScalarArray<T> * &b , double epsilon)
+{
+  double *tau=nullptr; 
+  int *sigma=nullptr;
+  int rank;
+  int nb_row=t.rows;
+  int nb_col=t.cols;
+  t.cpqrDecomposition(sigma, tau, &rank , epsilon);
+  a=new ScalarArray<T> (nb_row , rank);
+  b=new ScalarArray<T> (rank , nb_col);
+  char transA='T';
+  if(std::is_same<Z_t, T>::value || std::is_same<C_t, T>::value) transA='C';
+  
+  //filling B with the first rank lines of R swapped according to sigma
+  
+  for (int i = 0 ; i < nb_col ; i++)
+  {
+    memcpy(b->ptr(0,sigma[i]), t.ptr(0, i), sizeof(T)*(min((i+1),rank)));
+  }
+  b->transpose();
+
+  //Computing the first rank columns of Q in a
+  
+  for (int i = 0 ; i< rank ; i++)a->get(i,i)=1;
+
+  for (int k = rank-1 ; k>=0 ; k--)//start from rank-1 because we make the product by H_1*H_2...H_rank
+  {
+    Vector<T> v_k(nb_row , true);
+    v_k[k]=1;
+    memcpy(&(v_k[k+1]), &(t.get(k+1,k)), (nb_row-k-1)*sizeof(T));
+    a->reflect(v_k, tau[k], transA);
+  }
+  delete tau;
+  delete sigma;  
+}
+template <typename T>
+RkMatrix <T>* rankRevealingQR(FullMatrix<T> *m , double epsilon)
+{
+  ScalarArray<T> *A;
+  ScalarArray <T> *B;
+  rankRevealingQR(m->data , A , B , epsilon);
+  return new RkMatrix<T>(A , m->rows_ , B , m->cols_);
+}
+
+template<typename T> RkMatrix<typename Types<T>::dp>*
+doCompressionRRQR(const ClusterAssemblyFunction<T>& block, double eps) {
+  FullMatrix<typename Types<T>::dp> * m = block.assemble();
+  auto r = rankRevealingQR<typename Types<T>::dp>(m, eps);
+  delete m;
+  return r;
+}
+
+RkMatrix<Types<S_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<S_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
+RkMatrix<Types<D_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<D_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
+RkMatrix<Types<C_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<C_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
+RkMatrix<Types<Z_t>::dp>*
+CompressionRRQR::compress(const ClusterAssemblyFunction<Z_t>& block) const {
+  return doCompressionRRQR(block, epsilon_);
+}
 // Declaration of the used templates
 template RkMatrix<S_t>* truncatedSvd(FullMatrix<S_t>* m, double eps);
 template RkMatrix<D_t>* truncatedSvd(FullMatrix<D_t>* m, double eps);
@@ -806,6 +875,11 @@ template void acaFull(ScalarArray<S_t> &, ScalarArray<S_t>* &, ScalarArray<S_t>*
 template void acaFull(ScalarArray<D_t> &, ScalarArray<D_t>* &, ScalarArray<D_t>* &, double);
 template void acaFull(ScalarArray<C_t> &, ScalarArray<C_t>* &, ScalarArray<C_t>* &, double);
 template void acaFull(ScalarArray<Z_t> &, ScalarArray<Z_t>* &, ScalarArray<Z_t>* &, double);
+
+template RkMatrix<S_t>* rankRevealingQR(FullMatrix<S_t>* m, double eps);
+template RkMatrix<D_t>* rankRevealingQR(FullMatrix<D_t>* m, double eps);
+template RkMatrix<C_t>* rankRevealingQR(FullMatrix<C_t>* m, double eps);
+template RkMatrix<Z_t>* rankRevealingQR(FullMatrix<Z_t>* m, double eps);
 
 template RkMatrix<Types<S_t>::dp>* compress<S_t>(const CompressionAlgorithm* method, const Function<S_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);
 template RkMatrix<Types<D_t>::dp>* compress<D_t>(const CompressionAlgorithm* method, const Function<D_t>& f, const ClusterData* rows, const ClusterData* cols, double epsilon, const AllocationObserver &);

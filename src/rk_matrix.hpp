@@ -131,6 +131,9 @@ public:
    */
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
   /** Add randomness to the RkMatrix */
+  void truncateAlter(double epsilon);
+
+  void validateRecompression(double epsilon , int initialPivotA , int initialPivotB);
   void addRand(double epsilon);
   /*! \brief Return square of the Frobenius norm of the matrix.
 

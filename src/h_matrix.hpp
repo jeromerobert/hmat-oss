@@ -627,6 +627,8 @@ public:
   static bool validateNullRowCol;
   /// Validate the rk-matrices after compression
   static bool validateCompression;
+
+  static bool validateRecompression;
   /// For blocks above error threshold, re-run the compression algorithm
   static bool validationReRun;
   /// For blocks above error threshold, dump the faulty block to disk
