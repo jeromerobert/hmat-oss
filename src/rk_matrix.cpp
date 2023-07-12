@@ -358,7 +358,7 @@ void RkMatrix<T>::truncateAlter(double epsilon)
   ScalarArray<T> R_a(rank_a, rank(), true);
   ScalarArray<T> R_b(rank_b, rank(), true);
 
-  //construction de R_a et R_b according to sigma_a and sigma_b
+  //construction of R_a and R_b according to sigma_a and sigma_b
 
   for (int j = 0 ; j < rank() ; j++)
   {
@@ -371,11 +371,11 @@ void RkMatrix<T>::truncateAlter(double epsilon)
   FullMatrix<T> midMat(&coef ,&row_ ,&col_);
   RkMatrix<T> *RkMid=rankRevealingQR(&midMat , epsilon);
   ScalarArray<T> *newA=new ScalarArray<T>(a->rows, RkMid->rank(), true);
-  ScalarArray<T>*newB=new ScalarArray<T>(b->rows, RkMid->rank(), true);
+  ScalarArray<T> *newB=new ScalarArray<T>(b->rows, RkMid->rank(), true);
   newA->copyMatrixAtOffset(RkMid->a , 0 , 0);
   newB->copyMatrixAtOffset(RkMid->b , 0 , 0);
 
-  //product by Q_A and Q_B
+  //product by Q_A and Q_B (can't we use LAPACK calls ?)
 
   for (int k = rank_a-1 ; k>=0 ; k--)
   {
@@ -728,7 +728,8 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   if (notNullParts > 1 && epsilon >= 0)
     truncate(epsilon, initialPivotA, initialPivotB);
   if (notNullParts > 1 && epsilon >= 0){
-    if(HMatrix<T>::validateRecompression)validateRecompression(epsilon , initialPivotA , initialPivotB);
+    if(HMatrix<T>::validateRecompression)
+      validateRecompression(epsilon , initialPivotA , initialPivotB);
     else
       truncate(epsilon , initialPivotA , initialPivotB);    
   }

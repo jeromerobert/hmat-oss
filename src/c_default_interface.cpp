@@ -250,7 +250,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
     settings->coarsening = settingsCxx.coarsening;
     settings->validateNullRowCol = settingsCxx.validateNullRowCol;
     settings->validateCompression = settingsCxx.validateCompression;
-    settingsCxx.validateRecompression=settings->validateRecompression;
+    settings->validateRecompression = settingsCxx.validateRecompression;
     settings->validationErrorThreshold = settingsCxx.validationErrorThreshold;
     settings->validationReRun = settingsCxx.validationReRun;
     settings->dumpTrace = settingsCxx.dumpTrace;

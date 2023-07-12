@@ -434,8 +434,8 @@ public:
    */
   int productQ(char side, char trans, ScalarArray<T>* c) const;
 
-/** 
- this=(I-2v_house*v_house^t/(v_house^t*v_house)*this
+/**
+ this=(I+beta.v_house*v_house^t)*this
  make the reflection with reflectors v_house on this 
 */
   void reflect(Vector<T> &v_house, double beta, char transA);
@@ -559,7 +559,7 @@ public:
   public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
-    Vector(int _rows, bool b):ScalarArray<T>(_rows , 1 ,b){}
+    Vector(int _rows, bool zeroinit):ScalarArray<T>(_rows , 1 , zeroinit){}
     /** \brief Create Vector with column 'col' of existing ScalarArray
      */
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}

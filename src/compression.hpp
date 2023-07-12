@@ -66,11 +66,14 @@ void acaFull(ScalarArray<T> & m, ScalarArray<T>* & u, ScalarArray<T>* & v, doubl
 template<typename T>
 RkMatrix<T>* acaFull(FullMatrix<T>* m, double eps);
 
+/** Compress m into rk matrix u.t^v using Rank Revealing QR method with eps accuracy */
 template<typename T>
 void rankRevealingQR(ScalarArray<T> & m, ScalarArray<T>* & u, ScalarArray<T>* & v, double eps);
 
+/** Compress m into rk matrix using Rank Revealing QR method with eps accuracy */
 template <typename T>
 RkMatrix<T>*rankRevealingQR(FullMatrix<T>*m , double eps);
+
 // Abstract class to compress a block into an RkMatrix.
 class CompressionAlgorithm
 {

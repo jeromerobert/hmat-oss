@@ -1005,6 +1005,7 @@ typedef struct
   int validateNullRowCol;
   /*! \brief Validate the rk-matrices after compression */
   int validateCompression;
+  /*! \brief Validate the rk-matrices recompression */
   int validateRecompression;
   /*! \brief Dump trace at the end of the algorithms (depends on the runtime) */
   int dumpTrace;

@@ -130,10 +130,11 @@ public:
       \param initialPivotA/B is the number of orthogonal columns in panels a and b
    */
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
-  /** Add randomness to the RkMatrix */
+  /** Recompress an RkMatrix in place using RRQR */
   void truncateAlter(double epsilon);
-
+  /** Recompress an RKMatrix in place and validate using an alternative RRQR-based method */
   void validateRecompression(double epsilon , int initialPivotA , int initialPivotB);
+  /** Add randomness to the RkMatrix */
   void addRand(double epsilon);
   /*! \brief Return square of the Frobenius norm of the matrix.
 
