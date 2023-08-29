@@ -1142,11 +1142,11 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
   // In qrDecomposition(), tau is stored in the last column of 'this'
   // it is not valid to work with 'tau' inside the array 'a' because zunmqr modifies 'a'
   // during computation. So we work on a copy of tau.
-  T tau[std::min(rows, cols)];
-  memcpy(tau, const_ptr(0, cols-1), sizeof(T)*std::min(rows, cols));
+  std::vector<T> tau(std::min(rows, cols));
+  memcpy(tau.data(), const_ptr(0, cols-1), sizeof(T)*std::min(rows, cols));
 
   // We don't use c->ptr() on purpose, because c->is_ortho is preserved here (Q is orthogonal)
-  int info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau, c->m, c->lda);
+  int info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau.data(), c->m, c->lda);
   HMAT_ASSERT(!info);
   return 0;
 }
@@ -1175,7 +1175,7 @@ template <typename T> void ScalarArray<T>::cpqrDecomposition(int * &sigma, doubl
   char transA;
   if(std::is_same<Z_t, T>::value || std::is_same<C_t, T>::value) transA='C';
   else transA='T';
-  double normSqrCol[cols];
+  std::vector<double> normSqrCol(cols);
   int pivot=0;
   double max_norm=0;
   for (int i = 0 ; i<cols ; i++)

@@ -638,7 +638,7 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
   // leaves. Note that this operation could be used hierarchically.
 
   bool allRkLeaves = true;
-  const RkMatrix<T>* childrenArray[this->nrChild()];
+  std::vector< RkMatrix<T> const* > childrenArray(this->nrChild());
   size_t childrenElements = 0;
   for (int i = 0; i < this->nrChild(); i++) {
     childrenArray[i] = nullptr;
@@ -657,7 +657,7 @@ bool HMatrix<T>::coarsen(double epsilon, HMatrix<T>* upper, bool force) {
   if (allRkLeaves) {
     std::vector<T> alpha(this->nrChild(), 1);
     RkMatrix<T> * candidate = new RkMatrix<T>(NULL, rows(), NULL, cols());
-    candidate->formattedAddParts(epsilon, &alpha[0], childrenArray, this->nrChild());
+    candidate->formattedAddParts(epsilon, &alpha[0], childrenArray.data(), this->nrChild());
     size_t elements = (((size_t) candidate->rows->size()) + candidate->cols->size()) * candidate->rank();
     if (force || elements < childrenElements) {
       // Replace 'this' by the new Rk matrix

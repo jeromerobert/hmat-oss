@@ -46,9 +46,9 @@ public:
   virtual ~AdmissibilityCondition() {}
 
   /*! \brief Precompute ClusterTree::cache_ */
-  virtual void prepare(const ClusterTree& rows, const ClusterTree& cols) const {}
+  virtual void prepare(const ClusterTree& /*rows*/, const ClusterTree& /*cols*/) const {}
   /*! \brief Clean up data which may be allocated by prepare  */
-  virtual void clean(const ClusterTree& rows, const ClusterTree& cols) const {}
+  virtual void clean(const ClusterTree& /*rows*/, const ClusterTree& /*cols*/) const {}
 
   /*! \brief Returns true if the block of interaction between 2 nodes has a
       low-rank representation.
