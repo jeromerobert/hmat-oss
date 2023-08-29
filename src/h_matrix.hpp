@@ -635,7 +635,7 @@ public:
   static bool validationDump;
   /// Error threshold for the compression validation
   static double validationErrorThreshold;
-  short isUpper:1, isLower:1,       /// symmetric, upper or lower stored
+  unsigned short isUpper:1, isLower:1,       /// symmetric, upper or lower stored
        isTriUpper:1, isTriLower:1, /// upper/lower triangular
        keepSameRows:1, keepSameCols:1,
        temporary_:1, ownRowsClusterTree_:1, ownColsClusterTree_:1;

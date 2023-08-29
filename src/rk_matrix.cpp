@@ -604,8 +604,8 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   DECLARE_CONTEXT;
 
   /* List of non-null and non-empty Rk matrices to coalesce, and the corresponding scaling coefficients */
-  const RkMatrix<T>* usedParts[n+1];
-  T usedAlpha[n+1];
+  std::vector< RkMatrix<T> const * > usedParts(n + 1);
+  std::vector<T> usedAlpha(n+1);
   /* Number of elements in usedParts[] */
   int notNullParts = 0;
   /* Sum of the ranks */
@@ -643,7 +643,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
     fullParts[0] = NULL ;
     for (int i = rank() ? 1 : 0 ; i < notNullParts; i++) // exclude usedParts[0] if it is 'this'
       fullParts[i] = usedParts[i]->eval();
-    formattedAddParts(std::abs(epsilon), usedAlpha, fullParts, notNullParts);
+    formattedAddParts(std::abs(epsilon), usedAlpha.data(), fullParts, notNullParts);
     for (int i = 0; i < notNullParts; i++)
       delete fullParts[i];
     delete[] fullParts;
@@ -657,7 +657,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   // Try to optimize the order of the Rk matrix to maximize initialPivot
   static char *useBestRk = getenv("HMAT_MGS_BESTRK");
   if (useBestRk)
-    optimizeRkArray(notNullParts, usedParts, usedAlpha, initialPivotA, initialPivotB);
+    optimizeRkArray(notNullParts, usedParts.data(), usedAlpha.data(), initialPivotA, initialPivotB);
 
   // According to the indices organization, the sub-matrices are
   // contiguous blocks in the "big" matrix whose columns offset is
@@ -669,7 +669,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   // Same for columns.
 
   // when possible realloc this a & b arrays to limit memory usage and avoid a copy
-  bool useRealloc = usedParts[0] == this && allSame(usedParts, notNullParts);
+  bool useRealloc = usedParts[0] == this && allSame(usedParts.data(), notNullParts);
   // concatenate a(i) then b(i) to limite memory usage
   ScalarArray<T>* resultA, *resultB;
   int rankOffset;
@@ -1113,8 +1113,7 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
     int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
     int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
     int nSubRks = nbRows * nbCols;
-    RkMatrix<T>* subRks[nSubRks];
-    std::fill_n(subRks, nSubRks, nullptr);
+    std::vector<RkMatrix<T>*> subRks(nSubRks, nullptr);
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
         int p = i + j * nbRows;
@@ -1137,9 +1136,8 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
     // This test is not needed, it is there only to workaround bogus warning from GCC 12:
     //   error: ‘<unknown>’ may be used uninitialized [-Werror=maybe-uninitialized]
     if (nSubRks > 0) {
-      T alphaV[nSubRks];
-      std::fill_n(alphaV, nSubRks, 1);
-      formattedAddParts(epsilon, alphaV, subRks, nSubRks);
+      std::vector<T> alphaV(nSubRks, 1);
+      formattedAddParts(epsilon, alphaV.data(), subRks.data(), nSubRks);
     }
     for (int i = 0; i < nSubRks; i++) {
       delete subRks[i];

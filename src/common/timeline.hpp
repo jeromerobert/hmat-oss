@@ -92,7 +92,9 @@ class Timeline {
             HMatrix<T> * block2 = NULL, HMatrix<T> * block3 = NULL){}
         template<typename T> Task(Operation op, ScalarArray<T> * block1,
             HMatrix<T> * block2 = NULL, ScalarArray<T> * block3 = NULL){}
-        Task(Operation op, const int *a=NULL, const int *b=NULL, const int *c=NULL, const int *d=NULL, const int *e=NULL) {}
+        Task(Operation op, const int *a=NULL, const int *b=NULL, const int *c=NULL, const int *d=NULL, const int *e=NULL) {
+            (void)op, (void)a, (void)b, (void)c, (void)d, (void)e; // unused
+        }
 #endif
     };
 
@@ -107,7 +109,9 @@ class Timeline {
      */
     void init(int numberOfWorker=1, int rank=0, bool onlyWorker = false);
 #else
-    void init(int numberOfWorker=1, int rank=0, bool onlyWorker = false){}
+    void init(int numberOfWorker=1, int rank=0, bool onlyWorker = false){
+        (void)numberOfWorker, (void)rank, (void)onlyWorker; // unused
+    }
 #endif
     /** Track pack and unpack */
     void setPackEnabled(bool);

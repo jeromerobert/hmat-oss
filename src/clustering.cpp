@@ -106,13 +106,13 @@ AxisAlignClusteringAlgorithm::largestDimension(const ClusterTree& node, int toAv
 const
 {
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(node);
-  int dimension = node.data.coordinates()->dimension();
-  std::pair<double, int> sizeDim[dimension];
+  const int dimension = node.data.coordinates()->dimension();
+  std::vector< std::pair<double, int> > sizeDim(dimension);
   for (int i = 0; i < dimension; i++) {
     sizeDim[i].second = i;
     sizeDim[i].first = bbox->bbMax()[i] - bbox->bbMin()[i];
   }
-  std::sort(sizeDim, sizeDim + dimension);
+  std::sort(sizeDim.data(), sizeDim.data() + dimension);
   if(toAvoid < 0 || dimension < 2 || sizeDim[dimension - 1].second != toAvoid ||
      sizeDim[dimension - 1].first > avoidRatio * sizeDim[dimension - 2].first)
     return sizeDim[dimension - 1].second;

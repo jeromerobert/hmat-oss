@@ -89,7 +89,7 @@ template<typename T> class ScalarArray {
 
 private:
   /*! True if the matrix owns its memory, ie has to free it upon destruction */
-  char ownsMemory:1;
+  unsigned char ownsMemory:1;
 protected:
   /// Fortran style pointer (columnwise)
   T* m;
@@ -98,7 +98,7 @@ protected:
   int *is_ortho;
 #endif
   /*! True if we own 'is_ortho' (there are cases where we own the flag and not the memory, with the constructor taking a 'T*' as input) */
-  char ownsFlag:1;
+  unsigned char ownsFlag:1;
 public:
   /// Number of rows
   int rows;
@@ -534,6 +534,8 @@ public:
     *is_ortho = flag;
     static char *test = getenv("HMAT_TEST_ORTHO");
     if (flag && test) assert(getOrtho() == testOrtho());
+#else
+    (void)flag; // unused
 #endif
   }
 

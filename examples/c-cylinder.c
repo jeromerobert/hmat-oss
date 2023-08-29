@@ -30,9 +30,14 @@ typedef std::complex<double> double_complex;
     std::complex<double>(realPart, imagPart)
 #else
 #include <complex.h>
+#ifdef _MSC_VER
+typedef _Dcomplex double_complex;
+#define make_complex(realPart, imagPart) _Cbuild(realPart, imagPart)
+#else
 typedef double complex double_complex;
 #define make_complex(realPart, imagPart) \
     realPart + imagPart * _Complex_I
+#endif
 #endif
 
 #include "hmat/hmat.h"

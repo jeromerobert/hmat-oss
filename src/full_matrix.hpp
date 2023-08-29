@@ -46,9 +46,9 @@ public:
   ScalarArray<T> data;
 private:
   /*! Is this matrix upper triangular? */
-  char triUpper_:1;
+  unsigned char triUpper_:1;
   /*! Is this matrix lower triangular? */
-  char triLower_:1;
+  unsigned char triLower_:1;
   /// Disallow the copy
   FullMatrix(const FullMatrix<T>& o);
 

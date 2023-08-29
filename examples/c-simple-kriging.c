@@ -32,7 +32,12 @@
 typedef std::complex<double> double_complex;
 #else
 #include <complex.h>
+#ifdef _MSC_VER
+typedef _Dcomplex double_complex;
+#define make_complex(realPart, imagPart) _Cbuild(realPart, imagPart)
+#else
 typedef double complex double_complex;
+#endif
 #endif
 #include "hmat/hmat.h"
 #include "examples.h"
@@ -42,7 +47,7 @@ typedef double complex double_complex;
 typedef SSIZE_T ssize_t;
 #endif
 
-#if _WIN32
+#ifdef _WIN32
 // getline is not defined in mingw
 #include <stdlib.h>
 size_t getline(char **lineptr, size_t *n, FILE *stream) {

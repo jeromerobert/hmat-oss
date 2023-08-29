@@ -165,7 +165,7 @@ static int findMinRow(const ClusterAssemblyFunction<T>& block,
 
   int rowCount = aRef.rows;
   double minNorm2;
-  int i_ref;
+  int i_ref = -1;
   bool found = false;
 
   while (!found) {
@@ -201,7 +201,7 @@ static int findMinCol(const ClusterAssemblyFunction<T>& block,
                       Vector<typename Types<T>::dp>& col) {
   int colCount = bRef.rows;
   double minNorm2;
-  int j_ref;
+  int j_ref = -1;
   bool found = false;
 
   while (!found) {

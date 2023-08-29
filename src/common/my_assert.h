@@ -69,7 +69,7 @@ HMAT_NORETURN inline static void hmat_assert(const char * format, ...) {
     abort();
 }
 
-#if defined(__cplusplus) && __cplusplus >= 201103L
+#if defined(__cplusplus)
 
 #include <stdexcept>
 #include <string>
