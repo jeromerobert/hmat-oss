@@ -6,7 +6,7 @@ jobs:
   linux-release-shared:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: sudo apt-get install -y liblapacke-dev
     - run: cmake -DBUILD_EXAMPLES=ON .
     - run: make -j$(nproc)
@@ -14,7 +14,7 @@ jobs:
   linux-debug-shared:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: sudo apt-get install -y liblapacke-dev
     - run: cmake -DBUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Debug .
     - run: make -j$(nproc)
@@ -22,7 +22,7 @@ jobs:
   linux-release-static:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: sudo apt-get install -y liblapacke-dev
     - run: cmake -DBUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=OFF .
     - run: make -j$(nproc)
@@ -33,7 +33,7 @@ jobs:
       CXX: clang++
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: sudo apt-get install -y liblapacke-dev
     - run: cmake -DBUILD_EXAMPLES=ON .
     - run: make -j$(nproc)
@@ -43,7 +43,7 @@ jobs:
     env:
       LDFLAGS: -L/usr/local/opt/openblas/lib
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: brew install openblas
     - run: cmake -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=/usr/local/opt/openblas/include .
     - run: make -j$(sysctl -n hw.logicalcpu)
@@ -62,8 +62,21 @@ jobs:
           mingw-w64-x86_64-openblas
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-ninja
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: cmake -GNinja -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=D:/a/_temp/msys64/mingw64/include/openblas .
     - run: ninja
     - run: ctest
-
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build
+        shell: cmd
+        run: |
+          curl -fsSLO https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23-x64.zip
+          7z x OpenBLAS-0.3.23-x64.zip
+          xcopy /f /y /s bin\libopenblas.dll .
+          cmake -LAH -G Ninja -DBUILD_EXAMPLES=ON -DBLAS_LIBRARIES=%cd:\=/%/lib/libopenblas.dll.a -DCBLAS_LIBRARIES=%cd:\=/%/lib/libopenblas.dll.a -DLAPACKE_LIBRARIES=%cd:\=/%/lib/libopenblas.dll.a -DCBLAS_INCLUDE_DIR=%cd:\=/%/include -DCMAKE_INSTALL_PREFIX=%cd:\=/%/install -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER=cl .
+          cmake --build . --target install --parallel 4
+          ctest --output-on-failure -V
