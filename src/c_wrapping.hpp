@@ -719,6 +719,19 @@ int solve_lower_triangular_dense(hmat_matrix_t* holder, int transpose, void* b, 
   return solve_generic<T, E>(holder, &ctx);
 }
 
+template<typename T, template <typename> class E>
+int solve_lower_triangular_mat(hmat_matrix_t* holder, int transpose, hmat_matrix_t* hmatB)
+{
+  DECLARE_CONTEXT;
+  try {
+      ((hmat::HMatInterface<T>*)holder)->solveLower(*(hmat::HMatInterface<T>*)hmatB, transpose);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
 template <typename T, template <typename> class E>
 hmat_matrix_t *get_child( hmat_matrix_t *hmatrix, int i, int j ) {
     DECLARE_CONTEXT;
@@ -892,6 +905,7 @@ static void createCInterface(hmat_interface_t * i)
     i->extract_diagonal_block = extract_diagonal_block<T, E>;
     i->solve_lower_triangular = solve_lower_triangular<T, E>;
     i->solve_lower_triangular_dense = solve_lower_triangular_dense<T, E>;
+    i->solve_lower_triangular_mat = solve_lower_triangular_mat<T, E>;
     i->assemble_generic = assemble_generic<T, E>;
     i->factorize_generic = factorize_generic<T, E>;
     i->get_values = get_values<T, E>;
