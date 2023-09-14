@@ -278,6 +278,12 @@ public:
       @warning A has to be factored first with \a HMatInterface<T>::factorize().
    */
   void solveLower(ScalarArray<T>& b, bool transpose=false) const;
+  /** Solve the system \f$op(L) x = b\f$ in place, with L being the lower triangular part of
+      an already factorized matrix, and b a HMatInterface<T>.
+
+      @warning A has to be factored first with \a HMatInterface<T>::factorize().
+   */
+  void solveLower(HMatInterface<T>& b, bool transpose=false) const;
   /** this <- alpha * this
    */
   void scale(T alpha);
