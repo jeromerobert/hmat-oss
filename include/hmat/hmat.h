@@ -983,6 +983,15 @@ typedef struct
     int (*solve_lower_triangular_dense)(hmat_matrix_t* hmatrix, int transpose, void* b, int nrhs);
 
     /**
+     * @brief Solve system op(L)*X=B
+       \warning There is no check to ensure that matrix has been factorized.
+     * \param hmatrix A hmatrix
+     * \param transpose if different from 0, transposed matrix is used
+     * \param b  hmatrix containing right-hand sides, overwritten by solution X at exit
+     */
+    int (*solve_lower_triangular_mat)(hmat_matrix_t* hmatrix, int transpose, hmat_matrix_t* b);
+
+    /**
      * @brief Extract and uncompress a block of the matrix.
      * After calling this function row_indices and col_indices will contains the
      * indices of the extract block.
