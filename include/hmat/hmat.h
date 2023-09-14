@@ -609,6 +609,24 @@ struct hmat_get_values_context_t {
     int renumber_rows:1;
 };
 
+struct hmat_solve_context_t {
+    /** HMAT right hand side */
+    hmat_matrix_t* matrix;
+    /** Dense right hand side */
+    void* dense;
+    int nrhs;
+    int renumber_rows:1; /* If true renumber rows */
+    /** Solve AX = B or tAX = B */
+    int transpose:1;
+    /** Solve AX = B or LX = B (only for LLt factorization) */
+    int lower:1;
+    /** NULL disable progress display. The default is to use the hmat progress internal implementation. */
+    hmat_progress_t * progress;
+};
+
+/** Init a hmat_solve_context_t with default values, all values to 0 */
+HMAT_API void hmat_solve_context_init(struct hmat_solve_context_t * context);
+
 /* Opaque pointer */
 typedef struct
 {
@@ -937,6 +955,14 @@ typedef struct
      * \param nrhs number of right-hand sides
      */
     int (*solve_lower_triangular_dense)(hmat_matrix_t* hmatrix, int transpose, void* b, int nrhs);
+
+    /**
+     * @brief Solve system op(A)*X=B
+       \warning There is no check to ensure that matrix has been factorized.
+     * \param hmatrix A hmatrix
+     * \param b  hmatrix containing right-hand sides, overwritten by solution X at exit
+     */
+    int (*solve_generic)(hmat_matrix_t* matrix, struct hmat_solve_context_t * ctx);
 
     /**
      * @brief Extract and uncompress a block of the matrix.

@@ -158,6 +158,37 @@ int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
 }
 
 template<typename T, template <typename> class E>
+int solve_generic(hmat_matrix_t* holder, struct hmat_solve_context_t * ctx) {
+    DECLARE_CONTEXT;
+    hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+    try {
+        HMAT_ASSERT_MSG((ctx->dense == nullptr) != (ctx->matrix == nullptr), "dense or matrix must be set in hmat_solve_context_t");
+        HMAT_ASSERT_MSG(ctx->lower || !ctx->transpose, "transpose can be set only when lower is true");
+        if(ctx->dense != NULL) {
+            hmat::ScalarArray<T> mb((T*) ctx->dense, hmat->cols()->size(), ctx->nrhs);
+            int* indices = ctx->transpose ? hmat->rows()->indices() : hmat->cols()->indices();
+            if (ctx->renumber_rows)
+                hmat::reorderVector<T>(&mb, indices, 0);
+            if (ctx->lower)
+                hmat->solveLower(mb, ctx->transpose);
+            else
+                hmat->solve(mb);
+            if (ctx->renumber_rows)
+                hmat::restoreVectorOrder<T>(&mb, indices, 0);
+        } else {
+            HMAT_ASSERT_MSG(!ctx->renumber_rows, "renumber_rows is used only for dense right hand sides");
+            HMAT_ASSERT_MSG(!ctx->lower, "lower is used only for dense right hand sides");
+            hmat::HMatInterface<T>* hmatrixB = (hmat::HMatInterface<T>*) ctx->matrix;
+            hmat->solve(*hmatrixB);
+        }
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
+    return 0;
+}
+
+template<typename T, template <typename> class E>
 int finalize() {
   DECLARE_CONTEXT;
   E<T>::finalize();
@@ -871,6 +902,7 @@ static void createCInterface(hmat_interface_t * i)
     i->gemm_dense = gemm_dense<T, E>;
     i->vector_reorder = vector_reorder<T, E>;
     i->vector_restore = vector_restore<T, E>;
+    i->solve_generic = solve_generic<T, E>;
 }
 
 }  // end namespace hmat
