@@ -238,6 +238,18 @@ void DefaultEngine<T>::solveLower(ScalarArray<T>& b, Factorization algo, bool tr
   }
 }
 
+template<typename T>
+void DefaultEngine<T>::solveLower(IEngine<T>& b, Factorization algo, bool transpose) const {
+  // solveLower is well defined only for LLT (and maybe HODLRSYM?).
+  // With LDLT, should we divide by sqrt(diag)?
+  // With LU if transpose is true, do we want to solve L^T X = B or U X = B?
+  HMAT_ASSERT_MSG(algo == Factorization::LLT, "solveLower only supported by LLt factorization.");
+  if (transpose)
+    this->hmat->solveUpperTriangularLeft(b.hmat, algo, Diag::NONUNIT, Uplo::LOWER);
+  else
+    this->hmat->solveLowerTriangularLeft(b.hmat, algo, Diag::NONUNIT, Uplo::LOWER);
+}
+
 template<typename T> void DefaultEngine<T>::copy(IEngine<T> & result, bool structOnly) const {
     result.hmat = this->hmat->copyStructure();
     if(!structOnly)

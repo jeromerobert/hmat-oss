@@ -500,45 +500,66 @@ int vector_restore(void* vec_b, const hmat_cluster_tree_t *rows_ct, int rows, co
 }
 
 template<typename T, template <typename> class E>
-int solve_mat(hmat_matrix_t* hmat, hmat_matrix_t* hmatB) {
+int solve_generic(hmat_matrix_t* holder, const struct hmat_solve_context_t* context) {
+  HMAT_ASSERT_MSG(!(context->lower && context->upper),
+                  "lower and upper cannot both be true in hmat_solve_context_t");
   DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
   try {
-      ((hmat::HMatInterface<T>*)hmat)->solve(*(hmat::HMatInterface<T>*)hmatB);
+      if (context->nr_rhs == 0) {
+          // B is an HMatrix
+          hmat::HMatInterface<T>* hmatB = (hmat::HMatInterface<T>*)context->values;
+          if (context->lower)
+              hmat->solveLower(*hmatB, false);
+          else if (context->upper)
+              hmat->solveLower(*hmatB, true);
+          else
+              hmat->solve(*hmatB);
+      } else {
+          hmat::ScalarArray<T> mb((T*)context->values, hmat->cols()->size(), context->nr_rhs);
+          if (!context->no_permutation)
+              hmat::reorderVector<T>(&mb, context->upper ? hmat->rows()->indices() : hmat->cols()->indices(), 0);
+          if (context->lower)
+              hmat->solveLower(mb, false);
+          else if (context->upper)
+              hmat->solveLower(mb, true);
+          else
+              hmat->solve(mb);
+          if (!context->no_permutation)
+              hmat::restoreVectorOrder<T>(&mb, context->upper ? hmat->rows()->indices() : hmat->cols()->indices(), 0);
+      }
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;
   }
   return 0;
+}
+
+template<typename T, template <typename> class E>
+int solve_mat(hmat_matrix_t* holder, hmat_matrix_t* hmatB) {
+  struct hmat_solve_context_t ctx;
+  hmat_solve_context_init(&ctx);
+  ctx.values = hmatB;
+  return solve_generic<T, E>(holder, &ctx);
 }
 
 template<typename T, template <typename> class E>
 int solve_systems(hmat_matrix_t* holder, void* b, int nrhs) {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
-  try {
-      hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-      hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
-      hmat->solve(mb);
-      hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
-  } catch (const std::exception& e) {
-      fprintf(stderr, "%s\n", e.what());
-      return 1;
-  }
-  return 0;
+  struct hmat_solve_context_t ctx;
+  hmat_solve_context_init(&ctx);
+  ctx.values = b;
+  ctx.nr_rhs = nrhs;
+  return solve_generic<T, E>(holder, &ctx);
 }
 
 template<typename T, template <typename> class E>
 int solve_dense(hmat_matrix_t* holder, void* b, int nrhs) {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
-  try {
-      hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-      hmat->solve(mb);
-  } catch (const std::exception& e) {
-      fprintf(stderr, "%s\n", e.what());
-      return 1;
-  }
-  return 0;
+  struct hmat_solve_context_t ctx;
+  hmat_solve_context_init(&ctx);
+  ctx.values = b;
+  ctx.nr_rhs = nrhs;
+  ctx.no_permutation = 1;
+  return solve_generic<T, E>(holder, &ctx);
 }
 
 template<typename T, template <typename> class E>
@@ -648,39 +669,30 @@ int extract_diagonal(hmat_matrix_t* holder, void* diag, int size)
 template<typename T, template <typename> class E>
 int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nrhs)
 {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
-  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-  try {
-      if (transpose)
-        hmat::reorderVector<T>(&mb, hmat->rows()->indices(), 0);
-      else
-        hmat::reorderVector<T>(&mb, hmat->cols()->indices(), 0);
-      hmat->solveLower(mb, transpose);
-      if (transpose)
-        hmat::restoreVectorOrder<T>(&mb, hmat->rows()->indices(), 0);
-      else
-        hmat::restoreVectorOrder<T>(&mb, hmat->cols()->indices(), 0);
-  } catch (const std::exception& e) {
-      fprintf(stderr, "%s\n", e.what());
-      return 1;
-  }
-  return 0;
+  struct hmat_solve_context_t ctx;
+  hmat_solve_context_init(&ctx);
+  ctx.values = b;
+  ctx.nr_rhs = nrhs;
+  if (transpose)
+     ctx.upper = 1;
+  else
+     ctx.lower = 1;
+  return solve_generic<T, E>(holder, &ctx);
 }
 
 template<typename T, template <typename> class E>
 int solve_lower_triangular_dense(hmat_matrix_t* holder, int transpose, void* b, int nrhs)
 {
-  DECLARE_CONTEXT;
-  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
-  hmat::ScalarArray<T> mb((T*) b, hmat->cols()->size(), nrhs);
-  try {
-      hmat->solveLower(mb, transpose);
-  } catch (const std::exception& e) {
-      fprintf(stderr, "%s\n", e.what());
-      return 1;
-  }
-  return 0;
+  struct hmat_solve_context_t ctx;
+  hmat_solve_context_init(&ctx);
+  ctx.values = b;
+  ctx.nr_rhs = nrhs;
+  ctx.no_permutation = 1;
+  if (transpose)
+     ctx.upper = 1;
+  else
+     ctx.lower = 1;
+  return solve_generic<T, E>(holder, &ctx);
 }
 
 template <typename T, template <typename> class E>
@@ -840,6 +852,7 @@ static void createCInterface(hmat_interface_t * i)
     i->norm = norm<T, E>;
     i->logdet = logdet<T, E>;
     i->scale = scale<T, E>;
+    i->solve_generic = solve_generic<T, E>;
     i->solve_mat = solve_mat<T, E>;
     i->solve_systems = solve_systems<T, E>;
     i->solve_dense = solve_dense<T, E>;

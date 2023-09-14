@@ -609,6 +609,40 @@ struct hmat_get_values_context_t {
     int renumber_rows:1;
 };
 
+/**
+ * Argument of the solve_generic function.
+ */
+struct hmat_solve_context_t {
+    /**
+     * RHS on input and solution on output.
+     * Can be either an hmat_matrix_t or a dense array.
+     */
+    void* values;
+
+    /** If 0, values is an hmatrix.  Otherwise, number of right hand sides */
+    int nr_rhs;
+
+    /** When input is a dense array, rows must be permuted to have the same numbering as column dofs.
+     * If this permutation had already been made, no_permutation must be set.
+     */
+    int no_permutation;
+
+    /** If true, solve L X = B; default is to solve A X = B.
+     * @warning lower and upper cannot be both set.
+     */
+    int lower;
+
+    /** If true, solve U X = B; default is to solve A X = B.
+     * @warning lower and upper cannot be both set.
+     */
+    int upper;
+
+    /** Not used, may be useful later. */
+    hmat_progress_t * progress;
+};
+
+HMAT_API void hmat_solve_context_init(struct hmat_solve_context_t * context);
+
 /* Opaque pointer */
 typedef struct
 {
@@ -720,6 +754,14 @@ typedef struct
       \return 0
     */
     int (*destroy_child)(hmat_matrix_t* hmatrix);
+
+    /*! \brief Solve A X = B, with X overwriting B.
+
+      \param hmatrix
+      \param context
+      \return 0 for success
+    */
+    int (*solve_generic)(hmat_matrix_t* matrix, const struct hmat_solve_context_t * context);
 
     /*! \brief Solve A X = B, with X overwriting B.
 

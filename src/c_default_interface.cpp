@@ -311,6 +311,10 @@ void hmat_factorization_context_init(hmat_factorization_context_t *context) {
     context->progress = DefaultProgress::getInstance();
 }
 
+void hmat_solve_context_init(hmat_solve_context_t * context) {
+    memset(context, 0, sizeof(*context));
+}
+
 void hmat_delete_procedure(hmat_procedure_t* proc) {
     switch (proc->value_type) {
     case HMAT_SIMPLE_PRECISION: delete static_cast<hmat::TreeProcedure<HMatrix<S_t> >*>(proc->internal); break;
