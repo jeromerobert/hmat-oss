@@ -109,7 +109,8 @@ namespace hmat {
               b->get(k, i)->gemm('N', uplo == Uplo::LOWER ? 'T' : 'N', -1, b->get(k, j), u_ji, 1);
           }
           // Solve the i-th diagonal system
-          me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), algo, diag, uplo);
+          if (b->get(k, i))
+            me()->get(i, i)->solveUpperTriangularRight(b->get(k,i), algo, diag, uplo);
         }
 
     } else if (me()->nrChildRow()>1 && b->nrChildCol()==1 && b->nrChildRow()>1) {
@@ -118,7 +119,8 @@ namespace hmat {
       //  [ --------- ] * [ ----+---- ] = [ --------- ]
       //  [    X21    ]   [  0  | U22 ]   [    b21    ]
       for (int k=0 ; k<b->nrChildRow() ; k++) // loop on the rows of b
-        me()->recursiveSolveUpperTriangularRight(b->get(k,0), algo, diag, uplo);
+        if (b->get(k, 0))
+          me()->recursiveSolveUpperTriangularRight(b->get(k,0), algo, diag, uplo);
 
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularRight: case not yet handled "
@@ -220,7 +222,8 @@ namespace hmat {
       //  [ ----+---- ] *  [ X11 | X12 ] = [ b11 | b12 ]
       //  [ L21 | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
-        me()->recursiveSolveLowerTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
+        if (b->get(0,k))
+          me()->recursiveSolveLowerTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft: case not yet handled "
                              "Nr Child A[%d, %d] b[%d, %d] "
@@ -314,20 +317,25 @@ namespace hmat {
       for (int j=0 ; j<me()->nrChildCol() ; j++)
         if (j!=k) {
           // Mkj <- Mkk^-1 Mkj we use a temp matrix X because this type of product is not allowed with gemm (beta=0 erases Mkj before using it !)
+          if (!me()->get(k,j))
+            continue;
           Mat* x = me()->get(k,j)->copy();
           me()->get(k,j)->gemm('N', 'N', 1, me()->get(k,k), x, 0);
           x->destroy();
         }
       // Update the rest of matrix M
-      for (int i=0 ; i<me()->nrChildRow() ; i++)
+      for (int i=0 ; i<me()->nrChildRow() ; i++) {
         // line 'i' -= Mik x line 'k' (which has just been multiplied by Mkk-1)
+        if (!me()->get(i,k))
+          continue;
         for (int j=0 ; j<me()->nrChildCol() ; j++)
-          if (i!=k && j!=k)
+          if (i!=k && j!=k && me()->get(i,j) && me()->get(k,j))
             // Mij <- Mij - Mik Mkk^-1 Mkj (with Mkk-1.Mkj allready stored in Mkj)
             me()->get(i,j)->gemm('N', 'N', -1, me()->get(i,k), me()->get(k,j), 1);
+      }
       // Update column 'k' = right-multiplied by -M_kk-1
       for (int i=0 ; i<me()->nrChildRow() ; i++)
-        if (i!=k) {
+        if (i!=k && me()->get(i,k)) {
           // Mik <- - Mik Mkk^-1
           Mat* x = me()->get(i,k)->copy();
           me()->get(i,k)->gemm('N', 'N', -1, x, me()->get(k,k), 0);
@@ -421,7 +429,8 @@ namespace hmat {
       //  [ ----+---- ] *  [ X11 | X12 ] = [ b11 | b12 ]
       //  [  0  | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
-        me()->recursiveSolveUpperTriangularLeft(b->get(0,k), algo, diag, uplo);
+        if (b->get(0,k))
+          me()->recursiveSolveUpperTriangularLeft(b->get(0,k), algo, diag, uplo);
 
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft: case not yet handled "
