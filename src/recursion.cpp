@@ -430,7 +430,7 @@ namespace hmat {
       //  [  0  | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
         if (b->get(0,k))
-          me()->recursiveSolveUpperTriangularLeft(b->get(0,k), algo, diag, uplo);
+          me()->recursiveSolveUpperTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
 
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft: case not yet handled "
