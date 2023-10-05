@@ -623,8 +623,8 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
     // Update of a_ref and b_ref
     aRef.axpy(-(*bCols[k - 1])[j_ref], aCols[k - 1]);
     bRef.axpy(-(*aCols[k - 1])[i_ref], bCols[k - 1]);
-    const bool needNewA = aRef.isZero() || (j_star == j_ref);
-    const bool needNewB = bRef.isZero() || (i_star == i_ref);
+    const bool needNewA = (j_star == j_ref) || aRef.isZero();
+    const bool needNewB = (i_star == i_ref) || bRef.isZero();
 
     // If the row or the column of reference have been already chosen as pivot,
     // we can not keep it and then we take one or two others.
