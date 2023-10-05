@@ -398,6 +398,15 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
   vector<Vector<dp_t>*> aCols;
   vector<Vector<dp_t>*> bCols;
 
+  if (block.info.is_guaranteed_null_row) {
+    for(int i = 0; i < rowCount; ++i)
+      rowFree[i] = !block.info.is_guaranteed_null_row(&block.info, i, block.stratum);
+  }
+  if (block.info.is_guaranteed_null_col) {
+    for(int i = 0; i < colCount; ++i)
+      colFree[i] = !block.info.is_guaranteed_null_col(&block.info, i, block.stratum);
+  }
+
   int row_index = 0;
   int J = 0;
   int k = 0;
@@ -546,6 +555,15 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
   Vector<dp_t> bRef(colCount), aRef(rowCount);
   vector<bool> rowFree(rowCount, true), colFree(colCount, true);
   vector<Vector<dp_t>*> aCols, bCols;
+
+  if (block.info.is_guaranteed_null_row) {
+    for(int i = 0; i < rowCount; ++i)
+      rowFree[i] = !block.info.is_guaranteed_null_row(&block.info, i, block.stratum);
+  }
+  if (block.info.is_guaranteed_null_col) {
+    for(int i = 0; i < colCount; ++i)
+      colFree[i] = !block.info.is_guaranteed_null_col(&block.info, i, block.stratum);
+  }
 
   j_ref = findCol(block, colFree, aRef);
   if (j_ref == -1) {
