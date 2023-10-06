@@ -418,9 +418,9 @@ void RkMatrix<T>::validateRecompression(double epsilon , int initialPivotA , int
         mat1.gemm('N', 'T', 1, copy->a , copy->b , 0);
         mat2.gemm('N', 'T', 1, a ,b , 0);
         double norm_classic=mat2.norm();
-        for (int i = 0 ; i < rows->size() ; i++)
+        for (int j =0 ; j<cols->size() ; j++)
         {
-          for (int j =0 ; j<cols->size() ; j++)
+          for (int i = 0 ; i < rows->size() ; i++)
           {
             mat1.get(i,j)-=mat2.get(i,j);
           }

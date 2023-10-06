@@ -28,8 +28,8 @@ namespace hmat {
 
 template <typename T> void UncompressedValues<T>::getRkValues() {
     const HMatrix<T> & m = *this->matrix_;
-    for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
-        for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
+    for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
+        for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
           getValue(r, c, m.rk()->get(r->first-m.rows()->offset(), c->first-m.cols()->offset()) );
         }
     }

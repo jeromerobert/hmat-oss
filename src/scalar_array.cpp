@@ -632,8 +632,8 @@ void ScalarArray<T>::checkNan() const {
 }
 
 template<typename T> bool ScalarArray<T>::isZero() const {
-  for(int i = 0; i < rows; i++)
-    for(int j = 0; j < cols; j++)
+  for(int j = 0; j < cols; j++)
+    for(int i = 0; i < rows; i++)
       if (get(i, j) != T(0))
         return false;
   return true;

@@ -163,8 +163,8 @@ private:
     }
 
     void getNullValues() {
-        for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
-            for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
+        for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
+            for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
                 getValue(r, c, 0);
             }
         }
@@ -177,8 +177,8 @@ private:
         assert(m.full()->diagonal == NULL);
         int ro = m.rows()->offset();
         int co = m.cols()->offset();
-        for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
-            for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
+        for(IndiceIt c = this->colStart_; c != this->colEnd_; ++c) {
+            for(IndiceIt r = this->rowStart_; r != this->rowEnd_; ++r) {
                 getValue(r, c, m.full()->get(r->first - ro, c->first - co));
             }
         }
