@@ -725,8 +725,6 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
 
   assert(rankOffset==rankTotal);
   // If only one of the parts is non-zero, then the recompression is not necessary
-  if (notNullParts > 1 && epsilon >= 0)
-    truncate(epsilon, initialPivotA, initialPivotB);
   if (notNullParts > 1 && epsilon >= 0){
     if(HMatrix<T>::validateRecompression)
       validateRecompression(epsilon , initialPivotA , initialPivotB);
