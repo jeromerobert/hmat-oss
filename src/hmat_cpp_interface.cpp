@@ -191,6 +191,13 @@ void HMatInterface<T>::solveLower(ScalarArray<T>& b, bool transpose) const {
 }
 
 template<typename T>
+void HMatInterface<T>::solveLower(HMatInterface<T>& b, bool transpose) const {
+  DISABLE_THREADING_IN_BLOCK;
+  DECLARE_CONTEXT;
+  engine_->solveLower(*b.engine_, factorizationType, transpose);
+}
+
+template<typename T>
 HMatInterface<T>* HMatInterface<T>::copy(bool structOnly) const {
   DECLARE_CONTEXT;
   HMatInterface<T>* result = new HMatInterface<T>(engine_->clone(), NULL);

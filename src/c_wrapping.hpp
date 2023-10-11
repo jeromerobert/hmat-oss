@@ -177,9 +177,11 @@ int solve_generic(hmat_matrix_t* holder, struct hmat_solve_context_t * ctx) {
                 hmat::restoreVectorOrder<T>(&mb, indices, 0);
         } else {
             HMAT_ASSERT_MSG(!ctx->renumber_rows, "renumber_rows is used only for dense right hand sides");
-            HMAT_ASSERT_MSG(!ctx->lower, "lower is used only for dense right hand sides");
             hmat::HMatInterface<T>* hmatrixB = (hmat::HMatInterface<T>*) ctx->matrix;
-            hmat->solve(*hmatrixB);
+            if (ctx->lower)
+                hmat->solveLower(*hmatrixB, ctx->transpose);
+            else
+                hmat->solve(*hmatrixB);
         }
     } catch (const std::exception& e) {
         fprintf(stderr, "%s\n", e.what());

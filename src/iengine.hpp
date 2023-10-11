@@ -60,6 +60,8 @@ namespace hmat {
 
     virtual void solveLower(ScalarArray<T> &b, Factorization t, bool transpose) const = 0;
 
+    virtual void solveLower(IEngine<T> &b, Factorization t, bool transpose) const = 0;
+
     virtual void transpose() = 0;
 
     virtual void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> > &f) = 0;

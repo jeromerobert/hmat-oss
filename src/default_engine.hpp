@@ -54,6 +54,7 @@ public:
   void solve(ScalarArray<T>& b, Factorization) const override;
   void solve(IEngine<T>& b, Factorization) const override ;
   void solveLower(ScalarArray<T>& b, Factorization t, bool transpose=false) const override;
+  void solveLower(IEngine<T>& b, Factorization t, bool transpose=false) const override;
   void copy(IEngine<T> & result, bool structOnly) const override;
   void transpose() override;
   void applyOnLeaf(const hmat::LeafProcedure<hmat::HMatrix<T> >&f) override;
