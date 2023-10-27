@@ -44,6 +44,7 @@
 #include <fstream>
 #include <cmath>
 #include <fcntl.h>
+#include <limits>
 
 #ifndef _WIN32
 #include <sys/mman.h> // mmap
