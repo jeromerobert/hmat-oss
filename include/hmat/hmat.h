@@ -250,6 +250,8 @@ HMAT_API void hmat_delete_cluster_tree(const hmat_cluster_tree_t * tree);
 
 HMAT_API hmat_cluster_tree_t * hmat_copy_cluster_tree(const hmat_cluster_tree_t * tree);
 
+HMAT_API void hmat_swap_cluster_tree(hmat_cluster_tree_t *first, hmat_cluster_tree_t *second);
+
 struct hmat_cluster_tree_create_context_t {
     /** Spatial dimension */
     unsigned dimension;
