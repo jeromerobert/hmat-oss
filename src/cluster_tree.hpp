@@ -182,6 +182,10 @@ public:
    */
   ClusterTree* copy(const ClusterTree* copyFather=NULL) const;
 
+  /*! \brief Swap contents of two ClusterTree
+   */
+  void swap(ClusterTree* other);
+
   /*! \brief Return a short string describing the content of this ClusterTree for debug (like: "[320, 452]")
     */
   std::string description() const {

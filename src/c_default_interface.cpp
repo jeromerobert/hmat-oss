@@ -158,6 +158,10 @@ hmat_cluster_tree_t * hmat_copy_cluster_tree(const hmat_cluster_tree_t * tree) {
         reinterpret_cast<const ClusterTree*>(tree)->copy());
 }
 
+void hmat_swap_cluster_tree(hmat_cluster_tree_t *first, hmat_cluster_tree_t *second) {
+  reinterpret_cast<ClusterTree*>(first)->swap(reinterpret_cast<ClusterTree*>(second));
+}
+
 int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree)
 {
     return ((ClusterTree*)tree)->nodesCount();
