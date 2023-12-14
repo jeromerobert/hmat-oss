@@ -191,6 +191,21 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
   return result;
 }
 
+void ClusterTree::swap(ClusterTree* other) {
+  HMAT_ASSERT(father == NULL && other->father == NULL);
+  std::swap(data, other->data);
+  std::swap(cache_, other->cache_);
+  std::swap(children, other->children);
+  for(int i = 0; i < children.size(); ++i) {
+    if (children[i])
+      children[i]->father = this;
+  }
+  for(int i = 0; i < other->children.size(); ++i) {
+    if (other->children[i])
+      other->children[i]->father = other;
+  }
+}
+
 AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
     : dimension_(data.coordinates()->dimension())
     , bb_(new double[2 * dimension_])
