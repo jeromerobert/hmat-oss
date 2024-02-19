@@ -180,5 +180,6 @@ int main(int argc, char **argv) {
   hmat.destroy(hmatrix);
   hmat_delete_cluster_tree(cluster_tree);
   hmat.finalize();
+  free(points);
   return 0;
 }
