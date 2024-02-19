@@ -32,10 +32,10 @@
 #include "common/chrono.h"
 #include "common/my_assert.h"
 
-const static double epsilon = 1e-3;
-const static int nDoF = 3000;
-const static float zero = 0;
-const static float one = 1;
+static const double epsilon = 1e-3;
+static const int nDoF = 3000;
+static const float zero = 0;
+static const float one = 1;
 
 struct context_t {
   int n;
