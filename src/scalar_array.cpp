@@ -63,14 +63,14 @@
 #endif
 
 namespace {
-struct EnvVar {
+struct EnvVarSA {
   bool sumCriterion;
   bool gessd;
   bool mgsBlas3;
   bool initPivot;
   bool mgsAltPivot;
   bool testOrtho;
-  EnvVar() {
+  EnvVarSA() {
     sumCriterion = getenv("HMAT_SUM_CRITERION") != nullptr;
     gessd = getenv("HMAT_GESDD") != nullptr;
     mgsBlas3 = getenv("HMAT_MGS_BLAS3") != nullptr;
@@ -79,7 +79,7 @@ struct EnvVar {
     testOrtho = getenv("HMAT_TEST_ORTHO") != nullptr;
   }
 };
-const EnvVar env;
+const EnvVarSA envSA;
 
 /*! \brief Returns the number of singular values to keep.
 
@@ -97,7 +97,7 @@ template <typename T>
 int findK(hmat::Vector<T> &sigma, double epsilon) {
   assert(epsilon >= 0.);
   double threshold_eigenvalue = 0.0;
-  if (env.sumCriterion) {
+  if (envSA.sumCriterion) {
     for (int i = 0; i < sigma.rows; i++) {
       threshold_eigenvalue += sigma[i];
     }
@@ -969,7 +969,7 @@ int ScalarArray<T>::svdDecomposition(ScalarArray<T> **u,
   }
 
   try {
-    if(env.gessd)
+    if(envSA.gessd)
       info = sddCall(jobz, rows, cols, ptr(), lda, (*sigma)->ptr(), (*u)->ptr(),
                      (*u)->lda, (*v)->ptr(), (*v)->lda);
     else
@@ -1028,7 +1028,7 @@ template<typename T> void ScalarArray<T>::orthoColumns(ScalarArray<T> *resultR, 
   }
   // Remove the qj-component from vectors bk (k=initialPivot,...,n-1)
   if (initialPivot<cols) {
-    if (env.mgsBlas3) {
+    if (envSA.mgsBlas3) {
       ScalarArray<T> aJ(*this, 0, rows, 0, initialPivot); // All the columns of 'this' from 0 to 'initialPivot-1'
       ScalarArray<T> aJ_bK(*resultR, 0, initialPivot, initialPivot, cols-initialPivot); // In 'r': row '0' to 'initialPivot-1', all the columns after column 'initialPivot-1'
       // Compute in 1 operation all the scalar products between a_0,...,a_init-1 and a_init, ..., a_n-1
@@ -1053,7 +1053,7 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
   Timeline::Task t(Timeline::QR, &rows, &cols, &initialPivot);
   (void)t;
 
-  if (!env.initPivot) initialPivot=0;
+  if (!envSA.initPivot) initialPivot=0;
   assert(initialPivot>=0 && initialPivot<=cols);
 
   ScalarArray<T> *bK = NULL, *restR = NULL, *a = this; // we need this because if initialPivot>0, we will run the end of the computation on a subset of 'this'
@@ -1250,7 +1250,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
   Timeline::Task t(Timeline::MGS, &rows, &cols, &initialPivot);
   (void)t;
 
-  if (!env.initPivot) initialPivot=0;
+  if (!envSA.initPivot) initialPivot=0;
   assert(initialPivot>=0 && initialPivot<=cols);
 
 
@@ -1322,7 +1322,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
     int pivot = norm2.absoluteMaxIndex(j);
     double pivmax = norm2[pivot];
 
-    if (env.mgsAltPivot) {
+    if (envSA.mgsAltPivot) {
       pivot = norm2_update.absoluteMaxIndex(j);
       pivmax = norm2_update[pivot];
       relative_epsilon = prec * prec;
@@ -1478,7 +1478,7 @@ bool ScalarArray<T>::testOrtho() const {
   // The norm of the rest should be below 'epsilon x norm of this' to have orthogonality and return true
   double res = sp->norm();
   delete sp;
-  if (env.testOrtho) {
+  if (envSA.testOrtho) {
     double ratio = res/ref/machine_accuracy/sqrt((double)rows);
     if (ratio > ratioMax) {
       ratioMax = ratio;

@@ -61,10 +61,10 @@ using std::min;
 using std::max;
 
 namespace {
-struct EnvVar {
+struct EnvVarCP {
   /** */
   int logAcaPartialMinSize;
-  EnvVar() {
+  EnvVarCP() {
 	// Enable ACA partial verbose mode for blocks larger than a given size.
     const char * logAcaStr = getenv("HMAT_LOG_ACA_PARTIAL");
     if(logAcaStr == nullptr) {
@@ -74,7 +74,7 @@ struct EnvVar {
     }
   }
 };
-static const EnvVar env;
+static const EnvVarCP envCP;
 } // namespace
 
 namespace hmat {
@@ -389,7 +389,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
   const int rowCount = block.rows->size();
   const int colCount = block.cols->size();
   int maxK = min(rowCount, colCount);
-  bool verbose = maxK > env.logAcaPartialMinSize;
+  bool verbose = maxK > envCP.logAcaPartialMinSize;
   // Contains false for the rows that were already used as pivot
   vector<bool> rowFree(rowCount, true);
   int rowPivotCount = 0;

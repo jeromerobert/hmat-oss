@@ -25,14 +25,14 @@
 namespace {
 using namespace hmat;
 
-struct EnvVar {
+struct EnvVarHO {
   // Disable the QR algorithm for the symetric HODLR factorization
   bool noQrSym;
-  EnvVar() {
+  EnvVarHO() {
     noQrSym = getenv("HMAT_HODLR_NOQR") != nullptr;
   }
 };
-static const EnvVar env;
+static const EnvVarHO envHO;
 
 template<typename T> void desymmetrize(HMatrix<T> * m) {
   auto m10 = m->get(1,0);
@@ -310,7 +310,7 @@ void factorizeSym(HMatrix<T> * a, HODLRNode<T> * node) {
   solveLowerTriangularLeft(a00, a10->rk()->b, a10->cols()->offset(), node->child0);
   solveLowerTriangularLeft(a11, a10->rk()->a, a10->rows()->offset(), node->child1);
   ScalarArray<T> tmp(r, r, false);
-  if(env.noQrSym) {
+  if(envHO.noQrSym) {
     ScalarArray<T> ata(r, r, false);
     ata.gemm('T', 'N', 1, a10->rk()->a, a10->rk()->a, 0);
     computeSymX11(a10, ata, node, tmp);
