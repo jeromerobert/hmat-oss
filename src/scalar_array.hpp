@@ -594,7 +594,7 @@ public:
     }
   private:
     /// Disallow the copy
-    Vector<T>(const Vector<T>& o);
+    Vector(const Vector<T>& o);
   };
 
 }  // end namespace hmat
