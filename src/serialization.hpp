@@ -87,7 +87,7 @@ public:
  * structure.
  */
 template<typename T> class MatrixDataUnmarshaller {
-    void readLeaf(HMatrix<T> * matrix);
+    void readLeaf(HMatrix<T> * matrix, const AllocationObserver &ao);
     ScalarArray<T> * readScalarArray(int rows, int cols);
     hmat_iostream readFunc_;
     void * userData_;
@@ -95,6 +95,6 @@ public:
     MatrixDataUnmarshaller(hmat_iostream readfunc, void * user_data):
         readFunc_(readfunc), userData_(user_data){}
 
-    void read(HMatrix<T> * matrix);
+    void read(HMatrix<T> * matrix, const AllocationObserver & = AllocationObserver());
 };
 }

@@ -298,7 +298,7 @@ void MatrixDataMarshaller<T>::write(const HMatrix<T> * matrix){
 }
 
 template<typename T>
-void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
+void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix, const AllocationObserver &ao) {
     const IndexSet * r = matrix->rows();
     const IndexSet * c = matrix->cols();
     int header;
@@ -308,6 +308,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
             delete matrix->rk();
         int rank = header;
         if(rank > 0) {
+            ao.allocate(static_cast<size_t>(rank) * (r->size() + c->size()));
             ScalarArray<T> * a = readScalarArray(r->size(), rank);
             ScalarArray<T> * b = readScalarArray(c->size(), rank);
             matrix->rk(new RkMatrix<T>(a, r, b, c));
@@ -324,6 +325,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         bool diagonal = header & 4;
         // leak check
         assert(!matrix->isAssembled() || matrix->full() == NULL);
+        ao.allocate(static_cast<size_t>(r->size()) * c->size() + pivot * r->size() + diagonal * r->size());
         FullMatrix<T> *fmat = new FullMatrix<T>(r, c, true);
 	fmat->data.readArray(readFunc_, userData_);
 	matrix->full( fmat );
@@ -346,14 +348,14 @@ ScalarArray<T> * MatrixDataUnmarshaller<T>::readScalarArray(int rows, int cols) 
 }
 
 template<typename T>
-void MatrixDataUnmarshaller<T>::read(HMatrix<T> * matrix){
+void MatrixDataUnmarshaller<T>::read(HMatrix<T> * matrix, const AllocationObserver &ao){
     std::vector<HMatrix<T> *> stack;
     stack.push_back(matrix);
     while(!stack.empty()) {
         HMatrix<T> * m = stack.back();
         stack.pop_back();
         if(m->isLeaf()) {
-            readLeaf(m);
+            readLeaf(m, ao);
         } else {
             for(int i = m->nrChild() - 1; i >= 0; --i) {
                 if(m->getChild(i) != NULL && !m->getChild(i)->isVoid())
