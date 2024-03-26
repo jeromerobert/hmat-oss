@@ -244,6 +244,7 @@ void MatrixDataMarshaller<T>::writeLeaf(const HMatrix<T> * matrix) {
     if(!matrix->isAssembled()) {
         writeInt(UNINITIALIZED_BLOCK);
     } else if(matrix->isRkMatrix()){
+        HMAT_ASSERT_MSG(matrix->rank() < 1000000,"matrix->rank()=%d is incorrect.", matrix->rank());
         writeInt(matrix->rank());
         if(!matrix->isNull()) {
           matrix->rk()->writeArray(writeFunc_, userData_);
@@ -310,6 +311,8 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         if(matrix->rk() != NULL)
             delete matrix->rk();
         int rank = header;
+        HMAT_ASSERT_MSG(rank == matrix->rank(),"Rank=%d is not equal with matrix->rank()=%d.", rank, matrix->rank());
+        HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
         if(rank > 0) {
             ScalarArray<T> * a = readScalarArray(r->size(), rank);
             ScalarArray<T> * b = readScalarArray(c->size(), rank);
