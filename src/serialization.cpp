@@ -86,8 +86,10 @@ void MatrixStructMarshaller<T>::writeTreeNode(const HMatrix<T> * m) {
     writeValue(m->approximateRank());
     if(m->isAssembled()) {
         if(m->isLeaf()) {
-            if(m->isRkMatrix())
+            if(m->isRkMatrix()) {
+                HMAT_ASSERT_MSG(m->rank() < 1000000,"Rank=%d is incorrect.", m->rank());
                 writeValue(m->rank());
+            }
             else
                 writeValue(FULL_BLOCK);
         } else {
@@ -181,6 +183,7 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::readTreeNode(HMatrix<T> *) {
         return NULL;
     int rankApprox = readValue<int>();
     int rank = readValue<int>();
+    HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
     double epsilon = readValue<double>();
     return HMatrix<T>::unmarshall(settings_, rank, rankApprox, bitfield, epsilon);
 }
