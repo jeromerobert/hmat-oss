@@ -245,6 +245,9 @@ void MatrixDataMarshaller<T>::writeLeaf(const HMatrix<T> * matrix) {
     if(!matrix->isAssembled()) {
         writeInt(UNINITIALIZED_BLOCK);
     } else if(matrix->isRkMatrix()){
+        if(ftell((FILE*)userData_) == 41326828200) {
+           fprintf(stderr, "WriteLeaf rank =  %d\n", matrix->rank());
+        }
         HMAT_ASSERT_MSG(matrix->rank() < 1000000,"matrix->rank()=%d is incorrect.", matrix->rank());
         writeInt(matrix->rank());
         if(!matrix->isNull()) {
