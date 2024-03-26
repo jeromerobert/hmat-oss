@@ -21,6 +21,7 @@
 */
 
 #include "serialization.hpp"
+#include <stdio.h>
 #include <vector>
 #include "compression.hpp"
 #include "rk_matrix.hpp"
@@ -311,6 +312,9 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         if(matrix->rk() != NULL)
             delete matrix->rk();
         int rank = header;
+        if(rank > 1000000) {
+            fprintf(stderr,"ftell =%ld\n", ftell((FILE*)userData_) - 4 );
+        }
         HMAT_ASSERT_MSG(rank == matrix->rank(),"Rank=%d is not equal with matrix->rank()=%d.", rank, matrix->rank());
         HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
         if(rank > 0) {
