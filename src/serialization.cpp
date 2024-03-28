@@ -88,6 +88,7 @@ void MatrixStructMarshaller<T>::writeTreeNode(const HMatrix<T> * m) {
     if(m->isAssembled()) {
         if(m->isLeaf()) {
             if(m->isRkMatrix()) {
+fprintf(stderr, "write struct offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", ftell((FILE*)userData_), m->rows()->offset(), m->rows()->size(), m->cols()->offset(), m->cols()->size(), m->rank());
                 HMAT_ASSERT_MSG(m->rank() < 1000000,"Rank=%d is incorrect.", m->rank());
                 writeValue(m->rank());
             }
@@ -184,6 +185,7 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::readTreeNode(HMatrix<T> *) {
         return NULL;
     int rankApprox = readValue<int>();
     int rank = readValue<int>();
+fprintf(stderr, "read struct offt=%ld rank=%d\n", ftell((FILE*)userData_) - 4, rank);
     HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
     double epsilon = readValue<double>();
     return HMatrix<T>::unmarshall(settings_, rank, rankApprox, bitfield, epsilon);
@@ -245,9 +247,7 @@ void MatrixDataMarshaller<T>::writeLeaf(const HMatrix<T> * matrix) {
     if(!matrix->isAssembled()) {
         writeInt(UNINITIALIZED_BLOCK);
     } else if(matrix->isRkMatrix()){
-        if(ftell((FILE*)userData_) == 41326828200) {
-           fprintf(stderr, "WriteLeaf rank =  %d\n", matrix->rank());
-        }
+fprintf(stderr, "write data offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", ftell((FILE*)userData_), matrix->rows()->offset(), matrix->rows()->size(), matrix->cols()->offset(), matrix->cols()->size(), matrix->rank());
         HMAT_ASSERT_MSG(matrix->rank() < 1000000,"matrix->rank()=%d is incorrect.", matrix->rank());
         writeInt(matrix->rank());
         if(!matrix->isNull()) {
@@ -315,9 +315,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         if(matrix->rk() != NULL)
             delete matrix->rk();
         int rank = header;
-        if(rank > 1000000) {
-            fprintf(stderr,"ftell =%ld\n", ftell((FILE*)userData_) - 4 );
-        }
+fprintf(stderr, "read data offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", ftell((FILE*)userData_) - 4, r->offset(), r->size(), c->offset(), c->size(), rank);
         HMAT_ASSERT_MSG(rank == matrix->rank(),"Rank=%d is not equal with matrix->rank()=%d.", rank, matrix->rank());
         HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
         if(rank > 0) {
