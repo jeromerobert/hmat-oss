@@ -88,7 +88,7 @@ void MatrixStructMarshaller<T>::writeTreeNode(const HMatrix<T> * m) {
     if(m->isAssembled()) {
         if(m->isLeaf()) {
             if(m->isRkMatrix()) {
-fprintf(stderr, "write struct offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", lseek(*(int*)userData_, 0, SEEK_CUR), m->rows()->offset(), m->rows()->size(), m->cols()->offset(), m->cols()->size(), m->rank());
+fprintf(stderr, "write struct fd = %d offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", *(int*)userData_, lseek(*(int*)userData_, 0, SEEK_CUR), m->rows()->offset(), m->rows()->size(), m->cols()->offset(), m->cols()->size(), m->rank());
                 HMAT_ASSERT_MSG(m->rank() < 1000000,"Rank=%d is incorrect.", m->rank());
                 writeValue(m->rank());
             }
@@ -185,7 +185,7 @@ HMatrix<T> * MatrixStructUnmarshaller<T>::readTreeNode(HMatrix<T> *) {
         return NULL;
     int rankApprox = readValue<int>();
     int rank = readValue<int>();
-fprintf(stderr, "read struct offt=%ld rank=%d\n", ftell((FILE*)userData_) - 4, rank);
+fprintf(stderr, "read struct fd=%d offt=%ld rank=%d\n", *(int*)userData_, ftell((FILE*)userData_) - 4, rank);
     HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
     double epsilon = readValue<double>();
     return HMatrix<T>::unmarshall(settings_, rank, rankApprox, bitfield, epsilon);
@@ -315,7 +315,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         if(matrix->rk() != NULL)
             delete matrix->rk();
         int rank = header;
-fprintf(stderr, "read data offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", lseek(*(int*)userData_, 0, SEEK_CUR) - 4, r->offset(), r->size(), c->offset(), c->size(), rank);
+fprintf(stderr, "read data offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", ftell((FILE*)userData_) - 4, r->offset(), r->size(), c->offset(), c->size(), rank);
         HMAT_ASSERT_MSG(rank == matrix->rank(),"Rank=%d is not equal with matrix->rank()=%d.", rank, matrix->rank());
         HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
         if(rank > 0) {
