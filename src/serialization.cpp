@@ -247,7 +247,7 @@ void MatrixDataMarshaller<T>::writeLeaf(const HMatrix<T> * matrix) {
     if(!matrix->isAssembled()) {
         writeInt(UNINITIALIZED_BLOCK);
     } else if(matrix->isRkMatrix()){
-fprintf(stderr, "write data offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", lseek(*(int*)userData_, 0, SEEK_CUR), matrix->rows()->offset(), matrix->rows()->size(), matrix->cols()->offset(), matrix->cols()->size(), matrix->rank());
+fprintf(stderr, "write data fd = %d offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", *(int*)userData_, lseek(*(int*)userData_, 0, SEEK_CUR), matrix->rows()->offset(), matrix->rows()->size(), matrix->cols()->offset(), matrix->cols()->size(), matrix->rank());
         HMAT_ASSERT_MSG(matrix->rank() < 1000000,"matrix->rank()=%d is incorrect.", matrix->rank());
         writeInt(matrix->rank());
         if(!matrix->isNull()) {
@@ -315,7 +315,7 @@ void MatrixDataUnmarshaller<T>::readLeaf(HMatrix<T> * matrix) {
         if(matrix->rk() != NULL)
             delete matrix->rk();
         int rank = header;
-fprintf(stderr, "read data offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", lseek(*(int*)userData_, 0, SEEK_CUR) - 4, r->offset(), r->size(), c->offset(), c->size(), rank);
+fprintf(stderr, "read data fd = %d offt=%ld HMatrix(rows=[%d, %d], cols=[%d, %d]) rank=%d\n", (int*)userData_, lseek(*(int*)userData_, 0, SEEK_CUR) - 4, r->offset(), r->size(), c->offset(), c->size(), rank);
         HMAT_ASSERT_MSG(rank == matrix->rank(),"Rank=%d is not equal with matrix->rank()=%d.", rank, matrix->rank());
         HMAT_ASSERT_MSG(rank < 1000000,"Rank=%d is incorrect.", rank);
         if(rank > 0) {
