@@ -331,6 +331,12 @@ void HMatrix<T>::setClusterTrees(const ClusterTree* rows, const ClusterTree* col
         for (int j = 0; j < nrChildCol(); ++j) {
           // if cols not admissible, don't recurse on them
           const ClusterTree* colChild = (keepSameCols ? cols : cols->me()->getChild(j));
+          if ((isLower || isTriLower) &&
+              (rowChild->data.offset() < colChild->data.offset() || (rowChild->data.offset() == colChild->data.offset() && i < j)))
+            continue;
+          if ((isUpper || isTriUpper) &&
+              (rowChild->data.offset() > colChild->data.offset() || (rowChild->data.offset() == colChild->data.offset() && i > j)))
+            continue;
           if(get(i, j))
             get(i, j)->setClusterTrees(rowChild, colChild);
         }
