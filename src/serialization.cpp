@@ -109,7 +109,7 @@ template<typename T>
 template<typename TR> int MatrixStructMarshaller<T>::writeTree(const TR * tree) {
     writeTreeNode(tree);
     if(tree != NULL) {
-        writeValue((char)tree->nrChild());
+        writeValue(tree->nrChild());
         for(int i = 0; i < tree->nrChild(); i++) {
             writeTree(tree->getChild(i));
         }
@@ -205,7 +205,7 @@ template<typename TR> TR * MatrixStructUnmarshaller<T>::readTree(TR * tree) {
     tree = readTreeNode(tree);
     if(tree != NULL) {
         tree->depth = depth;
-        char nrChild = readValue<char>();
+        int nrChild = readValue<int>();
         for(int i = 0; i < nrChild; i++) {
             tree->insertChild(i, readTree(tree));
         }
