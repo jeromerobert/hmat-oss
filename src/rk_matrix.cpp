@@ -1143,7 +1143,7 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
   } else {
     RkMatrix<T>* rk = nullptr;
     // One of the product matrix is a leaf
-    if ((ha->isLeaf() && ha->isNull()) || (hb->isLeaf() && hb->isNull())) {
+    if (ha->isRecursivelyNull() || hb->isRecursivelyNull()) {
       // Nothing to do
     } else if (ha->isRkMatrix() || hb->isRkMatrix()) {
       rk = HMatrix<T>::multiplyRkMatrix(epsilon, transHA, transHB, ha, hb);
