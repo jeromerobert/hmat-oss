@@ -20,8 +20,9 @@ class Timeline {
     enum Operation { GEMM, AXPY, SOLVE_UPPER, LLT, LDLT, MDMT, M_DIAG,
                      SOLVE_UPPER_LEFT, ASM, ASM_SYM, SOLVE_LOWER_LEFT,
                      PACK, UNPACK, INIT, PACK_COUNT, EXTRACT_RK, ASSEMBLE_RK,
-                     MGS, QR, BLASGEMM, COPY_TRUNCATE, COARSEN, PRODUCTQ, SVD};
-    std::bitset<SVD+1> opMask_;
+                     MGS, QR, BLASGEMM, COPY_TRUNCATE, COARSEN, PRODUCTQ, SVD,
+                     READ, WRITE, NB_TASK_TYPE};
+    std::bitset<NB_TASK_TYPE> opMask_;
     class Task {
 #ifdef HMAT_TIMELINE
         char buffer[68]; // 68 bytes = 'op' (4 bytes) + payload (48 bytes max) + 2 timestamps (2x8 bytes)
