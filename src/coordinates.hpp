@@ -33,35 +33,6 @@
 
 namespace hmat {
 
-/*! \brief Class representing a 3D point.
-
-  Used only in examples (cholesky.cpp and kriging.cpp)
- */
-class Point {
-public:
-  union {
-    struct {
-      double x, y, z; /// Coordinates
-    };
-    double xyz[3]; /// Idem
-  };
-  Point(double _x = 0., double _y = 0., double _z = 0.) : x(_x), y(_y), z(_z) {}
-  /*! \brief Return d(this, other)
-   */
-  inline double distanceTo(const Point &other) const {
-    double result = 0.;
-    double difference = 0.;
-    difference = x - other.x;
-    result += difference * difference;
-    difference = y - other.y;
-    result += difference * difference;
-    difference = z - other.z;
-    result += difference * difference;
-    return sqrt(result);
-  }
-};
-
-
 class DofCoordinates {
 public:
   /*! \brief Create dof coordinates.
