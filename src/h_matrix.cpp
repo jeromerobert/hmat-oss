@@ -2607,23 +2607,28 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
 }
 
 template<typename T>
-void HMatrix<T>::extractDiagonal(T* diag) const {
+void HMatrix<T>::extractDiagonal(T* diag, int components) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if(this->isLeaf()) {
     assert(isFullMatrix());
-    if(full()->diagonal) {
+    if(full()->diagonal && components == 1) {
       // LDLt
       memcpy(diag, full()->diagonal->const_ptr(), full()->rows() * sizeof(T));
-    } else {
-      // LLt
+    } else if (components == 1) {
       for (int i = 0; i < full()->rows(); ++i)
         diag[i] = full()->get(i,i);
+    } else {
+      HMAT_ASSERT(full()->rows() % components == 0);
+      for (int i = 0; i < full()->rows() / components; ++i)
+        for (int k = 0; k < components; ++k)
+          for (int l = 0; l < components; ++l)
+            diag[(i * components + k) * components + l] = full()->get(i * components + k, i * components + l);
     }
   } else {
     for (int i=0 ; i<nrChildRow() ; i++) {
-      get(i,i)->extractDiagonal(diag);
-      diag += get(i,i)->rows()->size();
+      get(i,i)->extractDiagonal(diag, components);
+      diag += get(i,i)->rows()->size() * components;
     }
   }
 }
