@@ -987,6 +987,15 @@ typedef struct
      * reporting.
      */
     void (*set_progressbar)(hmat_matrix_t * matrix, hmat_progress_t * progress);
+    /**
+     * @brief Extract matrix diagonal_block
+     * \param hmatrix A hmatrix
+     * \param components  extract each (components x components) block
+     * \param diag allocated memory area in which diagonal values are written
+     * \param size memory size
+     */
+    int (*extract_diagonal_block)(hmat_matrix_t* holder, int components, void* diag, size_t size);
+
 }  hmat_interface_t;
 
 HMAT_API void hmat_init_default_interface(hmat_interface_t * i, hmat_value_t type);
