@@ -617,7 +617,7 @@ public:
 
   /* \brief Retrieve diagonal values.
   */
-  void extractDiagonal(T* diag) const;
+  void extractDiagonal(T* diag, int components = 1) const;
 
   /// Should try to coarsen the matrix at assembly
   static bool coarsening;
