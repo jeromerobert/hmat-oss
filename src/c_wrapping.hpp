@@ -654,7 +654,7 @@ int extract_diagonal_block(hmat_matrix_t* holder, int components, void* diag, si
   try {
       hmat->engine().hmat->extractDiagonal(static_cast<T*>(diag), components);
       hmat::ScalarArray<T> permutedDiagonal(static_cast<T*>(diag), hmat->cols()->size(), components * components);
-      hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices(), 0);
+      hmat::restoreVectorOrder(&permutedDiagonal, hmat->cols()->indices(), 1);
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;
