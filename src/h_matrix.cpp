@@ -1045,11 +1045,10 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
        (!rows->isSubset(*(this->rows())) || !cols->isSubset(*(this->cols())))) // TODO cette ligne me parait louche... si rows et cols sont pas bons, on renvoie 'this' sans meme se plaindre ???
         return const_cast<HMatrix<T>*>(this);
 
-    // this could be implemented but if you need it you more
-    // likely have something to fix at a higher level.
-    assert(!this->isNull());
-
     if(this->isLeaf()) {
+        // this could be implemented but if you need it you more
+        // likely have something to fix at a higher level.
+        assert(!this->isNull());
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
         tmpMatrix->temporary_=true;
         tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
@@ -1071,8 +1070,26 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         return tmpMatrix;
     } else {
         // 'This' is not a leaf
-        //TODO not yet implemented but should not happen
-        HMAT_ASSERT(false);
+        // evaluate it to a full matrix, then subset the full matrix
+        FullMatrix<T> * tmpFull = new FullMatrix<T>(this->rows(), this->cols());
+        // this->evalPart(tmpFull, tmpFull->rows_, tmpFull->cols_);
+        this->eval(tmpFull, false);
+        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
+        tmpMatrix->temporary_=true;
+        tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
+        ClusterTree * r = const_cast<ClusterTree*>(this->rows_);
+        ClusterTree * c = const_cast<ClusterTree*>(this->cols_);
+
+        // ensure the cluster tree are properly freed
+        r->father = r;
+        c->father = c;
+
+        tmpMatrix->rows_ = r;
+        tmpMatrix->cols_ = c;
+        tmpMatrix->ownClusterTrees(true, true);
+        tmpMatrix->full(tmpFull);
+        assert(tmpMatrix->isLeaf()); // don't make an infinite loop
+        return tmpMatrix->subset(rows, cols);
     }
 }
 
