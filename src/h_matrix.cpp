@@ -1404,7 +1404,10 @@ template<typename T> void fullHHGemm(HMatrix<T> *c, char transA, char transB, T 
           char tB = transB;
           childA = a->getChildForGEMM(tA, i, k);
           childB = b->getChildForGEMM(tB, k, j);
-          if(childA && childB)
+          if( (childA && childB) &&
+              (c->rows()->isSubset(tA == 'N' ? *(childA->rows()) : *(childA->cols()))) &&
+              (c->cols()->isSubset(tB == 'N' ? *(childB->cols()) : *(childB->rows())))
+          )
             fullHHGemm(c, tA, tB, alpha, childA, childB);
         }
       }
