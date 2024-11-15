@@ -1182,9 +1182,16 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
 
     // writing on a subset of an RkMatrix is not possible without
     // modifying the whole matrix
-    assert(!isRkMatrix() || vvc == this);
-    // Do the product on the matrices that are now compatible
-    vvc->leafGemm(transA, transB, alpha, vva, vvb);
+    if (!isRkMatrix() || vvc == this){
+      // Do the product on the matrices that are now compatible
+      vvc->leafGemm(transA, transB, alpha, vva, vvb);
+    } else {
+      // TODO find a way to bother less with what's in vvc when constructing it
+      HMatrix<T> * zvvc = Zero(vvc);
+      zvvc->leafGemm(transA, transB, alpha, vva, vvb);
+      this->axpy(1, zvvc);
+      delete zvvc;
+    }
 
     // Delete the temporary matrices
     if(vva != a)
