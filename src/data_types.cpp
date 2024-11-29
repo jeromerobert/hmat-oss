@@ -21,6 +21,8 @@
 */
 
 #include "data_types.hpp"
+#include <cstdint>
+#include <cstring>
 
 namespace hmat {
 
@@ -37,5 +39,20 @@ template<> const int Constants<S_t>::code = 0;
 template<> const int Constants<D_t>::code = 1;
 template<> const int Constants<C_t>::code = 2;
 template<> const int Constants<Z_t>::code = 3;
+
+template<> bool swIsFinite(double x) {
+  uint64_t bits;
+  // casting break strict aliasing rules and std::bit_cast is C++20 only
+  std::memcpy(&bits, &x, sizeof(double));
+  // FIXME: This trick fool gcc up to 14.x and clang up to 18.x. Clang 19 will
+  // optimize and always return true when using -ffast-math
+  return (bits & 0x7ff0000000000000) != 0x7ff0000000000000;
+}
+
+template<> bool swIsFinite(float x) {
+  uint32_t bits;
+  std::memcpy(&bits, &x, sizeof(float));
+  return (bits & 0x7f800000) != 0x7f800000;
+}
 
 }  // end namespace hmat
