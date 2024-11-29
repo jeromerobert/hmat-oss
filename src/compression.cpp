@@ -44,18 +44,6 @@
 #include "cluster_assembly_function.hpp"
 #include "random_pivot_manager.hpp"
 
-#ifdef _MSC_VER
-// Intel compiler defines isnan in global namespace
-// MSVC defines _isnan
-# ifndef __INTEL_COMPILER
-#  define isnan _isnan
-# endif
-#elif __GLIBC__ == 2 && __GLIBC_MINOR__ < 23
-// https://sourceware.org/bugzilla/show_bug.cgi?id=19439
-#elif __cplusplus >= 201103L || !defined(__GLIBC__)
-using std::isnan;
-#endif
-
 using std::vector;
 using std::min;
 using std::max;
@@ -764,7 +752,7 @@ template<typename T> RkMatrix<typename Types<T>::dp>* compressOneStratum(
 
     // If I meet a NaN, I save & leave
     // TODO : improve this behaviour
-    if (isnan(approxNorm)) {
+    if (!swIsFinite(approxNorm)) {
       rkFull->toFile("Rk");
       full->toFile("Full");
       HMAT_ASSERT(false);

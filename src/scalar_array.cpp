@@ -612,7 +612,7 @@ template<typename T, typename std::enable_if<hmat::Types<T>::IS_REAL::value, T*>
 void checkNanSFINAE(const ScalarArray<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
-      HMAT_ASSERT(std::isfinite(m->get(row, col)));
+      HMAT_ASSERT(swIsFinite(m->get(row, col)));
     }
   }
 }
@@ -621,8 +621,8 @@ template<typename T, typename std::enable_if<!hmat::Types<T>::IS_REAL::value, T*
 void checkNanSFINAE(const ScalarArray<T>* m) {
   for (int col = 0; col < m->cols; col++) {
     for (int row = 0; row < m->rows; row++) {
-      HMAT_ASSERT(std::isfinite(m->get(row, col).real()));
-      HMAT_ASSERT(std::isfinite(m->get(row, col).imag()));
+      HMAT_ASSERT(swIsFinite(m->get(row, col).real()));
+      HMAT_ASSERT(swIsFinite(m->get(row, col).imag()));
     }
   }
 }

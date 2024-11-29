@@ -146,6 +146,11 @@ inline Z_t conj(const Z_t x) {
   return std::conj(x);
 }
 
+/** Same as std::isfinite but does not rely on FPU so work with -Ofast */
+template<typename T> bool swIsFinite(T);
+template<> bool swIsFinite(double x);
+template<> bool swIsFinite(float x);
+
 }  // end namespace hmat
 
 #endif
