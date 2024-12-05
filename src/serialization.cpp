@@ -21,10 +21,12 @@
 */
 
 #include "serialization.hpp"
-#include <vector>
 #include "compression.hpp"
 #include "rk_matrix.hpp"
 #include "common/my_assert.h"
+
+#include <cstdlib>
+#include <vector>
 
 namespace hmat {
 
@@ -205,7 +207,14 @@ template<typename TR> TR * MatrixStructUnmarshaller<T>::readTree(TR * tree) {
     tree = readTreeNode(tree);
     if(tree != NULL) {
         tree->depth = depth;
-        int nrChild = readValue<int>();
+        // Number of children was initially written as a char, and now as an int.
+        // When environment variable HMAT_READ_NRCHILD_CHAR is set, read_nrchild_char
+        // is set to 1 and number of children is read as a char.
+        static int read_nrchild_char = -1;
+        if (read_nrchild_char == -1) {
+          read_nrchild_char = getenv("HMAT_READ_NRCHILD_CHAR") != nullptr;
+        }
+        int nrChild = read_nrchild_char == 0 ? readValue<int>() : readValue<char>();
         for(int i = 0; i < nrChild; i++) {
             tree->insertChild(i, readTree(tree));
         }
