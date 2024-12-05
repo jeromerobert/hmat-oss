@@ -2670,7 +2670,7 @@ template<typename T> void HMatrix<T>::solve(
         /* Solve LX=B, result in B */
         this->solveLowerTriangularLeft(b, algo, Diag::NONUNIT, Uplo::LOWER);
         /* Solve L^tX=B, result in B */
-        this->solveUpperTriangularLeft(b, algo, Diag::NONUNIT, Uplo::UPPER);
+        this->solveUpperTriangularLeft(b, algo, Diag::NONUNIT, Uplo::LOWER);
         break;
     default:
         HMAT_ASSERT(false);
