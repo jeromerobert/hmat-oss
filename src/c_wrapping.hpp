@@ -505,6 +505,10 @@ int solve_generic(hmat_matrix_t* holder, const struct hmat_solve_context_t* cont
                   "lower and upper cannot both be true in hmat_solve_context_t");
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*)holder;
+  // Solve functions do not receive a progress bar as argument, they use the one
+  // stored in HMatInterface.  Temporarily modify progress bar.
+  hmat_progress_t * saved_progress = hmat->engine().progress();
+  hmat->progress(context->progress);
   try {
       if (context->nr_rhs == 0) {
           // B is an HMatrix
@@ -530,8 +534,12 @@ int solve_generic(hmat_matrix_t* holder, const struct hmat_solve_context_t* cont
       }
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
+      // Restore progress bar
+      hmat->progress(saved_progress);
       return 1;
   }
+  // Restore progress bar
+  hmat->progress(saved_progress);
   return 0;
 }
 

@@ -317,6 +317,7 @@ void hmat_factorization_context_init(hmat_factorization_context_t *context) {
 
 void hmat_solve_context_init(hmat_solve_context_t * context) {
     memset(context, 0, sizeof(*context));
+    context->progress = DefaultProgress::getInstance();
 }
 
 void hmat_delete_procedure(hmat_procedure_t* proc) {
