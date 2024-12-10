@@ -41,11 +41,12 @@ jobs:
   macos:
     runs-on: macos-latest
     env:
-      LDFLAGS: -L/usr/local/opt/openblas/lib
+      LDFLAGS: -L/opt/homebrew/opt/openblas/lib
+      CPPFLAGS: -I/opt/homebrew/opt/openblas/include
     steps:
     - uses: actions/checkout@v3
     - run: brew install openblas
-    - run: cmake -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=/usr/local/opt/openblas/include .
+    - run: cmake -DBUILD_EXAMPLES=ON -DCBLAS_INCLUDE_DIR=/opt/homebrew/opt/openblas/include .
     - run: make -j$(sysctl -n hw.logicalcpu)
     - run: ctest
   mingw64:
