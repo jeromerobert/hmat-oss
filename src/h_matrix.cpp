@@ -203,7 +203,7 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
                             new HMatrix<T>(rowChild, colChild, localSettings.global,
                                            this->depth + 1,
                                            i == j ? symFlag : kNotSymmetric,
-                                           admissibilityCondition));
+                                           admissibilityCondition->at(this->depth + 1)));
         } else
           // If 'inert', the child is NULL
           this->insertChild(i, j, NULL);

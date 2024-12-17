@@ -48,6 +48,10 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
     return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
 }
 
+AdmissibilityCondition* AdmissibilityCondition::at(int depth) const {
+  return const_cast<AdmissibilityCondition*>(this);
+}
+
 const AxisAlignedBoundingBox*
 AdmissibilityCondition::getAxisAlignedBoundingBox(const ClusterTree& current, bool) const
 {
@@ -239,4 +243,59 @@ bool HODLRAdmissibilityCondition::isLowRank(const ClusterTree& row, const Cluste
 HODLRAdmissibilityCondition* HODLRAdmissibilityCondition::clone() const {
   return new HODLRAdmissibilityCondition();
 }
+
+
+AdmissibilityConditionBuilder::AdmissibilityConditionBuilder() : ProxyAdmissibilityCondition(nullptr), algo_() {}
+
+AdmissibilityConditionBuilder::~AdmissibilityConditionBuilder()
+{
+  for (auto it = algo_.begin(); it != algo_.end(); ++it)
+  {
+    delete it->second;
+    it->second = NULL;
+  }
+}
+
+AdmissibilityConditionBuilder*
+AdmissibilityConditionBuilder::clone() const
+{
+  AdmissibilityConditionBuilder* result = new AdmissibilityConditionBuilder();
+  auto prev = result->algo_.before_begin();
+  for (auto it = algo_.begin(); it != algo_.end(); ++it)
+  {
+    prev = result->algo_.emplace_after(prev, it->first, it->second ? it->second->clone() : nullptr);
+  }
+  return result;
+}
+
+AdmissibilityCondition*
+AdmissibilityConditionBuilder::at(int depth) const
+{
+  AdmissibilityCondition* last = nullptr;
+  for (auto it = algo_.begin(); it != algo_.end(); ++it)
+  {
+    if (it->first <= depth)
+      last = it->second;
+    else
+      break;
+  }
+  return last;
+}
+
+AdmissibilityConditionBuilder&
+AdmissibilityConditionBuilder::addAlgorithm(int depth, const AdmissibilityCondition& algo)
+{
+  AdmissibilityCondition* cloned = algo.clone();
+  if (depth == 0)
+    setProxy(cloned);
+  auto prev = algo_.before_begin();
+  for (auto it = algo_.begin(); it != algo_.end(); prev = it, ++it)
+  {
+    if (it->first > depth)
+      break;
+  }
+  algo_.insert_after(prev, std::make_pair(depth, cloned));
+  return *this;
+}
+
 }  // end namespace hmat
