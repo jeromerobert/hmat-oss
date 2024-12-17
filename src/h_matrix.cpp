@@ -969,7 +969,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
   } else {
     const FullMatrix<T>* subMat = bSuperSetThis ? b->subset(rows(), cols()) : b;
     if (isRkMatrix()) {
-      assert(b->rows_->isSuperSet(*this->rows()) && b->cols_->isSuperSet(*this->cols()));
+      assert(this->rows()->isSuperSet(*subMat->rows_) && this->cols()->isSuperSet(*subMat->cols_));
       if(!rk())
         rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
       rk()->axpy(lowRankEpsilon(), alpha, subMat);
