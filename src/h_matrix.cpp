@@ -1322,14 +1322,14 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     if(isVoid() || a->isVoid())
         return;
 
+    int row_a = transA == 'N' ? a->nrChildRow() : a->nrChildCol();
+    int col_a = transA == 'N' ? a->nrChildCol() : a->nrChildRow();
+    int row_b = transB == 'N' ? b->nrChildRow() : b->nrChildCol();
+    int col_b = transB == 'N' ? b->nrChildCol() : b->nrChildRow();
+    int row_c = nrChildRow();
+    int col_c = nrChildCol();
     // None of the matrices is a leaf
     if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
-        int row_a = transA == 'N' ? a->nrChildRow() : a->nrChildCol();
-        int col_a = transA == 'N' ? a->nrChildCol() : a->nrChildRow();
-        int row_b = transB == 'N' ? b->nrChildRow() : b->nrChildCol();
-        int col_b = transB == 'N' ? b->nrChildCol() : b->nrChildRow();
-        int row_c = nrChildRow();
-        int col_c = nrChildCol();
 
         // There are 6 nested loops, this may be an issue if there are more
         // than 2 children in each direction; precompute compatibility between
@@ -1378,8 +1378,42 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
         delete [] is_compatible_a_c;
         delete [] is_compatible_b_c;
     } // if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf())
-    else
+    else {
+      // Depth in the clusterTree can be lower than depth in the matrix
+      // If we assume than the matrices use the same clusterTrees on related rows/cols
+      // Try to match the clusterTree depths before going to uncompatibleGemm
+      // There are three dimensions, this->rows, this->cols and k (a->cols and b->rows in the absence of transpositions)
+      int a_rdepth = transA == 'N' ? a->rows_->depth : a->cols_->depth;
+      int a_kdepth = transA == 'N' ? a->cols_->depth : a->rows_->depth;
+      int b_cdepth = transB == 'N' ? b->cols_->depth : b->rows_->depth;
+      int b_kdepth = transB == 'N' ? b->rows_->depth : b->cols_->depth;
+      int c_rdepth = this->rows_->depth;
+      int c_cdepth = this->cols_->depth;
+      if (!a->isLeaf() && (a_rdepth < c_rdepth || a_kdepth < b_kdepth)) {
+        for (int i = 0; i < a->nrChild(); i++) {
+          const HMatrix<T> * childA = a->getChild(i);
+          if (((transA == 'N' ? childA->cols() : childA->rows())->intersects(*(transB == 'N' ? b->rows() : b->cols()))) &&
+              ((transA == 'N' ? childA->rows() : childA->cols())->intersects(*(this->rows()))))
+            this->gemm(transA, transB, alpha, childA, b, 1);
+        }
+      } else if (!b->isLeaf() && (b_cdepth < c_cdepth || b_kdepth < a_kdepth)) {
+        for (int i = 0; i < b->nrChild(); i++) {
+          const HMatrix<T> * childB = b->getChild(i);
+          if (((transB == 'N' ? childB->rows() : childB->cols())->intersects(*(transA == 'N' ? a->cols() : a->rows()))) &&
+              ((transB == 'N' ? childB->cols() : childB->rows())->intersects(*(this->cols()))))
+            this->gemm(transA, transB, alpha, a, childB, 1);
+        }
+      } else if (!this->isLeaf() && (c_rdepth < a_rdepth || c_cdepth < b_cdepth)) {
+        for (int i = 0; i < this->nrChild(); i++) {
+          HMatrix<T> * childC = this->getChild(i);
+          if (((transA == 'N' ? a->rows() : a->cols())->intersects(*(childC->rows()))) &&
+              ((transB == 'N' ? b->cols() : b->rows())->intersects(*(childC->cols()))))
+            childC->gemm(transA, transB, alpha, a, b, 1);
+        }
+      }
+      else
         uncompatibleGemm(transA, transB, alpha, a, b);
+    }
 }
 
 /**
