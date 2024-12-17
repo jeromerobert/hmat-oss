@@ -229,6 +229,26 @@ hmat_admissibility_t* hmat_create_admissibility_never(
     return reinterpret_cast<hmat_admissibility_t*>(r);
 }
 
+struct hmat_admissibility_builder* hmat_create_admissibility_builder(const hmat_admissibility_t* algo) {
+  return reinterpret_cast<struct hmat_admissibility_builder*>(
+    new hmat::AdmissibilityConditionBuilder(*(reinterpret_cast<const hmat::AdmissibilityCondition*>(algo))));
+}
+
+void hmat_admissibility_builder_add_algorithm(struct hmat_admissibility_builder* current, int level, const hmat_admissibility_t* algo) {
+  hmat::AdmissibilityConditionBuilder* r = reinterpret_cast<hmat::AdmissibilityConditionBuilder*>(current);
+  r->addAlgorithm(level, *(reinterpret_cast<const hmat::AdmissibilityCondition*>(algo)));
+}
+
+hmat_admissibility_t * hmat_create_admissibility_from_builder(const struct hmat_admissibility_builder* builder) {
+  const hmat::AdmissibilityConditionBuilder* r = reinterpret_cast<const hmat::AdmissibilityConditionBuilder*>(builder);
+  return reinterpret_cast<hmat_admissibility_t*>(r->clone());
+}
+
+void hmat_delete_admissibility_builder(struct hmat_admissibility_builder * builder) {
+  hmat_delete_admissibility(reinterpret_cast<hmat_admissibility_t*>(builder));
+}
+
+
 void hmat_delete_admissibility(hmat_admissibility_t * cond) {
     delete static_cast<AdmissibilityCondition*>((void*)cond);
 }

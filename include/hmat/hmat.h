@@ -363,6 +363,20 @@ HMAT_API hmat_admissibility_t* hmat_create_admissibility_always(
 HMAT_API hmat_admissibility_t* hmat_create_admissibility_never(
         size_t max_size, unsigned int min_block, int split_rows, int split_cols);
 
+struct hmat_admissibility_builder;
+
+/* Create an opaque pointer, argument is default admissibility condition  */
+HMAT_API struct hmat_admissibility_builder* hmat_create_admissibility_builder(const hmat_admissibility_t* algo);
+
+/* Specify an algorithm for nodes at given depth and below (start at 0) */
+HMAT_API void hmat_admissibility_builder_add_algorithm(struct hmat_admissibility_builder* builder, int level, const hmat_admissibility_t* algo);
+
+/* Create an admissibility condition from a builder */
+HMAT_API hmat_admissibility_t * hmat_create_admissibility_from_builder(const struct hmat_admissibility_builder* builder);
+
+/* Delete opaque pointer */
+HMAT_API void hmat_delete_admissibility_builder(struct hmat_admissibility_builder * builder);
+
 /* Delete admissibility condition */
 HMAT_API void hmat_delete_admissibility(hmat_admissibility_t * cond);
 

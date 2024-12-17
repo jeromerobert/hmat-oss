@@ -48,6 +48,10 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
     return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
 }
 
+AdmissibilityCondition* AdmissibilityCondition::at(int depth) const {
+  return const_cast<AdmissibilityCondition*>(this);
+}
+
 const AxisAlignedBoundingBox*
 AdmissibilityCondition::getAxisAlignedBoundingBox(const ClusterTree& current, bool) const
 {
@@ -239,4 +243,67 @@ bool HODLRAdmissibilityCondition::isLowRank(const ClusterTree& row, const Cluste
 HODLRAdmissibilityCondition* HODLRAdmissibilityCondition::clone() const {
   return new HODLRAdmissibilityCondition();
 }
+
+
+AdmissibilityConditionBuilder::AdmissibilityConditionBuilder(const AdmissibilityCondition& algo)
+  : ProxyAdmissibilityCondition(nullptr), algo_() {
+  setProxy(algo.clone());
+  algo_.emplace_front(0, algo.clone());
+}
+
+AdmissibilityConditionBuilder::~AdmissibilityConditionBuilder()
+{
+  for (auto it = algo_.begin(); it != algo_.end(); ++it)
+  {
+    delete it->second;
+    it->second = NULL;
+  }
+}
+
+AdmissibilityConditionBuilder*
+AdmissibilityConditionBuilder::clone() const
+{
+  AdmissibilityConditionBuilder* result = new AdmissibilityConditionBuilder(*getProxy());
+  // depth 0 is already set in constructor
+  auto prev = result->algo_.begin();
+  auto it = algo_.begin();
+  while (it != algo_.end() && it->first == 0)
+    ++it;
+  for (; it != algo_.end(); ++it)
+  {
+    prev = result->algo_.emplace_after(prev, it->first, it->second ? it->second->clone() : nullptr);
+  }
+  return result;
+}
+
+AdmissibilityCondition*
+AdmissibilityConditionBuilder::at(int depth) const
+{
+  AdmissibilityCondition* last = nullptr;
+  for (auto it = algo_.begin(); it != algo_.end(); last = it->second, ++it)
+  {
+    if (it->first > depth)
+      break;
+  }
+  return last;
+}
+
+AdmissibilityConditionBuilder&
+AdmissibilityConditionBuilder::addAlgorithm(int depth, const AdmissibilityCondition& algo)
+{
+  if (depth == 0) {
+    delete getProxy();
+    setProxy(algo.clone());
+  }
+  AdmissibilityCondition* cloned = algo.clone();
+  auto prev = algo_.before_begin();
+  for (auto it = algo_.begin(); it != algo_.end(); prev = it, ++it)
+  {
+    if (it->first > depth)
+      break;
+  }
+  algo_.emplace_after(prev, depth, cloned);
+  return *this;
+}
+
 }  // end namespace hmat

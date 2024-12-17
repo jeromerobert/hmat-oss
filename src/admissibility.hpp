@@ -28,7 +28,9 @@
 #define _ADMISSIBLITY_HPP
 
 #include <cstddef>
+#include <forward_list>
 #include <string>
+#include <utility>
 
 namespace hmat {
 
@@ -100,6 +102,8 @@ public:
 
    */
   virtual std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const;
+
+  virtual AdmissibilityCondition* at(int depth) const;
 
   /**
    * Return true if the block is always null,
@@ -249,6 +253,9 @@ public:
   std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const {
     return proxy_->splitRowsCols(rows, cols);
   }
+  AdmissibilityCondition* at(int depth) const {
+    return proxy_->at(depth);
+  }
   bool isInert(const ClusterTree& rows, const ClusterTree& cols) const {
     return proxy_->isInert(rows, cols);
   }
@@ -271,6 +278,23 @@ public:
   std::string str() const override;
   bool isLowRank(const ClusterTree&, const ClusterTree&) const override;
   HODLRAdmissibilityCondition* clone() const override;
+};
+
+class AdmissibilityConditionBuilder : public ProxyAdmissibilityCondition {
+public:
+  AdmissibilityConditionBuilder(const AdmissibilityCondition& algo);
+  ~AdmissibilityConditionBuilder();
+
+  AdmissibilityConditionBuilder * clone() const;
+
+  /*! \brief Specify an algorithm for nodes at given depth and below */
+  AdmissibilityConditionBuilder& addAlgorithm(int depth, const AdmissibilityCondition& algo);
+
+  AdmissibilityCondition* at(int depth) const;
+
+private:
+  // Sequence of algorithms applied
+  std::forward_list<std::pair<int, AdmissibilityCondition*> > algo_;
 };
 
 } //  end namespace hmat
