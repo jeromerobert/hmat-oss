@@ -263,6 +263,8 @@ AdmissibilityConditionBuilder::clone() const
   auto prev = result->algo_.before_begin();
   for (auto it = algo_.begin(); it != algo_.end(); ++it)
   {
+    if (it->first == 0)
+      result->setProxy(it->second->clone());
     prev = result->algo_.emplace_after(prev, it->first, it->second ? it->second->clone() : nullptr);
   }
   return result;
@@ -287,7 +289,7 @@ AdmissibilityConditionBuilder::addAlgorithm(int depth, const AdmissibilityCondit
 {
   AdmissibilityCondition* cloned = algo.clone();
   if (depth == 0)
-    setProxy(cloned);
+    setProxy(cloned->clone());
   auto prev = algo_.before_begin();
   for (auto it = algo_.begin(); it != algo_.end(); prev = it, ++it)
   {
