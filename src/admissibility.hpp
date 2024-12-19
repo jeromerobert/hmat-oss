@@ -253,9 +253,7 @@ public:
   std::pair<bool, bool> splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const {
     return proxy_->splitRowsCols(rows, cols);
   }
-  AdmissibilityCondition* at(int depth) const {
-    return proxy_->at(depth);
-  }
+  // Do not override at() method, we want it to return wrapper class and not proxy class
   bool isInert(const ClusterTree& rows, const ClusterTree& cols) const {
     return proxy_->isInert(rows, cols);
   }
