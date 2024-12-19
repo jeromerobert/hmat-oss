@@ -1328,9 +1328,39 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     int col_b = transB == 'N' ? b->nrChildCol() : b->nrChildRow();
     int row_c = nrChildRow();
     int col_c = nrChildCol();
-    // None of the matrices is a leaf
-    if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
-
+    // Depth in the clusterTree can be lower than depth in the matrix
+    // If we assume than the matrices use the same clusterTrees on related rows/cols
+    // Try to match the clusterTree depths before going to uncompatibleGemm
+    // There are three dimensions, this->rows, this->cols and k (a->cols and b->rows in the absence of transpositions)
+    const ClusterData* a_r = transA == 'N' ? a->rows() : a->cols();
+    const ClusterData* a_k = transA == 'N' ? a->cols() : a->rows();
+    const ClusterData* b_c = transB == 'N' ? b->cols() : b->rows();
+    const ClusterData* b_k = transB == 'N' ? b->rows() : b->cols();
+    const ClusterData* c_r = this->rows();
+    const ClusterData* c_c = this->cols();
+    if (!a->isLeaf() && (a_r->isStrictSuperSet(*c_r) || a_k->isStrictSuperSet(*b_k))) {
+        for (int i = 0; i < a->nrChild(); i++) {
+          const HMatrix<T> * childA = a->getChild(i);
+          if (((transA == 'N' ? childA->cols() : childA->rows())->intersects(*b_k)) &&
+              ((transA == 'N' ? childA->rows() : childA->cols())->intersects(*c_r)))
+            this->gemm(transA, transB, alpha, childA, b, 1);
+        }
+    } else if (!b->isLeaf() && (b_c->isStrictSuperSet(*c_c) || b_k->isStrictSuperSet(*a_k))) {
+        for (int i = 0; i < b->nrChild(); i++) {
+          const HMatrix<T> * childB = b->getChild(i);
+          if (((transB == 'N' ? childB->rows() : childB->cols())->intersects(*a_k)) &&
+              ((transB == 'N' ? childB->cols() : childB->rows())->intersects(*c_c)))
+            this->gemm(transA, transB, alpha, a, childB, 1);
+        }
+    } else if (!this->isLeaf() && (c_r->isStrictSuperSet(*a_r) || c_c->isStrictSuperSet(*b_c))) {
+        for (int i = 0; i < this->nrChild(); i++) {
+          HMatrix<T> * childC = this->getChild(i);
+          if ((childC->rows()->intersects(*a_r)) &&
+              (childC->cols()->intersects(*b_c)))
+            childC->gemm(transA, transB, alpha, a, b, 1);
+        }
+    } else if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
+        // None of the matrices is a leaf
         // There are 6 nested loops, this may be an issue if there are more
         // than 2 children in each direction; precompute compatibility between
         // blocks to improve performance:
@@ -1378,42 +1408,8 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
         delete [] is_compatible_a_c;
         delete [] is_compatible_b_c;
     } // if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf())
-    else {
-      // Depth in the clusterTree can be lower than depth in the matrix
-      // If we assume than the matrices use the same clusterTrees on related rows/cols
-      // Try to match the clusterTree depths before going to uncompatibleGemm
-      // There are three dimensions, this->rows, this->cols and k (a->cols and b->rows in the absence of transpositions)
-      const ClusterData* a_r = transA == 'N' ? a->rows() : a->cols();
-      const ClusterData* a_k = transA == 'N' ? a->cols() : a->rows();
-      const ClusterData* b_c = transB == 'N' ? b->cols() : b->rows();
-      const ClusterData* b_k = transB == 'N' ? b->rows() : b->cols();
-      const ClusterData* c_r = this->rows();
-      const ClusterData* c_c = this->cols();
-      if (!a->isLeaf() && (a_r->isStrictSuperSet(*c_r) || a_k->isStrictSuperSet(*b_k))) {
-        for (int i = 0; i < a->nrChild(); i++) {
-          const HMatrix<T> * childA = a->getChild(i);
-          if (((transA == 'N' ? childA->cols() : childA->rows())->intersects(*b_k)) &&
-              ((transA == 'N' ? childA->rows() : childA->cols())->intersects(*c_r)))
-            this->gemm(transA, transB, alpha, childA, b, 1);
-        }
-      } else if (!b->isLeaf() && (b_c->isStrictSuperSet(*c_c) || b_k->isStrictSuperSet(*a_k))) {
-        for (int i = 0; i < b->nrChild(); i++) {
-          const HMatrix<T> * childB = b->getChild(i);
-          if (((transB == 'N' ? childB->rows() : childB->cols())->intersects(*a_k)) &&
-              ((transB == 'N' ? childB->cols() : childB->rows())->intersects(*c_c)))
-            this->gemm(transA, transB, alpha, a, childB, 1);
-        }
-      } else if (!this->isLeaf() && (c_r->isStrictSuperSet(*a_r) || c_c->isStrictSuperSet(*b_c))) {
-        for (int i = 0; i < this->nrChild(); i++) {
-          HMatrix<T> * childC = this->getChild(i);
-          if ((childC->rows()->intersects(*a_r)) &&
-              (childC->cols()->intersects(*b_c)))
-            childC->gemm(transA, transB, alpha, a, b, 1);
-        }
-      }
-      else
+    else
         uncompatibleGemm(transA, transB, alpha, a, b);
-    }
 }
 
 /**
