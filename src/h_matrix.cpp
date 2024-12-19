@@ -1072,8 +1072,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         // 'This' is not a leaf
         // evaluate it to a full matrix, then subset the full matrix
         FullMatrix<T> * tmpFull = new FullMatrix<T>(this->rows(), this->cols());
-        // this->evalPart(tmpFull, tmpFull->rows_, tmpFull->cols_);
-        this->eval(tmpFull, false);
+        this->evalPart(tmpFull, tmpFull->rows_, tmpFull->cols_);
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
         tmpMatrix->temporary_=true;
         tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
