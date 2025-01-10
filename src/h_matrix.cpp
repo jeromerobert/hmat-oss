@@ -956,8 +956,6 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
 template<typename T>
 void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
   DECLARE_CONTEXT;
-  bool bSuperSetThis = b->rows_->isStrictSuperSet(*this->rows()) || b->cols_->isStrictSuperSet(*this->cols());
-  bool thisSuperSetb = this->rows()->isStrictSuperSet(*b->rows_) || this->cols()->isStrictSuperSet(*b->cols_);
   // this += alpha * b
   // If 'this' is not a leaf, we recurse with the same 'b'
   if (!this->isLeaf()) {
@@ -967,7 +965,13 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
         child->axpy(alpha, b);
     }
   } else {
-    const FullMatrix<T>* subMat = bSuperSetThis ? b->subset(rows(), cols()) : b;
+    if (!(b->rows_->intersects(*rows()) && b->cols_->intersects(*cols())))
+      return;
+    IndexSet rowsAndThis;
+    rowsAndThis.intersection(*this->rows(), *b->rows_);
+    IndexSet colsAndThis;
+    colsAndThis.intersection(*this->cols(), *b->cols_);
+    const FullMatrix<T>* subMat = b->subset(const_cast<const IndexSet*>(&rowsAndThis), const_cast<const IndexSet*>(&colsAndThis));
     if (isRkMatrix()) {
       assert(b->rows_->isSuperSet(*this->rows()) && b->cols_->isSuperSet(*this->cols()));
       if(!rk())
@@ -975,22 +979,14 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
       rk()->axpy(lowRankEpsilon(), alpha, subMat);
       rank_ = rk()->rank();
     } else {
-      if(isFullMatrix() || thisSuperSetb){
-        if(thisSuperSetb && full() == NULL) {
-          full(new FullMatrix<T>(this->rows(), this->cols()));
-        }
-        auto subThis = thisSuperSetb ? this->subset(b->rows_, b->cols_) : this;
-        subThis->full()->axpy(alpha, subMat);
-        if(thisSuperSetb)
-          delete subThis;
-      } else {
-        assert(!isAssembled() || full() == NULL);
-        full(subMat->copy());
-        if(alpha != T(1))
-          full()->scale(alpha);
-      }
+      if(!full())
+        full(new FullMatrix<T>(this->rows(), this->cols()));
+      FullMatrix<T>* subThis = const_cast<FullMatrix<T>*>(full()->subset(const_cast<const IndexSet*>(&rowsAndThis), const_cast<const IndexSet*>(&colsAndThis)));
+      subThis->axpy(alpha, subMat);
+      if (subThis != full())
+        delete subThis;
     }
-    if(bSuperSetThis)
+    if(subMat != b)
       delete subMat;
   }
 }
