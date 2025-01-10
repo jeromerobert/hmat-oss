@@ -80,6 +80,9 @@ public:
   /** Set this as the intersection of two index set */
   void intersection(const IndexSet& s1, const IndexSet& s2);
 
+  /** Return intersection of this and o */
+  IndexSet intersection(const IndexSet& o) const;
+
   /*! \brief Return a short string describing the content of this IndexSet for debug (like: "[320, 452]")
     */
   std::string description() const {

@@ -69,6 +69,12 @@ void IndexSet::intersection(const IndexSet& s1, const IndexSet& s2) {
   this->size_ = interN;
 }
 
+IndexSet IndexSet::intersection(const IndexSet& o) const {
+  IndexSet s2;
+  s2.intersection(*this, o);
+  return s2;
+}
+
 DofData::DofData(const DofCoordinates& coordinates, int* group_index)
 {
   int size = coordinates.numberOfDof();

@@ -967,11 +967,9 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
   } else {
     if (!(b->rows_->intersects(*rows()) && b->cols_->intersects(*cols())))
       return;
-    IndexSet rowsAndThis;
-    rowsAndThis.intersection(*this->rows(), *b->rows_);
-    IndexSet colsAndThis;
-    colsAndThis.intersection(*this->cols(), *b->cols_);
-    const FullMatrix<T>* subMat = b->subset(const_cast<const IndexSet*>(&rowsAndThis), const_cast<const IndexSet*>(&colsAndThis));
+    const IndexSet rowsAndThis(this->rows()->intersection(*b->rows_));
+    const IndexSet colsAndThis(this->cols()->intersection(*b->cols_));
+    const FullMatrix<T>* subMat = b->subset(&rowsAndThis, &colsAndThis);
     if (isRkMatrix()) {
       assert(b->rows_->isSuperSet(*this->rows()) && b->cols_->isSuperSet(*this->cols()));
       if(!rk())
@@ -981,7 +979,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
     } else {
       if(!full())
         full(new FullMatrix<T>(this->rows(), this->cols()));
-      FullMatrix<T>* subThis = const_cast<FullMatrix<T>*>(full()->subset(const_cast<const IndexSet*>(&rowsAndThis), const_cast<const IndexSet*>(&colsAndThis)));
+      FullMatrix<T>* subThis = const_cast<FullMatrix<T>*>(full()->subset(&rowsAndThis, &colsAndThis));
       subThis->axpy(alpha, subMat);
       if (subThis != full())
         delete subThis;
