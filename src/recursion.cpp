@@ -223,7 +223,7 @@ namespace hmat {
       //  [ L21 | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
         if (b->get(0,k))
-          me()->recursiveSolveLowerTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
+          me()->solveLowerTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft: case not yet handled "
                              "Nr Child A[%d, %d] b[%d, %d] "
@@ -430,7 +430,7 @@ namespace hmat {
       //  [  0  | U22 ]    [     |     ]   [     |     ]
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
         if (b->get(0,k))
-          me()->recursiveSolveUpperTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
+          me()->solveUpperTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
 
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveUpperTriangularLeft: case not yet handled "
