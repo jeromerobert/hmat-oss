@@ -114,6 +114,11 @@ public:
     }
   }
 
+  void insertFather(){
+    Tree<TreeNode>* newFather = new Tree(NULL);
+    newFather->insertChild(0,this);
+  }
+
   /*! \brief Remove a child, and delete it if necessary.
    */
   void removeChild(int index) {
@@ -155,6 +160,26 @@ public:
 
   inline int nrChild() const {
     return (int)children.size();
+  }
+
+  int getDepth() const {
+    if (this->isLeaf()) return depth;
+    else {
+      int nodeDepth = getChild(0)->getDepth();
+      for (int i = 1; i < nrChild();i++){
+        nodeDepth = std::max(nodeDepth,getChild(i)->getDepth());
+      }
+      return nodeDepth;
+    }
+  }
+
+  inline void changeDepth(int newDepth){
+    depth = newDepth;
+    if (!isLeaf()){
+      for (int i = 0; i < nrChild(); i++){
+        getChild(i)->changeDepth(newDepth+1);
+      }
+    }
   }
 
   /*! \brief Return true if the node is a leaf (= it has no children).

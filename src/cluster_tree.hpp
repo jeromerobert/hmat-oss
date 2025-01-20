@@ -185,13 +185,16 @@ public:
   /*! \brief Swap contents of two ClusterTree
    */
   void swap(ClusterTree* other);
+  
+  void balance_trees(ClusterTree** tree_list, int n);
+
+  void insertFather();
 
   /*! \brief Return a short string describing the content of this ClusterTree for debug (like: "[320, 452]")
     */
   std::string description() const {
     return data.description();
   }
-
 };
 
 class AxisAlignedBoundingBox

@@ -226,6 +226,7 @@ HMAT_API void hmat_set_clustering_divider(hmat_clustering_algorithm_t* algo, int
 */
 HMAT_API hmat_cluster_tree_t * hmat_create_cluster_tree(double* coord, int dimension, int size, hmat_clustering_algorithm_t* algo);
 
+HMAT_API void hmat_balance_cluster_trees(hmat_cluster_tree_t **, int n);
 /* Opaque pointer */
 typedef struct hmat_cluster_tree_builder hmat_cluster_tree_builder_t;
 

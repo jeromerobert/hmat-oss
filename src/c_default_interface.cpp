@@ -133,6 +133,10 @@ void hmat_delete_cluster_tree_builder(hmat_cluster_tree_builder_t* ctb)
     delete static_cast<ClusterTreeBuilder*>((void*)ctb);
 }
 
+void hmat_balance_cluster_trees(hmat_cluster_tree_t ** tree_list, int n){
+  ((ClusterTree*)*tree_list)->balance_trees((ClusterTree**)tree_list,n);
+}
+
 /* Create a ClusterTree from the DoFs coordinates. */
 hmat_cluster_tree_t * hmat_create_cluster_tree_from_builder(double* coord, int dimension, int size, const hmat_cluster_tree_builder_t* ctb)
 {

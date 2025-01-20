@@ -206,6 +206,27 @@ void ClusterTree::swap(ClusterTree* other) {
   }
 }
 
+void ClusterTree::insertFather(){
+  ClusterTree* newFather = new ClusterTree(*this);
+  this->father = newFather;
+  newFather->insertChild(0,this);
+}
+
+void ClusterTree::balance_trees(ClusterTree** tree_list, int n){
+    int treeDepth[n];
+    for (int i = 0; i < n;i++) treeDepth[i] = tree_list[i]->getDepth();
+    int maxDepth = *std::max_element(treeDepth,treeDepth+n);
+    for (int i = 0; i < n; i++){
+      if (treeDepth[i] < maxDepth){
+        for (int j = 0; j < maxDepth - treeDepth[i]; j++){
+          tree_list[i]->insertFather();
+          tree_list[i] = tree_list[i]->getFather();
+        }
+        tree_list[i]->changeDepth(0);
+      }
+    }
+  }
+
 AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterData& data)
     : dimension_(data.coordinates()->dimension())
     , bb_(new double[2 * dimension_])
