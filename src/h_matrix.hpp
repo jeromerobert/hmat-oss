@@ -137,6 +137,9 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   int rank_;
   /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
   int approximateRank_;
+  /// Force to split both rows and cols if this is not a leaf
+  bool forceSplitRowCol=false;
+
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
@@ -163,10 +166,12 @@ public:
 
     \param _rows The row cluster tree
     \param _cols The column cluster tree
+    \param _forceSplitRowCol Force splitting both row and cols if this is not a leaf
    */
   HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const MatrixSettings * settings,
        int depth, SymmetryFlag symmetryFlag,
-       AdmissibilityCondition * admissibilityCondition);
+       AdmissibilityCondition * admissibilityCondition,
+       bool _forceSplitRowCol=false);
 
   /*! \brief Create a copy of this matrix for internal use only.
    * Only copy this node, not the whole tree. The created matrix

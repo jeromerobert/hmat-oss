@@ -142,10 +142,10 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices, int axis) {
 
 template<typename T>
 HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hmat::MatrixSettings * settings,
-                    int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
+                    int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition, bool _forceSplitRowCol)
   : Tree<HMatrix<T> >(NULL, _depth), RecursionMatrix<T, HMatrix<T> >(),
     rows_(_rows), cols_(_cols), rk_(NULL),
-    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
+    rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK), forceSplitRowCol(_forceSplitRowCol),
     isUpper(false), isLower(false),
     isTriUpper(false), isTriLower(false), keepSameRows(true), keepSameCols(true), temporary_(false),
     ownRowsClusterTree_(false), ownColsClusterTree_(false), localSettings(settings, 1e-4)
@@ -187,8 +187,9 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
     return false;
   pair<bool, bool> splitRC = admissibilityCondition->splitRowsCols(*rows_, *cols_);
   assert(splitRC.first || splitRC.second);
-  keepSameRows = !splitRC.first;
-  keepSameCols = !splitRC.second;
+  bool forceSplitRC = this->forceSplitRowCol || (splitRC.first && splitRC.second);
+  keepSameRows = !(forceSplitRC || splitRC.first);
+  keepSameCols = !(forceSplitRC || splitRC.second);
   isLower = (symFlag == kLowerSymmetric ? true : false);
   for (int i = 0; i < nrChildRow(); ++i) {
     // Don't recurse on rows if splitRowsCols() told us not to.
@@ -203,7 +204,8 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
                             new HMatrix<T>(rowChild, colChild, localSettings.global,
                                            this->depth + 1,
                                            i == j ? symFlag : kNotSymmetric,
-                                           admissibilityCondition));
+                                           admissibilityCondition,
+                                           forceSplitRC));
         } else
           // If 'inert', the child is NULL
           this->insertChild(i, j, NULL);
