@@ -183,7 +183,8 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
   bool forceRecursion = admissibilityCondition->forceRecursion(*rows_, *cols_, sizeof(T));
   assert(!(forceRecursion && stopRecursion));
   // check we can actually split
-  if ((rows_->isLeaf() && cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion))
+  bool cantForceSplitRC = this->forceSplitRowCol && (rows_->isLeaf() || cols_->isLeaf());
+  if ((rows_->isLeaf() && cols_->isLeaf()) || cantForceSplitRC || stopRecursion || (lowRank && !forceRecursion))
     return false;
   pair<bool, bool> splitRC = admissibilityCondition->splitRowsCols(*rows_, *cols_);
   assert(splitRC.first || splitRC.second);
