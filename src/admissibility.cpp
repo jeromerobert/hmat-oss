@@ -162,7 +162,7 @@ AlwaysAdmissibilityCondition::AlwaysAdmissibilityCondition(size_t max_block_size
     max_block_size_(max_block_size), min_nr_block_(min_block),
     split_rows_cols_(row_split, col_split), never_(false) {
     HMAT_ASSERT(row_split || col_split);
-    ratio_ = 0.5;
+    ratio_ = sqrt(0.5);
     blockSizeDetector_->compute(max_block_size_, min_nr_block_, never_);
 }
 
