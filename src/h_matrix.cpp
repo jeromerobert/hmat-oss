@@ -1258,7 +1258,8 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
 }
 
 template<typename T>
-unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char transA, const HMatrix<T>* b, Axis axisB, char transB) {
+unsigned char * compatibilityGridForGEMM(const HMatrix<T> *a, bool recurseA, Axis axisA, char transA,
+ const HMatrix<T> *b, bool recurseB, Axis axisB, char transB) {
     // Let us first consider C = A^T * B where A, B and C are top-level matrices:
     //  [ C11 | C12 ]   [ A11^T | A21^T ]   [ B11 | B12 ]
     //  [ ----+---- ] = [ ------+------ ] * [ ----+---- ]
@@ -1267,29 +1268,29 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char t
     // rows of A^T and rows of C are the same, and columns of B and columns of C are the same.
     // Matrices are built from the same cluster trees, so we know that blocks are split at the
     // same place, and this function will return:
-    //    compatibilityGridForGEMM(A, COL, 'T', B, ROW, 'N') = {1, 0, 0, 1}
-    //    compatibilityGridForGEMM(A, ROW, 'T', C, ROW, 'N') = {1, 0, 0, 1}
-    //    compatibilityGridForGEMM(B, COL, 'N', C, ROW, 'N') = {1, 0, 0, 1}
+    //    compatibilityGridForGEMM(A, true, COL, 'T', B, true, ROW, 'N') = {1, 0, 0, 1}
+    //    compatibilityGridForGEMM(A, true, ROW, 'T', C, true, ROW, 'N') = {1, 0, 0, 1}
+    //    compatibilityGridForGEMM(B, true, COL, 'N', C, true, ROW, 'N') = {1, 0, 0, 1}
     // But blocks could be split in a single direction instead of 2, or could not
     // be split; if A had been split only by rows, we would have
     //  [ C11 | C12 ]                       [ B11 | B12 ]
     //  [ ----+---- ] = [ A11^T | A21^T ] * [ ----+---- ]
     //  [ C21 | C22 ]                       [ B21 | B22 ]
-    //    compatibilityGridForGEMM(A, ROW, 'T', C, ROW, 'N') = {1, 1}
+    //    compatibilityGridForGEMM(A, true, ROW, 'T', C, true, ROW, 'N') = {1, 1}
     //
     // Situation is much more complicated when considering inner nodes; for instance let us
     // have a look at A11^T * B11 with A11 and B11 being defined just above. Rows of A11^T
     // are equal to rows(C11)+rows(C21), and thus (considering that A11 and C11 are split
     // into 4 nodes)
-    //    compatibilityGridForGEMM(A11, ROW, 'T', C11, ROW, 'N') = {1, 1, 0, 0}
+    //    compatibilityGridForGEMM(A11, true, ROW, 'T', C11, true, ROW, 'N') = {1, 1, 0, 0}
     //
     // This function is generic, it works for all cases as long as matrices are built from
     // the same cluster trees.
 
-    int row_a = transA == 'N' ? a->nrChildRow() : a->nrChildCol();
-    int col_a = transA == 'N' ? a->nrChildCol() : a->nrChildRow();
-    int row_b = transB == 'N' ? b->nrChildRow() : b->nrChildCol();
-    int col_b = transB == 'N' ? b->nrChildCol() : b->nrChildRow();
+    int row_a = !recurseA ? 1 : (transA == 'N' ? a->nrChildRow() : a->nrChildCol());
+    int col_a = !recurseA ? 1 : (transA == 'N' ? a->nrChildCol() : a->nrChildRow());
+    int row_b = !recurseB ? 1 : (transB == 'N' ? b->nrChildRow() : b->nrChildCol());
+    int col_b = !recurseB ? 1 : (transB == 'N' ? b->nrChildCol() : b->nrChildRow());
     size_t nr_blocks = (axisA == Axis::ROW ? row_a : col_a) * (axisB == Axis::ROW ? row_b : col_b);
     unsigned char * result = new unsigned char[nr_blocks];
     memset(result, 0, nr_blocks);
@@ -1299,7 +1300,7 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char t
             // All children on a row have the same row cluster tree, get it
             // from the first non null child.  We also consider the case where
             // 'a' is a leaf.
-            const HMatrix<T> *childA = a->isLeaf() ? a : nullptr;
+            const HMatrix<T> *childA = !recurseA ? a : nullptr;
             char tA = transA;
             for (int jA = 0; !childA && jA < col_a; jA++) {
               tA = transA;
@@ -1312,7 +1313,7 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char t
                 for (int iB = 0; iB < row_b; iB++) {
                     for (int jB = 0; jB < col_b; jB++) {
                         char tB = transB;
-                        const HMatrix<T> *childB = b->isLeaf() ? b : b->getChildForGEMM(tB, iB, jB);
+                        const HMatrix<T> *childB = !recurseB ? b : b->getChildForGEMM(tB, iB, jB);
                         if(childB) {
                             result[iA * row_b + iB] = (tA == 'N' ? childA->rows() : childA->cols())->intersects(*(tB == 'N' ? childB->rows() : childB->cols()));
                             break;
@@ -1323,7 +1324,7 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char t
                 for (int jB = 0; jB < col_b; jB++) {
                     for (int iB = 0; iB < row_b; iB++) {
                         char tB = transB;
-                        const HMatrix<T> *childB = b->isLeaf() ? b : b->getChildForGEMM(tB, iB, jB);
+                        const HMatrix<T> *childB = !recurseB ? b : b->getChildForGEMM(tB, iB, jB);
                         if(childB) {
                             result[iA * col_b + jB] = (tA == 'N' ? childA->rows() : childA->cols())->intersects(*(tB == 'N' ? childB->cols() : childB->rows()));
                             break;
@@ -1334,7 +1335,7 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char t
         }
     } else {
         for (int jA = 0; jA < col_a; jA++) {
-            const HMatrix<T> *childA = a->isLeaf() ? a : nullptr;
+            const HMatrix<T> *childA = !recurseA ? a : nullptr;
             char tA = transA;
             for (int iA = 0; !childA && iA < row_a; iA++) {
               tA = transA;
@@ -1347,7 +1348,7 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char t
                 for (int iB = 0; iB < row_b; iB++) {
                     for (int jB = 0; jB < col_b; jB++) {
                         char tB = transB;
-                        const HMatrix<T> *childB = b->isLeaf() ? b : b->getChildForGEMM(tB, iB, jB);
+                        const HMatrix<T> *childB = !recurseB ? b : b->getChildForGEMM(tB, iB, jB);
                         if(childB) {
                             result[jA * row_b + iB] = (tA == 'N' ? childA->cols() : childA->rows())->intersects(*(tB == 'N' ? childB->rows() : childB->cols()));
                             break;
@@ -1358,7 +1359,7 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char t
                 for (int jB = 0; jB < col_b; jB++) {
                     for (int iB = 0; iB < row_b; iB++) {
                         char tB = transB;
-                        const HMatrix<T> *childB = b->isLeaf() ? b : b->getChildForGEMM(tB, iB, jB);
+                        const HMatrix<T> *childB = !recurseB ? b : b->getChildForGEMM(tB, iB, jB);
                         if(childB) {
                             result[jA * col_b + jB] = (tA == 'N' ? childA->cols() : childA->rows())->intersects(*(tB == 'N' ? childB->cols() : childB->rows()));
                             break;
@@ -1377,64 +1378,78 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     if(isVoid() || a->isVoid())
         return;
 
-    // None of the matrices is a leaf
-    if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
-        int row_a = transA == 'N' ? a->nrChildRow() : a->nrChildCol();
-        int col_a = transA == 'N' ? a->nrChildCol() : a->nrChildRow();
-        int row_b = transB == 'N' ? b->nrChildRow() : b->nrChildCol();
-        int col_b = transB == 'N' ? b->nrChildCol() : b->nrChildRow();
-        int row_c = nrChildRow();
-        int col_c = nrChildCol();
+    const ClusterData* a_rows = transA == 'N' ? a->rows() : a->cols();
+    const ClusterData* a_cols = transA == 'N' ? a->cols() : a->rows();
+    const ClusterData* b_cols = transB == 'N' ? b->cols() : b->rows();
+    const ClusterData* b_rows = transB == 'N' ? b->rows() : b->cols();
 
+    bool super_a = !a->isLeaf() && (a_cols->isStrictSuperSet(*b_rows) || a_rows->isStrictSuperSet(*this->rows()));
+    bool super_b = !b->isLeaf() && (b_rows->isStrictSuperSet(*a_cols) || b_cols->isStrictSuperSet(*this->cols()));
+    bool super_c = !this->isLeaf() && (this->rows()->isStrictSuperSet(*a_rows) || this->cols()->isStrictSuperSet(*b_cols));
+    bool conditionA = !a->isLeaf() && !(super_b || super_c);
+    bool conditionB = !b->isLeaf() && !(super_a || super_c);
+    bool conditionC = !this->isLeaf() && !(super_a || super_b);
+    bool any_super = super_a || super_b || super_c;
+
+    if ((conditionA && conditionB && conditionC) || super_a || super_b || super_c) {
+        const bool childrenA = (super_a || !(any_super || a->isLeaf()));
+        const bool childrenB = (super_b || !(any_super || b->isLeaf()));
+        const bool childrenC = (super_c || !(any_super || this->isLeaf()));
+
+        const int row_a = (!childrenA ? 1 : (transA=='N' ? a->nrChildRow() : a->nrChildCol()));
+        const int col_a = (!childrenA ? 1 : (transA=='N' ? a->nrChildCol() : a->nrChildRow()));
+        const int row_b = (!childrenB ? 1 : (transB=='N' ? b->nrChildRow() : b->nrChildCol()));
+        const int col_b = (!childrenB ? 1 : (transB=='N' ? b->nrChildCol() : b->nrChildRow()));
+        const int row_c = (!childrenC ? 1 : this->nrChildRow());
+        const int col_c = (!childrenC ? 1 : this->nrChildCol());
         // There are 6 nested loops, this may be an issue if there are more
         // than 2 children in each direction; precompute compatibility between
         // blocks to improve performance:
         //   + columns of a and rows of b
-        unsigned char * is_compatible_a_b = compatibilityGridForGEMM(a, Axis::COL, transA, b, Axis::ROW, transB);
+        unsigned char * is_compatible_a_b = compatibilityGridForGEMM(a, childrenA, Axis::COL, transA, b, childrenB, Axis::ROW, transB);
         //   + rows of a and rows of c
-        unsigned char * is_compatible_a_c = compatibilityGridForGEMM(a, Axis::ROW, transA, this, Axis::ROW, 'N');
+        unsigned char * is_compatible_a_c = compatibilityGridForGEMM(a, childrenA, Axis::ROW, transA, this, childrenC, Axis::ROW, 'N');
         //   + columns of b and columns of c
-        unsigned char * is_compatible_b_c = compatibilityGridForGEMM(b, Axis::COL, transB, this, Axis::COL, 'N');
+        unsigned char * is_compatible_b_c = compatibilityGridForGEMM(b, childrenB, Axis::COL, transB, this, childrenC, Axis::COL, 'N');
         //  With these arrays, we can exit early from loops on iA, jB and l
         //  when blocks are not compatible, and thus there are only 3 real
         //  loops (on i, j, k) and performance penalty should be negligible.
         for (int i = 0; i < row_c; i++) {
             for (int j = 0; j < col_c; j++) {
-                HMatrix<T>* child = get(i, j);
+                HMatrix<T>* child = !childrenC ? this : get(i, j);
                 if (!child) { // symmetric/triangular case or empty block coming from symbolic factorisation of sparse matrices
-                    continue;
+                  continue;
                 }
-
                 for (int iA = 0; iA < row_a; iA++) {
-                  if (!is_compatible_a_c[iA * row_c + i])
-                    continue;
-                  for (int jB = 0; jB < col_b; jB++) {
-                    if (!is_compatible_b_c[jB * col_c + j])
+                    if (!is_compatible_a_c[iA * row_c + i])
                       continue;
-                    for (int k = 0; k < col_a; k++) {
-                      char tA = transA;
-                      const HMatrix<T> * childA = a->getChildForGEMM(tA, iA, k);
-                      if(!childA)
-                        continue;
-                      for (int l = 0; l < row_b; l++) {
-                        if (!is_compatible_a_b[k * row_b + l])
-                          continue;
-                        char tB = transB;
-                        const HMatrix<T> * childB = b->getChildForGEMM(tB, l, jB);
-                        if(childB)
-                          child->gemm(tA, tB, alpha, childA, childB, 1);
-                      }
+                    for (int jB = 0; jB < col_b; jB++) {
+                        if (!is_compatible_b_c[jB * col_c + j])
+                            continue;
+                        for (int k = 0; k < col_a; k++) {
+                            char tA = transA;
+                            const HMatrix<T> *childA = !childrenA ? a : a->getChildForGEMM(tA, iA, k);
+                            if (!childA)
+                                continue;
+                            for (int l = 0; l < row_b; l++) {
+                                if (!is_compatible_a_b[k * row_b + l])
+                                    continue;
+                                char tB = transB;
+                                const HMatrix<T> *childB = !childrenB ? b : b->getChildForGEMM(tB, l, jB);
+                                if(childB)
+                                    child->gemm(tA, tB, alpha, childA, childB, 1);
+                            }
+                        }
                     }
-                  }
                 }
             }
         }
         delete [] is_compatible_a_b;
         delete [] is_compatible_a_c;
         delete [] is_compatible_b_c;
-    } // if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf())
-    else
-        uncompatibleGemm(transA, transB, alpha, a, b);
+    } else {
+        uncompatibleGemm(transA,transB,alpha,a,b);
+    }
 }
 
 /**
@@ -3217,10 +3232,10 @@ template void restoreVectorOrder(ScalarArray<D_t>* v, int* indices, int axis);
 template void restoreVectorOrder(ScalarArray<C_t>* v, int* indices, int axis);
 template void restoreVectorOrder(ScalarArray<Z_t>* v, int* indices, int axis);
 
-template unsigned char * compatibilityGridForGEMM(const HMatrix<S_t>* a, Axis axisA, char transA, const HMatrix<S_t>* b, Axis axisB, char transB);
-template unsigned char * compatibilityGridForGEMM(const HMatrix<D_t>* a, Axis axisA, char transA, const HMatrix<D_t>* b, Axis axisB, char transB);
-template unsigned char * compatibilityGridForGEMM(const HMatrix<C_t>* a, Axis axisA, char transA, const HMatrix<C_t>* b, Axis axisB, char transB);
-template unsigned char * compatibilityGridForGEMM(const HMatrix<Z_t>* a, Axis axisA, char transA, const HMatrix<Z_t>* b, Axis axisB, char transB);
+template unsigned char * compatibilityGridForGEMM(const HMatrix<S_t>* a, bool recurseA, Axis axisA, char transA, const HMatrix<S_t>* b, bool recurseB, Axis axisB, char transB);
+template unsigned char * compatibilityGridForGEMM(const HMatrix<D_t>* a, bool recurseA, Axis axisA, char transA, const HMatrix<D_t>* b, bool recurseB, Axis axisB, char transB);
+template unsigned char * compatibilityGridForGEMM(const HMatrix<C_t>* a, bool recurseA, Axis axisA, char transA, const HMatrix<C_t>* b, bool recurseB, Axis axisB, char transB);
+template unsigned char * compatibilityGridForGEMM(const HMatrix<Z_t>* a, bool recurseA, Axis axisA, char transA, const HMatrix<Z_t>* b, bool recurseB, Axis axisB, char transB);
 
 }  // end namespace hmat
 

@@ -145,6 +145,7 @@ template<typename T> class HMatrix;
 
 enum class Axis {ROW, COL};
 
+
 /** Precompute compatibility between children of a and b for GEMM.
 
      \param a first matrix
@@ -155,7 +156,7 @@ enum class Axis {ROW, COL};
      \param transB tells whether b is transposed or not
      \return byte array
  */
-template<typename T> unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, Axis axisA, char transA, const HMatrix<T>* b, Axis axisB, char transB);
+template<typename T> unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, bool recurseA, Axis axisA, char transA, const HMatrix<T>* b, bool recurseB, Axis axisB, char transB);
 
 /*! \brief The HMatrix class, representing a HMatrix.
 
