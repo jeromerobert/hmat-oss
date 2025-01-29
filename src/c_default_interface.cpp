@@ -189,6 +189,7 @@ const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree) {
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->ratio = 0.0;
+    p->targetRC = 1.0;
     p->max_width = (size_t)-1L;
     p->scale = -1;
 }
@@ -203,6 +204,7 @@ hmat_admissibility_t* hmat_create_admissibility(hmat_admissibility_param_t * p) 
 void hmat_update_admissibility(hmat_admissibility_t* cond, hmat_admissibility_param_t *p) {
     hmat::AdmissibilityCondition * r = reinterpret_cast<AdmissibilityCondition*>(cond);
     r->setRatio(p->ratio);
+    r->setTargetRowCol(p->targetRC);
     r->setMaxWidth(p->max_width);
 }
 

@@ -311,8 +311,10 @@ HMAT_API const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree);
 typedef struct {
     /** eta for Hackbusch condition */
     double eta;
-    /** ratio (in [0, 0.5]) to prevent tall and skinny blocks */
+    /** tolerance ratio (in [0, 1[) to prevent tall and skinny blocks */
     double ratio;
+    /** target rows/cols to prevent tall and skinny blocks */
+    double targetRC;
     /** maximum block width */
     size_t max_width;
     /** A scale factor (default to -1 for "unspecified" */

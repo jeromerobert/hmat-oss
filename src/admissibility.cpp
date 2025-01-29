@@ -38,10 +38,10 @@ AdmissibilityCondition::forceRecursion(const ClusterTree& rows, const ClusterTre
 std::pair<bool, bool>
 AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree& cols) const
 {
-  if (cols.data.size() < ratio_ * rows.data.size() ) {
+  if (targetRC * cols.data.size() < ratio_ * rows.data.size() ) {
     // rows are much larger than cols so we won't subdivide cols
     return std::pair<bool, bool>(!rows.isLeaf(), false);
-  } else if (rows.data.size() < ratio_ * cols.data.size() ) {
+  } else if (rows.data.size() < targetRC * ratio_ * cols.data.size() ) {
     // cols are much larger than rows so we won't subdivide rows
     return std::pair<bool, bool>(false, !cols.isLeaf());
   } else // approximately the same size, we can subdivide both

@@ -39,7 +39,7 @@ class AxisAlignedBoundingBox;
 class AdmissibilityCondition
 {
 public:
-  AdmissibilityCondition() : ratio_(0.0), maxWidth_((size_t)-1L) {}
+  AdmissibilityCondition() : ratio_(0.0), targetRC(1.0), maxWidth_((size_t)-1L) {}
   /*! \brief Virtual copy constructor */
   virtual AdmissibilityCondition * clone() const = 0;
 
@@ -129,12 +129,24 @@ public:
   virtual std::string str() const = 0;
 
   /**
-   * @brief Set ratio to cut tall and skinny matrices
+   * @brief Set tolerance ratio to cut tall and skinny matrices,
+      rows/cols should converge towards the interval ]targetRC*ratio_, targetRC/ratio_[.
+      This should generally be set to either 0 to deactivate cutting only one cluster,
+      or sqrt(n), where n is the number of children, for existence and unicity of rows/cols in non-tall, non-skinny matrices
    * @param ratio  allows to cut tall and skinny matrices along only one direction:
-      if size(rows) < ratio*size(cols), rows is not subdivided.
-      if size(cols) < ratio*size(rows), cols is not subdivided.
+      if size(rows) < target * ratio*size(cols), rows is not subdivided.
+      if target * size(cols) < ratio*size(rows), cols is not subdivided.
  */
   void setRatio(double ratio) { ratio_ = ratio; }
+
+  /**
+   * @brief Set target rows.size()/cols.size() to cut tall and skinny matrices
+      rows/cols should converge towards the interval ]targetRC*ratio_, targetRC/ratio_[
+   * @param ratio  allows to cut tall and skinny matrices along only one direction:
+      if size(rows) < target * ratio*size(cols), rows is not subdivided.
+      if target * size(cols) < ratio*size(rows), cols is not subdivided.
+ */
+  void setTargetRowCol(double target) { targetRC = target; }
 
   /**
    * @brief Set maximum width (default is unlimited)
@@ -144,6 +156,7 @@ public:
 
 protected:
   double ratio_;
+  double targetRC;
   size_t maxWidth_;
 };
 
