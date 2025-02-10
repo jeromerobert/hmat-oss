@@ -2053,8 +2053,16 @@ template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
   DECLARE_CONTEXT;
   if (isVoid()) return;
-  // At first, the recursion one (simple case)
-  if (!this->isLeaf() && !b->isLeaf()) {
+  if (this->cols()->isStrictSubset(*b->rows()) && !b->isLeaf()){
+    //We only want to go up once
+    if (this == this->father->children[0]){
+      this->father->solveLowerTriangularLeft(b, algo, diag, uplo);
+    }
+  } else if (b->rows()->isStrictSubset(*this->cols()) && !this->isLeaf()){
+    if (b == b->father->children[0]){
+      this->solveLowerTriangularLeft(b->father, algo, diag, uplo);
+    }
+  } else if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, algo, diag, uplo);
   } else if(!b->isLeaf()) {
     // B isn't a leaf, then 'this' is one
@@ -2127,8 +2135,16 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
-  // The recursion one (simple case)
-  if (!this->isLeaf() && !b->isLeaf()) {
+  if (this->rows()->isStrictSubset(*b->cols()) && !b->isLeaf()){
+    //We only want to go up once
+    if (this == this->father->children[0]){
+      this->father->solveUpperTriangularRight(b, algo, diag, uplo);
+    }
+  } else if (b->cols()->isStrictSubset(*this->rows()) && !this->isLeaf()){
+    if (b == b->father->children[0]){
+      this->solveUpperTriangularRight(b->father, algo, diag, uplo);
+    }
+  } else if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularRight(b, algo, diag, uplo);
   } else if(!b->isLeaf()) {
     // B isn't a leaf, then 'this' is one
@@ -2210,8 +2226,16 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
-  // At first, the recursion one (simple case)
-  if (!this->isLeaf() && !b->isLeaf()) {
+  if (this->cols()->isStrictSubset(*b->rows()) && !b->isLeaf()){
+    //We only want to go up once
+    if (this == this->father->children[0]){
+      this->father->solveUpperTriangularLeft(b, algo, diag, uplo);
+    }
+  } else if (b->rows()->isStrictSubset(*this->cols()) && !this->isLeaf()){
+    if (b == b->father->children[0]){
+      this->solveUpperTriangularLeft(b->father, algo, diag, uplo);
+    }
+  } else if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularLeft(b, algo, diag, uplo);
   } else if(!b->isLeaf()) {
     // B isn't a leaf, then 'this' is one
