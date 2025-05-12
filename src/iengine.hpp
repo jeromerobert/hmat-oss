@@ -74,13 +74,9 @@ namespace hmat {
 
     virtual void ratio(hmat_FPCompressionRatio_t &r) const =0;
 
-    virtual void FPcompress() = 0;
+    virtual void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method) = 0;
 
-    virtual void FPdecompress() = 0;
-
-    virtual FPCompressionSettings GetFPCompressionSettings() = 0;
-
-    virtual void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk) = 0;
+    virtual void FPuncompress(hmat_FPcompress_t method) = 0;
 
     virtual EngineSettings &GetSettings() = 0;
 

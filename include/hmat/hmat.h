@@ -73,9 +73,9 @@ typedef enum {
 typedef enum { 
   DEFAULT_COMPRESSOR = 0, 
   ZFP_COMPRESSOR = 1,
-  SZ_COMPRESSOR = 2, 
+  SZ2_COMPRESSOR = 2, 
   SZ3_COMPRESSOR = 3
-} hmat_FPcompress_t;
+}hmat_FPcompress_t;
 
 typedef enum {
     hmat_block_full,
@@ -440,7 +440,7 @@ typedef struct
 typedef struct
 {
   //TO DO : uses C Hashtable instead of C++ map for profiling the Matrices;
-  int wip;
+  
 } hmat_profile_t;
 
 typedef struct hmat_matrix_struct hmat_matrix_t;
@@ -466,15 +466,13 @@ typedef struct {
   double rkRatio;
 
   //Total number of elements in the Rk-Matrices only
-  size_t size_Rk;
-  size_t size_Rk_compressed;
+  int size_Rk;
 
   //The compression ratio for the full blocs only
   double fullRatio;
 
   //Total number of elements in the full blocs only
-  size_t size_Full;
-  size_t size_Full_compressed;
+  int size_Full;
 
   //The compression ratio for the Whole HMatrix
   double ratio;
@@ -983,15 +981,9 @@ typedef struct
 
     int (*get_ratio)(hmat_matrix_t *hmatrix, hmat_FPCompressionRatio_t* ratio);
 
-    int (*FPcompress)(hmat_matrix_t *hmatrix);
+    int (*FPcompress)(hmat_matrix_t *hmatrix, double epsilon, int nb_blocs, hmat_FPcompress_t method);
 
-    int (*FPdecompress)(hmat_matrix_t *hmatrix);
-
-    hmat_fp_settings_t (*GetFPCompressionSettings)(hmat_matrix_t *hmatrix);
-
-    int (*SetFPCompressionSettings)(hmat_matrix_t *hmatrix, hmat_fp_settings_t settings);
-
-    int (*SetFPCompressionSettingsParams)(hmat_matrix_t *hmatrix, float epsilonFP, int nb_blocs, hmat_FPcompress_t compressor, bool compressFull, bool compressRk);
+    int (*FPuncompress)(hmat_matrix_t *hmatrix, hmat_FPcompress_t method);
 
     /*! \brief Dump json & postscript informations about matrix
         \param hmatrix A hmatrix

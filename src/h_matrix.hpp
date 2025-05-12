@@ -60,18 +60,6 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 // or removed
 enum DefaultRank {UNINITIALIZED_BLOCK = -3, NONLEAF_BLOCK = -2, FULL_BLOCK = -1};
 
-struct FPCompressionSettings {
-    hmat_FPcompress_t compressor;
-    int nb_blocs; //TODO : -1 => p=n_cols;  0 => p varied, depends on min block size
-    float epsilonFP;
-    bool compressFull;
-    bool compressRk;
-
-    FPCompressionSettings(hmat_FPcompress_t c = DEFAULT_COMPRESSOR, int p = 4, float eps = 1e-4, bool cF = true, bool cR = true)
-      : compressor(c), nb_blocs(p), epsilonFP(eps), compressFull(cF), compressRk(cR) {}
-
-};
-
 
 
 /** Settings global to a whole matrix */
@@ -94,28 +82,12 @@ struct HMatProfile
   //n_full_blocs[size] = number of full blocs for which n_rows * n_cols = size
   std::map<size_t, int> n_full_blocs;
 
-  std::map<size_t, std::vector<float>> full_comp_ratios;
-
-  //Time spent in compressing full blocs
-  std::map<size_t, std::vector<float>> full_comp_times;
-
-  //Time spent in decompressing full blocs
-  std::map<size_t, std::vector<float>> full_decomp_times;
-
   //n_rk_blocs[rank, size] = number of Rk blocs for which n_rows * n_cols = size and this->rank = rank
   std::map<size_t, std::map<size_t, int>> n_rk_blocs;
   //std::map<std::pair<int, int>, int> n_rk_blocs;
 
   //rk_comp_ratios[_rank][_size] contains the list of the compression ratios of rk blocs of rank=_rank and size=_size
   std::map<size_t, std::map<size_t, std::vector<float>>> rk_comp_ratios;
-
-
-  //Time spent in compressing rk blocs
-  std::map<size_t, std::map<size_t, std::vector<float>>> rk_comp_times;
-
-  //Time spent in decompressing rk blocs
-  std::map<size_t, std::map<size_t, std::vector<float>>> rk_decomp_times;
-
 };
 
 /** Degrees of freedom permutation of a vector required in HMatrix context.
@@ -741,41 +713,12 @@ public:
       return rows()->size() == 0 || cols()->size() == 0;
   }
 
-  /**
-   * Compute the FPcompression ratio of the H-Matrix and store the result in the parameter
-   */
   void FPratio(hmat_FPCompressionRatio_t &);
 
-  /**
-   * Apply FP compression to the HMatrix
-   */
-  void FPcompress();
+  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
 
-  /**
-   * Decompress the Hmatrix after an FP compression
-   */
-  void FPdecompress();
 
-  /**
-   * Return true iif the HMatrix is a Leaf and is currently FP compressed
-   */
-  bool isFPcompressed() const;
-
-  /**
-   * Return the FP compression settings of the HMatrix
-   */
-  FPCompressionSettings GetFPCompressionSettings();
-
-  /**
-   * Set the FP compression settings of the HMatrix.
-   */
-  void SetFPCompressionSettings(FPCompressionSettings* settings); //TODO set private member ? Used for recursion of the second version, maybe should not be usable outside
-
-  /**
-   * Set the FP compression settings of the HMatrix.
-   */
-  void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk);
-
+  void FPuncompress(hmat_FPcompress_t method);
   /**
    * Tag a not leaf block as assembled.
    * Must only be called when all leaves of this block have been

@@ -38,51 +38,17 @@
 #include <algorithm>
 #include <chrono>
 
+#if defined(HAVE_COMPOSYX)
+//Include les fichiers utilisant composyx ou les fichiers composyx directement ?
+#endif
+
+
 
 
 
 namespace hmat {
 
 
-  
-  template<typename T>
-  FPAdaptiveCompressor<T>::FPAdaptiveCompressor(hmat_FPcompress_t method, int n)
-  {
-      nb_blocs = n;
-      cols.resize(nb_blocs);
-      compressors_A.resize(nb_blocs);
-      compressors_B.resize(nb_blocs);
-
-      for(int i =0; i < nb_blocs; i++)
-      {
-        compressors_A[i] = initCompressor<T>(method);
-        compressors_B[i] = initCompressor<T>(method);
-        
-      }
-      compressionRatio = 1;
-      compressionTime = 0;
-      decompressionTime = 0;
-     
-  }
-
-  template <typename T>
-  FPAdaptiveCompressor<T>::~FPAdaptiveCompressor()
-  {
-    for(int i =0; i < nb_blocs; i++)
-      {
-        if(compressors_A[i])
-        {
-            delete compressors_A[i];
-            compressors_A[i] = nullptr;
-        }
-         if(compressors_B[i])
-        {
-          delete compressors_B[i];
-          compressors_B[i] = nullptr;
-        }
-        
-      }
-  }
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
@@ -97,6 +63,7 @@ template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _
     b(_b)
 {
   _compressors = nullptr;
+  isSZCompressed = false;
   // We make a special case for empty matrices.
   if ((!a) && (!b)) {
     return;
@@ -298,15 +265,15 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
 template <typename T>
 void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
 {
+  //printf("Begin Compression\n");
+  //printf("Compression of the RkMatrix using SZ2\n");
 
   assert(nb_blocs <= this->rank());//We may want to fix nb_blocs to this->rank() in that case in the future; for now, it is simpler to assert nb_blocs <= this->rank().
 
-  if(isFPcompressed()) //Already compressed !
+  if(isSZCompressed) //Already compressed !
   {
     return;
   }
-
-  auto start = std::chrono::high_resolution_clock::now();
 
   int k = this->rank();
   int m = a->rows;
@@ -334,7 +301,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
     }
   }
   
-  _compressors = new FPAdaptiveCompressor<T>(method, nb_blocs);
+  _compressors = new AdaptiveCompressorSZ<T>(method, nb_blocs);
 
 
   _compressors->n_rows_A = m;
@@ -344,21 +311,19 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
   double p_sqrt = sqrt((double)nb_blocs);
   double k0 = k/(double)nb_blocs;
-
+  ScalarArray<T> *a_p;
+  ScalarArray<T> *b_p;
   Vector<typename Types<T>::real> *Sigma_p;
 
   double sigma_1 = Sigma->maxAbsolute(); 
 
-  size_t size = (a->rows*a->cols)+(b->rows*b->cols);
-  size_t size_c = 0; 
-
+  double ratio_a = 0;
+  double ratio_b = 0;
   for(int p = 0; p < nb_blocs; p++)
   {
       int kp = round(k0*p);
       int kpOffset = round(k0 *(p+1)) - kp;
 
-      size_t size_a = m * kpOffset;
-      size_t size_b = n * kpOffset;
       
       if(kpOffset <= 0) //In that case 0 columns are selected. Can happen when nb_blocs > k
           continue;
@@ -369,35 +334,27 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
       double sigma_p = Sigma_p->maxAbsolute();
 
       double epsilon_p = epsilon *sigma_1/(p_sqrt * sigma_p);
-      _compressors->cols[p] = kpOffset;
-
-      {
-        ScalarArray<T>* a_p = new ScalarArray<T>(a->colsSubset(kp, kpOffset));
-
-        std::vector<T> tmp(a_p->ptr(), a_p->ptr() + size_a);
-
-        _compressors->compressors_A[p]->compress(tmp, size_a, epsilon_p);      
-        
-
-        size_c += size_a / _compressors->compressors_A[p]->get_ratio();
-        
-        delete a_p;
-      }
-      
+      epsilon_p = epsilon_p;
 
 
-      {
-       ScalarArray<T>* b_p = new ScalarArray<T>(b->colsSubset(kp, kpOffset));
+      a_p = new ScalarArray<T>(a->colsSubset(kp, kpOffset));
 
-        std::vector<T> tmp(b_p->ptr(), b_p->ptr() + size_b);
+      _compressors->compressors_A[p]->compress(a_p->ptr(), a_p->rows*a_p->cols, epsilon_p);      
+      _compressors->cols_A[p] = a_p->cols;
+      _compressors->ratios_A[p] = _compressors->compressors_A[p]->get_ratio();
+      ratio_a += _compressors->cols_A[p] * _compressors->ratios_A[p];
+
+      delete a_p;
 
 
-        _compressors->compressors_B[p]->compress(tmp, size_b, epsilon_p);      
+      b_p = new ScalarArray<T>(b->colsSubset(kp, kpOffset));
 
-        size_c += size_b / _compressors->compressors_B[p]->get_ratio();
-        delete b_p;
-      }
+      _compressors->compressors_B[p]->compress(b_p->ptr(), b_p->rows*b_p->cols, epsilon_p);      
+      _compressors->cols_B[p] = b_p->cols;
+      _compressors->ratios_B[p] = _compressors->compressors_B[p]->get_ratio();
+      ratio_b += _compressors->cols_B[p] * _compressors->ratios_B[p];   
 
+      delete b_p;
       delete Sigma_p;
       
   }
@@ -405,25 +362,23 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   {
     delete Sigma; //In that case we do own Sigma
   }
-  //a->clear(); //The memory for the panels a and b is freed. To replace with this->clear() or add clearing of compressors in this-> clear() ?
-  //b->clear();
-  delete a;
-  delete b;
-  this->a = new ScalarArray<T>(0, k);
-  this->b = new ScalarArray<T>(0, k);
-  
+  a->clear(); //The memory for the panels a and b is freed. To replace with this->clear() or add clearing of compressors in this-> clear() ?
+  b->clear();
+  ratio_a = ratio_a / k;
+  ratio_b = ratio_b / k;
+  _compressors->compressionRatio = (m * ratio_a + n * ratio_b) / (m + n);
+  //printf("Dims : (%d, %d); compression Ratio = %f\n", rows->size(), this->rank(), _compressors->compressionRatio);
+ 
+  isSZCompressed = true;
 
-  _compressors->compressionRatio = (double)size/(double)size_c;
-
-  auto end = std::chrono::high_resolution_clock::now();
-  _compressors->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 }
 
 template <typename T>
-void RkMatrix<T>::FPdecompress()
+void RkMatrix<T>::FPuncompress()
 {
 
-  if(!isFPcompressed()) //Already uncompressed !
+  //printf("Begin Uncompression\n");
+  if(!isSZCompressed) //Already uncompressed !
   {
     return;
   }
@@ -431,59 +386,54 @@ void RkMatrix<T>::FPdecompress()
   //Decompression
   if(_compressors== nullptr)
   {
-    printf("Compressors not instanciated\n");
+    printf("Compressors not instanciated");
     return;
   }
-
-  auto start = std::chrono::high_resolution_clock::now();
-
   int k =this->rank();
   int m = this->rows->size();
   int n = this->cols->size();
   int nb_blocs = _compressors->nb_blocs;
 
-  int offset = 0;
+  int i = 0;
   this->a = new ScalarArray<T>(m, k);
   this->b = new ScalarArray<T>(n, k);
-  
   for(int p = 0; p < nb_blocs; p++)
   {
-    int k_p = _compressors->cols[p];
+    int k_a = _compressors->cols_A[p];
+    int k_b = _compressors->cols_B[p];
 
-    if(k_p ==0)
+    if(k_a ==0 || k_b == 0)
       continue;
 
+    if(k_a != k_b)
+      printf("k_a != k_b\n\n");
 
     { //We want to release a_p as soon as possible
-      std::vector<T> data = _compressors->compressors_A[p]->decompress();
+      T* data = _compressors->compressors_A[p]->decompress();
       
-      ScalarArray<T> a_p(data.data(), m, k_p);
-      a->copyMatrixAtOffset(&a_p, 0, offset);    
+      ScalarArray<T>*a_p = new ScalarArray<T>(data, m, k_a);
+      a->copyMatrixAtOffset(a_p, 0, i);    
+      delete a_p;
     }   
 
     {//We want to release b_p as soon as possible
-      std::vector<T> data = _compressors->compressors_B[p]->decompress();
+      T* data = _compressors->compressors_B[p]->decompress();
       
-      ScalarArray<T> b_p(data.data(), n, k_p);
-      b->copyMatrixAtOffset(&b_p, 0, offset);
+      ScalarArray<T>* b_p = new ScalarArray<T>(data, n, k_b);
+      b->copyMatrixAtOffset(b_p, 0, i);
+      delete b_p;
     }   
 
-    offset+=k_p;
+
+    i+=k_a;
   }
 
-  auto end = std::chrono::high_resolution_clock::now();
-  _compressors->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-
-  delete _compressors;
-  _compressors = nullptr;
   
+  //delete _compressors;
+  //printf("Uncompression complete\n");
+  isSZCompressed = false;
 }
 
-template <typename T>
-bool RkMatrix<T>::isFPcompressed()
-{
-    return _compressors != nullptr;
-}
 
 template <typename T>
 void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB)

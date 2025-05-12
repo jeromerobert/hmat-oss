@@ -26,25 +26,17 @@
 #ifdef __cplusplus
 #include <complex>
 typedef std::complex<double> double_complex;
-typedef std::complex<float> float_complex;
 #define make_complex(realPart, imagPart) \
-std::complex<double>(realPart, imagPart)
-#define make_fcomplex(realPart, imagPart) \
-std::complex<double>(realPart, imagPart)
+    std::complex<double>(realPart, imagPart)
 #else
 #include <complex.h>
 #ifdef _MSC_VER
 typedef _Dcomplex double_complex;
-typedef _Fcomplex float_complex;
 #define make_complex(realPart, imagPart) _Cbuild(realPart, imagPart)
-#define make_fcomplex(realPart, imagPart) _Fbuild(realPart, imagPart)
 #else
 typedef double complex double_complex;
-typedef float complex float_complex;
 #define make_complex(realPart, imagPart) \
     realPart + imagPart * _Complex_I
-#define make_fcomplex(realPart, imagPart) \
-realPart + imagPart * _Complex_I
 #endif
 #endif
 
@@ -203,10 +195,12 @@ int main(int argc, char **argv) {
   hmat_info_t mat_info;
   hmat_profile_t mat_profile;
   hmat_FPCompressionRatio_t mat_ratio;
-  hmat_fp_settings_t fp_settings;
   int n;
   char arithmetic;
   char* comp_code;
+  int nb_blocs = 0; //Default value : no compression if <= 0;
+  double epsilon;
+  hmat_FPcompress_t compressor_type = DEFAULT_COMPRESSOR;
   hmat_clustering_algorithm_t* clustering, * clustering_algo;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t* hmatrix;
@@ -221,26 +215,22 @@ int main(int argc, char **argv) {
 
   n = atoi(argv[1]);
   arithmetic = argv[2][0];
-  fp_settings.epsilonFP = atof(argv[3]);
-
-  fp_settings.nb_blocs = 0; //Default value : no compression if <= 0;
+  epsilon = atof(argv[3]);
+  
   if (argc == 5 || argc == 6)
-    {fp_settings.nb_blocs = atoi(argv[4]);}
+    {nb_blocs = atoi(argv[4]);}
 
   if (argc == 6)
   {
     comp_code = argv[5];
     if(strcmp(comp_code,"SZ2")==0) {
-      fp_settings.compressor = SZ_COMPRESSOR;
-
-    } else if(strcmp(comp_code,"SZ")==0) { //"SZ2" and "SZ" both works
-      fp_settings.compressor = SZ_COMPRESSOR;
+      compressor_type = SZ2_COMPRESSOR;
 
     } else if(strcmp(comp_code,"SZ3")==0) {
-      fp_settings.compressor = SZ3_COMPRESSOR;
+      compressor_type = SZ3_COMPRESSOR;
 
     } else if(strcmp(comp_code,"ZFP")==0) {
-      fp_settings.compressor = ZFP_COMPRESSOR;
+      compressor_type = ZFP_COMPRESSOR;
 
     } else {
       fprintf(stderr, "Unknown compressor : %s. Leave blank for default value\n", comp_code);
@@ -248,11 +238,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  fp_settings.compressFull = true;
-  fp_settings.compressRk = true;
-
   printf("\n =================== Tests Compression on Cylinder ===================\n");
-  printf("With parameters epsilon = %.2e, n_blocs = %d,\non a problem of size %d with arithmetic %c\n\n", fp_settings.epsilonFP, fp_settings.nb_blocs, n, arithmetic);
+  printf("With parameters epsilon = %.2e, n_blocs = %d,\non a problem of size %d with arithmetic %c\n\n", epsilon, nb_blocs, n, arithmetic);
 
 
   hmat_get_parameters(&settings);
@@ -275,7 +262,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Unknown arithmetic code %c\n", arithmetic);
     return 1;
   }
-
 
   hmat_init_default_interface(&hmat, scalar_type);
 
@@ -348,13 +334,10 @@ int main(int argc, char **argv) {
   clock_t decompression = compression;
 
     //Compression de hmatrix_c
-  if(fp_settings.compressRk || fp_settings.compressFull) 
+  if(nb_blocs>0) 
   {
     printf("\nCompressing...\n");
-    //Setting compression parameters
-    hmat.SetFPCompressionSettings(hmatrix_c, fp_settings); //Also possible : hmat.SetFPCompressionSettingsParams(hmatrix_c, epsilon, nb_blocs, compressor_type, true, true);
-    //Applying compression
-    hmat.FPcompress(hmatrix_c);
+    hmat.FPcompress(hmatrix_c, epsilon, nb_blocs, compressor_type);
     
     compression = clock();
   }
@@ -372,42 +355,41 @@ int main(int argc, char **argv) {
   printf(" # Full Blocs : %7.3f, Rk Blocs %7.3f: , Global : %7.3f\n", mat_ratio.fullRatio, mat_ratio.rkRatio, mat_ratio.ratio);
   printf("- Sizes : \n");
   printf(" # Full Blocs : %fM, Rk Blocs %fM: , Global : %fM\n", 1e-6*mat_ratio.size_Full, 1e-6*mat_ratio.size_Rk, 1e-6*(mat_ratio.size_Full + mat_ratio.size_Rk));
-  printf("- Sizes compressed: \n");
-  printf(" # Full Blocs : %fM, Rk Blocs %fM: , Global : %fM\n", 1e-6*mat_ratio.size_Full_compressed, 1e-6*mat_ratio.size_Rk_compressed, 1e-6*(mat_ratio.size_Full_compressed + mat_ratio.size_Rk_compressed));
   
 
 
     //Décompression de hmatrix_c
-  if(fp_settings.compressRk || fp_settings.compressFull) 
+  if(nb_blocs>0) 
   {
     
     printf("\nUncompressing...\n");
-    hmat.FPdecompress(hmatrix_c);
+    hmat.FPuncompress(hmatrix_c, compressor_type);
     decompression = clock();
   }
 
   
   
-#ifndef _MSC_VER
 
   //Calcul du résidu
   printf("\nComputing...\n");
   
+  float a = -1;
+
   switch (arithmetic) {
     case 'S':
-    {float alpha = (float) -1.;
+    {float alpha = (float) a;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}      
       break;
     case 'D':
-    {double alpha = (double) -1.;
+      {double alpha = (double) a;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     case 'C':
-      {float_complex alpha = make_fcomplex(-1., 0.);
+      {float complex alpha = (float complex) a;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     case 'Z':
-      {double_complex alpha = make_complex(-1., 0.);
+      {double complex alpha = (double complex) a;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     default:
@@ -419,10 +401,8 @@ int main(int argc, char **argv) {
   double normM = hmat.norm(hmatrix);
   double normDelta = hmat.norm(hmatrix_c);
   printf("Residu : %.3e\n", normDelta/normM);
-
-#endif
-
   clock_t computing = clock();
+
   //FINALISATION
   hmat.destroy(hmatrix);
   hmat.destroy(hmatrix_c);
@@ -444,7 +424,7 @@ int main(int argc, char **argv) {
   printf("Initialization : %8.3f s\n", initTime);
   printf("Generation     : %8.3f s\n", generationTime);
   printf("Assembling     : %8.3f s\n", assemblingTime);
-  if(fp_settings.compressRk || fp_settings.compressFull){
+  if(nb_blocs>0){
     printf("Compression    : %8.3f s\n", compressionTime);
     printf("Decompression  : %8.3f s\n", decompressionTIme);
   }
