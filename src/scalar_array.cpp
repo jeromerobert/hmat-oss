@@ -391,6 +391,13 @@ ScalarArray<T> ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSi
   return ScalarArray<T>(*this, rowsOffset, rowsSize, 0, cols);
 }
 
+template <typename T>
+ScalarArray<T> ScalarArray<T>::colsSubset(const int colOffset, const int colSize) const
+{
+  assert(colOffset + colSize <= cols);
+  return ScalarArray<T>(*this, 0, rows, colOffset, colSize);
+}
+
 template<typename T>
 void ScalarArray<T>::gemm(char transA, char transB, T alpha,
                          const ScalarArray<T>* a, const ScalarArray<T>* b,
@@ -901,7 +908,7 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
+template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures, Vector<typename Types<T>::real> *sigma_out) const {
   Vector<typename Types<T>::real>* sigma = NULL;
 
   svdDecomposition(u, &sigma, v, workAroundFailures);
@@ -929,7 +936,15 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   // Apply sigma 'symmetrically' on u and v
   (*u)->multiplyWithDiag(sigma);
   (*v)->multiplyWithDiag(sigma);
+  if(sigma_out)
+  {
+    //printf("\nsqrt(Sigma_0) = %f, (MID)\n", (*sigma)[0]);
+    *sigma_out = *sigma;
+  }
+  else{
+
   delete sigma;
+  }
 
   return newK;
 }
@@ -1499,10 +1514,27 @@ T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
   return proxy_cblas_convenience::dot_c(x->rows, x->const_ptr(), 1, y->const_ptr(), 1);
 }
 
-template<typename T>
-int Vector<T>::absoluteMaxIndex(int startIndex) const {
-  assert(this->cols == 1);
-  return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->const_ptr() + startIndex, 1);
+template <typename T>
+double Vector<T>::maxAbsolute() const
+{
+  double res = std::abs(this->get(0));
+
+  for (int i = 1; i < this->rows; i++)
+  {
+    double val = std::abs(this->get(i));
+    if(val > res)
+    {
+      res = val;
+    }
+  }
+    return res;
+}
+
+template <typename T>
+int Vector<T>::absoluteMaxIndex(int startIndex) const
+{
+    assert(this->cols == 1);
+    return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->const_ptr() + startIndex, 1);
 }
 
 // the classes declaration

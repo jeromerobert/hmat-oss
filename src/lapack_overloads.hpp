@@ -36,8 +36,12 @@
   #define armpl_singlecomplex_t hmat::C_t
   #define armpl_doublecomplex_t hmat::Z_t
   #define LAPACK_COMPLEX_CUSTOM
-  #define lapack_complex_float hmat::C_t
-  #define lapack_complex_double hmat::Z_t
+  #ifndef lapack_complex_float
+    #define lapack_complex_float hmat::C_t
+  #endif
+  #ifndef lapack_complex_double
+    #define lapack_complex_double hmat::Z_t
+  #endif
   // OpenBLAS have a dirty lapack_make_complex_float in a public header
   #ifdef __clang__
     #pragma clang diagnostic push

@@ -611,6 +611,57 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
 }
 
 template<typename T, template <typename> class E>
+int hmat_get_profile(hmat_matrix_t* holder, hmat_profile_t* profile) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->profile(*profile);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int hmat_get_ratio(hmat_matrix_t* holder, hmat_FPCompressionRatio_t* ratio) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->ratio(*ratio);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int hmat_FPcompress(hmat_matrix_t* holder, double epsilon, int nb_blocs, hmat_FPcompress_t method) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->FPcompress(epsilon, nb_blocs, method);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+template<typename T, template <typename> class E>
+int hmat_FPuncompress(hmat_matrix_t* holder, hmat_FPcompress_t method) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->FPuncompress(method);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int get_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t ** rows, const hmat_cluster_tree_t ** cols) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
@@ -884,6 +935,10 @@ static void createCInterface(hmat_interface_t * i)
     i->internal = NULL;
     i->get_info  = hmat_get_info<T, E>;
     i->dump_info = hmat_dump_info<T, E>;
+    i->get_profile  = hmat_get_profile<T, E>;
+    i->get_ratio  = hmat_get_ratio<T, E>;
+    i->FPcompress = hmat_FPcompress<T, E>;
+    i->FPuncompress = hmat_FPuncompress<T, E>;
     i->get_cluster_trees = get_cluster_trees<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
     i->own_cluster_trees = own_cluster_trees<T, E>;

@@ -258,6 +258,38 @@ target_link_libraries(hmat
 )
 
 # ========================
+# COMPOSYX
+# ========================
+
+#if(NOT TARGET SZ3::SZ3)
+   # message(STATUS "Looking for SZ3")
+    #pkg_search_module(ZSTD REQUIRED IMPORTED_TARGET libzstd)
+   # find_package(SZ3 REQUIRED)
+    #message(STATUS "Found: SZ3")
+   # target_link_libraries(hmat INTERFACE SZ3::SZ3)
+#endif()
+
+find_package(SZ REQUIRED)
+if ( NOT TARGET COMPOSYX::composyx )
+find_package(ZLIB REQUIRED)
+  find_package(composyx REQUIRED)
+  if(composyx_FOUND)
+    message(STATUS "Found composyx")
+    set(HAVE_COMPOSYX TRUE)
+    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+  endif()
+else()
+  set(HAVE_COMPOSYX TRUE)
+    message(STATUS "Found composyx")
+endif()
+
+if(composyx_FOUND)
+  target_link_libraries(hmat PRIVATE COMPOSYX::composyx)
+endif()
+
+# ========================
 # Compiler flags
 # ========================
 include(CheckCCompilerFlag)
@@ -389,6 +421,8 @@ hmat_add_example(NAME c-simple-cylinder)
 hmat_add_example(NAME c-simple-kriging)
 hmat_add_example(NAME c-cholesky)
 hmat_add_example(NAME hodlrvsllt)
+hmat_add_example(NAME testsCompression)
+hmat_add_example(NAME c-choleskyComp)
 
 if (BUILD_EXAMPLES)
     enable_testing ()

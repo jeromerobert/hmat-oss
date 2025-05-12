@@ -26,6 +26,7 @@
 #include "common/my_assert.h"
 #include "hmat/hmat.h"
 #include "common/timeline.hpp"
+#include <numeric>
 
 namespace hmat {
 
@@ -208,6 +209,7 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, Factorization algo) const {
       break;
   default:
      // not supported
+     printf("\n\nMauvaise Facto !\n\n");
      HMAT_ASSERT(false);
   }
 }
@@ -272,6 +274,95 @@ template<typename T> void DefaultEngine<T>::info(hmat_info_t &i) const{
   this->hmat->info(i);
 }
 
+template <typename T>
+void DefaultEngine<T>::profile(hmat_profile_t &p) const
+{
+  printf("\n===== Profiling Matrix =====\n");
+  HMatProfile profile;
+
+  this->hmat->profile(profile);
+ 
+  printf("\n ### Full blocs: \n");
+
+  for(auto it = profile.n_full_blocs.begin(); it != profile.n_full_blocs.end(); it++)
+  {
+    printf("     - %d full blocs of size %ld\n", it->second, it->first);
+  }
+
+  printf("\n ### Rk-blocs : \n");
+
+  for(auto it = profile.n_rk_blocs.begin(); it != profile.n_rk_blocs.end(); it++)
+  {
+    printf("   # rank = %ld : \n", it->first);
+    for(auto it_rank = it->second.begin(); it_rank != it->second.end(); it_rank++)
+    {
+      printf("     - %d blocs of size %ld : compression ratios = ", it_rank->second, it_rank->first);
+
+      std::vector<float> ratios = profile.rk_comp_ratios[it->first][it_rank->first];
+
+      if(ratios.size()>0)
+      {
+        double sum = std::accumulate(ratios.begin(), ratios.end(), .0);
+        double mu = sum / ratios.size();
+  
+        double accum = 0.0;
+        std::for_each (ratios.begin(), ratios.end(), [&](const double d){
+          accum += (d - mu) * (d - mu);
+        });
+        double stdev = sqrt(accum/ratios.size());
+        printf("%.2f +/- %.2f", mu, stdev);
+      }
+      else{
+        for(float f : ratios)
+        {
+          printf("%.2f, ", f);
+        }
+      }
+      
+      printf("\n");
+    }
+    
+  }
+
+  printf("\n===== End of Profiling =====\n\n");
+}
+
+template <typename T> void DefaultEngine<T>::ratio(hmat_FPCompressionRatio_t &r) const
+{
+
+  r.ratio = 0;
+  r.fullRatio = 0;
+  r.rkRatio = 0;
+  r.size_Full = 0;
+  r.size_Rk = 0;
+
+  this->hmat->FPratio(r);
+
+  if(r.size_Full>0) 
+    {r.fullRatio = r.fullRatio / r.size_Full;}
+    else{r.fullRatio = 0;}
+
+  if(r.size_Rk >0 )
+    {r.rkRatio = r.rkRatio / r.size_Rk;}
+    else{r.rkRatio = 0;}
+
+  if(r.size_Full + r.size_Rk>0)
+    {r.ratio = r.ratio / (r.size_Full + r.size_Rk);}
+    else{r.ratio = 0;}
+
+}
+
+template <typename T>
+void DefaultEngine<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method)
+{
+  this->hmat->FPcompress(epsilon, nb_blocs, method);
+}
+
+template <typename T>
+void DefaultEngine<T>::FPuncompress(hmat_FPcompress_t method)
+{
+  this->hmat->FPuncompress(method);
+}
 
 }  // end namespace hmat
 

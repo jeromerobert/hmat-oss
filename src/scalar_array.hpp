@@ -184,6 +184,14 @@ public:
    */
   ScalarArray<T> rowsSubset(const int rowOffset, const int rowSize) const ;
 
+  /**  Returns a pointer to a new ScalarArray representing a subset of col indices.
+       rows and leading dimension are unchanged.
+       \param colOffset offset to apply on the cols
+       \param colSize new number of cols
+       \return pointer to a new ScalarArray.
+   */
+  ScalarArray<T> colsSubset(const int colOffset, const int colSize) const ;
+
   /** this = alpha * op(A) * op(B) + beta * this
 
       Standard "GEMM" call, as in BLAS.
@@ -397,7 +405,7 @@ public:
       \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
       \return the rank of the approximation
    */
-  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false) const;
+  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false, Vector<typename Types<T>::real> *sigma_out = NULL) const;
 
   /*! \brief Orthogonalization between columns of 'this'
 
@@ -566,9 +574,16 @@ public:
      */
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}
     //~Vector(){}
+    
+    
+    /** Compute the max of the modules of the vector. Naive implementation
+      */
+     double maxAbsolute() const;
+
     /** L2 norm of the vector.
      */
     int absoluteMaxIndex(int startIndex = 0) const;
+
     /** Compute the dot product of two \Vector.
 
         For real-valued vectors, this is the usual dot product. For

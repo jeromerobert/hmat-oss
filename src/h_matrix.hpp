@@ -42,7 +42,7 @@ namespace hmat {
 #include <fstream>
 #include <iostream>
 #include <deque>
-
+#include <map>
 
 namespace hmat {
 
@@ -60,6 +60,8 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 // or removed
 enum DefaultRank {UNINITIALIZED_BLOCK = -3, NONLEAF_BLOCK = -2, FULL_BLOCK = -1};
 
+
+
 /** Settings global to a whole matrix */
 struct MatrixSettings {
 };
@@ -70,6 +72,20 @@ struct LocalSettings {
     LocalSettings(const MatrixSettings * s, double epsilon): global(s), epsilon_(epsilon) {}
     /// epsilon used for SVD truncations
     double epsilon_;
+};
+
+/** The profile of a HMatrix */
+struct HMatProfile
+{
+  //n_full_blocs[size] = number of full blocs for which n_rows * n_cols = size
+  std::map<size_t, int> n_full_blocs;
+
+  //n_rk_blocs[rank, size] = number of Rk blocs for which n_rows * n_cols = size and this->rank = rank
+  std::map<size_t, std::map<size_t, int>> n_rk_blocs;
+  //std::map<std::pair<int, int>, int> n_rk_blocs;
+
+  //rk_comp_ratios[_rank][_size] contains the list of the compression ratios of rk blocs of rank=_rank and size=_size
+  std::map<size_t, std::map<size_t, std::vector<float>>> rk_comp_ratios;
 };
 
 /** Degrees of freedom permutation of a vector required in HMatrix context.
@@ -244,6 +260,8 @@ public:
   void evalPart(FullMatrix<T>* result, const IndexSet* _rows, const IndexSet* _cols) const;
 
   void info(hmat_info_t &);
+
+  void profile(HMatProfile &);
 
   /** This *= alpha
 
@@ -690,6 +708,13 @@ public:
   bool isVoid() const {
       return rows()->size() == 0 || cols()->size() == 0;
   }
+
+  void FPratio(hmat_FPCompressionRatio_t &);
+
+  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
+
+
+  void FPuncompress(hmat_FPcompress_t method);
   /**
    * Tag a not leaf block as assembled.
    * Must only be called when all leaves of this block have been

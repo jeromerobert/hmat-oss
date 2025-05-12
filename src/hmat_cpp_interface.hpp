@@ -305,6 +305,24 @@ public:
    */
   void info(hmat_info_t &) const;
 
+  /**
+   * Fill a hmat_profile_t structure with profile of this matrix.
+   * @note This is only meaningful once the HMatrix has been assembled.
+   */
+  void profile(hmat_profile_t &) const;
+
+  void ratio(hmat_FPCompressionRatio_t &result) const;
+
+  /**
+   * Apply a Floating-Point compression to the Hmatrix blocs
+   */
+  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method);
+
+  /**
+   * Uncompress the Hmatrix blocs resulting of the Floating-point compression
+   */
+  void FPuncompress(hmat_FPcompress_t method);
+
   /*! \brief Dump some HMatrix metadata to a Python-readable file.
 
     This function create a file that is readable by Python's eval()

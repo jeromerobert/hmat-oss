@@ -28,7 +28,76 @@
 #include "compression.hpp"
 #include "common/my_assert.h"
 
+
+#include <stdbool.h>
+
+#include "fp_compression.hpp"
+
+//#include <composyx.hpp>
+//#include "composyx/interfaces/basic_concepts.hpp"
+//#include "composyx/utils/ZFP_compressor.hpp"
+//#include "composyx/utils/Arithmetic.hpp"
+//#include "composyx/utils/SZ_compressor.hpp"
+
+
 namespace hmat {
+
+
+template<typename T>
+struct AdaptiveCompressorSZ{
+    int nb_blocs;
+    int n_rows_A;
+    int n_rows_B;
+    int n_cols;
+    std::vector<FPCompressorInterface<T>*> compressors_A;
+    std::vector<FPCompressorInterface<T>*> compressors_B;
+    std::vector<int> cols_A;
+    std::vector<int> cols_B;
+    std::vector<float> ratios_A;
+    std::vector<float> ratios_B;
+
+    
+    double compressionRatio;
+    
+    AdaptiveCompressorSZ(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1)
+    {
+        nb_blocs = n;
+        cols_A.resize(nb_blocs);
+        cols_B.resize(nb_blocs);
+        ratios_A.resize(nb_blocs);
+        ratios_B.resize(nb_blocs);
+        compressors_A.resize(nb_blocs);
+        compressors_B.resize(nb_blocs);
+        for(int i =0; i < nb_blocs; i++)
+        {
+          
+          switch (method)
+          {
+          case ZFP_COMPRESSOR:
+            compressors_A[i] = new ZFPcompressor<T>();
+            compressors_B[i] = new ZFPcompressor<T>();
+
+            break;
+          case SZ3_COMPRESSOR:
+            compressors_A[i] = new SZ3compressor<T>();
+            compressors_B[i] = new SZ3compressor<T>();  
+
+            break;
+
+
+          case SZ2_COMPRESSOR:
+          case DEFAULT_COMPRESSOR:          
+          default:
+            compressors_A[i] = new SZ2compressor<T>();
+            compressors_B[i] = new SZ2compressor<T>();
+            break;
+          }
+          
+        }
+    }
+};
+
+
 
 template<typename T> class HMatrix;
 template<typename T, template <typename> class F> class AssemblyFunction;
@@ -76,10 +145,12 @@ public:
   static bool (*formatedAddPartsHook)(RkMatrix<T> * me, double epsilon, const T* alpha, const RkMatrix<T>* const * parts, const int n);
   const IndexSet *rows;
   const IndexSet *cols;
+
+  bool isSZCompressed;
   // A B^t
   ScalarArray<T>* a;
   ScalarArray<T>* b;
-
+  AdaptiveCompressorSZ<T>* _compressors;
   /// Control of the approximation. See \a RkApproximationControl for more
   /// details.
   static RkApproximationControl approx;
@@ -129,6 +200,14 @@ public:
       @warning The previous rk->a and rk->b are no longer valid after this function.
       \param initialPivotA/B is the number of orthogonal columns in panels a and b
    */
+  
+  /** Compress the panels of a RkMatrix using SZ Compression.*/
+  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, Vector<typename Types<T>::real> *sigma=NULL);
+
+/** Uncompress the panels of a RkMatrix after SZ Compression.*/
+  void FPuncompress();
+
+
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
   /** Recompress an RkMatrix in place using RRQR */
   void truncateAlter(double epsilon);
@@ -288,6 +367,11 @@ public:
   /*! \brief Write the RkMatrix data 'a' and 'b' in a stream (FILE*, unix fd, ...)
     */
   void writeArray(hmat_iostream writeFunc, void * userData) const;
+
+private:
+
+  void setupFPCompression(hmat_FPcompress_t method);
+
 };
 
 }  // end namespace hmat
