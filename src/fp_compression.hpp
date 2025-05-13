@@ -5,29 +5,17 @@
 
 #include <vector>
 
-//#include "composyx.hpp"
-//#include "composyx/interfaces/basic_concepts.hpp"
+#include "rk_matrix.hpp"
+
+#include "composyx.hpp"
+#include "composyx/interfaces/basic_concepts.hpp"
 //#include "composyx/utils/ZFP_compressor.hpp"
-//#include "composyx/utils/Arithmetic.hpp"
+#include "composyx/utils/Arithmetic.hpp"
 //#include "composyx/utils/SZ_compressor.hpp"
 //#include "composyx/utils/SZ3_compressor.hpp"
 
-
 namespace hmat 
 {
-
-template<typename T>
-class FPCompressorInterface    {
-public:
-    virtual void compress(T* data, size_t size, double epsilon) = 0;
-
-    virtual T* decompress() = 0;
-
-    virtual double get_ratio() = 0;
-
-    virtual ~FPCompressorInterface() {};
-
-};
 
 
 template<typename T>

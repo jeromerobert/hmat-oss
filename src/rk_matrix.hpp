@@ -31,18 +31,29 @@
 
 #include <stdbool.h>
 
-#include "fp_compression.hpp"
-
-//#include <composyx.hpp>
-//#include "composyx/interfaces/basic_concepts.hpp"
-//#include "composyx/utils/ZFP_compressor.hpp"
-//#include "composyx/utils/Arithmetic.hpp"
-//#include "composyx/utils/SZ_compressor.hpp"
 
 
 namespace hmat {
 
 
+  template<typename T>
+  class FPCompressorInterface    {
+  public:
+      virtual void compress(T* data, size_t size, double epsilon) = 0;
+  
+      virtual T* decompress() = 0;
+  
+      virtual double get_ratio() = 0;
+  
+      virtual ~FPCompressorInterface() {};
+  
+  };
+  
+
+  template<typename T>
+  FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method);
+
+  
 template<typename T>
 struct AdaptiveCompressorSZ{
     int nb_blocs;
@@ -51,50 +62,16 @@ struct AdaptiveCompressorSZ{
     int n_cols;
     std::vector<FPCompressorInterface<T>*> compressors_A;
     std::vector<FPCompressorInterface<T>*> compressors_B;
+
     std::vector<int> cols_A;
     std::vector<int> cols_B;
     std::vector<float> ratios_A;
-    std::vector<float> ratios_B;
-
-    
+    std::vector<float> ratios_B;    
     double compressionRatio;
-    
-    AdaptiveCompressorSZ(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1)
-    {
-        nb_blocs = n;
-        cols_A.resize(nb_blocs);
-        cols_B.resize(nb_blocs);
-        ratios_A.resize(nb_blocs);
-        ratios_B.resize(nb_blocs);
-        compressors_A.resize(nb_blocs);
-        compressors_B.resize(nb_blocs);
-        for(int i =0; i < nb_blocs; i++)
-        {
-          
-          switch (method)
-          {
-          case ZFP_COMPRESSOR:
-            compressors_A[i] = new ZFPcompressor<T>();
-            compressors_B[i] = new ZFPcompressor<T>();
 
-            break;
-          case SZ3_COMPRESSOR:
-            compressors_A[i] = new SZ3compressor<T>();
-            compressors_B[i] = new SZ3compressor<T>();  
-
-            break;
+    AdaptiveCompressorSZ(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
 
 
-          case SZ2_COMPRESSOR:
-          case DEFAULT_COMPRESSOR:          
-          default:
-            compressors_A[i] = new SZ2compressor<T>();
-            compressors_B[i] = new SZ2compressor<T>();
-            break;
-          }
-          
-        }
-    }
 };
 
 
