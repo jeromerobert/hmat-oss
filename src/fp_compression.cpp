@@ -2,8 +2,35 @@
 #include "data_types.hpp"
 
 
+
 namespace hmat{
 
+template<typename T>
+FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
+{
+    FPCompressorInterface<T>* res;
+
+    switch (method)
+        {
+        case ZFP_COMPRESSOR:
+            res = new ZFPcompressor<T>();
+
+            break;
+        case SZ3_COMPRESSOR:
+            res = new SZ3compressor<T>();
+
+            break;
+
+
+        case SZ2_COMPRESSOR:
+        case DEFAULT_COMPRESSOR:          
+        default:
+            res = new SZ2compressor<T>();
+            break;
+        }
+
+    return res;
+}
 
 template<typename T>
 void SZ2compressor<T>::compress(T* data, size_t size, double epsilon)
@@ -95,6 +122,11 @@ template class ZFPcompressor<S_t>;
 template class ZFPcompressor<D_t>;
 template class ZFPcompressor<C_t>;
 template class ZFPcompressor<Z_t>;
+
+template FPCompressorInterface<S_t>* initCompressor(hmat_FPcompress_t method);
+template FPCompressorInterface<D_t>* initCompressor(hmat_FPcompress_t method);
+template FPCompressorInterface<C_t>* initCompressor(hmat_FPcompress_t method);
+template FPCompressorInterface<Z_t>* initCompressor(hmat_FPcompress_t method);
 
 }
 

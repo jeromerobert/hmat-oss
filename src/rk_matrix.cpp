@@ -38,17 +38,32 @@
 #include <algorithm>
 #include <chrono>
 
-#if defined(HAVE_COMPOSYX)
-//Include les fichiers utilisant composyx ou les fichiers composyx directement ?
-#endif
-
-
 
 
 
 namespace hmat {
 
 
+  
+  template<typename T>
+  AdaptiveCompressorSZ<T>::AdaptiveCompressorSZ(hmat_FPcompress_t method, int n)
+  {
+      nb_blocs = n;
+      cols_A.resize(nb_blocs);
+      cols_B.resize(nb_blocs);
+      ratios_A.resize(nb_blocs);
+      ratios_B.resize(nb_blocs);
+      compressors_A.resize(nb_blocs);
+      compressors_B.resize(nb_blocs);
+      for(int i =0; i < nb_blocs; i++)
+      {
+        compressors_A[i] = initCompressor<T>(method);
+        compressors_B[i] = initCompressor<T>(method);
+        
+      }
+  }
+
+  
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
