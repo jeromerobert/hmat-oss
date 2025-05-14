@@ -9,10 +9,10 @@
 
 #include "composyx.hpp"
 #include "composyx/interfaces/basic_concepts.hpp"
-//#include "composyx/utils/ZFP_compressor.hpp"
 #include "composyx/utils/Arithmetic.hpp"
-//#include "composyx/utils/SZ_compressor.hpp"
-//#include "composyx/utils/SZ3_compressor.hpp"
+#include "composyx/utils/ZFP_compressor.hpp"
+#include "composyx/utils/SZ_compressor.hpp"
+#include "composyx/utils/SZ3_compressor.hpp"
 
 namespace hmat 
 {
@@ -21,7 +21,7 @@ namespace hmat
 template<typename T>
 class SZ2compressor : public FPCompressorInterface<T> {
 private:
-    //composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>* _compressor;
+    composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>* _compressor;
     size_t _size;
 
 public:
@@ -40,7 +40,7 @@ public:
 template<typename T>
 class SZ3compressor : public FPCompressorInterface<T> {
 private:
-    //composyx::SZ3_compressor<T, SZ3::EB::EB_REL>* _compressor;
+    composyx::SZ3_compressor<T, SZ3::EB::EB_REL>* _compressor;
     size_t _size;
 
 public:
@@ -58,7 +58,7 @@ public:
 template<typename T>
 class ZFPcompressor : public FPCompressorInterface<T> {
 private:
-    //composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>* _compressor;
+    composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>* _compressor;
     size_t _size;
 
 public:
