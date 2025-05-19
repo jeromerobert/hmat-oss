@@ -257,22 +257,14 @@ target_link_libraries(hmat
         ${BLAS_LIBRARIES}
 )
 
+
 # ========================
 # COMPOSYX
 # ========================
-if(NOT TARGET SZ3::SZ3)
-    message(STATUS "Looking for SZ3")
+if ( NOT TARGET COMPOSYX::composyx )
     find_package(PkgConfig REQUIRED)
     pkg_search_module(ZSTD REQUIRED IMPORTED_TARGET libzstd)
-    find_package(SZ3 REQUIRED)
-    message(STATUS "Found: SZ3")
-    target_link_libraries(hmat INTERFACE SZ3::SZ3)
-endif()
-
-find_package(SZ REQUIRED)
-if ( NOT TARGET COMPOSYX::composyx )
-find_package(ZLIB REQUIRED)
-  find_package(composyx REQUIRED)
+    find_package(composyx REQUIRED)
   if(composyx_FOUND)
     message(STATUS "Found composyx")
     set(HAVE_COMPOSYX TRUE)
