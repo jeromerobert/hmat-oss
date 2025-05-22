@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
   {
     
     printf("\nUncompressing...\n");
-    hmat.FPuncompress(hmatrix_c, compressor_type);
+    hmat.FPdecompress(hmatrix_c, compressor_type);
     decompression = clock();
   }
 

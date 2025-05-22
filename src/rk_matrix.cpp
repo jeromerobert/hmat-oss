@@ -46,7 +46,7 @@ namespace hmat {
 
   
   template<typename T>
-  AdaptiveCompressorSZ<T>::AdaptiveCompressorSZ(hmat_FPcompress_t method, int n)
+  FPAdaptiveCompressor<T>::FPAdaptiveCompressor(hmat_FPcompress_t method, int n)
   {
       nb_blocs = n;
       cols_A.resize(nb_blocs);
@@ -316,7 +316,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
     }
   }
   
-  _compressors = new AdaptiveCompressorSZ<T>(method, nb_blocs);
+  _compressors = new FPAdaptiveCompressor<T>(method, nb_blocs);
 
 
   _compressors->n_rows_A = m;
@@ -389,7 +389,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 }
 
 template <typename T>
-void RkMatrix<T>::FPuncompress()
+void RkMatrix<T>::FPdecompress()
 {
 
   //printf("Begin Uncompression\n");
