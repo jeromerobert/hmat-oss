@@ -714,7 +714,7 @@ public:
   void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
 
 
-  void FPuncompress(hmat_FPcompress_t method);
+  void FPdecompress(hmat_FPcompress_t method);
   /**
    * Tag a not leaf block as assembled.
    * Must only be called when all leaves of this block have been

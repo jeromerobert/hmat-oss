@@ -1706,7 +1706,7 @@ void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t meth
 }
 
 template <typename T>
-void HMatrix<T>::FPuncompress(hmat_FPcompress_t method)
+void HMatrix<T>::FPdecompress(hmat_FPcompress_t method)
 {
   
   if (this->isLeaf()) {
@@ -1714,13 +1714,13 @@ void HMatrix<T>::FPuncompress(hmat_FPcompress_t method)
       //Uncompress Full block
     } else {
       //Uncompress RK block
-      rk()->FPuncompress();
+      rk()->FPdecompress();
     }
   } else {
     for (int i = 0; i < nrChildRow(); i++) {
       for(int j = 0; j < nrChildCol(); j++) {
 	      if(get(i,j)) {
-          get(i,j)->FPuncompress(method);
+          get(i,j)->FPdecompress(method);
         }
       }
     }

@@ -55,7 +55,7 @@ namespace hmat {
 
   
 template<typename T>
-struct AdaptiveCompressorSZ{
+struct FPAdaptiveCompressor{
     int nb_blocs;
     int n_rows_A;
     int n_rows_B;
@@ -69,7 +69,7 @@ struct AdaptiveCompressorSZ{
     std::vector<float> ratios_B;    
     double compressionRatio;
 
-    AdaptiveCompressorSZ(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
+    FPAdaptiveCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
 
 
 };
@@ -127,7 +127,7 @@ public:
   // A B^t
   ScalarArray<T>* a;
   ScalarArray<T>* b;
-  AdaptiveCompressorSZ<T>* _compressors;
+  FPAdaptiveCompressor<T>* _compressors;
   /// Control of the approximation. See \a RkApproximationControl for more
   /// details.
   static RkApproximationControl approx;
@@ -182,7 +182,7 @@ public:
   void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, Vector<typename Types<T>::real> *sigma=NULL);
 
 /** Uncompress the panels of a RkMatrix after SZ Compression.*/
-  void FPuncompress();
+  void FPdecompress();
 
 
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
