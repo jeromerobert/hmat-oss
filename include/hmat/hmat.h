@@ -309,6 +309,9 @@ HMAT_API int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_
 HMAT_API const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree);
 
 typedef struct {
+    /** min eta and growth for Variable Hackbusch condition */
+    double eta0;
+    double alpha;
     /** eta for Hackbusch condition */
     double eta;
     /** ratio (in [0, 0.5]) to prevent tall and skinny blocks */
