@@ -456,13 +456,13 @@ typedef struct {
   double rkRatio;
 
   //Total number of elements in the Rk-Matrices only
-  int size_Rk;
+  size_t size_Rk;
 
   //The compression ratio for the full blocs only
   double fullRatio;
 
   //Total number of elements in the full blocs only
-  int size_Full;
+  size_t size_Full;
 
   //The compression ratio for the Whole HMatrix
   double ratio;
