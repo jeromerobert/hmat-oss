@@ -1632,24 +1632,23 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t & result)
   if (this->isLeaf()) {
     if (isFullMatrix()) {
       size_t size = r*c;
-
+      double cr = 1;
+     
       result.size_Full += size;
+      result.size_Full_compressed += size / cr;
 
-      double cr = size * 1;
-      result.fullRatio += cr;
-      result.ratio += cr;
     } else {
       size_t k = rk()->rank();
       size_t size = k*(r + c);
 
-      result.size_Rk += size;
       double cr = 1;
       if(rk()->_compressors)
       {
         cr = rk()->_compressors->compressionRatio;
       }
-      result.ratio += size * cr;
-      result.rkRatio += size * cr;
+
+      result.size_Rk += size;
+      result.size_Rk_compressed += size / cr;
     }
   } else {
     for (int i = 0; i < nrChildRow(); i++) {

@@ -629,6 +629,13 @@ int hmat_get_ratio(hmat_matrix_t* holder, hmat_FPCompressionRatio_t* ratio) {
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
   try {
       hmat->ratio(*ratio);
+      double s_r = ratio->size_Rk;
+      double s_r_c = ratio->size_Rk_compressed;
+      double s_f = ratio->size_Full;
+      double s_f_c = ratio->size_Full_compressed;
+      ratio->rkRatio = s_r / s_r_c;
+      ratio->fullRatio = s_f / s_f_c;
+      ratio->ratio = (s_r + s_f) / (s_r_c + s_f_c);
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;

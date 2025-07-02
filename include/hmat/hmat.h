@@ -457,12 +457,14 @@ typedef struct {
 
   //Total number of elements in the Rk-Matrices only
   size_t size_Rk;
+  size_t size_Rk_compressed;
 
   //The compression ratio for the full blocs only
   double fullRatio;
 
   //Total number of elements in the full blocs only
   size_t size_Full;
+  size_t size_Full_compressed;
 
   //The compression ratio for the Whole HMatrix
   double ratio;
