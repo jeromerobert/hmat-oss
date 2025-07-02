@@ -67,18 +67,6 @@ inline FPSimpleCompressor<T>::FPSimpleCompressor(hmat_FPcompress_t method)
 {
   compressor = initCompressor<T>(method);
   compressionRatio = 1;
-  compressionTime = 0;
-  decompressionTime = 0;
-}
-
-template <typename T>
-FPSimpleCompressor<T>::~FPSimpleCompressor()
-{
-  if(compressor)
-    {
-        delete compressor;
-        compressor = nullptr;
-    }
 }
 
 /** FullMatrix */
@@ -354,65 +342,31 @@ template<typename T> void FullMatrix<T>::conjugate() {
 template <typename T>
 void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
 {
-  if(isFPcompressed()) //Already compressed !
-  {
-    return;
-  }
-
-  auto start = std::chrono::high_resolution_clock::now();
-
+  //printf("Begin Compression of full block !\n");
   _compressor = new FPSimpleCompressor<T>(method);
 
   _compressor->n_rows = data.rows;
   _compressor->n_cols = data.cols;
 
-  std::vector<T> tmp(data.ptr(), data.ptr()+ _compressor->n_rows*_compressor->n_cols);
-
-  _compressor->compressor->compress(tmp, data.rows * data.cols, epsilon);
+  _compressor->compressor->compress(data.ptr(), data.rows * data.cols, epsilon);
   _compressor->compressionRatio = _compressor->compressor->get_ratio();
-
-  data.resize(0);
-
-
-  auto end = std::chrono::high_resolution_clock::now();
-  _compressor->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 }
 
 
 template <typename T>
 void FullMatrix<T>::FPdecompress()
 {
+  //printf("Begin Decompression of full block !\n");
 
-  if(!isFPcompressed())
+  if(_compressor == nullptr)
   {
+     printf("Compressors not instanciated\n");
     return;
   }
-  if(!(_compressor->compressor))
-  {
-    return;
-  }
 
-  auto start = std::chrono::high_resolution_clock::now();
-
-  data.resize(_compressor->n_cols);
-  std::vector<T> tmp_out = _compressor->compressor->decompress();
-
-  ScalarArray<T> tmp(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
-
-  data.copyMatrixAtOffset(&tmp, 0, 0);
-
+  T* tmp = _compressor->compressor->decompress();
   
-  auto end = std::chrono::high_resolution_clock::now();
-  _compressor->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-
-  delete _compressor;
-  _compressor = nullptr;
-}
-
-template <typename T>
-bool FullMatrix<T>::isFPcompressed()
-{
-    return _compressor != nullptr;
+  data = ScalarArray<T>(tmp, _compressor->n_rows, _compressor->n_cols);
 }
 
 

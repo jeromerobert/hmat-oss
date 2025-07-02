@@ -59,8 +59,10 @@ namespace hmat {
       {
         compressors_A[i] = initCompressor<T>(method);
         compressors_B[i] = initCompressor<T>(method);
-        
+        ratios_A[i] = 1;
+        ratios_B[i] = 1;
       }
+      compressionRatio = 1;
   }
 
   
@@ -77,8 +79,8 @@ template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _
     a(_a),
     b(_b)
 {
-  _compressors = nullptr;
   isSZCompressed = false;
+  _compressors = nullptr;
   // We make a special case for empty matrices.
   if ((!a) && (!b)) {
     return;
@@ -401,7 +403,7 @@ void RkMatrix<T>::FPdecompress()
   //Decompression
   if(_compressors== nullptr)
   {
-    printf("Compressors not instanciated");
+    printf("Compressors not instanciated\n");
     return;
   }
   int k =this->rank();

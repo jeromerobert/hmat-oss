@@ -353,9 +353,9 @@ template <typename T> void DefaultEngine<T>::ratio(hmat_FPCompressionRatio_t &r)
 }
 
 template <typename T>
-void DefaultEngine<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method)
+void DefaultEngine<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk)
 {
-  this->hmat->FPcompress(epsilon, nb_blocs, method);
+  this->hmat->FPcompress(epsilon, nb_blocs, method, compressFull, compressRk);
 }
 
 template <typename T>

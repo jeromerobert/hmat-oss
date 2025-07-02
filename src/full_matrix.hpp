@@ -41,9 +41,9 @@ namespace hmat {
   template<typename T>
   class FPCompressorInterface    {
   public:
-      virtual void compress(std::vector<T> data, size_t size, double epsilon) = 0;
+      virtual void compress(T* data, size_t size, double epsilon) = 0;
   
-      virtual std::vector<T> decompress() = 0;
+      virtual T* decompress() = 0;
   
       virtual double get_ratio() = 0;
   
@@ -68,14 +68,11 @@ struct FPSimpleCompressor{
     int n_rows;
     int n_cols;
     FPCompressorInterface<T>* compressor;
-
+  
     double compressionRatio;
-    double compressionTime;
-    double decompressionTime;
 
     FPSimpleCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
 
-    ~FPSimpleCompressor();
 
 };
 
@@ -312,11 +309,8 @@ public:
   /** Compress a full block using FP compresison */
   void FPcompress(double epsilon, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
 
-  /** Decompress the full block after FP compression */
+  /**Decompress the full block after FP compression */
   void FPdecompress();
-
-  /** Return True iff the full matrix is FP compressed */
-  bool isFPcompressed();
 
   size_t memorySize() const; //TODO not used
 

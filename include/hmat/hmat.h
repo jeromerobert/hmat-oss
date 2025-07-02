@@ -983,7 +983,7 @@ typedef struct
 
     int (*get_ratio)(hmat_matrix_t *hmatrix, hmat_FPCompressionRatio_t* ratio);
 
-    int (*FPcompress)(hmat_matrix_t *hmatrix, double epsilon, int nb_blocs, hmat_FPcompress_t method);
+    int (*FPcompress)(hmat_matrix_t *hmatrix, double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk);
 
     int (*FPdecompress)(hmat_matrix_t *hmatrix, hmat_FPcompress_t method);
 

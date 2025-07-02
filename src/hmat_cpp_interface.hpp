@@ -316,7 +316,7 @@ public:
   /**
    * Apply a Floating-Point compression to the Hmatrix blocs
    */
-  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method);
+  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull = true, bool compressRk = true);
 
   /**
    * Uncompress the Hmatrix blocs resulting of the Floating-point compression

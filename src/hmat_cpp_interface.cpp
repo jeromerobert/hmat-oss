@@ -264,10 +264,10 @@ void HMatInterface<T>::ratio(hmat_FPCompressionRatio_t &result) const
 }
 
 template <typename T>
-void HMatInterface<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method)
+void HMatInterface<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk)
 {
   DECLARE_CONTEXT;
-  engine_->FPcompress(epsilon, nb_blocs, method);
+  engine_->FPcompress(epsilon, nb_blocs, method, compressFull, compressRk);
 }
 
 template <typename T>
