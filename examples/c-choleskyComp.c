@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
   if(nb_blocs>0) 
   {
     printf("\nCompressing...\n");
-    hmat.FPcompress(hmatrix_c, epsilon, nb_blocs, compressor_type);
+    hmat.FPcompress(hmatrix_c, epsilon, nb_blocs, compressor_type, true, true);
     compression = clock();
   }
 

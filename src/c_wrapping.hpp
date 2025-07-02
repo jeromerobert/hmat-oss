@@ -633,6 +633,8 @@ int hmat_get_ratio(hmat_matrix_t* holder, hmat_FPCompressionRatio_t* ratio) {
       double s_r_c = ratio->size_Rk_compressed;
       double s_f = ratio->size_Full;
       double s_f_c = ratio->size_Full_compressed;
+
+      printf("Size Rk : %ld, Size Rk compressed : %ld\n", ratio->size_Rk, ratio->size_Rk_compressed);
       ratio->rkRatio = s_r / s_r_c;
       ratio->fullRatio = s_f / s_f_c;
       ratio->ratio = (s_r + s_f) / (s_r_c + s_f_c);
@@ -644,11 +646,11 @@ int hmat_get_ratio(hmat_matrix_t* holder, hmat_FPCompressionRatio_t* ratio) {
 }
 
 template<typename T, template <typename> class E>
-int hmat_FPcompress(hmat_matrix_t* holder, double epsilon, int nb_blocs, hmat_FPcompress_t method) {
+int hmat_FPcompress(hmat_matrix_t* holder, double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
   try {
-      hmat->FPcompress(epsilon, nb_blocs, method);
+      hmat->FPcompress(epsilon, nb_blocs, method, compressFull, compressRk);
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;

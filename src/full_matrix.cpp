@@ -61,6 +61,13 @@
 
 namespace hmat {
 
+template <typename T>
+inline FPSimpleCompressor<T>::FPSimpleCompressor(hmat_FPcompress_t method)
+{
+  compressor = initCompressor<T>(method);
+  compressionRatio = 1;
+}
+
 /** FullMatrix */
 
   template<typename T>
@@ -69,6 +76,7 @@ FullMatrix<T>::FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols,
     rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
   assert(rows_);
   assert(cols_);
+  _compressor = nullptr;
 }
 
 template<typename T>
@@ -80,6 +88,7 @@ FullMatrix<T>::FullMatrix(ScalarArray<T> *s, const IndexSet*  _rows, const Index
   // check the coherency between IndexSet and ScalarArray
   assert(rows_->size() == s->rows);
   assert(cols_->size() == s->cols);
+  _compressor = nullptr;
 }
 
 template<typename T>
@@ -88,6 +97,7 @@ FullMatrix<T>::FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols, bool z
     rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
   assert(rows_);
   assert(cols_);
+  _compressor = nullptr;
 }
 
 template<typename T> FullMatrix<T>::~FullMatrix() {
@@ -327,6 +337,37 @@ template<typename T> void FullMatrix<T>::conjugate() {
   if (diagonal)
     diagonal->conjugate();
 }
+
+template <typename T>
+void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
+{
+  //printf("Begin Compression of full block !\n");
+  _compressor = new FPSimpleCompressor<T>(method);
+
+  _compressor->n_rows = data.rows;
+  _compressor->n_cols = data.cols;
+
+  _compressor->compressor->compress(data.ptr(), data.rows * data.cols, epsilon);
+  _compressor->compressionRatio = _compressor->compressor->get_ratio();
+}
+
+
+template <typename T>
+void FullMatrix<T>::FPdecompress()
+{
+  //printf("Begin Decompression of full block !\n");
+
+  if(_compressor == nullptr)
+  {
+     printf("Compressors not instanciated\n");
+    return;
+  }
+
+  T* tmp = _compressor->compressor->decompress();
+  
+  data = ScalarArray<T>(tmp, _compressor->n_rows, _compressor->n_cols);
+}
+
 
 template<typename T> std::string FullMatrix<T>::description() const {
     std::ostringstream convert;

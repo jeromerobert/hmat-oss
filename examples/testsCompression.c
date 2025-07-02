@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
   n = atoi(argv[1]);
   arithmetic = argv[2][0];
   epsilon = atof(argv[3]);
-  
+
   if (argc == 5 || argc == 6)
     {nb_blocs = atoi(argv[4]);}
 
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
   if(nb_blocs>0) 
   {
     printf("\nCompressing...\n");
-    hmat.FPcompress(hmatrix_c, epsilon, nb_blocs, compressor_type);
+    hmat.FPcompress(hmatrix_c, epsilon, nb_blocs, compressor_type, true, true);
     
     compression = clock();
   }
@@ -353,9 +353,6 @@ int main(int argc, char **argv) {
 
   printf("- Compression Ratios : \n");
   printf(" # Full Blocs : %7.3f, Rk Blocs %7.3f: , Global : %7.3f\n", mat_ratio.fullRatio, mat_ratio.rkRatio, mat_ratio.ratio);
-
-  printf("- Compression Ratios Corrected: \n");
-  printf(" # Full Blocs : %7.3f, Rk Blocs %7.3f: , Global : %7.3f\n", ((double)mat_ratio.size_Full/(double)mat_ratio.size_Full_compressed), ((double)mat_ratio.size_Rk/(double)mat_ratio.size_Rk_compressed), ((double)(mat_ratio.size_Full+mat_ratio.size_Rk)/(double)(mat_ratio.size_Full_compressed + mat_ratio.size_Rk_compressed)));
   printf("- Sizes : \n");
   printf(" # Full Blocs : %fM, Rk Blocs %fM: , Global : %fM\n", 1e-6*mat_ratio.size_Full, 1e-6*mat_ratio.size_Rk, 1e-6*(mat_ratio.size_Full + mat_ratio.size_Rk));
   printf("- Sizes compressed: \n");

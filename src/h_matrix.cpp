@@ -1633,6 +1633,10 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t & result)
     if (isFullMatrix()) {
       size_t size = r*c;
       double cr = 1;
+      if(full()->_compressor)
+      {
+        cr = full()->_compressor->compressionRatio;
+      }//full()->_compressor->compressionRatio;
      
       result.size_Full += size;
       result.size_Full_compressed += size / cr;
@@ -1646,6 +1650,7 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t & result)
       {
         cr = rk()->_compressors->compressionRatio;
       }
+
 
       result.size_Rk += size;
       result.size_Rk_compressed += size / cr;
@@ -1664,30 +1669,38 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t & result)
 }
 
 template <typename T>
-void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method)
+void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk)
 {
   
   
   if (this->isLeaf()) {
     if (isFullMatrix()) {
       //Compress Full block
+      if(compressFull)
+      {
+        full()->FPcompress(epsilon, method);
+      }
     } else {
       //Compress RK block
-      int min_size = 500; //The Minimum bloc size we want for compression 
-      int total_size = std::min(rows()->size(), cols()->size()) * rk()->rank();
-      float bloc_size = total_size / nb_blocs;
-
-      if(bloc_size < min_size)
+      if(compressRk)
       {
-        //nb_blocs = std::max((int)round(total_size/min_size), (int)1);
+        int min_size = 500; //The Minimum bloc size we want for compression 
+        int total_size = std::min(rows()->size(), cols()->size()) * rk()->rank();
+        float bloc_size = total_size / nb_blocs;
+
+        if(bloc_size < min_size)
+        {
+          //nb_blocs = std::max((int)round(total_size/min_size), (int)1);
+        }
+        
+        //printf("\nDims : (%d + %d) x %d; N blocs = %d\n",rows()->size(), cols()->size(), rk()->rank(), nb_blocs);
+        //size_t size = rows()->size() * cols()->size();
+    
+        nb_blocs = std::min(nb_blocs, rk()->rank());
+        
+        rk()->FPcompress(epsilon, nb_blocs, method);
       }
       
-      //printf("\nDims : (%d + %d) x %d; N blocs = %d\n",rows()->size(), cols()->size(), rk()->rank(), nb_blocs);
-      //size_t size = rows()->size() * cols()->size();
-  
-      nb_blocs = std::min(nb_blocs, rk()->rank());
-      
-      rk()->FPcompress(epsilon, nb_blocs, method);
       
 
     }
@@ -1695,7 +1708,7 @@ void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t meth
     for (int i = 0; i < nrChildRow(); i++) {
       for(int j = 0; j < nrChildCol(); j++) {
 	      if(get(i,j)) {
-          get(i,j)->FPcompress(epsilon, nb_blocs, method);
+          get(i,j)->FPcompress(epsilon, nb_blocs, method, compressFull, compressRk);
         }
       }
     }
@@ -1710,10 +1723,18 @@ void HMatrix<T>::FPdecompress(hmat_FPcompress_t method)
   
   if (this->isLeaf()) {
     if (isFullMatrix()) {
-      //Uncompress Full block
+      //Uncompress Full block if compressed
+      if(full()->_compressor)
+      {
+        full()->FPdecompress();
+      }
+      
     } else {
-      //Uncompress RK block
-      rk()->FPdecompress();
+      //Uncompress RK block if compressed
+      if(rk()->_compressors)
+      {
+        rk()->FPdecompress();
+      }
     }
   } else {
     for (int i = 0; i < nrChildRow(); i++) {

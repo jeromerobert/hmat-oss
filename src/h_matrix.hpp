@@ -711,7 +711,7 @@ public:
 
   void FPratio(hmat_FPCompressionRatio_t &);
 
-  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
+  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, bool compressFull = true, bool compressRk = true);
 
 
   void FPdecompress(hmat_FPcompress_t method);
