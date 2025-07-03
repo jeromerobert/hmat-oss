@@ -51,18 +51,17 @@ namespace hmat {
       nb_blocs = n;
       cols_A.resize(nb_blocs);
       cols_B.resize(nb_blocs);
-      ratios_A.resize(nb_blocs);
-      ratios_B.resize(nb_blocs);
       compressors_A.resize(nb_blocs);
       compressors_B.resize(nb_blocs);
+
       for(int i =0; i < nb_blocs; i++)
       {
         compressors_A[i] = initCompressor<T>(method);
         compressors_B[i] = initCompressor<T>(method);
-        ratios_A[i] = 1;
-        ratios_B[i] = 1;
+        
       }
       compressionRatio = 1;
+     
   }
 
   
@@ -334,8 +333,9 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
   double sigma_1 = Sigma->maxAbsolute(); 
 
-  double ratio_a = 0;
-  double ratio_b = 0;
+  size_t size = (a->rows*a->cols)+(b->rows*b->cols);
+  size_t size_c = 0; 
+
   for(int p = 0; p < nb_blocs; p++)
   {
       int kp = round(k0*p);
@@ -358,8 +358,9 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
       _compressors->compressors_A[p]->compress(a_p->ptr(), a_p->rows*a_p->cols, epsilon_p);      
       _compressors->cols_A[p] = a_p->cols;
-      _compressors->ratios_A[p] = _compressors->compressors_A[p]->get_ratio();
-      ratio_a += _compressors->cols_A[p] * _compressors->ratios_A[p];
+
+      size_c += (a_p->rows*a_p->cols) / _compressors->compressors_A[p]->get_ratio();
+      
 
       delete a_p;
 
@@ -368,8 +369,8 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
       _compressors->compressors_B[p]->compress(b_p->ptr(), b_p->rows*b_p->cols, epsilon_p);      
       _compressors->cols_B[p] = b_p->cols;
-      _compressors->ratios_B[p] = _compressors->compressors_B[p]->get_ratio();
-      ratio_b += _compressors->cols_B[p] * _compressors->ratios_B[p];   
+      size_c += (b_p->rows*b_p->cols) / _compressors->compressors_B[p]->get_ratio();
+      
 
       delete b_p;
       delete Sigma_p;
@@ -381,9 +382,11 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   }
   a->clear(); //The memory for the panels a and b is freed. To replace with this->clear() or add clearing of compressors in this-> clear() ?
   b->clear();
-  ratio_a = ratio_a / k;
-  ratio_b = ratio_b / k;
-  _compressors->compressionRatio = (m * ratio_a + n * ratio_b) / (m + n);
+  
+
+  _compressors->compressionRatio = (double)size/(double)size_c;
+
+
   //printf("Dims : (%d, %d); compression Ratio = %f\n", rows->size(), this->rank(), _compressors->compressionRatio);
  
   isSZCompressed = true;

@@ -48,9 +48,8 @@ struct FPAdaptiveCompressor{
     std::vector<FPCompressorInterface<T>*> compressors_B;
 
     std::vector<int> cols_A;
-    std::vector<int> cols_B;
-    std::vector<float> ratios_A;
-    std::vector<float> ratios_B;    
+    std::vector<int> cols_B; 
+    
     double compressionRatio;
 
     FPAdaptiveCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
