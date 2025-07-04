@@ -1648,7 +1648,7 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t & result)
       if(full()->_compressor)
       {
         cr = full()->_compressor->compressionRatio;
-      }//full()->_compressor->compressionRatio;
+      }
      
       result.size_Full += size;
       result.size_Full_compressed += size / cr;
