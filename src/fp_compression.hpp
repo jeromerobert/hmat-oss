@@ -5,6 +5,7 @@
 
 #include "rk_matrix.hpp"
 
+#ifdef HAVE_COMPOSYX
 #include "composyx.hpp"
 #include "composyx/interfaces/basic_concepts.hpp"
 #include "composyx/utils/Arithmetic.hpp"
@@ -73,6 +74,32 @@ public:
 
 
 }
+#else
+
+namespace hmat 
+{
+
+/* Default compressor if composyx is not installed
+*/
+template<typename T>
+class Defaultcompressor : public FPCompressorInterface<T> {
+private:
+    T* _data;
+
+public:
+    Defaultcompressor() {};
+
+    void compress(T* data, size_t size, double epsilon) override;
+
+    T* decompress() override;
+
+    double get_ratio() override;
+
+    
+};
+
+}
 
 
+#endif
 #endif

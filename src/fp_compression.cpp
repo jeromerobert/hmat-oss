@@ -1,6 +1,7 @@
 #include "fp_compression.hpp"
 #include "data_types.hpp"
 
+#ifdef HAVE_COMPOSYX
 
 
 namespace hmat{
@@ -123,11 +124,48 @@ template class ZFPcompressor<D_t>;
 template class ZFPcompressor<C_t>;
 template class ZFPcompressor<Z_t>;
 
+}
+#else
+
+namespace hmat{
+
+template<typename T>
+FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
+{
+    FPCompressorInterface<T>* res = new Defaultcompressor<T>();
+
+    return res;
+}
+
+
+template<typename T>
+void Defaultcompressor<T>::compress(T* data, size_t size, double epsilon)
+{
+    this->_data = data;
+}
+
+template<typename T>
+T* Defaultcompressor<T>::decompress()
+{
+    return _data;
+}
+
+template <typename T>
+double Defaultcompressor<T>::get_ratio()
+{
+    return 1;
+}
+
+}
+#endif
+
+
+namespace hmat{
+
 template FPCompressorInterface<S_t>* initCompressor(hmat_FPcompress_t method);
 template FPCompressorInterface<D_t>* initCompressor(hmat_FPcompress_t method);
 template FPCompressorInterface<C_t>* initCompressor(hmat_FPcompress_t method);
 template FPCompressorInterface<Z_t>* initCompressor(hmat_FPcompress_t method);
 
 }
-
 
