@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef _FP_COMPRESSION_HPP
 #define _FP_COMPRESSION_HPP
 
