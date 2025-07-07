@@ -359,9 +359,9 @@ void DefaultEngine<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_
 }
 
 template <typename T>
-void DefaultEngine<T>::FPdecompress(hmat_FPcompress_t method)
+void DefaultEngine<T>::FPdecompress()
 {
-  this->hmat->FPdecompress(method);
+  this->hmat->FPdecompress();
 }
 
 }  // end namespace hmat

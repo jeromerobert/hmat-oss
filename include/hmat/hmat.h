@@ -976,7 +976,7 @@ typedef struct
 
     int (*FPcompress)(hmat_matrix_t *hmatrix, double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk);
 
-    int (*FPdecompress)(hmat_matrix_t *hmatrix, hmat_FPcompress_t method);
+    int (*FPdecompress)(hmat_matrix_t *hmatrix);
 
     /*! \brief Dump json & postscript informations about matrix
         \param hmatrix A hmatrix

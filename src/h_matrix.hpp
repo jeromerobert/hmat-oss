@@ -709,12 +709,22 @@ public:
       return rows()->size() == 0 || cols()->size() == 0;
   }
 
+  /**
+   * Compute the FPcompression ratio of the H-Matrix and store the result in the parameter
+   */
   void FPratio(hmat_FPCompressionRatio_t &);
 
+  /**
+   * Apply FP compression to the HMatrix
+   */
   void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, bool compressFull = true, bool compressRk = true);
 
+  /**
+   * Decompress the Hmatrix after an FP compression
+   */
+  void FPdecompress();
 
-  void FPdecompress(hmat_FPcompress_t method);
+
   /**
    * Tag a not leaf block as assembled.
    * Must only be called when all leaves of this block have been
