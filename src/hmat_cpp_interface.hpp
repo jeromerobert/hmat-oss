@@ -321,7 +321,7 @@ public:
   /**
    * Uncompress the Hmatrix blocs resulting of the Floating-point compression
    */
-  void FPdecompress(hmat_FPcompress_t method);
+  void FPdecompress();
 
   /*! \brief Dump some HMatrix metadata to a Python-readable file.
 

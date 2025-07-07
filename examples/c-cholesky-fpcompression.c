@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
   {
     
     printf("\nUncompressing...\n");
-    hmat.FPdecompress(hmatrix_c, compressor_type);
+    hmat.FPdecompress(hmatrix_c);
     decompression = clock();
   }
    

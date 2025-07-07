@@ -271,10 +271,10 @@ void HMatInterface<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_
 }
 
 template <typename T>
-void HMatInterface<T>::FPdecompress(hmat_FPcompress_t method)
+void HMatInterface<T>::FPdecompress()
 {
   DECLARE_CONTEXT;
-  engine_->FPdecompress(method);
+  engine_->FPdecompress();
 }
 
 template<typename T>

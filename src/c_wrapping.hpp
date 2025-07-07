@@ -658,11 +658,11 @@ int hmat_FPcompress(hmat_matrix_t* holder, double epsilon, int nb_blocs, hmat_FP
   return 0;
 }
 template<typename T, template <typename> class E>
-int hmat_FPuncompress(hmat_matrix_t* holder, hmat_FPcompress_t method) {
+int hmat_FPdecompress(hmat_matrix_t* holder) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
   try {
-      hmat->FPdecompress(method);
+      hmat->FPdecompress();
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;
@@ -947,7 +947,7 @@ static void createCInterface(hmat_interface_t * i)
     i->get_profile  = hmat_get_profile<T, E>;
     i->get_ratio  = hmat_get_ratio<T, E>;
     i->FPcompress = hmat_FPcompress<T, E>;
-    i->FPdecompress = hmat_FPuncompress<T, E>;
+    i->FPdecompress = hmat_FPdecompress<T, E>;
     i->get_cluster_trees = get_cluster_trees<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
     i->own_cluster_trees = own_cluster_trees<T, E>;
