@@ -37,7 +37,7 @@ if(BUILD_SHARED_LIBS MATCHES "^BUILD_SHARED_LIBS$")
     endif()
 endif()
 
-project(hmat-oss C CXX)
+project(hmat-oss C CXX Fortran)
 
 if(POLICY CMP0092)
     cmake_policy(SET CMP0092 NEW) # 3.15: MSVC warning flags are not in CMAKE_<LANG>_FLAGS by default.
