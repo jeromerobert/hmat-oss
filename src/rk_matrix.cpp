@@ -351,8 +351,6 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
       double sigma_p = Sigma_p->maxAbsolute();
 
       double epsilon_p = epsilon *sigma_1/(p_sqrt * sigma_p);
-      epsilon_p = epsilon_p;
-
 
       a_p = new ScalarArray<T>(a->colsSubset(kp, kpOffset));
 
