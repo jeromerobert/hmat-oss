@@ -269,6 +269,7 @@ if(ENABLE_COMPOSYX)
         find_package(composyx REQUIRED)
     if(composyx_FOUND)
         message(STATUS "Found composyx")
+        set(HMAT_HAVE_COMPOSYX TRUE)
         set(HAVE_COMPOSYX TRUE)
         set(CMAKE_CXX_STANDARD 20)
         set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -444,7 +445,7 @@ endif()
 # Allow using HMAT targets from add_subdirectory()
 add_library(HMAT::hmat ALIAS hmat)
 
-# We want users to link agains HMAT::hmat target
+# We want users to link against HMAT::hmat target
 set_target_properties(hmat PROPERTIES EXPORT_NAME hmat)
 
 # Define our exported target
