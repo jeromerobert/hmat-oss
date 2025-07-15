@@ -1,3 +1,4 @@
+#include "config.h"
 #include "fp_compression.hpp"
 #include "data_types.hpp"
 
@@ -125,7 +126,7 @@ template class ZFPcompressor<C_t>;
 template class ZFPcompressor<Z_t>;
 
 }
-#else
+#else // HAVE_COMPOSYX
 
 namespace hmat{
 
@@ -157,7 +158,7 @@ double Defaultcompressor<T>::get_ratio()
 }
 
 }
-#endif
+#endif // HAVE_COMPOSYX
 
 
 namespace hmat{
