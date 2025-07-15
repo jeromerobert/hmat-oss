@@ -1,6 +1,4 @@
-#ifndef _FP_COMPRESSION_HPP
-#define _FP_COMPRESSION_HPP
-
+#pragma once
 #include <vector>
 
 #include "rk_matrix.hpp"
@@ -74,7 +72,7 @@ public:
 
 
 }
-#else
+#else // HAVE_COMPOSYX
 
 namespace hmat 
 {
@@ -101,5 +99,4 @@ public:
 }
 
 
-#endif
-#endif
+#endif // HAVE_COMPOSYX
