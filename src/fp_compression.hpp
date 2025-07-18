@@ -24,6 +24,8 @@ private:
 public:
     SZ2compressor() {};
 
+    ~SZ2compressor();
+
     void compress(T* data, size_t size, double epsilon) override;
 
     T* decompress() override;
@@ -43,6 +45,8 @@ private:
 public:
     SZ3compressor() {};
 
+    ~SZ3compressor();
+
     void compress(T* data, size_t size, double epsilon) override;
 
     T* decompress() override;
@@ -60,6 +64,8 @@ private:
 
 public:
     ZFPcompressor() {};
+
+    ~ZFPcompressor();
 
     void compress(T* data, size_t size, double epsilon) override;
 

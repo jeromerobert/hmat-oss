@@ -73,6 +73,7 @@ struct FPSimpleCompressor{
 
     FPSimpleCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
 
+    ~FPSimpleCompressor();
 
 };
 

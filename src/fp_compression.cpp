@@ -34,8 +34,18 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
     return res;
 }
 
-template<typename T>
-void SZ2compressor<T>::compress(T* data, size_t size, double epsilon)
+template <typename T>
+SZ2compressor<T>::~SZ2compressor()
+{
+    if(_compressor)
+    {
+        delete _compressor;
+        _compressor = nullptr;
+    }
+}
+
+template <typename T>
+void SZ2compressor<T>::compress(T *data, size_t size, double epsilon)
 {
     this->_size = size;
     this->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(data, size, epsilon);
@@ -47,6 +57,7 @@ T* SZ2compressor<T>::decompress()
     T* out = new T[_size];
     _compressor->decompress(out);
     delete _compressor;
+    _compressor = nullptr;
     return out;
 }
 
@@ -58,9 +69,18 @@ double SZ2compressor<T>::get_ratio()
     return this->_compressor->get_ratio();
 }
 
+template <typename T>
+SZ3compressor<T>::~SZ3compressor()
+{
+     if(_compressor)
+    {
+         delete _compressor;
+        _compressor = nullptr;
+    }
+}
 
-template<typename T>
-void SZ3compressor<T>::compress(T* data, size_t size, double epsilon)
+template <typename T>
+void SZ3compressor<T>::compress(T *data, size_t size, double epsilon)
 {
     this->_size = size;
     this->_compressor = new composyx::SZ3_compressor<T, SZ3::EB::EB_REL>(data, size, epsilon);
@@ -73,6 +93,7 @@ T* SZ3compressor<T>::decompress()
     T* out = new T[_size];
     _compressor->decompress(out);
     delete _compressor;
+    _compressor = nullptr;
     return out;
 }
 
@@ -84,9 +105,18 @@ double SZ3compressor<T>::get_ratio()
     return this->_compressor->get_ratio();
 }
 
+template <typename T>
+ZFPcompressor<T>::~ZFPcompressor()
+{
+     if(_compressor)
+    {
+         delete _compressor;
+        _compressor = nullptr;
+    }
+}
 
-template<typename T>
-void ZFPcompressor<T>::compress(T* data, size_t size, double epsilon)
+template <typename T>
+void ZFPcompressor<T>::compress(T *data, size_t size, double epsilon)
 {
     this->_size = size;
     this->_compressor = new composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>(data, size, epsilon);
@@ -97,7 +127,8 @@ T* ZFPcompressor<T>::decompress()
 {
     T* out = new T[_size];
     _compressor->decompress(out);
-    delete _compressor;
+     delete _compressor;
+    _compressor = nullptr;
     return out;
 }
 

@@ -68,6 +68,16 @@ inline FPSimpleCompressor<T>::FPSimpleCompressor(hmat_FPcompress_t method)
   compressionRatio = 1;
 }
 
+template <typename T>
+FPSimpleCompressor<T>::~FPSimpleCompressor()
+{
+  if(compressor)
+    {
+        delete compressor;
+        compressor = nullptr;
+    }
+}
+
 /** FullMatrix */
 
   template<typename T>
@@ -366,6 +376,9 @@ void FullMatrix<T>::FPdecompress()
   T* tmp = _compressor->compressor->decompress();
   
   data = ScalarArray<T>(tmp, _compressor->n_rows, _compressor->n_cols);
+
+  delete _compressor;
+  _compressor = nullptr;
 }
 
 
