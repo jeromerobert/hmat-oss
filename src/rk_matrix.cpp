@@ -64,7 +64,24 @@ namespace hmat {
      
   }
 
-  
+  template <typename T>
+  FPAdaptiveCompressor<T>::~FPAdaptiveCompressor()
+  {
+    for(int i =0; i < nb_blocs; i++)
+      {
+        if(compressors_A[i])
+        {
+            delete compressors_A[i];
+            compressors_A[i] = nullptr;
+        }
+         if(compressors_B[i])
+        {
+          delete compressors_B[i];
+          compressors_B[i] = nullptr;
+        }
+        
+      }
+  }
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
@@ -452,7 +469,8 @@ void RkMatrix<T>::FPdecompress()
   }
 
   
-  //delete _compressors;
+  delete _compressors;
+  _compressors = nullptr;
   //printf("Uncompression complete\n");
   isSZCompressed = false;
   //printf("End Decompression\n");
