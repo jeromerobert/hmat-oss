@@ -49,8 +49,7 @@ namespace hmat {
   FPAdaptiveCompressor<T>::FPAdaptiveCompressor(hmat_FPcompress_t method, int n)
   {
       nb_blocs = n;
-      cols_A.resize(nb_blocs);
-      cols_B.resize(nb_blocs);
+      cols.resize(nb_blocs);
       compressors_A.resize(nb_blocs);
       compressors_B.resize(nb_blocs);
 
@@ -344,8 +343,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
   double p_sqrt = sqrt((double)nb_blocs);
   double k0 = k/(double)nb_blocs;
-  ScalarArray<T> *a_p;
-  ScalarArray<T> *b_p;
+
   Vector<typename Types<T>::real> *Sigma_p;
 
   double sigma_1 = Sigma->maxAbsolute(); 
@@ -358,6 +356,8 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
       int kp = round(k0*p);
       int kpOffset = round(k0 *(p+1)) - kp;
 
+      size_t size_a = m * kpOffset;
+      size_t size_b = n * kpOffset;
       
       if(kpOffset <= 0) //In that case 0 columns are selected. Can happen when nb_blocs > k
           continue;
@@ -368,26 +368,36 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
       double sigma_p = Sigma_p->maxAbsolute();
 
       double epsilon_p = epsilon *sigma_1/(p_sqrt * sigma_p);
+      epsilon_p = epsilon_p;
+      _compressors->cols[p] = kpOffset;
 
-      a_p = new ScalarArray<T>(a->colsSubset(kp, kpOffset));
+      {
+        ScalarArray<T>* a_p = new ScalarArray<T>(a->colsSubset(kp, kpOffset));
 
-      _compressors->compressors_A[p]->compress(a_p->ptr(), a_p->rows*a_p->cols, epsilon_p);      
-      _compressors->cols_A[p] = a_p->cols;
+        std::vector<T> tmp(a_p->ptr(), a_p->ptr() + size_a);
 
-      size_c += (a_p->rows*a_p->cols) / _compressors->compressors_A[p]->get_ratio();
+        _compressors->compressors_A[p]->compress(tmp, size_a, epsilon_p);      
+        
+
+        size_c += size_a / _compressors->compressors_A[p]->get_ratio();
+        
+        delete a_p;
+      }
       
 
-      delete a_p;
+
+      {
+       ScalarArray<T>* b_p = new ScalarArray<T>(b->colsSubset(kp, kpOffset));
+
+        std::vector<T> tmp(b_p->ptr(), b_p->ptr() + size_b);
 
 
-      b_p = new ScalarArray<T>(b->colsSubset(kp, kpOffset));
+        _compressors->compressors_B[p]->compress(tmp, size_b, epsilon_p);      
 
-      _compressors->compressors_B[p]->compress(b_p->ptr(), b_p->rows*b_p->cols, epsilon_p);      
-      _compressors->cols_B[p] = b_p->cols;
-      size_c += (b_p->rows*b_p->cols) / _compressors->compressors_B[p]->get_ratio();
-      
+        size_c += size_b / _compressors->compressors_B[p]->get_ratio();
+        delete b_p;
+      }
 
-      delete b_p;
       delete Sigma_p;
       
   }
@@ -439,39 +449,36 @@ void RkMatrix<T>::FPdecompress()
   
   for(int p = 0; p < nb_blocs; p++)
   {
-    int k_a = _compressors->cols_A[p];
-    int k_b = _compressors->cols_B[p];
+    int k_p = _compressors->cols[p];
 
-    if(k_a ==0 || k_b == 0)
+    if(k_p ==0)
       continue;
 
-    if(k_a != k_b)
-      printf("k_a != k_b\n\n");
 
     { //We want to release a_p as soon as possible
-      T* data = _compressors->compressors_A[p]->decompress();
+      std::vector<T> data = _compressors->compressors_A[p]->decompress();
       
-      ScalarArray<T>*a_p = new ScalarArray<T>(data, m, k_a);
+      ScalarArray<T>*a_p = new ScalarArray<T>(data.data(), m, k_p);
       a->copyMatrixAtOffset(a_p, 0, i);    
       delete a_p;
     }   
 
     {//We want to release b_p as soon as possible
-      T* data = _compressors->compressors_B[p]->decompress();
+      std::vector<T> data = _compressors->compressors_B[p]->decompress();
       
-      ScalarArray<T>* b_p = new ScalarArray<T>(data, n, k_b);
+      ScalarArray<T>* b_p = new ScalarArray<T>(data.data(), n, k_p);
       b->copyMatrixAtOffset(b_p, 0, i);
       delete b_p;
     }   
 
 
-    i+=k_a;
+    i+=k_p;
   }
 
   
   delete _compressors;
   _compressors = nullptr;
-  //printf("Uncompression complete\n");
+  //printf("Decompression complete\n");
   isSZCompressed = false;
   //printf("End Decompression\n");
 }
