@@ -357,8 +357,12 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
   _compressor->n_rows = data.rows;
   _compressor->n_cols = data.cols;
 
-  _compressor->compressor->compress(data.ptr(), data.rows * data.cols, epsilon);
+  std::vector<T> tmp(data.ptr(), data.ptr()+ _compressor->n_rows*_compressor->n_cols);
+
+  _compressor->compressor->compress(tmp, data.rows * data.cols, epsilon);
   _compressor->compressionRatio = _compressor->compressor->get_ratio();
+
+  data.resize(0);
 }
 
 
@@ -373,12 +377,17 @@ void FullMatrix<T>::FPdecompress()
     return;
   }
 
-  T* tmp = _compressor->compressor->decompress();
-  
-  data = ScalarArray<T>(tmp, _compressor->n_rows, _compressor->n_cols);
+
+  data.resize(_compressor->n_cols);
+  std::vector<T> tmp_out = _compressor->compressor->decompress();
+
+  ScalarArray<T>* tmp  = new ScalarArray<T>(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
+  data.copyMatrixAtOffset(tmp, 0, 0);
 
   delete _compressor;
   _compressor = nullptr;
+
+  delete tmp;
 }
 
 

@@ -26,9 +26,9 @@ public:
 
     ~SZ2compressor();
 
-    void compress(T* data, size_t size, double epsilon) override;
+    void compress(std::vector<T> data, size_t size, double epsilon) override;
 
-    T* decompress() override;
+    std::vector<T> decompress() override;
 
     double get_ratio() override;
 
@@ -47,9 +47,9 @@ public:
 
     ~SZ3compressor();
 
-    void compress(T* data, size_t size, double epsilon) override;
+    void compress(std::vector<T> data, size_t size, double epsilon) override;
 
-    T* decompress() override;
+    std::vector<T> decompress() override;
 
     double get_ratio() override;
 
@@ -67,9 +67,9 @@ public:
 
     ~ZFPcompressor();
 
-    void compress(T* data, size_t size, double epsilon) override;
+    void compress(std::vector<T> data, size_t size, double epsilon) override;
 
-    T* decompress() override;
+    std::vector<T> decompress() override;
 
     double get_ratio() override;
 
@@ -88,14 +88,14 @@ namespace hmat
 template<typename T>
 class Defaultcompressor : public FPCompressorInterface<T> {
 private:
-    T* _data;
+    std::vector<T> _data;
 
 public:
     Defaultcompressor() {};
 
-    void compress(T* data, size_t size, double epsilon) override;
+    void compress(std::vector<T> data, size_t size, double epsilon) override;
 
-    T* decompress() override;
+    std::vector<T> decompress() override;
 
     double get_ratio() override;
 

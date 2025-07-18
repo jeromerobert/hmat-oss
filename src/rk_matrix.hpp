@@ -47,8 +47,7 @@ struct FPAdaptiveCompressor{
     std::vector<FPCompressorInterface<T>*> compressors_A;
     std::vector<FPCompressorInterface<T>*> compressors_B;
 
-    std::vector<int> cols_A;
-    std::vector<int> cols_B; 
+    std::vector<int> cols;
     
     double compressionRatio;
 

@@ -45,17 +45,16 @@ SZ2compressor<T>::~SZ2compressor()
 }
 
 template <typename T>
-void SZ2compressor<T>::compress(T *data, size_t size, double epsilon)
+void SZ2compressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
     this->_size = size;
-    this->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(data, size, epsilon);
+    this->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(data.data(), size, epsilon);
 }
 
 template<typename T>
-T* SZ2compressor<T>::decompress()
+std::vector<T> SZ2compressor<T>::decompress()
 {
-    T* out = new T[_size];
-    _compressor->decompress(out);
+    std::vector<T> out = _compressor->decompress();
     delete _compressor;
     _compressor = nullptr;
     return out;
@@ -80,18 +79,17 @@ SZ3compressor<T>::~SZ3compressor()
 }
 
 template <typename T>
-void SZ3compressor<T>::compress(T *data, size_t size, double epsilon)
+void SZ3compressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
     this->_size = size;
-    this->_compressor = new composyx::SZ3_compressor<T, SZ3::EB::EB_REL>(data, size, epsilon);
+    this->_compressor = new composyx::SZ3_compressor<T, SZ3::EB::EB_REL>(data.data(), size, epsilon);
     //this->_compressor->print_config();
 }
 
 template<typename T>
-T* SZ3compressor<T>::decompress()
+std::vector<T> SZ3compressor<T>::decompress()
 {
-    T* out = new T[_size];
-    _compressor->decompress(out);
+    std::vector<T> out = _compressor->decompress();
     delete _compressor;
     _compressor = nullptr;
     return out;
@@ -116,18 +114,17 @@ ZFPcompressor<T>::~ZFPcompressor()
 }
 
 template <typename T>
-void ZFPcompressor<T>::compress(T *data, size_t size, double epsilon)
+void ZFPcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
     this->_size = size;
-    this->_compressor = new composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>(data, size, epsilon);
+    this->_compressor = new composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>(data.data(), size, epsilon);
 }
 
 template<typename T>
-T* ZFPcompressor<T>::decompress()
+std::vector<T> ZFPcompressor<T>::decompress()
 {
-    T* out = new T[_size];
-    _compressor->decompress(out);
-     delete _compressor;
+    std::vector<T> out = _compressor->decompress();
+    delete _compressor;
     _compressor = nullptr;
     return out;
 }
@@ -171,13 +168,13 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
 
 
 template<typename T>
-void Defaultcompressor<T>::compress(T* data, size_t size, double epsilon)
+void Defaultcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
     this->_data = data;
 }
 
 template<typename T>
-T* Defaultcompressor<T>::decompress()
+std::vector<T> Defaultcompressor<T>::decompress()
 {
     return _data;
 }
