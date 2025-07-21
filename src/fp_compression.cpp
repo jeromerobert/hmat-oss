@@ -24,10 +24,10 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
             break;
 
 
-        case SZ2_COMPRESSOR:
+        case SZ_COMPRESSOR:
         case DEFAULT_COMPRESSOR:          
         default:
-            res = new SZ2compressor<T>();
+            res = new SZcompressor<T>();
             break;
         }
 
@@ -35,7 +35,7 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
 }
 
 template <typename T>
-SZ2compressor<T>::~SZ2compressor()
+SZcompressor<T>::~SZcompressor()
 {
     if(_compressor)
     {
@@ -45,14 +45,14 @@ SZ2compressor<T>::~SZ2compressor()
 }
 
 template <typename T>
-void SZ2compressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
+void SZcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
     this->_size = size;
     this->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(data.data(), size, epsilon);
 }
 
 template<typename T>
-std::vector<T> SZ2compressor<T>::decompress()
+std::vector<T> SZcompressor<T>::decompress()
 {
     std::vector<T> out = _compressor->decompress();
     delete _compressor;
@@ -61,7 +61,7 @@ std::vector<T> SZ2compressor<T>::decompress()
 }
 
 template <typename T>
-double SZ2compressor<T>::get_ratio()
+double SZcompressor<T>::get_ratio()
 {
     //printf("Number of bytes : %ld, Compressed bytes : %ld, ratio = %f\n",sizeof(T)* this->_compressor->get_n_elts(), this->_compressor->get_compressed_bytes(), this->_compressor->get_ratio());
     
@@ -138,10 +138,10 @@ double ZFPcompressor<T>::get_ratio()
 
 
 // Templates declaration
-template class SZ2compressor<S_t>;
-template class SZ2compressor<D_t>;
-template class SZ2compressor<C_t>;
-template class SZ2compressor<Z_t>;
+template class SZcompressor<S_t>;
+template class SZcompressor<D_t>;
+template class SZcompressor<C_t>;
+template class SZcompressor<Z_t>;
 
 template class SZ3compressor<S_t>;
 template class SZ3compressor<D_t>;

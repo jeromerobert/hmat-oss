@@ -224,7 +224,10 @@ int main(int argc, char **argv) {
   {
     comp_code = argv[5];
     if(strcmp(comp_code,"SZ2")==0) {
-      compressor_type = SZ2_COMPRESSOR;
+      compressor_type = SZ_COMPRESSOR;
+
+    } else if(strcmp(comp_code,"SZ")==0) { //"SZ2" and "SZ" both works
+      compressor_type = SZ_COMPRESSOR;
 
     } else if(strcmp(comp_code,"SZ3")==0) {
       compressor_type = SZ3_COMPRESSOR;
