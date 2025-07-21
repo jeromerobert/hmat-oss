@@ -298,7 +298,6 @@ template <typename T>
 void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
 {
   //printf("Begin Compression\n");
-  //printf("Compression of the RkMatrix using SZ2\n");
 
   assert(nb_blocs <= this->rank());//We may want to fix nb_blocs to this->rank() in that case in the future; for now, it is simpler to assert nb_blocs <= this->rank().
 

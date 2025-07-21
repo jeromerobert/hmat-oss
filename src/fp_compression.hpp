@@ -16,15 +16,15 @@ namespace hmat
 
 
 template<typename T>
-class SZ2compressor : public FPCompressorInterface<T> {
+class SZcompressor : public FPCompressorInterface<T> {
 private:
     composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>* _compressor;
     size_t _size;
 
 public:
-    SZ2compressor() {};
+    SZcompressor() {};
 
-    ~SZ2compressor();
+    ~SZcompressor();
 
     void compress(std::vector<T> data, size_t size, double epsilon) override;
 
