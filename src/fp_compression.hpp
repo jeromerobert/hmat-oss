@@ -3,7 +3,12 @@
 
 #include "rk_matrix.hpp"
 
+
+
+
+
 #ifdef HAVE_COMPOSYX
+
 #include "composyx.hpp"
 #include "composyx/interfaces/basic_concepts.hpp"
 #include "composyx/utils/Arithmetic.hpp"
@@ -11,9 +16,15 @@
 #include "composyx/utils/SZ_compressor.hpp"
 #include "composyx/utils/SZ3_compressor.hpp"
 
+
+#endif //HAVE_COMPOSYX
+
+
 namespace hmat 
 {
 
+
+#ifdef HAVE_COMPOSYX
 
 template<typename T>
 class SZcompressor : public FPCompressorInterface<T> {
@@ -77,11 +88,8 @@ public:
 };
 
 
-}
-#else // HAVE_COMPOSYX
+#endif // HAVE_COMPOSYX
 
-namespace hmat 
-{
 
 /* Default compressor if composyx is not installed
 */
@@ -105,4 +113,4 @@ public:
 }
 
 
-#endif // HAVE_COMPOSYX
+
