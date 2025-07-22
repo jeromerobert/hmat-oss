@@ -15,26 +15,33 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
 
     switch (method)
         {
-        #ifdef HAVE_COMPOSYX
+    #ifdef HAVE_COMPOSYX
 
-
+    #ifdef COMPOSYX_USE_ZFP_COMPRESSOR
 
             
         case ZFP_COMPRESSOR:
             res = new ZFPcompressor<T>();
 
             break;
+    #endif //COMPOSYX_USE_ZFP_COMPRESSOR
+
+    #ifdef COMPOSYX_USE_SZ3_COMPRESSOR
         case SZ3_COMPRESSOR:
             res = new SZ3compressor<T>();
 
             break;
 
+    #endif //COMPOSYX_USE_SZ3_COMPRESSOR
+
+    #ifdef COMPOSYX_USE_SZ_COMPRESSOR
 
         case SZ_COMPRESSOR:
             res = new SZcompressor<T>();
             break;
+    #endif //COMPOSYX_USE_SZ_COMPRESSOR
         
-        #endif //HAVE_COMPOSYX
+    #endif //HAVE_COMPOSYX
 
 
             
@@ -69,6 +76,8 @@ double Defaultcompressor<T>::get_ratio()
 #ifdef HAVE_COMPOSYX
 
 
+#ifdef COMPOSYX_USE_SZ_COMPRESSOR
+
 template <typename T>
 SZcompressor<T>::~SZcompressor()
 {
@@ -102,6 +111,11 @@ double SZcompressor<T>::get_ratio()
     
     return this->_compressor->get_ratio();
 }
+
+#endif //COMPOSYX_USE_SZ_COMPRESSOR
+
+
+#ifdef COMPOSYX_USE_SZ3_COMPRESSOR
 
 template <typename T>
 SZ3compressor<T>::~SZ3compressor()
@@ -138,6 +152,11 @@ double SZ3compressor<T>::get_ratio()
     return this->_compressor->get_ratio();
 }
 
+
+#endif //COMPOSYX_USE_SZ3_COMPRESSOR
+
+#ifdef COMPOSYX_USE_ZFP_COMPRESSOR
+
 template <typename T>
 ZFPcompressor<T>::~ZFPcompressor()
 {
@@ -171,22 +190,9 @@ double ZFPcompressor<T>::get_ratio()
     return this->_compressor->get_ratio();
 }
 
-
 // Templates declaration
-template class SZcompressor<S_t>;
-template class SZcompressor<D_t>;
-template class SZcompressor<C_t>;
-template class SZcompressor<Z_t>;
 
-template class SZ3compressor<S_t>;
-template class SZ3compressor<D_t>;
-template class SZ3compressor<C_t>;
-template class SZ3compressor<Z_t>;
-
-template class ZFPcompressor<S_t>;
-template class ZFPcompressor<D_t>;
-template class ZFPcompressor<C_t>;
-template class ZFPcompressor<Z_t>;
+#endif //COMPOSYX_USE_ZFP_COMPRESSOR
 
 #endif // HAVE_COMPOSYX
 
