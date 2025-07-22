@@ -12,9 +12,18 @@
 #include "composyx.hpp"
 #include "composyx/interfaces/basic_concepts.hpp"
 #include "composyx/utils/Arithmetic.hpp"
+
+#ifdef COMPOSYX_USE_ZFP_COMPRESSOR
 #include "composyx/utils/ZFP_compressor.hpp"
+#endif //COMPOSYX_USE_ZFP_COMPRESSOR
+
+#ifdef COMPOSYX_USE_SZ_COMPRESSOR
 #include "composyx/utils/SZ_compressor.hpp"
+#endif //COMPOSYX_USE_SZ_COMPRESSOR
+
+#ifdef COMPOSYX_USE_SZ3_COMPRESSOR
 #include "composyx/utils/SZ3_compressor.hpp"
+#endif //COMPOSYX_USE_SZ3_COMPRESSOR
 
 
 #endif //HAVE_COMPOSYX
@@ -26,6 +35,7 @@ namespace hmat
 
 #ifdef HAVE_COMPOSYX
 
+#ifdef COMPOSYX_USE_SZ_COMPRESSOR
 template<typename T>
 class SZcompressor : public FPCompressorInterface<T> {
 private:
@@ -45,7 +55,9 @@ public:
 
     
 };
+#endif //COMPOSYX_USE_SZ_COMPRESSOR
 
+#ifdef COMPOSYX_USE_SZ3_COMPRESSOR
 
 template<typename T>
 class SZ3compressor : public FPCompressorInterface<T> {
@@ -67,6 +79,10 @@ public:
     
 };
 
+#endif //COMPOSYX_USE_SZ3_COMPRESSOR
+
+#ifdef COMPOSYX_USE_ZFP_COMPRESSOR
+
 template<typename T>
 class ZFPcompressor : public FPCompressorInterface<T> {
 private:
@@ -86,6 +102,8 @@ public:
 
     
 };
+
+#endif //COMPOSYX_USE_ZFP_COMPRESSOR
 
 
 #endif // HAVE_COMPOSYX
