@@ -2,11 +2,12 @@
 #include "fp_compression.hpp"
 #include "data_types.hpp"
 
-#ifdef HAVE_COMPOSYX
-
 
 namespace hmat{
 
+/**
+ * Instanciate FP compressors depending on the chosen method. If the method is unknown, undefined or not included, return a default compressor (which does not compress)
+ */
 template<typename T>
 FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
 {
@@ -14,6 +15,11 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
 
     switch (method)
         {
+        #ifdef HAVE_COMPOSYX
+
+
+
+            
         case ZFP_COMPRESSOR:
             res = new ZFPcompressor<T>();
 
@@ -25,14 +31,43 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
 
 
         case SZ_COMPRESSOR:
-        case DEFAULT_COMPRESSOR:          
-        default:
             res = new SZcompressor<T>();
             break;
+        
+        #endif //HAVE_COMPOSYX
+
+
+            
+        case DEFAULT_COMPRESSOR:          
+        default:
+            res = new Defaultcompressor<T>();
         }
 
     return res;
 }
+
+
+template<typename T>
+void Defaultcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
+{
+    this->_data = data;
+}
+
+template<typename T>
+std::vector<T> Defaultcompressor<T>::decompress()
+{
+    return _data;
+}
+
+template <typename T>
+double Defaultcompressor<T>::get_ratio()
+{
+    return 1;
+}
+
+
+#ifdef HAVE_COMPOSYX
+
 
 template <typename T>
 SZcompressor<T>::~SZcompressor()
@@ -153,43 +188,9 @@ template class ZFPcompressor<D_t>;
 template class ZFPcompressor<C_t>;
 template class ZFPcompressor<Z_t>;
 
-}
-#else // HAVE_COMPOSYX
-
-namespace hmat{
-
-template<typename T>
-FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
-{
-    FPCompressorInterface<T>* res = new Defaultcompressor<T>();
-
-    return res;
-}
-
-
-template<typename T>
-void Defaultcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
-{
-    this->_data = data;
-}
-
-template<typename T>
-std::vector<T> Defaultcompressor<T>::decompress()
-{
-    return _data;
-}
-
-template <typename T>
-double Defaultcompressor<T>::get_ratio()
-{
-    return 1;
-}
-
-}
 #endif // HAVE_COMPOSYX
 
 
-namespace hmat{
 
 template FPCompressorInterface<S_t>* initCompressor(hmat_FPcompress_t method);
 template FPCompressorInterface<D_t>* initCompressor(hmat_FPcompress_t method);
