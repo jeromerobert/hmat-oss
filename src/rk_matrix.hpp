@@ -105,7 +105,6 @@ public:
   const IndexSet *rows;
   const IndexSet *cols;
 
-  bool isSZCompressed;
   // A B^t
   ScalarArray<T>* a;
   ScalarArray<T>* b;
@@ -165,6 +164,9 @@ public:
 
 /** Decompress the panels of a RkMatrix after FP Compression.*/
   void FPdecompress();
+
+  /** Return True iff the rk matrix is FP compressed */
+  bool isFPcompressed();
 
 
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
@@ -327,9 +329,8 @@ public:
     */
   void writeArray(hmat_iostream writeFunc, void * userData) const;
 
-private:
 
-  void setupFPCompression(hmat_FPcompress_t method);
+
 
 };
 

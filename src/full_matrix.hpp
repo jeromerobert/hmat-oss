@@ -313,6 +313,9 @@ public:
   /**Decompress the full block after FP compression */
   void FPdecompress();
 
+  /** Return True iff the full matrix is FP compressed */
+  bool isFPcompressed();
+
   size_t memorySize() const; //TODO not used
 
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320, 452]x[760, 890] norm=22.34758")
