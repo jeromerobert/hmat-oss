@@ -351,6 +351,10 @@ template<typename T> void FullMatrix<T>::conjugate() {
 template <typename T>
 void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
 {
+  if(isFPcompressed()) //Already compressed !
+  {
+    return;
+  }
   //printf("Begin Compression of full block !\n");
   _compressor = new FPSimpleCompressor<T>(method);
 
@@ -371,7 +375,7 @@ void FullMatrix<T>::FPdecompress()
 {
   //printf("Begin Decompression of full block !\n");
 
-  if(_compressor == nullptr)
+  if(!isFPcompressed())
   {
      printf("Compressors not instanciated\n");
     return;
@@ -388,6 +392,12 @@ void FullMatrix<T>::FPdecompress()
   _compressor = nullptr;
 
   delete tmp;
+}
+
+template <typename T>
+bool FullMatrix<T>::isFPcompressed()
+{
+    return _compressor != nullptr;
 }
 
 

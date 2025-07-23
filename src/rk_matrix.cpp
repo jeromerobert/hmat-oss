@@ -94,7 +94,6 @@ template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _
     a(_a),
     b(_b)
 {
-  isSZCompressed = false;
   _compressors = nullptr;
   // We make a special case for empty matrices.
   if ((!a) && (!b)) {
@@ -301,7 +300,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
   assert(nb_blocs <= this->rank());//We may want to fix nb_blocs to this->rank() in that case in the future; for now, it is simpler to assert nb_blocs <= this->rank().
 
-  if(isSZCompressed) //Already compressed !
+  if(isFPcompressed()) //Already compressed !
   {
     return;
   }
@@ -417,7 +416,6 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
   //printf("Dims : (%d, %d); compression Ratio = %f\n", rows->size(), this->rank(), _compressors->compressionRatio);
  
-  isSZCompressed = true;
 
 }
 
@@ -426,7 +424,7 @@ void RkMatrix<T>::FPdecompress()
 {
 
   //printf("Begin Decompression\n");
-  if(!isSZCompressed) //Already uncompressed !
+  if(!isFPcompressed()) //Already uncompressed !
   {
     return;
   }
@@ -477,11 +475,14 @@ void RkMatrix<T>::FPdecompress()
   
   delete _compressors;
   _compressors = nullptr;
-  //printf("Decompression complete\n");
-  isSZCompressed = false;
-  //printf("End Decompression\n");
+  
 }
 
+template <typename T>
+bool RkMatrix<T>::isFPcompressed()
+{
+    return _compressors != nullptr;
+}
 
 template <typename T>
 void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB)
