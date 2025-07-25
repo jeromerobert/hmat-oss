@@ -32,6 +32,8 @@
 #include <cmath>
 #endif
 
+#include "stats.hpp"
+
 #include "full_matrix.hpp"
 
 #include "data_types.hpp"
@@ -230,8 +232,11 @@ template<typename T>
 void FullMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* x, Factorization algo, Diag diag, Uplo uplo) const {
   // Void matrix
   if (x->rows == 0 || x->cols == 0) return;
+  PUSH_BRANCH("SLTLS_0");
   FactorizationData<T> context = getFactorizationData(algo);
   data.solveLowerTriangularLeft(x, context, diag, uplo);
+  POP_BRANCH("SLTLS_0", this->cols_->offset(), this->rows(), this->cols_->offset(), this->cols(),
+    -1, true, -1, x->rows, -1, x->cols, -1, true, "sequential");
 }
 
 

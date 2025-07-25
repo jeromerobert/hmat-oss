@@ -202,9 +202,11 @@ namespace hmat {
     // X and b are not necessarily square
 
     // First we handle the general case, where dimensions (in terms of number of children) are compatible
+    std::string current_branch = "U";
     if (me()->nrChildCol() == b->nrChildRow()) {
-
-      for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
+      current_branch = "rSLTL"+ std::string(me()->mat_type() == 0 ? "S" : "P") + "_1";
+      PUSH_BRANCH(current_branch);
+      for (int k=0 ; k<b->nrChildCol() ; k++) {// loop on the column of b
         for (int i=0 ; i<me()->nrChildRow() ; i++) {
           // Update b[i,k] with the contribution of the solutions already computed b[j,k] j<i
           if (!b->get(i, k)) continue;
@@ -215,8 +217,18 @@ namespace hmat {
           // Solve the i-th diagonal system
           me()->get(i, i)->solveLowerTriangularLeft(b->get(i,k), algo, diag, uplo, mainOp);
         }
+      }
+
+      POP_BRANCH(current_branch,
+        me()->rows_offset(), me()->rows_size(), me()->cols_offset(), me()->cols_size(),
+        me()->depth, me()->isLeaf(),
+        b->rows_offset(), b->rows_size(), b->cols_offset(), b->cols_size(),
+        b->depth, b->isLeaf(), me()->mat_type() == 0 ? "sequential" : "parallel");
+
 
     } else if (me()->nrChildCol()>1 && b->nrChildRow()==1 && b->nrChildCol()>1) {
+      current_branch = "rSLTL"+ std::string(me()->mat_type() == 0 ? "S" : "P") + "_2";
+      PUSH_BRANCH(current_branch);
       // Then we handle the specific case where me() is divided in columns, and b is not divided in rows: we recurse on b's children only
       //  [ L11 |  0  ]    [     |     ]   [     |     ]
       //  [ ----+---- ] *  [ X11 | X12 ] = [ b11 | b12 ]
@@ -224,6 +236,12 @@ namespace hmat {
       for (int k=0 ; k<b->nrChildCol() ; k++) // loop on the column of b
         if (b->get(0,k))
           me()->recursiveSolveLowerTriangularLeft(b->get(0,k), algo, diag, uplo, mainOp);
+
+      POP_BRANCH(current_branch,
+        me()->rows_offset(), me()->rows_size(), me()->cols_offset(), me()->cols_size(),
+        me()->depth, me()->isLeaf(),
+        b->rows_offset(), b->rows_size(), b->cols_offset(), b->cols_size(),
+        b->depth, b->isLeaf(), me()->mat_type() == 0 ? "sequential" : "parallel");
     } else {
       HMAT_ASSERT_MSG(false, "RecursionMatrix<T, Mat>::recursiveSolveLowerTriangularLeft: case not yet handled "
                              "Nr Child A[%d, %d] b[%d, %d] "

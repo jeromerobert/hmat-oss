@@ -36,6 +36,10 @@ namespace hmat {
 enum class Diag;
 enum class Uplo;
 enum class Factorization;
+template <typename T>
+class HMatrixHandle;  // Forward declaration
+template <typename T>
+class HMatrix;  // Forward declaration
 
   /*! \brief Templated hierarchical matrix class.
 
@@ -66,8 +70,73 @@ enum class Factorization;
     const Mat* me() const {
         return static_cast<const Mat*>(this);
     }
-  };
 
+  public:
+    // Pour HMatrix
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrix<T>>::value, int>::type
+    rows_offset() const {
+      return me()->rows()->offset();
+    }
+
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrix<T>>::value, int>::type
+    rows_size() const {
+      return me()->rows()->size();
+    }
+
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrix<T>>::value, int>::type
+    cols_offset() const {
+      return me()->cols()->offset();
+    }
+
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrix<T>>::value, int>::type
+    cols_size() const {
+      return me()->cols()->size();
+    }
+
+    // Pour HMatrixHandle
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrixHandle<T>>::value, int>::type
+    rows_offset() const {
+      return me()->data->rows()->offset();
+    }
+
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrixHandle<T>>::value, int>::type
+    rows_size() const {
+      return me()->data->rows()->size();
+    }
+
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrixHandle<T>>::value, int>::type
+    cols_offset() const {
+      return me()->data->cols()->offset();
+    }
+
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrixHandle<T>>::value, int>::type
+    cols_size() const {
+      return me()->data->cols()->size();
+    }
+
+    // Retourne 0 si HMatrix
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrix<T>>::value, int>::type
+    mat_type() const {
+        return 0;
+    }
+
+    // Retourne 1 si HMatrixHandle
+    template <typename U = Mat>
+    typename std::enable_if<std::is_same<U, HMatrixHandle<T>>::value, int>::type
+    mat_type() const {
+        return 1;
+    }
+
+  };
 }  // end namespace hmat
 
 #endif // RECURSION_HPP

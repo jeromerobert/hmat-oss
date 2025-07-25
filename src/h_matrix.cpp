@@ -31,6 +31,8 @@
 #include <vector>
 #include <cstring>
 
+#include "stats.hpp"
+
 #include "h_matrix.hpp"
 #include "cluster_tree.hpp"
 #include "admissibility.hpp"
@@ -2025,11 +2027,21 @@ void HMatrix<T>::inverse() {
 template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
   DECLARE_CONTEXT;
+  std::string current_branch = "U";
   if (isVoid()) return;
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
+    current_branch = "SLTLS_1";
+    PUSH_BRANCH(current_branch);
     this->recursiveSolveLowerTriangularLeft(b, algo, diag, uplo);
+    POP_BRANCH(current_branch,
+      this->rows()->offset(), this->rows()->size(), this->cols()->offset(), this->cols()->size(),
+      this->depth, this->isLeaf(),
+      b->rows()->offset(), b->rows()->size(), b->cols()->offset(), b->cols()->size(),
+      b->depth, b->isLeaf(), "sequential");
   } else if(!b->isLeaf()) {
+    current_branch = "SLTLS_2";
+    PUSH_BRANCH(current_branch);
     // B isn't a leaf, then 'this' is one
     assert(this->isLeaf());
     // Evaluate B as a full matrix, solve, and restore in the matrix
@@ -2039,17 +2051,36 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
     this->solveLowerTriangularLeft(&bFull, algo, diag, uplo);
     b->clear();
     b->axpy(1, &bFull);
+    POP_BRANCH(current_branch,
+      this->rows()->offset(), this->rows()->size(), this->cols()->offset(), this->cols()->size(),
+      this->depth, this->isLeaf(),
+      b->rows()->offset(), b->rows()->size(), b->cols()->offset(), b->cols()->size(),
+      b->depth, b->isLeaf(), "sequential");
   } else if(b->isNull()) {
     // nothing to do
   } else {
     if (b->isFullMatrix()) {
+      current_branch = "SLTLS_31";
+      PUSH_BRANCH(current_branch);
       this->solveLowerTriangularLeft(b->full(), algo, diag, uplo);
+      POP_BRANCH(current_branch,
+        this->rows()->offset(), this->rows()->size(), this->cols()->offset(), this->cols()->size(),
+        this->depth, this->isLeaf(),
+        b->rows()->offset(), b->rows()->size(), b->cols()->offset(), b->cols()->size(),
+        b->depth, b->isLeaf(), "sequential");
     } else {
+      current_branch = "SLTLS_32";
+      PUSH_BRANCH(current_branch);
       assert(b->isRkMatrix());
       HMatrix<T> * bSubset = b->subset(uplo == Uplo::LOWER ? this->cols() : this->rows(), b->cols());
       this->solveLowerTriangularLeft(bSubset->rk()->a, algo, diag, uplo);
       if(bSubset != b)
           delete bSubset;
+      POP_BRANCH(current_branch,
+        this->rows()->offset(), this->rows()->size(), this->cols()->offset(), this->cols()->size(),
+        this->depth, this->isLeaf(),
+        b->rows()->offset(), b->rows()->size(), b->cols()->offset(), b->cols()->size(),
+        b->depth, b->isLeaf(), "sequential");
     }
   }
 }

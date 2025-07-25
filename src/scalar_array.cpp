@@ -1080,7 +1080,19 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
   int info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau);
+  if (info != 0) {
+    std::cerr << "geqrf failed with info=" << info << "\nMatrix A:\n";
+    for (int i = 0; i < a->rows; i++) {
+        for (int j = 0; j < a->cols; j++) {
+            std::cerr << a->ptr()[i + j * a->rows] << " ";
+        }
+        std::cerr << "\n";
+    }
+    std::cerr.flush();   // forcer l'écriture
+  }
+
   HMAT_ASSERT(!info);
+
 
   // Copy the 'r' factor in the upper part of resultR
   for (int col = 0; col < a->cols; col++) {
