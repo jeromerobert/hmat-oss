@@ -27,6 +27,9 @@
 #include "full_matrix.hpp"
 #include "compression.hpp"
 #include "common/my_assert.h"
+#include <cusolverDn.h>
+#include <cublas_v2.h> 
+#include <cuda_runtime.h>
 
 namespace hmat {
 
@@ -291,5 +294,14 @@ public:
 };
 
 }  // end namespace hmat
+
+// pour le lancement du Kernel (définit dans rk_matrix.cu)
+extern "C" {
+    void launch_Sqrt_SingularVals_Kernel_float(float* S_gpu, int k);
+    void launch_Sqrt_SingularVals_Kernel_double(double* S_gpu, int k);
+
+    void launch_FindK_float(float* S_gpu, double epsilon, int size, int* newK_gpu);
+    void launch_FindK_double(double* S_gpu, double epsilon, int size, int* newK_gpu);
+}
 
 #endif
