@@ -1,3 +1,4 @@
+#include "config.h"
 /*
   HMat-OSS (HMatrix library, open source software)
 
@@ -37,6 +38,10 @@
 
 #include <algorithm>
 #include <chrono>
+
+#ifdef HAVE_CUDA
+#include "cuda_manager.hpp"
+#endif
 
 namespace hmat {
 
@@ -300,17 +305,112 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
       - U  : k * k
       - S  : k (diagonal)
       - V^t: k * k
-     Hence:
+      After truncation:
+      - U_tilde  : k * newK
+      - S_tilde  : newK (diagonal)
+      - V_tilde^t: newK * k
+      Hence:
       - newA: rows x newK
       - newB: cols x newK
 
   */
+  
+#ifdef HAVE_CUDA
+  if (hmat::CudaManager::getInstance().getCudaDeviceCount()) {
 
-  // truncated SVD of Ra Rb^t (allows failure)
-  ScalarArray<T> *u = NULL, *v = NULL;
-  int newK;
-  // context block to release ra, rb, r ASAP
+    // Set the right GPU as active to allocate and free memory there
+    hmat::CudaManager::getInstance().setCudaDevice();
+    T *a_gpu = nullptr;
+    CUDA_CHECK(cudaMalloc(&a_gpu, sizeof(T) * a->rows * a->cols));
+    CUDA_CHECK(cudaMemcpy(a_gpu, a->ptr(), sizeof(T) * a->rows * a->cols, cudaMemcpyHostToDevice));
+    T *b_gpu = nullptr;
+    CUDA_CHECK(cudaMalloc(&b_gpu, sizeof(T) * b->rows * b->cols));
+    CUDA_CHECK(cudaMemcpy(b_gpu, b->ptr(), sizeof(T) * b->rows * b->cols, cudaMemcpyHostToDevice));
+    
+    int info = 0;
+    
+    // Facto QR de a = Qa * Ra
+    T *tauA_gpu = nullptr, *Ra_gpu = nullptr;
+    info = proxy_cuda::geqrf(a->rows, a->cols, a_gpu, a->rows, &tauA_gpu, &Ra_gpu);
+    HMAT_ASSERT(!info);
+    
+    // Facto QR de b = Qb * Rb
+    T *tauB_gpu = nullptr, *Rb_gpu = nullptr;
+    info = proxy_cuda::geqrf(b->rows, b->cols, b_gpu, b->rows, &tauB_gpu, &Rb_gpu);
+    HMAT_ASSERT(!info);
+
+    // Ra_gpu <- Ra_gpu * T^Rb_gpu        
+    proxy_cuda::trmm('R', 'U', 'T', 'N', a->cols, a->cols, (T)1., Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols);
+    CUDA_CHECK(cudaFree(Rb_gpu));
+
+    // Décomposition SVD de Ra = U.S.VT/VH
+    typename Types<T>::real *S_gpu = nullptr;
+    T *U_gpu = nullptr, *VT_gpu = nullptr;
+    info = proxy_cuda::gesvd('A', 'A', a->cols, a->cols, Ra_gpu, a->cols, &S_gpu, &U_gpu, &VT_gpu);
+    HMAT_ASSERT(!info);
+    CUDA_CHECK(cudaFree(Ra_gpu));
+
+    // Compute the new truncated rank and the squareroots of all singular values
+    int *newK_gpu = nullptr;
+    CUDA_CHECK(cudaMalloc(&newK_gpu, sizeof(int)));
+    CUDA_CHECK(cudaMemcpy(newK_gpu, &a->cols, sizeof(int), cudaMemcpyHostToDevice));  
+    launch_FindKAndSqrtAll<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
+    int newK = 0;
+    CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaFree(newK_gpu));
+
+    // Transposition de VT/VH (VT^T = V : k x newK)
+    T* V_gpu=nullptr;
+    proxy_cuda::geam('T', 'N', a->cols, newK, (T)1., VT_gpu, a->cols, (T)0., (T*)nullptr, a->cols, &V_gpu, a->cols);
+    CUDA_CHECK(cudaFree(VT_gpu));
+
+    // Apply the squareroots of singular values to the newK columns of U and V
+    // Since S_gpu is a real array, we use S/D dgmm even with U,V complex, with twice the number of rows
+    int mult = hmat::Types<T>::IS_REAL::value ? 1 : 2;
+    proxy_cuda::dgmm<typename Types<T>::real>('R', mult*a->cols, newK, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols, S_gpu, 1, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols);
+    proxy_cuda::dgmm<typename Types<T>::real>('R', mult*a->cols, newK, reinterpret_cast<typename Types<T>::real*>(V_gpu), mult*a->cols, S_gpu, 1, reinterpret_cast<typename Types<T>::real*>(V_gpu), mult*a->cols);
+    CUDA_CHECK(cudaFree(S_gpu));
+
+    // Construction du panneau QaU_gpu (a->rows x newK) <- Qa (a->rows x a->rows) * U (a->rows x newK)
+    T *QaU_gpu = nullptr; 
+    info = proxy_cuda::or_un_mqr('L', 'N', a->rows, newK, a->cols, a_gpu, a->rows, tauA_gpu, U_gpu, a->cols, &QaU_gpu);  
+    HMAT_ASSERT(!info);
+    CUDA_CHECK(cudaFree(U_gpu));
+    CUDA_CHECK(cudaFree(tauA_gpu));
+    CUDA_CHECK(cudaFree(a_gpu));
+
+    // Construction du panneau QbV_gpu (b->rows x newK) <- Qb (b->rows x b->rows) * U (b->rows x newK)
+    T *QbV_gpu = nullptr; 
+    info = proxy_cuda::or_un_mqr('L', 'N', b->rows, newK, b->cols, b_gpu, b->rows, tauB_gpu, V_gpu, b->cols, &QbV_gpu);  
+    HMAT_ASSERT(!info);
+    CUDA_CHECK(cudaFree(V_gpu));
+    CUDA_CHECK(cudaFree(tauB_gpu));
+    CUDA_CHECK(cudaFree(b_gpu));
+
+    T* a_data_copy = (T*)malloc(sizeof(T)* a->rows * newK);
+    CUDA_CHECK(cudaMemcpy(a_data_copy, QaU_gpu, sizeof(T)* a->rows * newK, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaFree(QaU_gpu));
+
+    T* b_data_copy = (T*)malloc(sizeof(T)* b->rows * newK);
+    CUDA_CHECK(cudaMemcpy(b_data_copy, QbV_gpu, sizeof(T)* b->rows * newK, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaFree(QbV_gpu));
+
+    ScalarArray<T> *newA_CUDA = new ScalarArray<T>(a_data_copy, a->rows, newK, a->rows);
+    ScalarArray<T> *newB_CUDA = new ScalarArray<T>(b_data_copy, b->rows, newK, b->rows);
+    delete a;
+    a = newA_CUDA;
+    delete b;
+    b = newB_CUDA;
+    // NOTE: The panels a and b can usually not be directly compared between CPU and GPU. If the singular values are all distincts,
+    // the columns of a resp. b on CPU and GPU are equal up to a norm 1 constant (+-1 in real, exp(i.theta) in complex): if I
+    // multiply a column of a by exp(i.theta) and the same column of b by exp(-i.theta), my Rk matrix is unchanged.
+
+  } else 
+#endif // HAVE_CUDA
+  
   {
+    /* --------------------------------- CPU CODE --------------------------------- */  
+    
     // QR decomposition of A and B
     ScalarArray<T> ra(rank(), rank());
     a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
@@ -322,21 +422,47 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     r.gemm('N','T', 1, &ra, &rb , 0);
 
     // truncated SVD of Ra Rb^t (allows failure)
-    newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
+    ScalarArray<T> *u = nullptr, *v = nullptr;
+    int newK_cpu = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
+    
+    if (newK_cpu == 0) {
+      clear();
+      return;
+    }
+    // We need to know if qrDecomposition has used initPivot...
+    // (Not so great, because HMAT_TRUNC_INITPIV is checked at 2 different locations)
+    static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
+    ScalarArray<T>* newA = truncatedAB(a, rows, newK_cpu, u, useInitPivot, initialPivotA);
+    ScalarArray<T>* newB = truncatedAB(b, cols, newK_cpu, v, useInitPivot, initialPivotB);
+    delete a;
+    a = newA;
+    delete b;
+    b = newB;
   }
-  if (newK == 0) {
-    clear();
-    return;
-  }
-  // We need to know if qrDecomposition has used initPivot...
-  // (Not so great, because HMAT_TRUNC_INITPIV is checked at 2 different locations)
-  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
-  ScalarArray<T>* newA = truncatedAB(a, rows, newK, u, useInitPivot, initialPivotA);
-  delete a;
-  a = newA;
-  ScalarArray<T>* newB = truncatedAB(b, cols, newK, v, useInitPivot, initialPivotB);
-  delete b;
-  b = newB;
+
+#ifdef HAVE_CUDA
+  /*if(newK_cpu != newK)
+    std::cout << "New rank sur CPU : " << newK_cpu << " sur GPU " << newK << "\n";
+  double frob_a = newA->norm();
+  double frob_b = newB->norm();
+  double frob_a_gpu = newA_CUDA->norm();
+  double frob_b_gpu = newB_CUDA->norm();
+  newA_CUDA->axpy(-1, a);
+  newB_CUDA->axpy(-1, b);
+  double frob_a_diff = newA_CUDA->norm();
+  double frob_b_diff = newB_CUDA->norm();
+  newA_CUDA->axpy(2, a);
+  newB_CUDA->axpy(2, b);
+  double frob_a_diff2 = newA_CUDA->norm();
+  double frob_b_diff2 = newB_CUDA->norm();
+  if(frob_a_diff / frob_a > 1e-4 && frob_a_diff2 / frob_a > 1e-4)
+    std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur a : " << frob_a_diff / frob_a << " ou "  << frob_a_diff2 / frob_a << " frob_a " << frob_a << "frob_a_gpu " << frob_a_gpu << "\n";
+  if(frob_b_diff / frob_b > 1e-4 && frob_b_diff2 / frob_b > 1e-4)
+    std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur a : " << frob_b_diff / frob_b << " ou " << frob_b_diff2 / frob_b << " frob_b " << frob_b << "frob_b_gpu " << frob_b_gpu << "\n";
+  delete newA_CUDA;
+  delete newB_CUDA;*/
+#endif // HAVE_CUDA
+
 }
 
 template<typename T> 

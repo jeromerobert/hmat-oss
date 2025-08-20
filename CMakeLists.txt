@@ -85,6 +85,9 @@ option(HMAT_TIMELINE "Enable profiling timeline" OFF)
 
 # Sources
 file(GLOB_RECURSE HMAT_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} src/*.[ch]pp include/*.h)
+if(ENABLE_CUDA)
+  list(APPEND HMAT_SOURCES ${PROJECT_SOURCE_DIR}/src/rk_matrix.cu)
+endif(ENABLE_CUDA)
 list(REMOVE_ITEM HMAT_SOURCES src/recursion.cpp) # because it is included in h_matrix.cpp
 if(NOT HMAT_TIMELINE)
     list(REMOVE_ITEM HMAT_SOURCES src/common/timeline.cpp)
@@ -171,6 +174,21 @@ if(HMAT_CONTEXT)
     message(STATUS "Use context timers")
     set(HAVE_CONTEXT TRUE)
 endif()
+
+# CUDA
+option(ENABLE_CUDA "Enable CUDA in hmat algorithms." OFF)
+if(ENABLE_CUDA)
+  message(STATUS "CUDA support enabled with cuBLAS and cuSolver.")
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  target_link_libraries(hmat PRIVATE
+    CUDA::cudart   # The CUDA runtime (almost always necessary)
+    CUDA::cublas   # For linear algebra (BLAS)
+    CUDA::cusolver # For linear solvers and matrix factorizations (LAPACK)
+  )
+  set(HAVE_CUDA TRUE)
+  set(HMAT_HAVE_CUDA TRUE)
+endif(ENABLE_CUDA)
 
 # ========================
 # BLAS/MKL
@@ -266,8 +284,7 @@ include(CheckCXXCompilerFlag)
 function(hmat_set_compiler_flags _TARGET_NAME)
     check_cxx_compiler_flag("-Werror -Wall" HAVE_COMPILER_WARNING_FLAGS)
     if(HAVE_COMPILER_WARNING_FLAGS)
-        target_compile_options(${_TARGET_NAME} PRIVATE -Werror -Wall)
-        foreach(flag -Wno-sign-compare;-Wno-undefined-var-template;-Wno-unused-parameter;-Wno-extern-c-compat)
+        foreach(flag -Werror;-Wall;-Wno-sign-compare;-Wno-undefined-var-template;-Wno-unused-parameter;-Wno-extern-c-compat)
             string(REPLACE "-" "_" varname ${flag})
             check_cxx_compiler_flag("${flag}" CXX${varname})
             if(CXX${varname})
