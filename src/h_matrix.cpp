@@ -1684,13 +1684,13 @@ void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t meth
       //Compress RK block
       if(compressRk)
       {
-        int min_size = 500; //The Minimum bloc size we want for compression 
-        int total_size = std::min(rows()->size(), cols()->size()) * rk()->rank();
+        int min_size = 2048; //The Minimum bloc size we want for compression 
+        int total_size = std::min(rows()->size(), cols()->size()) * rk()->rank() * sizeof(T);
         float bloc_size = total_size / nb_blocs;
 
         if(bloc_size < min_size)
         {
-          //nb_blocs = std::max((int)round(total_size/min_size), (int)1);
+          nb_blocs = std::max((int)round(total_size/min_size), (int)1); //To make sure we compress blocks large enough for the compressors to work properly
         }
         
         //printf("\nDims : (%d + %d) x %d; N blocs = %d\n",rows()->size(), cols()->size(), rk()->rank(), nb_blocs);
@@ -2435,11 +2435,13 @@ template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progres
     if (isVoid()) {
         // nothing to do
     } else if(this->isLeaf()) {
+        //full()->FPdecompress();
         full()->lltDecomposition();
         if(progress != NULL) {
             progress->current= rows()->offset() + rows()->size();
             progress->update(progress);
         }
+        //full()->FPcompress(1e-4, hmat_FPcompress_t::ZFP_COMPRESSOR);
     } else {
         HMAT_ASSERT(isLower);
       this->recursiveLltDecomposition(progress);
