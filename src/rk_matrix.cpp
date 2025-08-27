@@ -475,7 +475,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
         launch_Sqrt_SingularVals_Kernel_float(S_gpu, newK);
         
         CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
-        CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_LEFT, a->cols, newK, VT_gpu, a->cols, S_gpu, 1, VT_gpu, a->cols));
+        CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_LEFT, newK, a->cols, VT_gpu, a->cols, S_gpu, 1, VT_gpu, a->cols));
     
         CUDA_CHECK(cudaFree(S_gpu));
         S_gpu = nullptr;
@@ -635,7 +635,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
           launch_Sqrt_SingularVals_Kernel_double(S_gpu, newK);
           
           CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
-          CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_LEFT, a->cols, newK, VT_gpu, a->cols, S_gpu, 1, VT_gpu, a->cols));
+          CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_LEFT, newK, a->cols, VT_gpu, a->cols, S_gpu, 1, VT_gpu, a->cols));
       
           CUDA_CHECK(cudaFree(S_gpu));
           S_gpu = nullptr;
