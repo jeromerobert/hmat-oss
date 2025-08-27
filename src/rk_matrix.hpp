@@ -302,6 +302,9 @@ extern "C" {
 
     void launch_FindK_float(float* S_gpu, double epsilon, int size, int* newK_gpu);
     void launch_FindK_double(double* S_gpu, double epsilon, int size, int* newK_gpu);
+    void convert_double_to_cuDoubleComplex(double* in, cuDoubleComplex* out, int k);
+    void convert_float_to_cuComplex(float* in, cuComplex* out, int k);
+
 }
 
 #endif

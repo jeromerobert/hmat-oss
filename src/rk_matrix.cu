@@ -41,48 +41,49 @@ extern "C" void launch_Sqrt_SingularVals_Kernel_double(double* S_gpu, int k) {
 
 
 template<typename T>
-    __global__ void FindK(T* data, double epsilon, int size, int *new_size) {
-        extern __shared__ int shared_array[]; // taille donnée au lancement du kernel
+    __global__ void FindK(T* d_singulaur_values, double epsilon, int old_rank, int *new_rank) {
+
         int idx = blockIdx.x * blockDim.x + threadIdx.x;
         __shared__ T threshold_eigenvalue;
         
         if(threadIdx.x == 0){
-            threshold_eigenvalue = data[0] * epsilon;
+            // Tous les threads partagent une valeur threshold_eigenvalue, initialisée par threadIdx.x == 0
+            threshold_eigenvalue = d_singulaur_values[0] * epsilon;
         }
         __syncthreads();
-
-
-        if (idx < size){
-            if (data[idx] > threshold_eigenvalue){
-                shared_array[threadIdx.x] = idx;
-            } 
-            else {
-                shared_array[threadIdx.x] = -1;
+        if (idx < old_rank) {
+            // Check if the singular value at this index is below the threshold
+            if (d_singulaur_values[idx] <= threshold_eigenvalue) {
+                // If it is, atomically update the result with the minimum index.
+                // This is a race condition handled by hardware to ensure correctness.
+                // All threads that find a value below the threshold will try to write their
+                // index, but only the smallest index will ultimately be stored.
+                atomicMin(new_rank, idx);
             }
         }
-        __syncthreads();
-        int i = size / 2;
-        while(i > 0){
-            if(threadIdx.x < i){
-                shared_array[threadIdx.x] = max(shared_array[threadIdx.x], shared_array[threadIdx.x + i]);
-            }
-            __syncthreads();
-            i /= 2;
-        }
 
-        if(threadIdx.x == 0){
-            printf("Max index satisfying condition: %d\n", shared_array[0]);
-            atomicMax(new_size, shared_array[0] + 1);
-        }
     }
-// atomicMax garantit que la mise à jour sur new_size est atomique, donc que la variable ne sera pas corrompue si plusieurs blocs écrivent en même temps.
+
+__global__ void double_to_cuDoubleComplex_kernel(double* in, cuDoubleComplex* out, int k) {
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (idx < k) {
+        out[idx] = make_cuDoubleComplex(in[idx], 0.0f); // imag = 0
+    }
+}
+
+__global__ void float_to_cuComplex_kernel(float* in, cuComplex* out, int k) {
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (idx < k) {
+        out[idx] = make_cuComplex(in[idx], 0.0f); // imag = 0
+    }
+}
+
 
 template<typename T>
-    void launch_FindK(T* S_gpu, double epsilon, int size, int* newK_gpu) {
+    void launch_FindK(T* S_gpu, double epsilon, int old_rank, int* newK_gpu) {
         int blockSize = 128;
-        int numBlocks = (size + blockSize - 1) / blockSize;
-        size_t sharedMemSize = blockSize * sizeof(int);
-        FindK<T><<<numBlocks, blockSize, sharedMemSize>>>(S_gpu, epsilon, size, newK_gpu);
+        int numBlocks = (old_rank + blockSize - 1) / blockSize;
+        FindK<T><<<numBlocks, blockSize>>>(S_gpu, epsilon, old_rank, newK_gpu);
         cudaDeviceSynchronize();
     }
 
@@ -93,20 +94,17 @@ extern "C" void launch_FindK_float(float* S_gpu, double epsilon, int size, int* 
 extern "C" void launch_FindK_double(double* S_gpu, double epsilon, int size, int* newK_gpu) {
     launch_FindK<double>(S_gpu, epsilon, size, newK_gpu);
 }
-    
-/*
-extern "C" void launch_FindK_cuComplex(cuComplex* S_gpu, double epsilon, int size, int* newK_gpu) {
+
+extern "C" void convert_double_to_cuDoubleComplex(double* in, cuDoubleComplex* out, int k) {
     int blockSize = 128;
-    int numBlocks = (size + blockSize - 1) / blockSize;
-    size_t sharedMemSize = blockSize * sizeof(int);
-    FindK<cuComplex><<<numBlocks, blockSize, sharedMemSize>>>(S_gpu, epsilon, size, newK_gpu);
+    int numBlocks = (k + blockSize - 1) / blockSize;
+    double_to_cuDoubleComplex_kernel<<<numBlocks, blockSize>>>(in, out, k);
+    //cudaDeviceSynchronize();
 }
 
-extern "C" void launch_FindK_cuDoubleComplex(cuDoubleComplex* S_gpu, double epsilon, int size, int* newK_gpu) {
+extern "C" void convert_float_to_cuComplex(float* in, cuComplex* out, int k) {
     int blockSize = 128;
-    int numBlocks = (size + blockSize - 1) / blockSize;
-    size_t sharedMemSize = blockSize * sizeof(int);
-    FindK<cuDoubleComplex><<<numBlocks, blockSize, sharedMemSize>>>(S_gpu, epsilon, size, newK_gpu);
-}
-
-*/
+    int numBlocks = (k + blockSize - 1) / blockSize;
+    float_to_cuComplex_kernel<<<numBlocks, blockSize>>>(in, out, k);
+    //cudaDeviceSynchronize();
+}    
