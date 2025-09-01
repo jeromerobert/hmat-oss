@@ -37,7 +37,7 @@ if(BUILD_SHARED_LIBS MATCHES "^BUILD_SHARED_LIBS$")
     endif()
 endif()
 
-project(hmat-oss C CXX) # Ajout de NVCC ou CUDA ici ?
+project(hmat-oss C CXX)
 
 if(POLICY CMP0092)
     cmake_policy(SET CMP0092 NEW) # 3.15: MSVC warning flags are not in CMAKE_<LANG>_FLAGS by default.
@@ -84,7 +84,10 @@ endif()
 option(HMAT_TIMELINE "Enable profiling timeline" OFF)
 
 # Sources
-file(GLOB_RECURSE HMAT_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} src/*.[ch]pp include/*.h src/*.cu)
+file(GLOB_RECURSE HMAT_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} src/*.[ch]pp include/*.h)
+if(ENABLE_CUDA)
+  list(APPEND HMAT_SOURCES ${PROJECT_SOURCE_DIR}/src/rk_matrix.cu) # because it is included in h_matrix.cpp
+endif(ENABLE_CUDA)
 list(REMOVE_ITEM HMAT_SOURCES src/recursion.cpp) # because it is included in h_matrix.cpp
 if(NOT HMAT_TIMELINE)
     list(REMOVE_ITEM HMAT_SOURCES src/common/timeline.cpp)
@@ -173,21 +176,18 @@ if(HMAT_CONTEXT)
 endif()
 
 # CUDA
-option(ENABLE_CUDA "Enable CUDA in hmat algorithms." ON)
+option(ENABLE_CUDA "Enable CUDA in hmat algorithms." OFF)
 if(ENABLE_CUDA)
   message(STATUS "CUDA support enabled with cuBLAS and cuSolver.")
   enable_language(CUDA)
-    find_package(CUDAToolkit REQUIRED)
-    #find_package(CUDA REQUIRED)
+  find_package(CUDAToolkit REQUIRED)
   target_link_libraries(hmat PRIVATE
     CUDA::cudart    # Le runtime de base (presque toujours nécessaire)
     CUDA::cublas   # Pour les opérations d'algèbre linéaire (BLAS)
     CUDA::cusolver # Pour les solveurs linéaires et la décomposition de matrices
   )
-    #target_link_libraries(hmat PRIVATE ${CUDA_cublas_LIBRARY} ${CUDA_cusolver_LIBRARY} ${CUDA_LIBRARIES}) # Proposition de Sofiane
-    # ${CUDA_cusparse_LIBRARY}
-
   set(HAVE_CUDA TRUE)
+  set(HMAT_HAVE_CUDA TRUE)
 endif(ENABLE_CUDA)
 
 # ========================
