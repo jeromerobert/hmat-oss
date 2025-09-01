@@ -86,6 +86,7 @@ ClusterTree* createClusterTree(const DofCoordinates& dls, const ClusteringAlgori
 template<typename T>
 int DefaultEngine<T>::init(){
   Timeline::instance().init();
+  // ici ajouter l'init de cuda, et l'exit dans "finalize()"
   return 0;
 }
 
