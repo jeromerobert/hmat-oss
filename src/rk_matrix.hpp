@@ -23,13 +23,17 @@
 #ifndef _RK_MATRIX_HPP
 #define _RK_MATRIX_HPP
 /* Implementation of Rk-matrices */
+#include "config.h"
 
 #include "full_matrix.hpp"
 #include "compression.hpp"
 #include "common/my_assert.h"
+
+#ifdef HAVE_CUDA
 #include <cusolverDn.h>
 #include <cublas_v2.h> 
 #include <cuda_runtime.h>
+#endif // HAVE_CUDA
 
 namespace hmat {
 
@@ -295,16 +299,16 @@ public:
 
 }  // end namespace hmat
 
+#ifdef HAVE_CUDA
 // pour le lancement du Kernel (définit dans rk_matrix.cu)
 extern "C" {
     void launch_Sqrt_SingularVals_Kernel_float(float* S_gpu, int k);
     void launch_Sqrt_SingularVals_Kernel_double(double* S_gpu, int k);
-
     void launch_FindK_float(float* S_gpu, double epsilon, int size, int* newK_gpu);
     void launch_FindK_double(double* S_gpu, double epsilon, int size, int* newK_gpu);
     void convert_double_to_cuDoubleComplex(double* in, cuDoubleComplex* out, int k);
     void convert_float_to_cuComplex(float* in, cuComplex* out, int k);
-
 }
+#endif // HAVE_CUDA
 
 #endif

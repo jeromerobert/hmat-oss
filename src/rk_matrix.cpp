@@ -1,3 +1,4 @@
+#include "config.h"
 /*
   HMat-OSS (HMatrix library, open source software)
 
@@ -35,31 +36,32 @@
 #include "lapack_exception.hpp"
 #include <iomanip>
 #include <type_traits> // pour tester les types
-#include <cuComplex.h>
 #include <algorithm>
 #include <chrono>
 
+#ifdef HAVE_CUDA
+#include <cuComplex.h>
 
 // === Functions to detect errors in the GPU === //
 void checkCudaError(cudaError_t err, const char *file, int line) {
-    if (err != cudaSuccess) {
-        printf("CUDA Error: %s at %s:%d\n", cudaGetErrorString(err), file, line);
-        exit(EXIT_FAILURE);
-    }
+  if (err != cudaSuccess) {
+    printf("CUDA Error: %s at %s:%d\n", cudaGetErrorString(err), file, line);
+    exit(EXIT_FAILURE);
+  }
 }
 
 void checkCublasError(cublasStatus_t err, const char *file, int line){
-    if (err != CUBLAS_STATUS_SUCCESS) {
-        printf("cuBLAS Error %d at %s:%d\n", err, file, line);
-        exit(EXIT_FAILURE);
-    } 
+  if (err != CUBLAS_STATUS_SUCCESS) {
+    printf("cuBLAS Error %d at %s:%d\n", err, file, line);
+    exit(EXIT_FAILURE);
+  } 
 }
 
 void checkCusolverError(cusolverStatus_t err, const char *file, int line){
-    if (err != CUSOLVER_STATUS_SUCCESS) {
-        printf("cuSOLVER Error %d at %s:%d\n", err, file, line);
-        exit(EXIT_FAILURE);
-    }                      
+  if (err != CUSOLVER_STATUS_SUCCESS) {
+    printf("cuSOLVER Error %d at %s:%d\n", err, file, line);
+    exit(EXIT_FAILURE);
+  }                      
 }
 
 #define CUDA_CHECK(err) (checkCudaError(err, __FILE__, __LINE__))
@@ -67,12 +69,14 @@ void checkCusolverError(cusolverStatus_t err, const char *file, int line){
 #define CUSOLVER_CHECK(err) (checkCusolverError(err, __FILE__, __LINE__))
 
 template<typename T>
-  void safeCudaFree(T*& ptr) {
-    if (ptr != nullptr) {
-        CUDA_CHECK(cudaFree(ptr));
-        ptr = nullptr;
-    }
+void safeCudaFree(T*& ptr) {
+  if (ptr != nullptr) {
+    CUDA_CHECK(cudaFree(ptr));
+    ptr = nullptr;
+  }
 }
+#endif
+
 namespace hmat {
 
 /** RkApproximationControl */
@@ -296,6 +300,8 @@ int find_newK(T &sigma, double epsilon, int old_rank) {
   }
   return i;
 }
+
+#ifdef HAVE_CUDA
 void copy_cuComplex_to_stdcomplex(
     cuComplex* src, std::complex<float>* dst, size_t n) {
     for (size_t i = 0; i < n; ++i) {
@@ -309,6 +315,7 @@ void copy_cuDoubleComplex_to_stdcomplex(
         dst[i] = std::complex<double>(cuCreal(src[i]), cuCimag(src[i]));
     }
 }
+#endif // HAVE_CUDA
 
 template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
@@ -360,29 +367,30 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
       - U  : k * k
       - S  : k (diagonal)
       - V^t: k * k
-     Hence:
+      After truncation:
+      - U_tilde  : k * newK
+      - S_tilde  : newK (diagonal)
+      - V_tilde^t: newK * k
+      Hence:
       - newA: rows x newK
       - newB: cols x newK
 
   */
 
-  // truncated SVD of Ra Rb^t (allows failure)
-  ScalarArray<T> *u = NULL, *v = NULL;
-  int newK = 0;
   int newK_cpu = 0;
+  
+#ifdef HAVE_CUDA
+  int newK = 0;
   int *newK_gpu = NULL;
   CUDA_CHECK(cudaMalloc(&newK_gpu, sizeof(int)));
   int init_val = a->cols;
   CUDA_CHECK(cudaMemcpy(newK_gpu, &init_val, sizeof(int), cudaMemcpyHostToDevice));  
-  double frob_a; double frob_b;
-  double Frob_a_newA_CUDA; double Frob_b_newB_CUDA;
   // Récupération des données
   T* a_data = a->ptr();
   T* b_data = b->ptr(); 
 
   T* a_data_copy = nullptr, *b_data_copy = nullptr;
 
-  {
       size_t size_bytes = sizeof(T) * a->rows * a->cols;
       T *a_gpu;
       CUDA_CHECK(cudaMalloc(&a_gpu, size_bytes));
@@ -468,27 +476,16 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
         CUSOLVER_CHECK(cusolverDnSgesvd(cusolver_handle, jobu, jobvt, a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VT_gpu, a->cols, workspace, size_workspace_svd, rwork_svd, info_GPU)); // rwork_svd dans le cas float et double = nullptr
         CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-        if (info == 0) {printf("SVD convergée avec succès.\n");} else if (info < 0) {printf("Erreur: Le paramètre %d est invalide.\n", -info);} else {printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);}
+        if (info == 0) {
+	  //  printf("SVD convergée avec succès.\n");
+	} else if (info < 0) {
+	  printf("Erreur: Le paramètre %d est invalide.\n", -info);
+	} else {
+	  printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
+	}
 
-       // int *newK_gpu;
-        //CUDA_CHECK(cudaMalloc(&newK_gpu, sizeof(int)));
-        //CUDA_CHECK(cudaMemset(newK_gpu, 0, sizeof(int)));
-        //launch_FindK_float(S_gpu, epsilon, a->cols, newK_gpu);
-        ///////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////////////////////
-        //float *S_cpu = new float[a->cols];
-        //CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(float) * a->cols, cudaMemcpyDeviceToHost));
-//        newK = find_newK(S_cpu, epsilon, a->cols);
-//        delete S_cpu;
-//        S_cpu = nullptr;
         launch_FindK_float(S_gpu, epsilon, a->cols, newK_gpu);
         CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-        ///////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////////////////////
-        //CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-        //CUDA_CHECK(cudaMemcpy(&newK_gpu, &newK, sizeof(int), cudaMemcpyHostToDevice));
     
         launch_Sqrt_SingularVals_Kernel_float(S_gpu, newK);
         
@@ -641,21 +638,16 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
           CUSOLVER_CHECK(cusolverDnDgesvd(cusolver_handle, jobu, jobvt, a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VT_gpu, a->cols, workspace, size_workspace_svd, rwork_svd, info_GPU)); // rwork_svd dans le cas float et double = nullptr
           CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-          if (info == 0) {printf("SVD convergée avec succès.\n");} else if (info < 0) {printf("Erreur: Le paramètre %d est invalide.\n", -info);} else {printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);}
+          if (info == 0) {
+	    //  printf("SVD convergée avec succès.\n");
+	  } else if (info < 0) {
+	    printf("Erreur: Le paramètre %d est invalide.\n", -info);
+	  } else {
+	    printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
+	  }
           
-          ///////////////////////////////////////////////////////////////////////////////////////
-          ///////////////////////////////////////////////////////////////////////////////////////
-          ///////////////////////////////////////////////////////////////////////////////////////
-          //double *S_cpu = new double[a->cols];
-          //CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(double) * a->cols, cudaMemcpyDeviceToHost));
-          //newK = find_newK(S_cpu, epsilon, a->cols);
-          //delete S_cpu;
-          //S_cpu = nullptr;
           launch_FindK_double(S_gpu, epsilon, a->cols, newK_gpu);
           CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-          ///////////////////////////////////////////////////////////////////////////////////////
-          ///////////////////////////////////////////////////////////////////////////////////////
-          ///////////////////////////////////////////////////////////////////////////////////////
           launch_Sqrt_SingularVals_Kernel_double(S_gpu, newK);
           
           CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
@@ -733,7 +725,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
           b_gpu = nullptr;
 
         } else if constexpr (std::is_same_v<T, std::complex<float>>) { 
-          std::cout << "lancement de l'algo pour SimpleComplex \n";
 
           cuComplex alpha = make_cuComplex(1.0f, 0.0f);
           cuComplex beta  = make_cuComplex(0.0f, 0.0f);
@@ -792,7 +783,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
           float *rwork_svd = nullptr;        
           int size_workspace_svd = 0;
-          /**** ATTENTION CE QUI SORT DE LA SVD C'EST VT* (trans conjugé) il va falloir qu'on fait quelque chose ****** */
+          /**** ATTENTION CE QUI SORT DE LA SVD C'EST VT* (trans conjugé) ****** */
           CUSOLVER_CHECK(cusolverDnCgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
           CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(cuComplex)));
           CUDA_CHECK(cudaMalloc(&rwork_svd, size_workspace_svd * sizeof(float))); // requis pour SVD dans le cas complexe
@@ -802,7 +793,13 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
           CUSOLVER_CHECK(cusolverDnCgesvd(cusolver_handle, jobu, jobvt, a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VT_gpu, a->cols, workspace, size_workspace_svd, rwork_svd, info_GPU));
           CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-          if (info == 0) {printf("SVD convergée avec succès.\n");} else if (info < 0) {printf("Erreur: Le paramètre %d est invalide.\n", -info);} else {printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);}
+          if (info == 0) {
+	    //  printf("SVD convergée avec succès.\n");
+	  } else if (info < 0) {
+	    printf("Erreur: Le paramètre %d est invalide.\n", -info);
+	  } else {
+	    printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
+	  }
 
           /* Looking for new rank */
           float *S_cpu = new float[a->cols];
@@ -906,7 +903,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
 
         } else if constexpr (std::is_same_v<T, std::complex<double>>) {
-          std::cout << "lancement de l'algo pour doubleComplex \n";
 
           cuDoubleComplex alpha = make_cuDoubleComplex(1.0, 0.0);
           cuDoubleComplex beta  = make_cuDoubleComplex(0.0, 0.0);
@@ -966,7 +962,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
           double *rwork_svd = nullptr;        
           int size_workspace_svd = 0;
 
-          /**** ATTENTION CE QUI SORT DE LA SVD C'EST VT* (trans conjugé) il va falloir qu'on fait quelque chose ****** */
+          /**** ATTENTION CE QUI SORT DE LA SVD C'EST VT* (trans conjugé) ****** */
 
           CUSOLVER_CHECK(cusolverDnZgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
           CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(cuDoubleComplex)));
@@ -977,7 +973,13 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
           CUSOLVER_CHECK(cusolverDnZgesvd(cusolver_handle, jobu, jobvt, a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VT_gpu, a->cols, workspace, size_workspace_svd, rwork_svd, info_GPU));
           CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-          if (info == 0) {printf("SVD convergée avec succès.\n");} else if (info < 0) {printf("Erreur: Le paramètre %d est invalide.\n", -info);} else {printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);}
+          if (info == 0) {
+	    //  printf("SVD convergée avec succès.\n");
+	  } else if (info < 0) {
+	    printf("Erreur: Le paramètre %d est invalide.\n", -info);
+	  } else {
+	    printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
+	  }
 
           /* Looking for new rank */
           double *S_cpu = new double[a->cols];
@@ -985,8 +987,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
           newK = find_newK(S_cpu, epsilon, a->cols);
           delete S_cpu;
           S_cpu = nullptr;
-
-          /*$$$$$$$$$$$$$$$$$$$$$$*/
 
           launch_Sqrt_SingularVals_Kernel_double(S_gpu, newK);
 
@@ -1087,14 +1087,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     ScalarArray<T> *newA_CUDA = new ScalarArray<T>(a_data_copy, a->rows, newK, a->rows);
     ScalarArray<T> *newB_CUDA = new ScalarArray<T>(b_data_copy, b->rows, newK, b->rows);
   
-    frob_a = newA_CUDA->norm();
-    frob_b = newB_CUDA->norm();
-  
-    std::cout << "new rang sur GPU : " << newK << "\n";
-  
-  
-/* --------------------------------- OLD CODE --------------------------------- */  
-// context block to release ra, rb, r ASAP
+#endif // HAVE_CUDA
+
+  /* --------------------------------- CPU CODE --------------------------------- */  
   
   // QR decomposition of A and B
   ScalarArray<T> ra(rank(), rank());
@@ -1107,9 +1102,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   r.gemm('N','T', 1, &ra, &rb , 0);
   
   // truncated SVD of Ra Rb^t (allows failure)
+  ScalarArray<T> *u = NULL, *v = NULL;
   newK_cpu = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
   
-  if (newK == 0) {
+  if (newK_cpu == 0) {
     clear();
     return;
   }
@@ -1122,21 +1118,28 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   ScalarArray<T>* newB = truncatedAB(b, cols, newK_cpu, v, useInitPivot, initialPivotB);
   delete b;
   b = newB;
-  std::cout << "New rang sur CPU : " << newK_cpu << "\n";
-  std::cout << "\n----------------------------\n";
-  std::cout << "Rang CPU - Rang GPU : " << newK_cpu - newK << "\n";
-  std::cout << "\n----------------------------\n";
-  newA_CUDA->axpy(-1, a);  
-  newB_CUDA->axpy(-1, b);
   
-  Frob_a_newA_CUDA = newA_CUDA->norm();
-  Frob_b_newB_CUDA = newB_CUDA->norm();
-  std::cout << "Norme de Frobinues de a : " << double(Frob_a_newA_CUDA) / frob_a << "\n";
-  std::cout << "Norme de Frobinues de b : " << double(Frob_b_newB_CUDA) / frob_b << "\n";
+#ifdef HAVE_CUDA
+  if(newK_cpu != newK)
+    std::cout << "New rank sur CPU : " << newK_cpu << " sur GPU " << newK << "\n";
+  if (0) {
+    // The panels a and b can usually not be directly compared between CPU and GPU. If the singular values are all distinct,
+    // the columns of a resp. b on CPU and GPU are equal up to a norm 1 complex constant.
+    double frob_a = newA->norm();
+    double frob_b = newB->norm();
+    newA_CUDA->axpy(-1, a);  
+    newB_CUDA->axpy(-1, b);
+    double frob_a_diff = newA_CUDA->norm();
+    double frob_b_diff = newB_CUDA->norm();
+    if(frob_a_diff / frob_a > 1e-4)
+      std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur a : " << frob_a_diff / frob_a << "\n";
+    if(frob_b_diff / frob_b > 1e-4)
+      std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur b : " << frob_b_diff / frob_b << "\n";
+    delete newA_CUDA;
+    delete newB_CUDA;
+  }
+#endif // HAVE_CUDA
 
-  delete newA_CUDA;
-  delete newB_CUDA;
-}
   /*---------------------------------- --------------------------------- --------------------------------- --------------------------------- */
 }
 
