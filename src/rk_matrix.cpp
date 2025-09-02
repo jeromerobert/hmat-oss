@@ -40,6 +40,7 @@
 #include <chrono>
 
 #ifdef HAVE_CUDA
+#include "cuda_manager.hpp"
 #include <cuComplex.h>
 
 // === Functions to detect errors in the GPU === //
@@ -398,11 +399,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   CUDA_CHECK(cudaMalloc(&b_gpu, size_bytes));
   CUDA_CHECK(cudaMemcpy(b_gpu, b_data, size_bytes, cudaMemcpyHostToDevice));
   
-  cusolverDnHandle_t cusolver_handle;
-  cublasHandle_t cublas_handle;
-  CUSOLVER_CHECK(cusolverDnCreate(&cusolver_handle));
-  CUBLAS_CHECK(cublasCreate(&cublas_handle));
-  
+  cusolverDnHandle_t cusolver_handle = CudaManager::getInstance().getCusolverHandle();
+  cublasHandle_t cublas_handle = CudaManager::getInstance().getCublasHandle();
   
   int *info_GPU = 0;
   int info = 0;
@@ -1079,8 +1077,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     std::cout << "Type non supporté \n";
   }
     
-  CUBLAS_CHECK(cublasDestroy(cublas_handle));
-  CUSOLVER_CHECK(cusolverDnDestroy(cusolver_handle));
   ScalarArray<T> *newA_CUDA = new ScalarArray<T>(a_data_copy, a->rows, newK, a->rows);
   ScalarArray<T> *newB_CUDA = new ScalarArray<T>(b_data_copy, b->rows, newK, b->rows);
   
