@@ -64,21 +64,6 @@ template<typename T>
 
     }
 
-__global__ void double_to_cuDoubleComplex_kernel(double* in, cuDoubleComplex* out, int k) {
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (idx < k) {
-        out[idx] = make_cuDoubleComplex(in[idx], 0.0f); // imag = 0
-    }
-}
-
-__global__ void float_to_cuComplex_kernel(float* in, cuComplex* out, int k) {
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (idx < k) {
-        out[idx] = make_cuComplex(in[idx], 0.0f); // imag = 0
-    }
-}
-
-
 template<typename T>
     void launch_FindK(T* S_gpu, double epsilon, int old_rank, int* newK_gpu) {
         int blockSize = 128;
@@ -94,17 +79,3 @@ extern "C" void launch_FindK_float(float* S_gpu, double epsilon, int size, int* 
 extern "C" void launch_FindK_double(double* S_gpu, double epsilon, int size, int* newK_gpu) {
     launch_FindK<double>(S_gpu, epsilon, size, newK_gpu);
 }
-
-extern "C" void convert_double_to_cuDoubleComplex(double* in, cuDoubleComplex* out, int k) {
-    int blockSize = 128;
-    int numBlocks = (k + blockSize - 1) / blockSize;
-    double_to_cuDoubleComplex_kernel<<<numBlocks, blockSize>>>(in, out, k);
-    //cudaDeviceSynchronize();
-}
-
-extern "C" void convert_float_to_cuComplex(float* in, cuComplex* out, int k) {
-    int blockSize = 128;
-    int numBlocks = (k + blockSize - 1) / blockSize;
-    float_to_cuComplex_kernel<<<numBlocks, blockSize>>>(in, out, k);
-    //cudaDeviceSynchronize();
-}    
