@@ -302,20 +302,6 @@ int find_newK(T &sigma, double epsilon, int old_rank) {
   return i;
 }
 
-#ifdef HAVE_CUDA
-void copy_cuComplex_to_stdcomplex(cuComplex* src, std::complex<float>* dst, size_t n) {
-  for (size_t i = 0; i < n; ++i) {
-    dst[i] = std::complex<float>(cuCrealf(src[i]), cuCimagf(src[i]));
-  }
-}
-
-void copy_cuDoubleComplex_to_stdcomplex(cuDoubleComplex* src, std::complex<double>* dst, size_t n) {
-  for (size_t i = 0; i < n; ++i) {
-    dst[i] = std::complex<double>(cuCreal(src[i]), cuCimag(src[i]));
-  }
-}
-#endif // HAVE_CUDA
-
 template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
   DECLARE_CONTEXT;
   if (rank() == 0) {
