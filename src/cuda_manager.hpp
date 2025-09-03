@@ -6,12 +6,34 @@
 #include <cstdlib> // For exit() and EXIT_FAILURE
 
 // Helper macro to check for library status errors
-#define CHECK_CUDA_STATUS(call, lib_name)				\
+#define CUDA_CHECK(call)				\
+  do {									\
+    auto status = call;							\
+    if ((int)status != (int)cudaSuccess) { /* This is 0 for both libs */ \
+      fprintf(stderr, "CUDA Error %d (%s: %s) at %s:%d\n",				\
+	      status, cudaGetErrorName(status), cudaGetErrorString(status), __FILE__, __LINE__); \
+      /* In a real app, you might throw an exception */                 \
+      exit(EXIT_FAILURE);						\
+    }									\
+  } while (0)
+// Helper macro to check for library status errors
+#define CUBLAS_CHECK(call)				\
   do {									\
     auto status = call;							\
     if ((int)status != (int)CUBLAS_STATUS_SUCCESS) { /* This is 0 for both libs */ \
-      fprintf(stderr, "Error in %s at %s:%d\n",				\
-	      lib_name, __FILE__, __LINE__);				\
+      fprintf(stderr, "cuBLAS Error %d (%s: %s) at %s:%d\n",				\
+	      status, cublasGetStatusName(status), cublasGetStatusString(status), __FILE__, __LINE__); \
+      /* In a real app, you might throw an exception */                 \
+      exit(EXIT_FAILURE);						\
+    }									\
+  } while (0)
+// Helper macro to check for library status errors
+#define CUSOLVER_CHECK(call)				\
+  do {									\
+    auto status = call;							\
+    if ((int)status != (int)CUSOLVER_STATUS_SUCCESS) { /* This is 0 for both libs */ \
+      fprintf(stderr, "cuSOLVER Error %d at %s:%d\n",				\
+	      status, __FILE__, __LINE__);				\
       /* In a real app, you might throw an exception */                 \
       exit(EXIT_FAILURE);						\
     }									\
@@ -70,8 +92,8 @@ namespace hmat {
      */
     CudaManager() {
       std::cout << "--> Initializing global CUDA handles (one-time operation)..." << std::endl;
-      CHECK_CUDA_STATUS(cublasCreate(&cublas_handle_), "cuBLAS");
-      CHECK_CUDA_STATUS(cusolverDnCreate(&cusolver_handle_), "cuSOLVER");
+      CUBLAS_CHECK(cublasCreate(&cublas_handle_));
+      CUSOLVER_CHECK(cusolverDnCreate(&cusolver_handle_));
       std::cout << "--> Handles initialized successfully." << std::endl;
     }
 
@@ -84,10 +106,10 @@ namespace hmat {
     ~CudaManager() {
       std::cout << "--> Destroying global CUDA handles (at program exit)..." << std::endl;
       if (cusolver_handle_) {
-	CHECK_CUDA_STATUS(cusolverDnDestroy(cusolver_handle_), "cuSOLVER");
+	CUSOLVER_CHECK(cusolverDnDestroy(cusolver_handle_));
       }
       if (cublas_handle_) {
-	CHECK_CUDA_STATUS(cublasDestroy(cublas_handle_), "cuBLAS");
+	CUBLAS_CHECK(cublasDestroy(cublas_handle_));
       }
       std::cout << "--> Handles destroyed successfully." << std::endl;
     }
