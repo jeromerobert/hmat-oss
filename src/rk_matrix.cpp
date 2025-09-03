@@ -41,41 +41,6 @@
 
 #ifdef HAVE_CUDA
 #include "cuda_manager.hpp"
-#include <cuComplex.h>
-
-// === Functions to detect errors in the GPU === //
-void checkCudaError(cudaError_t err, const char *file, int line) {
-  if (err != cudaSuccess) {
-    printf("CUDA Error: %s at %s:%d\n", cudaGetErrorString(err), file, line);
-    exit(EXIT_FAILURE);
-  }
-}
-
-void checkCublasError(cublasStatus_t err, const char *file, int line){
-  if (err != CUBLAS_STATUS_SUCCESS) {
-    printf("cuBLAS Error %d at %s:%d\n", err, file, line);
-    exit(EXIT_FAILURE);
-  } 
-}
-
-void checkCusolverError(cusolverStatus_t err, const char *file, int line){
-  if (err != CUSOLVER_STATUS_SUCCESS) {
-    printf("cuSOLVER Error %d at %s:%d\n", err, file, line);
-    exit(EXIT_FAILURE);
-  }                      
-}
-
-#define CUDA_CHECK(err) (checkCudaError(err, __FILE__, __LINE__))
-#define CUBLAS_CHECK(err) (checkCublasError(err, __FILE__, __LINE__))
-#define CUSOLVER_CHECK(err) (checkCusolverError(err, __FILE__, __LINE__))
-
-template<typename T>
-void safeCudaFree(T*& ptr) {
-  if (ptr != nullptr) {
-    CUDA_CHECK(cudaFree(ptr));
-    ptr = nullptr;
-  }
-}
 #endif
 
 namespace hmat {
