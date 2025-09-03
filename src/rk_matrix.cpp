@@ -355,45 +355,21 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   
   CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
   
+  // Facto QR de a = Qa * Ra
+  T *tauA_gpu = nullptr, *Ra_gpu = nullptr;
+  info = proxy_cuda::geqrf(a->rows, a->cols, a_gpu, a->rows, &tauA_gpu, &Ra_gpu);
+  HMAT_ASSERT(!info);
+  
+  // Facto QR de b = Qb * Rb
+  T *tauB_gpu = nullptr, *Rb_gpu = nullptr;
+  info = proxy_cuda::geqrf(b->rows, b->cols, b_gpu, b->rows, &tauB_gpu, &Rb_gpu);
+  HMAT_ASSERT(!info);
+  
   if constexpr (std::is_same_v<T, float>) {
-    float alpha = 1.0f;
-    float beta = 0.0f;
-    float* workspace = nullptr;
-    
-    // Facto QR de a = Qa * Ra
-    int size_workspace_geqrf_a = 0;
-    CUSOLVER_CHECK(cusolverDnSgeqrf_bufferSize(cusolver_handle, a->rows, a->cols, a_gpu, a->rows, &size_workspace_geqrf_a));  
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(float)));
-    float *tauA_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&tauA_gpu, a->cols * sizeof(float)));
-    CUSOLVER_CHECK(cusolverDnSgeqrf(cusolver_handle, a->rows, a->cols, a_gpu, a->rows, tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
+    T alpha = 1.0f;
+    T beta = 0.0f;
+    T* workspace = nullptr;
 
-    // Facto QR de b = Qb * Rb
-    int size_workspace_geqrf_b = 0;
-    CUSOLVER_CHECK(cusolverDnSgeqrf_bufferSize(cusolver_handle, b->rows, b->cols, b_gpu, b->rows, &size_workspace_geqrf_b));
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_b * sizeof(float)));
-    float *tauB_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&tauB_gpu, b->cols * sizeof(float)));   
-    CUSOLVER_CHECK(cusolverDnSgeqrf(cusolver_handle, b->rows, b->cols, b_gpu, b->rows, tauB_gpu, workspace, size_workspace_geqrf_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de b. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-
-    // Récupération des matrices Ra et Rb
-    float *Ra_gpu = nullptr, *Rb_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&Ra_gpu, a->cols * a->cols * sizeof(float)));
-    CUDA_CHECK(cudaMemset(Ra_gpu, 0, a->cols * a->cols * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&Rb_gpu, b->cols * b->cols * sizeof(float)));  
-    CUDA_CHECK(cudaMemset(Rb_gpu, 0, b->cols * b->cols * sizeof(float)));
-    for (int j = 0; j < a->cols; ++j) {
-      CUBLAS_CHECK(cublasScopy(cublas_handle, j + 1, &a_gpu[j * a->rows], 1, &Ra_gpu[j * a->cols], 1));
-      CUBLAS_CHECK(cublasScopy(cublas_handle, j + 1, &b_gpu[j * b->rows], 1, &Rb_gpu[j * b->cols], 1));
-    }
     // Ra_gpu <- Ra_gpu * T^Rb_gpu        
     CUBLAS_CHECK(cublasStrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols));
     CUDA_CHECK(cudaFree(Rb_gpu));
@@ -510,52 +486,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
 
 
   } else if constexpr (std::is_same_v<T, double>) {
-                  
-    double alpha = 1.0;
-    double beta = 0.0;
-
-    double* workspace = nullptr;
-          
-    // Spécialisation pour double
-    double *tauA_gpu = nullptr, *tauB_gpu = nullptr;
-    double *Ra_gpu = nullptr, *Rb_gpu = nullptr;
-          
-    // a_cols = b_cols = old_rank
-
-    CUDA_CHECK(cudaMalloc(&tauA_gpu, a->cols * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&Ra_gpu, a->cols * a->cols * sizeof(double)));
-    CUDA_CHECK(cudaMemset(Ra_gpu, 0, a->cols * a->cols * sizeof(double)));
-          
-    CUDA_CHECK(cudaMalloc(&tauB_gpu, b->cols * sizeof(double)));   
-    CUDA_CHECK(cudaMalloc(&Rb_gpu, b->cols * b->cols * sizeof(double)));  
-    CUDA_CHECK(cudaMemset(Rb_gpu, 0, b->cols * b->cols * sizeof(double)));
-
-    int size_workspace_geqrf_a = 0;
-    int size_workspace_geqrf_b = 0;
-
-    CUSOLVER_CHECK(cusolverDnDgeqrf_bufferSize(cusolver_handle, a->rows, a->cols, a_gpu, a->rows, &size_workspace_geqrf_a));  
-    CUSOLVER_CHECK(cusolverDnDgeqrf_bufferSize(cusolver_handle, b->rows, b->cols, b_gpu, b->rows, &size_workspace_geqrf_b));
-          
-    // Facto QR de a = Qa * Ra
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(double)));
-    CUSOLVER_CHECK(cusolverDnDgeqrf(cusolver_handle, a->rows, a->cols, a_gpu, a->rows, tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-
-    // Facto QR de b = Qb * Rb
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_b * sizeof(double)));
-    CUSOLVER_CHECK(cusolverDnDgeqrf(cusolver_handle, b->rows, b->cols, b_gpu, b->rows, tauB_gpu, workspace, size_workspace_geqrf_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de b. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-
-    // Récupération des matrices Ra et Rb
-    for (int j = 0; j < a->cols; ++j) {
-      CUBLAS_CHECK(cublasDcopy(cublas_handle, j + 1, &a_gpu[j * a->rows], 1, &Ra_gpu[j * a->cols], 1));
-      CUBLAS_CHECK(cublasDcopy(cublas_handle,j + 1, &b_gpu[j * b->rows], 1, &Rb_gpu[j * a->cols], 1));
-    }
+    T alpha = 1.0;
+    T beta = 0.0;
+    T* workspace = nullptr;
 
     // Ra_gpu <- Ra_gpu * Rb_gpu        
     CUBLAS_CHECK(cublasDtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols));
@@ -668,44 +601,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     cuComplex beta  = make_cuComplex(0.0f, 0.0f);
     cuComplex* workspace = nullptr; 
 
-    // Facto QR de a = Qa * Ra
-    int size_workspace_geqrf_a = 0;
-    CUSOLVER_CHECK(cusolverDnCgeqrf_bufferSize(cusolver_handle, a->rows, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, &size_workspace_geqrf_a));  
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(cuComplex)));
-    cuComplex *tauA_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&tauA_gpu, a->cols * sizeof(cuComplex)));
-    CUSOLVER_CHECK(cusolverDnCgeqrf(cusolver_handle, a->rows, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-
-    // Facto QR de b = Qb * Rb
-    int size_workspace_geqrf_b = 0;
-    CUSOLVER_CHECK(cusolverDnCgeqrf_bufferSize(cusolver_handle, b->rows, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, &size_workspace_geqrf_b));
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_b * sizeof(cuComplex)));
-    cuComplex *tauB_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&tauB_gpu, b->cols * sizeof(cuComplex)));   
-    CUSOLVER_CHECK(cusolverDnCgeqrf(cusolver_handle, b->rows, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, tauB_gpu, workspace, size_workspace_geqrf_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de b. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-
-    // Récupération des matrices Ra et Rb
-    cuComplex *Ra_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&Ra_gpu, a->cols * a->cols * sizeof(cuComplex)));
-    CUDA_CHECK(cudaMemset(Ra_gpu, 0, a->cols * a->cols * sizeof(cuComplex)));
-    cuComplex *Rb_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&Rb_gpu, b->cols * b->cols * sizeof(cuComplex)));  
-    CUDA_CHECK(cudaMemset(Rb_gpu, 0, b->cols * b->cols * sizeof(cuComplex)));
-    for (int j = 0; j < a->cols; ++j) {
-      CUBLAS_CHECK(cublasCcopy(cublas_handle, j + 1, reinterpret_cast<cuComplex*>(a_gpu) + j * a->rows, 1, &Ra_gpu[j * a->cols], 1));
-      CUBLAS_CHECK(cublasCcopy(cublas_handle, j + 1, reinterpret_cast<cuComplex*>(b_gpu) + j * b->rows, 1, &Rb_gpu[j * b->cols], 1));
-    }
-
     // Ra_gpu <- Ra_gpu * T^Rb_gpu        
-    CUBLAS_CHECK(cublasCtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols));
+    CUBLAS_CHECK(cublasCtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, reinterpret_cast<cuComplex*>(Rb_gpu), a->cols, reinterpret_cast<cuComplex*>(Ra_gpu), a->cols, reinterpret_cast<cuComplex*>(Ra_gpu), a->cols));
     CUDA_CHECK(cudaFree(Rb_gpu));
     Rb_gpu = nullptr;
 
@@ -719,7 +616,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUSOLVER_CHECK(cusolverDnCgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
     CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(cuComplex)));
     /**** ATTENTION CE QUI SORT DE LA SVD C'EST VH (trans conjugé) ****** */
-    CUSOLVER_CHECK(cusolverDnCgesvd(cusolver_handle, 'A', 'A', a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VH_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU));
+    CUSOLVER_CHECK(cusolverDnCgesvd(cusolver_handle, 'A', 'A', a->cols, a->cols, reinterpret_cast<cuComplex*>(Ra_gpu), a->cols, S_gpu, U_gpu, a->cols, VH_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU));
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if (info == 0) {
       //  printf("SVD convergée avec succès.\n");
@@ -779,10 +676,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     // Construction du panneau a_gpu (a->rows x newK) <- Qa (a->rows x a->rows) * U (a->rows x newK)
     cuComplex* work_unmqr_a = nullptr;
     int worksize_unmqr_a = 0;
-    CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, tauA_gpu, QaU_gpu, a->rows, &worksize_unmqr_a));
+    CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, reinterpret_cast<cuComplex*>(tauA_gpu), QaU_gpu, a->rows, &worksize_unmqr_a));
     CUDA_CHECK(cudaMalloc(&work_unmqr_a, worksize_unmqr_a * sizeof(cuComplex)));
     // Application de Qa sur U :
-    CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, tauA_gpu, QaU_gpu, a->rows, work_unmqr_a, worksize_unmqr_a, info_GPU));
+    CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, reinterpret_cast<cuComplex*>(tauA_gpu), QaU_gpu, a->rows, work_unmqr_a, worksize_unmqr_a, info_GPU));
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if(info != 0) {printf("Erreur cusolverDnCunmqr : info = %d\n", info);}
     CUDA_CHECK(cudaFree(work_unmqr_a));
@@ -795,10 +692,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     // Construction du panneau b_gpu (b->rows x newK) <- Qb (b->rows x b->rows) * U (b->rows x newK)
     cuComplex *work_unmqr_b = nullptr;
     int worksize_unmqr_b = 0;
-    CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, tauB_gpu, QbV_gpu, b->rows, &worksize_unmqr_b));
+    CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, reinterpret_cast<cuComplex*>(tauB_gpu), QbV_gpu, b->rows, &worksize_unmqr_b));
     CUDA_CHECK(cudaMalloc(&work_unmqr_b, worksize_unmqr_b * sizeof(cuComplex)));
     // Application de Qb sur V
-    CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, tauB_gpu, QbV_gpu, b->rows, work_unmqr_b, worksize_unmqr_b, info_GPU));
+    CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, reinterpret_cast<cuComplex*>(tauB_gpu), QbV_gpu, b->rows, work_unmqr_b, worksize_unmqr_b, info_GPU));
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if(info != 0) {printf("Erreur cusolverDnCunmqr : info = %d\n", info);}
     CUDA_CHECK(cudaFree(work_unmqr_b));
@@ -825,44 +722,8 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     cuDoubleComplex beta  = make_cuDoubleComplex(0.0, 0.0);
     cuDoubleComplex* workspace = nullptr; 
 
-    // Facto QR de a = Qa * Ra
-    int size_workspace_geqrf_a = 0;
-    CUSOLVER_CHECK(cusolverDnZgeqrf_bufferSize(cusolver_handle, a->rows, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, &size_workspace_geqrf_a));  
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(cuDoubleComplex)));
-    cuDoubleComplex *tauA_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&tauA_gpu, a->cols * sizeof(cuDoubleComplex)));
-    CUSOLVER_CHECK(cusolverDnZgeqrf(cusolver_handle, a->rows, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-
-    // Facto QR de b = Qb * Rb
-    int size_workspace_geqrf_b = 0;
-    CUSOLVER_CHECK(cusolverDnZgeqrf_bufferSize(cusolver_handle, b->rows, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, &size_workspace_geqrf_b));
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_b * sizeof(cuDoubleComplex)));
-    cuDoubleComplex *tauB_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&tauB_gpu, b->cols * sizeof(cuDoubleComplex)));   
-    CUSOLVER_CHECK(cusolverDnZgeqrf(cusolver_handle, b->rows, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, tauB_gpu, workspace, size_workspace_geqrf_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de b. Code : %d\n", info);}
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-
-    // Récupération des matrices Ra et Rb
-    cuDoubleComplex *Ra_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&Ra_gpu, a->cols * a->cols * sizeof(cuDoubleComplex)));
-    CUDA_CHECK(cudaMemset(Ra_gpu, 0, a->cols * a->cols * sizeof(cuDoubleComplex)));
-    cuDoubleComplex *Rb_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&Rb_gpu, b->cols * b->cols * sizeof(cuDoubleComplex)));  
-    CUDA_CHECK(cudaMemset(Rb_gpu, 0, b->cols * b->cols * sizeof(cuDoubleComplex)));
-    for (int j = 0; j < a->cols; ++j) {
-      CUBLAS_CHECK(cublasZcopy(cublas_handle, j + 1, reinterpret_cast<cuDoubleComplex*>(a_gpu) + j * a->rows, 1, &Ra_gpu[j * a->cols], 1));
-      CUBLAS_CHECK(cublasZcopy(cublas_handle, j + 1, reinterpret_cast<cuDoubleComplex*>(b_gpu) + j * b->rows, 1, &Rb_gpu[j * b->cols], 1));
-    }
-
     // Ra_gpu <- Ra_gpu * T^Rb_gpu        
-    CUBLAS_CHECK(cublasZtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols));
+    CUBLAS_CHECK(cublasZtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, reinterpret_cast<cuDoubleComplex*>(Rb_gpu), a->cols, reinterpret_cast<cuDoubleComplex*>(Ra_gpu), a->cols, reinterpret_cast<cuDoubleComplex*>(Ra_gpu), a->cols));
     CUDA_CHECK(cudaFree(Rb_gpu));
     Rb_gpu = nullptr;
 
@@ -876,7 +737,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUSOLVER_CHECK(cusolverDnZgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
     CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(cuDoubleComplex)));
     /**** ATTENTION CE QUI SORT DE LA SVD C'EST VH (trans conjugé) ****** */
-    CUSOLVER_CHECK(cusolverDnZgesvd(cusolver_handle, 'A', 'A', a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VH_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU));
+    CUSOLVER_CHECK(cusolverDnZgesvd(cusolver_handle, 'A', 'A', a->cols, a->cols, reinterpret_cast<cuDoubleComplex*>(Ra_gpu), a->cols, S_gpu, U_gpu, a->cols, VH_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU));
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if (info == 0) {
       //  printf("SVD convergée avec succès.\n");
@@ -936,10 +797,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     // Construction du panneau a_gpu (a->rows x newK) <- Qa (a->rows x a->rows) * U (a->rows x newK)
     cuDoubleComplex* work_unmqr_a = nullptr;
     int worksize_unmqr_a = 0;
-    CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, tauA_gpu, QaU_gpu, a->rows, &worksize_unmqr_a));
+    CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, reinterpret_cast<cuDoubleComplex*>(tauA_gpu), QaU_gpu, a->rows, &worksize_unmqr_a));
     CUDA_CHECK(cudaMalloc(&work_unmqr_a, worksize_unmqr_a * sizeof(cuDoubleComplex)));
     // Application de Qa sur U :
-    CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, tauA_gpu, QaU_gpu, a->rows, work_unmqr_a, worksize_unmqr_a, info_GPU));
+    CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, reinterpret_cast<cuDoubleComplex*>(tauA_gpu), QaU_gpu, a->rows, work_unmqr_a, worksize_unmqr_a, info_GPU));
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if(info != 0) {printf("Erreur cusolverDnZunmqr : info = %d\n", info);}
     CUDA_CHECK(cudaFree(work_unmqr_a));
@@ -952,10 +813,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     // Construction du panneau b_gpu (b->rows x newK) <- Qb (b->rows x b->rows) * U (b->rows x newK)
     cuDoubleComplex*work_unmqr_b = nullptr;
     int worksize_unmqr_b = 0;
-    CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, tauB_gpu, QbV_gpu, b->rows, &worksize_unmqr_b));
+    CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, reinterpret_cast<cuDoubleComplex*>(tauB_gpu), QbV_gpu, b->rows, &worksize_unmqr_b));
     CUDA_CHECK(cudaMalloc(&work_unmqr_b, worksize_unmqr_b * sizeof(cuDoubleComplex)));
     // Application de Qb sur V :
-    CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, tauB_gpu, QbV_gpu, b->rows, work_unmqr_b, worksize_unmqr_b, info_GPU));
+    CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, reinterpret_cast<cuDoubleComplex*>(tauB_gpu), QbV_gpu, b->rows, work_unmqr_b, worksize_unmqr_b, info_GPU));
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if(info != 0) {printf("Erreur cusolverDnZunmqr : info = %d\n", info);}
     CUDA_CHECK(cudaFree(work_unmqr_b));
@@ -981,6 +842,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     std::cout << "Type non supporté \n";
   }
     
+  CUDA_CHECK(cudaFree(newK_gpu));
+  newK_gpu = nullptr;
+
   ScalarArray<T> *newA_CUDA = new ScalarArray<T>(a_data_copy, a->rows, newK, a->rows);
   ScalarArray<T> *newB_CUDA = new ScalarArray<T>(b_data_copy, b->rows, newK, b->rows);
   delete a;
