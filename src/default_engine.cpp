@@ -277,49 +277,74 @@ template<typename T> void DefaultEngine<T>::info(hmat_info_t &i) const{
 template <typename T>
 void DefaultEngine<T>::profile(hmat_profile_t &p) const
 {
+
+  auto temp = [](const std::vector<float> & v, double & mu, double & sigma, double & sum) -> void {
+    
+      sum = std::accumulate(v.begin(), v.end(), .0);
+      mu = sum / v.size();
+
+      double accum = 0.0;
+      std::for_each (v.begin(), v.end(), [&](const double d){
+        accum += (d - mu) * (d - mu);
+      });
+        
+      sigma = sqrt(accum/v.size());
+  };
+
   printf("\n===== Profiling Matrix =====\n");
   HMatProfile profile;
 
   this->hmat->profile(profile);
  
-  printf("\n ### Full blocs: \n");
+  printf("\n ### Full blocks: \n");
 
   for(auto it = profile.n_full_blocs.begin(); it != profile.n_full_blocs.end(); it++)
   {
-    printf("     - %d full blocs of size %ld\n", it->second, it->first);
+
+    std::vector<float> ratios = profile.full_comp_ratios[it->first];
+    double ratios_mu, ratios_stdev, ratios_sum;
+    temp(ratios, ratios_mu, ratios_stdev, ratios_sum);
+
+      std::vector<float> times_comp = profile.full_comp_times[it->first];
+      double times_comp_mu, times_comp_stdev, times_comp_sum;
+      temp(times_comp, times_comp_mu, times_comp_stdev, times_comp_sum);
+
+      std::vector<float> times_decomp = profile.full_decomp_times[it->first];
+      double times_decomp_mu, times_decomp_stdev, times_decomp_sum;
+      temp(times_decomp, times_decomp_mu, times_decomp_stdev, times_decomp_sum);
+
+
+    printf("     - %d full blocks of size %ld : compression ratios = %.2f +/- %.2f\n", it->second, it->first, ratios_mu, ratios_stdev);
+    printf("          Total Compressing Time  : %.3f ms, Total Decompressing Time : %.3f ms\n",times_comp_sum*1e-6,times_decomp_sum*1e-6);
+    printf("          Avg.  Compressing Time  : %.3f ms, Avg.  Decompressing Time : %3.f ms\n",times_comp_mu*1e-6, times_decomp_mu*1e-6);
+
   }
 
-  printf("\n ### Rk-blocs : \n");
+  printf("\n ### Rk-blocks : \n");
 
   for(auto it = profile.n_rk_blocs.begin(); it != profile.n_rk_blocs.end(); it++)
   {
     printf("   # rank = %ld : \n", it->first);
     for(auto it_rank = it->second.begin(); it_rank != it->second.end(); it_rank++)
     {
-      printf("     - %d blocs of size %ld : compression ratios = ", it_rank->second, it_rank->first);
 
       std::vector<float> ratios = profile.rk_comp_ratios[it->first][it_rank->first];
+      double ratios_mu, ratios_stdev, ratios_sum;
+      temp(ratios, ratios_mu, ratios_stdev, ratios_sum);
 
-      if(ratios.size()>0)
-      {
-        double sum = std::accumulate(ratios.begin(), ratios.end(), .0);
-        double mu = sum / ratios.size();
-  
-        double accum = 0.0;
-        std::for_each (ratios.begin(), ratios.end(), [&](const double d){
-          accum += (d - mu) * (d - mu);
-        });
-        double stdev = sqrt(accum/ratios.size());
-        printf("%.2f +/- %.2f", mu, stdev);
-      }
-      else{
-        for(float f : ratios)
-        {
-          printf("%.2f, ", f);
-        }
-      }
-      
-      printf("\n");
+      std::vector<float> times_comp = profile.rk_comp_times[it->first][it_rank->first];
+      double times_comp_mu, times_comp_stdev, times_comp_sum;
+      temp(times_comp, times_comp_mu, times_comp_stdev, times_comp_sum);
+
+      std::vector<float> times_decomp = profile.rk_decomp_times[it->first][it_rank->first];
+      double times_decomp_mu, times_decomp_stdev, times_decomp_sum;
+      temp(times_decomp, times_decomp_mu, times_decomp_stdev, times_decomp_sum);
+
+      printf("     - %d Rk blocks of size %ld : compression ratios = %.2f +/- %.2f\n", it_rank->second, it_rank->first, ratios_mu, ratios_stdev);
+      printf("          Total Compressing Time  : %.3f ms, Total Decompressing Time : %.3f ms\n",times_comp_sum*1e-6,times_decomp_sum*1e-6);
+      printf("          Avg.  Compressing Time  : %.3f ms, Avg.  Decompressing Time : %.3f ms\n",times_comp_mu*1e-6, times_decomp_mu*1e-6);
+
+
     }
     
   }
@@ -335,19 +360,21 @@ template <typename T> void DefaultEngine<T>::ratio(hmat_FPCompressionRatio_t &r)
   r.rkRatio = 0;
   r.size_Full = 0;
   r.size_Rk = 0;
+  r.size_Full_compressed = 0;
+  r.size_Rk_compressed = 0;
 
   this->hmat->FPratio(r);
 
-  if(r.size_Full>0) 
-    {r.fullRatio = r.fullRatio / r.size_Full;}
+  if(r.size_Full_compressed>0) 
+    {r.fullRatio = r.size_Full /r.size_Full_compressed;}
     else{r.fullRatio = 0;}
 
-  if(r.size_Rk >0 )
-    {r.rkRatio = r.rkRatio / r.size_Rk;}
+  if(r.size_Rk_compressed >0 )
+    {r.rkRatio = r.size_Rk/r.size_Rk_compressed;}
     else{r.rkRatio = 0;}
 
-  if(r.size_Full + r.size_Rk>0)
-    {r.ratio = r.ratio / (r.size_Full + r.size_Rk);}
+  if(r.size_Full_compressed + r.size_Rk_compressed>0)
+    {r.ratio = (r.size_Full + r.size_Rk)/(r.size_Full_compressed + r.size_Rk_compressed);}
     else{r.ratio = 0;}
 
 }

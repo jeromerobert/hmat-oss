@@ -60,6 +60,8 @@ namespace hmat {
         
       }
       compressionRatio = 1;
+      compressionTime = 0;
+      decompressionTime = 0;
      
   }
 
@@ -305,6 +307,8 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
     return;
   }
 
+  auto start = std::chrono::high_resolution_clock::now();
+
   int k = this->rank();
   int m = a->rows;
   int n = b->rows;
@@ -413,6 +417,9 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
   _compressors->compressionRatio = (double)size/(double)size_c;
 
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressors->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+  //printf("Compression Time : %f s\n", decompressionTime*1e-9);
 
   //printf("Dims : (%d, %d); compression Ratio = %f\n", rows->size(), this->rank(), _compressors->compressionRatio);
  
@@ -435,6 +442,9 @@ void RkMatrix<T>::FPdecompress()
     printf("Compressors not instanciated\n");
     return;
   }
+
+  auto start = std::chrono::high_resolution_clock::now();
+
   int k =this->rank();
   int m = this->rows->size();
   int n = this->cols->size();
@@ -468,11 +478,12 @@ void RkMatrix<T>::FPdecompress()
       delete b_p;
     }   
 
-
     i+=k_p;
   }
 
-  
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressors->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
   delete _compressors;
   _compressors = nullptr;
   
