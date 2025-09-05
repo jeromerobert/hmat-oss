@@ -504,23 +504,44 @@ void HMatrix<T>::profile(HMatProfile & result)
   if (this->isLeaf()) {
     if (isFullMatrix()) {
       result.n_full_blocs[size] +=1;
-      /*if(result.n_full_blocs.contains(size))       
-      {//Already contains element of key=size
-        result.n_full_blocs[size] +=1;
+
+       if(full()->_compressor)
+      {
+      result.full_comp_ratios[size].push_back(full()->_compressor->compressionRatio);
+
+      result.full_comp_times[size].push_back(full()->_compressor->compressionTime);
+
+      result.full_decomp_times[size].push_back(full()->_compressor->decompressionTime);
       }
       else
-      { //First element of key=size
-        result.n_full_blocs[size] =1;
-      }*/
+      {
+        result.full_comp_ratios[size].push_back(1.0);
+
+        result.full_comp_times[size].push_back(0.0);
+
+        result.full_decomp_times[size].push_back(0.0);
+      }
        
     } else {
       //printf("Rk Bloc of size %ld and rank %d\n", size, rk()->rank());
-        
       result.n_rk_blocs[rk()->rank()][size] +=1;
 
       if(rk()->_compressors)
       {
+      
         result.rk_comp_ratios[rk()->rank()][size].push_back(rk()->_compressors->compressionRatio);
+
+        result.rk_comp_times[rk()->rank()][size].push_back(rk()->_compressors->compressionTime);
+
+        result.rk_decomp_times[rk()->rank()][size].push_back(rk()->_compressors->decompressionTime);
+      }
+      else
+      {
+        result.rk_comp_ratios[rk()->rank()][size].push_back(1.0);
+
+        result.rk_comp_times[rk()->rank()][size].push_back(0.0);
+
+        result.rk_decomp_times[rk()->rank()][size].push_back(0.0);
       }
     }
   } else {
@@ -1621,7 +1642,7 @@ template<typename T> bool HMatrix<T>::isRecursivelyNull() const {
 }
 
 template <typename T>
-void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t & result)
+void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
 {
   size_t r = rows()->size();
   size_t c = cols()->size();
@@ -1671,7 +1692,7 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t & result)
 template <typename T>
 void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk)
 {
-  
+
   
   if (this->isLeaf()) {
     if (isFullMatrix()) {
@@ -2435,13 +2456,11 @@ template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progres
     if (isVoid()) {
         // nothing to do
     } else if(this->isLeaf()) {
-        //full()->FPdecompress();
         full()->lltDecomposition();
         if(progress != NULL) {
             progress->current= rows()->offset() + rows()->size();
             progress->update(progress);
         }
-        //full()->FPcompress(1e-4, hmat_FPcompress_t::ZFP_COMPRESSOR);
     } else {
         HMAT_ASSERT(isLower);
       this->recursiveLltDecomposition(progress);

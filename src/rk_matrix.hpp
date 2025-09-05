@@ -50,6 +50,8 @@ struct FPAdaptiveCompressor{
     std::vector<int> cols;
     
     double compressionRatio;
+    double compressionTime;
+    double decompressionTime;
 
     FPAdaptiveCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
 

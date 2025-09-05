@@ -80,12 +80,28 @@ struct HMatProfile
   //n_full_blocs[size] = number of full blocs for which n_rows * n_cols = size
   std::map<size_t, int> n_full_blocs;
 
+  std::map<size_t, std::vector<float>> full_comp_ratios;
+
+  //Time spent in compressing full blocs
+  std::map<size_t, std::vector<float>> full_comp_times;
+
+  //Time spent in decompressing full blocs
+  std::map<size_t, std::vector<float>> full_decomp_times;
+
   //n_rk_blocs[rank, size] = number of Rk blocs for which n_rows * n_cols = size and this->rank = rank
   std::map<size_t, std::map<size_t, int>> n_rk_blocs;
   //std::map<std::pair<int, int>, int> n_rk_blocs;
 
   //rk_comp_ratios[_rank][_size] contains the list of the compression ratios of rk blocs of rank=_rank and size=_size
   std::map<size_t, std::map<size_t, std::vector<float>>> rk_comp_ratios;
+
+
+  //Time spent in compressing rk blocs
+  std::map<size_t, std::map<size_t, std::vector<float>>> rk_comp_times;
+
+  //Time spent in decompressing rk blocs
+  std::map<size_t, std::map<size_t, std::vector<float>>> rk_decomp_times;
+
 };
 
 /** Degrees of freedom permutation of a vector required in HMatrix context.

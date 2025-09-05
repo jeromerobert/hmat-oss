@@ -58,6 +58,7 @@
 #endif
 
 #include <stdlib.h>
+#include <chrono>
 
 namespace hmat {
 
@@ -66,6 +67,8 @@ inline FPSimpleCompressor<T>::FPSimpleCompressor(hmat_FPcompress_t method)
 {
   compressor = initCompressor<T>(method);
   compressionRatio = 1;
+  compressionTime = 0;
+  decompressionTime = 0;
 }
 
 template <typename T>
@@ -356,6 +359,9 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
     return;
   }
   //printf("Begin Compression of full block !\n");
+
+  auto start = std::chrono::high_resolution_clock::now();
+
   _compressor = new FPSimpleCompressor<T>(method);
 
   _compressor->n_rows = data.rows;
@@ -367,6 +373,10 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
   _compressor->compressionRatio = _compressor->compressor->get_ratio();
 
   data.resize(0);
+
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressor->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 }
 
 
@@ -381,12 +391,16 @@ void FullMatrix<T>::FPdecompress()
     return;
   }
 
+  auto start = std::chrono::high_resolution_clock::now();
 
   data.resize(_compressor->n_cols);
   std::vector<T> tmp_out = _compressor->compressor->decompress();
 
   ScalarArray<T>* tmp  = new ScalarArray<T>(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
   data.copyMatrixAtOffset(tmp, 0, 0);
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressor->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
   delete _compressor;
   _compressor = nullptr;

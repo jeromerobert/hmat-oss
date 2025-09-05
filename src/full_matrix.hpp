@@ -68,8 +68,10 @@ struct FPSimpleCompressor{
     int n_rows;
     int n_cols;
     FPCompressorInterface<T>* compressor;
-  
+
     double compressionRatio;
+    double compressionTime;
+    double decompressionTime;
 
     FPSimpleCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
 
