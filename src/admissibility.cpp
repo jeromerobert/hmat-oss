@@ -25,6 +25,7 @@
 
 #include "common/my_assert.h"
 #include <sstream>
+#include <iostream>
 #include <algorithm>
 
 namespace hmat {
@@ -55,7 +56,7 @@ AdmissibilityCondition::getAxisAlignedBoundingBox(const ClusterTree& current, bo
 }
 
 StandardAdmissibilityCondition::StandardAdmissibilityCondition(double eta, double ratio):
-    eta_(eta) { ratio_ = ratio; }
+    eta_(eta) { std::cout << "StandardAdmissibilityCondition" << std::endl; ratio_ = ratio; }
 
 namespace {
 void
