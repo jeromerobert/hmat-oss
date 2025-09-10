@@ -142,6 +142,12 @@ public:
  */
   void setMaxWidth(size_t maxWidth) { maxWidth_ = maxWidth; }
 
+  /**
+   * @brief Get maximum width (default is -1/unlimited)
+   * \return maximum block width.
+ */
+  size_t getMaxWidth() { return(maxWidth_); }
+
 protected:
   double ratio_;
   size_t maxWidth_;
