@@ -364,16 +364,16 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   T *tauB_gpu = nullptr, *Rb_gpu = nullptr;
   info = proxy_cuda::geqrf(b->rows, b->cols, b_gpu, b->rows, &tauB_gpu, &Rb_gpu);
   HMAT_ASSERT(!info);
-  
+
+  // Ra_gpu <- Ra_gpu * T^Rb_gpu        
+  proxy_cuda::trmm('R', 'U', 'T', 'N', a->cols, a->cols, 1., Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols);
+  CUDA_CHECK(cudaFree(Rb_gpu));
+  Rb_gpu = nullptr;
+
   if constexpr (std::is_same_v<T, float>) {
     T alpha = 1.0f;
     T beta = 0.0f;
     T* workspace = nullptr;
-
-    // Ra_gpu <- Ra_gpu * T^Rb_gpu        
-    CUBLAS_CHECK(cublasStrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols));
-    CUDA_CHECK(cudaFree(Rb_gpu));
-    Rb_gpu = nullptr;
     
     // Décomposition SVD de Ra
     float *S_gpu = nullptr, *U_gpu = nullptr, *VT_gpu = nullptr;
@@ -490,10 +490,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     T beta = 0.0;
     T* workspace = nullptr;
 
-    // Ra_gpu <- Ra_gpu * Rb_gpu        
-    CUBLAS_CHECK(cublasDtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols));
-    CUDA_CHECK(cudaFree(Rb_gpu));
-    Rb_gpu = nullptr;
     // Décomposition SVD
     double *S_gpu, *U_gpu, *VT_gpu = nullptr;
     CUDA_CHECK(cudaMalloc(&U_gpu, a->cols * a->cols * sizeof(double)));
@@ -600,11 +596,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     cuComplex alpha = make_cuComplex(1.0f, 0.0f);
     cuComplex beta  = make_cuComplex(0.0f, 0.0f);
     cuComplex* workspace = nullptr; 
-
-    // Ra_gpu <- Ra_gpu * T^Rb_gpu        
-    CUBLAS_CHECK(cublasCtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, reinterpret_cast<cuComplex*>(Rb_gpu), a->cols, reinterpret_cast<cuComplex*>(Ra_gpu), a->cols, reinterpret_cast<cuComplex*>(Ra_gpu), a->cols));
-    CUDA_CHECK(cudaFree(Rb_gpu));
-    Rb_gpu = nullptr;
 
     // Décomposition SVD de Ra
     float *S_gpu = nullptr;
@@ -721,11 +712,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     cuDoubleComplex alpha = make_cuDoubleComplex(1.0, 0.0);
     cuDoubleComplex beta  = make_cuDoubleComplex(0.0, 0.0);
     cuDoubleComplex* workspace = nullptr; 
-
-    // Ra_gpu <- Ra_gpu * T^Rb_gpu        
-    CUBLAS_CHECK(cublasZtrmm(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_UPPER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, a->cols, a->cols, &alpha, reinterpret_cast<cuDoubleComplex*>(Rb_gpu), a->cols, reinterpret_cast<cuDoubleComplex*>(Ra_gpu), a->cols, reinterpret_cast<cuDoubleComplex*>(Ra_gpu), a->cols));
-    CUDA_CHECK(cudaFree(Rb_gpu));
-    Rb_gpu = nullptr;
 
     // Décomposition SVD de Ra
     double *S_gpu = nullptr;

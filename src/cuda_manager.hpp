@@ -235,7 +235,61 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaMemset(*Ra_gpu, 0, n * n * sizeof(hmat::Z_t)));
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasZcopy(cublas_handle, j + 1, reinterpret_cast<cuDoubleComplex*>(a_gpu) + j * m, 1, reinterpret_cast<cuDoubleComplex*>(*Ra_gpu) + j * n, 1));
-    }
-    return 0;
+      }
+      return 0;
   }
+
+
+  template<typename T>
+void trmm(const char side, const char uplo, const char trans, const char diag,
+          const int m, const int n, const T& alpha, const T* a, const int lda,
+          const T* b, int ldb, T* c, const int ldc);
+
+inline
+void trmm(const char side, const char uplo, const char trans, const char diag,
+          const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
+          const hmat::S_t* b, const int ldb, hmat::S_t* c, const int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+  cublasStrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
+}
+inline
+void trmm(const char side, const char uplo, const char trans, const char diag,
+          const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
+          const hmat::D_t* b, const int ldb, hmat::D_t* c, const int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+  cublasDtrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
+}
+inline
+void trmm(const char side, const char uplo, const char trans, const char diag,
+          const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
+          const hmat::C_t* b, const int ldb, hmat::C_t* c, const int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+  // WARNING: &alpha instead of alpha for complex values
+  cublasCtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuComplex*>(&alpha), reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(b), ldb, reinterpret_cast<cuComplex*>(c), ldc);
+}
+inline
+void trmm(const char side, const char uplo, const char trans, const char diag,
+          const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
+          const hmat::Z_t* b, const int ldb, hmat::Z_t* c, const int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+  // WARNING: &alpha instead of alpha for complex values
+  cublasZtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(c), ldc);
+}
+
 }
