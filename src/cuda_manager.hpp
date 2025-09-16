@@ -4,35 +4,36 @@
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <cstdlib> // For exit() and EXIT_FAILURE
+#include "data_types.hpp"
 
 // Helper macro to check for library status errors
-#define CUDA_CHECK(call)				\
+#define CUDA_CHECK(call)						\
   do {									\
     auto status = call;							\
     if ((int)status != (int)cudaSuccess) { /* This is 0 for both libs */ \
-      fprintf(stderr, "CUDA Error %d (%s: %s) at %s:%d\n",				\
+      fprintf(stderr, "CUDA Error %d (%s: %s) at %s:%d\n",		\
 	      status, cudaGetErrorName(status), cudaGetErrorString(status), __FILE__, __LINE__); \
       /* In a real app, you might throw an exception */                 \
       exit(EXIT_FAILURE);						\
     }									\
   } while (0)
 // Helper macro to check for library status errors
-#define CUBLAS_CHECK(call)				\
+#define CUBLAS_CHECK(call)						\
   do {									\
     auto status = call;							\
     if ((int)status != (int)CUBLAS_STATUS_SUCCESS) { /* This is 0 for both libs */ \
-      fprintf(stderr, "cuBLAS Error %d (%s: %s) at %s:%d\n",				\
+      fprintf(stderr, "cuBLAS Error %d (%s: %s) at %s:%d\n",		\
 	      status, cublasGetStatusName(status), cublasGetStatusString(status), __FILE__, __LINE__); \
       /* In a real app, you might throw an exception */                 \
       exit(EXIT_FAILURE);						\
     }									\
   } while (0)
 // Helper macro to check for library status errors
-#define CUSOLVER_CHECK(call)				\
+#define CUSOLVER_CHECK(call)						\
   do {									\
     auto status = call;							\
     if ((int)status != (int)CUSOLVER_STATUS_SUCCESS) { /* This is 0 for both libs */ \
-      fprintf(stderr, "cuSOLVER Error %d at %s:%d\n",				\
+      fprintf(stderr, "cuSOLVER Error %d at %s:%d\n",			\
 	      status, __FILE__, __LINE__);				\
       /* In a real app, you might throw an exception */                 \
       exit(EXIT_FAILURE);						\
@@ -236,76 +237,76 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaMemset(*Ra_gpu, 0, n * n * sizeof(hmat::Z_t)));
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasZcopy(cublas_handle, j + 1, reinterpret_cast<cuDoubleComplex*>(a_gpu) + j * m, 1, reinterpret_cast<cuDoubleComplex*>(*Ra_gpu) + j * n, 1));
-      }
+    }
     return info;
   }
 
   // TRMM computes a matrix-matrix multiplication between a triangular matrix and a regular matrix
   // https://docs.nvidia.com/cuda/archive/12.6.0/cublas/index.html#cublas-t-trmm
   template<typename T>
-void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const T& alpha, const T* a, const int lda,
-          const T* b, int ldb, T* c, const int ldc);
+  void trmm(const char side, const char uplo, const char trans, const char diag,
+	    const int m, const int n, const T& alpha, const T* a, const int lda,
+	    const T* b, int ldb, T* c, const int ldc);
 
-inline
-void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
-          const hmat::S_t* b, const int ldb, hmat::S_t* c, const int ldc) {
+  inline
+  void trmm(const char side, const char uplo, const char trans, const char diag,
+	    const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
+	    const hmat::S_t* b, const int ldb, hmat::S_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
-  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
-  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
-  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
-  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
-  cublasStrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
-}
-inline
-void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
-          const hmat::D_t* b, const int ldb, hmat::D_t* c, const int ldc) {
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+    cublasStrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
+  }
+  inline
+  void trmm(const char side, const char uplo, const char trans, const char diag,
+	    const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
+	    const hmat::D_t* b, const int ldb, hmat::D_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
-  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
-  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
-  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
-  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
-  cublasDtrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
-}
-inline
-void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
-          const hmat::C_t* b, const int ldb, hmat::C_t* c, const int ldc) {
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+    cublasDtrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
+  }
+  inline
+  void trmm(const char side, const char uplo, const char trans, const char diag,
+	    const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
+	    const hmat::C_t* b, const int ldb, hmat::C_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
-  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
-  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
-  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
-  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
-  // WARNING: &alpha instead of alpha for complex values
-  cublasCtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuComplex*>(&alpha), reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(b), ldb, reinterpret_cast<cuComplex*>(c), ldc);
-}
-inline
-void trmm(const char side, const char uplo, const char trans, const char diag,
-          const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
-          const hmat::Z_t* b, const int ldb, hmat::Z_t* c, const int ldc) {
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+    // WARNING: &alpha instead of alpha for complex values
+    cublasCtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuComplex*>(&alpha), reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(b), ldb, reinterpret_cast<cuComplex*>(c), ldc);
+  }
+  inline
+  void trmm(const char side, const char uplo, const char trans, const char diag,
+	    const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
+	    const hmat::Z_t* b, const int ldb, hmat::Z_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
-  const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
-  const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
-  const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
-  const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
-  // WARNING: &alpha instead of alpha for complex values
-  cublasZtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(c), ldc);
-}
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
+    // WARNING: &alpha instead of alpha for complex values
+    cublasZtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(c), ldc);
+  }
 
   // GESVD computes the Singular Value Decomposition of a matrix A = U.S.VT
   // A is overwritten. U,S,VT are returned in arrays allocated in this routine.
   // Note that gesvd returns V^T in real and V^H in complex, not V.
   // https://docs.nvidia.com/cuda/archive/12.6.0/cusolver/index.html#cusolverdn-t-gesvd
 
-template <typename T>
-int gesvd(char jobu, char jobvt, int m, int n, T *a, int lda,
-          typename hmat::Types<T>::real **s, T **u, T **vt);
+  template <typename T>
+  int gesvd(char jobu, char jobvt, int m, int n, T *a, int lda,
+	    typename hmat::Types<T>::real **s, T **u, T **vt);
 
-template <>
-inline int gesvd<hmat::S_t>(char jobu, char jobvt, int m, int n, hmat::S_t *a,
-                            int lda, hmat::S_t **s, hmat::S_t **u, hmat::S_t **vt) {
+  template <>
+  inline int gesvd<hmat::S_t>(char jobu, char jobvt, int m, int n, hmat::S_t *a,
+			      int lda, hmat::S_t **s, hmat::S_t **u, hmat::S_t **vt) {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnSgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
@@ -331,9 +332,9 @@ inline int gesvd<hmat::S_t>(char jobu, char jobvt, int m, int n, hmat::S_t *a,
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
   }
-template <>
-inline int gesvd<hmat::D_t>(char jobu, char jobvt, int m, int n, hmat::D_t *a,
-                            int lda, hmat::D_t **s, hmat::D_t **u, hmat::D_t **vt) {
+  template <>
+  inline int gesvd<hmat::D_t>(char jobu, char jobvt, int m, int n, hmat::D_t *a,
+			      int lda, hmat::D_t **s, hmat::D_t **u, hmat::D_t **vt) {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnDgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
@@ -359,9 +360,9 @@ inline int gesvd<hmat::D_t>(char jobu, char jobvt, int m, int n, hmat::D_t *a,
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
   }
-template <>
-inline int gesvd<hmat::C_t>(char jobu, char jobvt, int m, int n, hmat::C_t *a,
-                            int lda, hmat::S_t **s, hmat::C_t **u, hmat::C_t **vt) {
+  template <>
+  inline int gesvd<hmat::C_t>(char jobu, char jobvt, int m, int n, hmat::C_t *a,
+			      int lda, hmat::S_t **s, hmat::C_t **u, hmat::C_t **vt) {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnCgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
@@ -387,9 +388,9 @@ inline int gesvd<hmat::C_t>(char jobu, char jobvt, int m, int n, hmat::C_t *a,
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
   }
-template <>
-inline int gesvd<hmat::Z_t>(char jobu, char jobvt, int m, int n, hmat::Z_t *a,
-                            int lda, hmat::D_t **s, hmat::Z_t **u, hmat::Z_t **vt) {
+  template <>
+  inline int gesvd<hmat::Z_t>(char jobu, char jobvt, int m, int n, hmat::Z_t *a,
+			      int lda, hmat::D_t **s, hmat::Z_t **u, hmat::Z_t **vt) {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnZgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
@@ -415,4 +416,4 @@ inline int gesvd<hmat::Z_t>(char jobu, char jobvt, int m, int n, hmat::Z_t *a,
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
   }
-}
+}  // end namespace proxy_cuda

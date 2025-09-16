@@ -31,14 +31,8 @@ template <typename T>
         cudaDeviceSynchronize();
     }
 
-extern "C" void launch_Sqrt_SingularVals_Kernel_float(float* S_gpu, int k) {
-    launch_Sqrt_SingularVals_Kernel<float>(S_gpu, k);
-}
-
-extern "C" void launch_Sqrt_SingularVals_Kernel_double(double* S_gpu, int k) {
-    launch_Sqrt_SingularVals_Kernel<double>(S_gpu, k);
-}
-
+template void launch_Sqrt_SingularVals_Kernel<float>(float* deviceData, int k);
+template void launch_Sqrt_SingularVals_Kernel<double>(double* deviceData, int k);
 
 template<typename T>
     __global__ void FindK(T* d_singulaur_values, double epsilon, int old_rank, int *new_rank) {
@@ -72,10 +66,5 @@ template<typename T>
         cudaDeviceSynchronize();
     }
 
-extern "C" void launch_FindK_float(float* S_gpu, double epsilon, int size, int* newK_gpu) {
-    launch_FindK<float>(S_gpu, epsilon, size, newK_gpu);
-}
-
-extern "C" void launch_FindK_double(double* S_gpu, double epsilon, int size, int* newK_gpu) {
-    launch_FindK<double>(S_gpu, epsilon, size, newK_gpu);
-}
+template void launch_FindK<float>(float* S_gpu, double epsilon, int old_rank, int* newK_gpu);
+template void launch_FindK<double>(double* S_gpu, double epsilon, int old_rank, int* newK_gpu);
