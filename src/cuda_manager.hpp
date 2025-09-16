@@ -125,6 +125,7 @@ namespace proxy_cuda {
 
   // GEQRF computes a QR factorization of a m-by-n matrix A = Q * R.
   // A is overwritten by Q, Ra and tau are returned in arrays allocated in this routine.
+  // https://docs.nvidia.com/cuda/archive/12.6.0/cusolver/index.html#cusolverdn-t-geqrf
   template <typename T> int geqrf(int m, int n, T *a_gpu, int lda, T **tauA_gpu, T **Ra_gpu);
   
   template <>
@@ -143,7 +144,7 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnSgeqrf(cusolver_handle, m, n, a_gpu, lda, *tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
+    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -152,7 +153,7 @@ namespace proxy_cuda {
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasScopy(cublas_handle, j + 1, &a_gpu[j * m], 1, *Ra_gpu + j * n, 1));
     }
-    return 0;
+    return info;
   }
 
   template <>
@@ -171,7 +172,7 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnDgeqrf(cusolver_handle, m, n, a_gpu, lda, *tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
+    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -180,7 +181,7 @@ namespace proxy_cuda {
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasDcopy(cublas_handle, j + 1, &a_gpu[j * m], 1, *Ra_gpu + j * n, 1));
     }
-    return 0;
+    return info;
   }
 
   template <>
@@ -199,7 +200,7 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnCgeqrf(cusolver_handle, m, n, reinterpret_cast<cuComplex*>(a_gpu), lda, reinterpret_cast<cuComplex*>(*tauA_gpu), reinterpret_cast<cuComplex*>(workspace), size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
+    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -208,7 +209,7 @@ namespace proxy_cuda {
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasCcopy(cublas_handle, j + 1, reinterpret_cast<cuComplex*>(a_gpu) + j * m, 1, reinterpret_cast<cuComplex*>(*Ra_gpu) + j * n, 1));
     }
-    return 0;
+    return info;
   }
 
   template <>
@@ -227,7 +228,7 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnZgeqrf(cusolver_handle, m, n, reinterpret_cast<cuDoubleComplex*>(a_gpu), lda, reinterpret_cast<cuDoubleComplex*>(*tauA_gpu), reinterpret_cast<cuDoubleComplex*>(workspace), size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Erreur dans la factorisation QR de a. Code : %d\n", info);}
+    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -236,10 +237,11 @@ namespace proxy_cuda {
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasZcopy(cublas_handle, j + 1, reinterpret_cast<cuDoubleComplex*>(a_gpu) + j * m, 1, reinterpret_cast<cuDoubleComplex*>(*Ra_gpu) + j * n, 1));
       }
-      return 0;
+    return info;
   }
 
-
+  // TRMM computes a matrix-matrix multiplication between a triangular matrix and a regular matrix
+  // https://docs.nvidia.com/cuda/archive/12.6.0/cublas/index.html#cublas-t-trmm
   template<typename T>
 void trmm(const char side, const char uplo, const char trans, const char diag,
           const int m, const int n, const T& alpha, const T* a, const int lda,
@@ -292,4 +294,125 @@ void trmm(const char side, const char uplo, const char trans, const char diag,
   cublasZtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(c), ldc);
 }
 
+  // GESVD computes the Singular Value Decomposition of a matrix A = U.S.VT
+  // A is overwritten. U,S,VT are returned in arrays allocated in this routine.
+  // Note that gesvd returns V^T in real and V^H in complex, not V.
+  // https://docs.nvidia.com/cuda/archive/12.6.0/cusolver/index.html#cusolverdn-t-gesvd
+
+template <typename T>
+int gesvd(char jobu, char jobvt, int m, int n, T *a, int lda,
+          typename hmat::Types<T>::real **s, T **u, T **vt);
+
+template <>
+inline int gesvd<hmat::S_t>(char jobu, char jobvt, int m, int n, hmat::S_t *a,
+                            int lda, hmat::S_t **s, hmat::S_t **u, hmat::S_t **vt) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    int size_workspace_svd = 0;
+    CUSOLVER_CHECK(cusolverDnSgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
+    float* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(float)));
+    *u = nullptr;
+    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(float)));
+    *s = nullptr;
+    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(float)));
+    *vt = nullptr;
+    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(float)));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+    CUSOLVER_CHECK(cusolverDnSgesvd(cusolver_handle, jobu, jobvt, m, n, a, m, *s, *u, m, *vt, n, workspace, size_workspace_svd, nullptr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if (info < 0) {
+      printf("Error: parameter %d is invalid.\n", -info);
+    } else if (info>0) {
+      printf("Warning: SVD has not converged. Return code: %d\n", info);
+    }
+    CUDA_CHECK(cudaFree(workspace));
+    CUDA_CHECK(cudaFree(info_GPU));
+    return info;
+  }
+template <>
+inline int gesvd<hmat::D_t>(char jobu, char jobvt, int m, int n, hmat::D_t *a,
+                            int lda, hmat::D_t **s, hmat::D_t **u, hmat::D_t **vt) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    int size_workspace_svd = 0;
+    CUSOLVER_CHECK(cusolverDnDgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
+    double* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(double)));
+    *u = nullptr;
+    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(double)));
+    *s = nullptr;
+    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(double)));
+    *vt = nullptr;
+    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(double)));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+    CUSOLVER_CHECK(cusolverDnDgesvd(cusolver_handle, jobu, jobvt, m, n, a, m, *s, *u, m, *vt, n, workspace, size_workspace_svd, nullptr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if (info < 0) {
+      printf("Error: parameter %d is invalid.\n", -info);
+    } else if (info>0) {
+      printf("Warning: SVD has not converged. Return code: %d\n", info);
+    }
+    CUDA_CHECK(cudaFree(workspace));
+    CUDA_CHECK(cudaFree(info_GPU));
+    return info;
+  }
+template <>
+inline int gesvd<hmat::C_t>(char jobu, char jobvt, int m, int n, hmat::C_t *a,
+                            int lda, hmat::S_t **s, hmat::C_t **u, hmat::C_t **vt) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    int size_workspace_svd = 0;
+    CUSOLVER_CHECK(cusolverDnCgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
+    double* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(hmat::C_t)));
+    *u = nullptr;
+    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(hmat::C_t)));
+    *s = nullptr;
+    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(hmat::S_t)));
+    *vt = nullptr;
+    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(hmat::C_t)));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+    CUSOLVER_CHECK(cusolverDnCgesvd(cusolver_handle, jobu, jobvt, m, n, reinterpret_cast<cuComplex*>(a), m, *s, reinterpret_cast<cuComplex*>(*u), m, reinterpret_cast<cuComplex*>(*vt), n, reinterpret_cast<cuComplex*>(workspace), size_workspace_svd, nullptr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if (info < 0) {
+      printf("Error: parameter %d is invalid.\n", -info);
+    } else if (info>0) {
+      printf("Warning: SVD has not converged. Return code: %d\n", info);
+    }
+    CUDA_CHECK(cudaFree(workspace));
+    CUDA_CHECK(cudaFree(info_GPU));
+    return info;
+  }
+template <>
+inline int gesvd<hmat::Z_t>(char jobu, char jobvt, int m, int n, hmat::Z_t *a,
+                            int lda, hmat::D_t **s, hmat::Z_t **u, hmat::Z_t **vt) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    int size_workspace_svd = 0;
+    CUSOLVER_CHECK(cusolverDnZgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
+    double* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(hmat::Z_t)));
+    *u = nullptr;
+    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(hmat::Z_t)));
+    *s = nullptr;
+    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(hmat::D_t)));
+    *vt = nullptr;
+    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(hmat::Z_t)));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+    CUSOLVER_CHECK(cusolverDnZgesvd(cusolver_handle, jobu, jobvt, m, n, reinterpret_cast<cuDoubleComplex*>(a), m, *s, reinterpret_cast<cuDoubleComplex*>(*u), m, reinterpret_cast<cuDoubleComplex*>(*vt), n, reinterpret_cast<cuDoubleComplex*>(workspace), size_workspace_svd, nullptr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if (info < 0) {
+      printf("Error: parameter %d is invalid.\n", -info);
+    } else if (info>0) {
+      printf("Warning: SVD has not converged. Return code: %d\n", info);
+    }
+    CUDA_CHECK(cudaFree(workspace));
+    CUDA_CHECK(cudaFree(info_GPU));
+    return info;
+  }
 }
