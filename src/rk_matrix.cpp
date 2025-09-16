@@ -391,11 +391,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     VT_gpu = nullptr;
 
     // Compute the new truncated rank
-    launch_FindK_float(S_gpu, epsilon, a->cols, newK_gpu);
+    launch_FindK<T>(S_gpu, epsilon, a->cols, newK_gpu);
     CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
 
     // Compute the squareroots of all singular values
-    launch_Sqrt_SingularVals_Kernel_float(S_gpu, newK);
+    launch_Sqrt_SingularVals_Kernel<T>(S_gpu, newK);
     // Display S_gpu
     // float *S_cpu = new float[newK];
     // CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(float) * newK, cudaMemcpyDeviceToHost));
@@ -471,9 +471,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     T alpha = 1.0;
     T beta = 0.0;
 
-    launch_FindK_double(S_gpu, epsilon, a->cols, newK_gpu);
+    launch_FindK<T>(S_gpu, epsilon, a->cols, newK_gpu);
     CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-    launch_Sqrt_SingularVals_Kernel_double(S_gpu, newK);
+    launch_Sqrt_SingularVals_Kernel<T>(S_gpu, newK);
           
     CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
     CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_LEFT, newK, a->cols, VT_gpu, a->cols, S_gpu, 1, VT_gpu, a->cols));
@@ -555,11 +555,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     VT_gpu = nullptr;
 
     // Compute the new truncated rank
-    launch_FindK_float(S_gpu, epsilon, a->cols, newK_gpu);
+    launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
     CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
 
     // Compute the squareroots of all singular values
-    launch_Sqrt_SingularVals_Kernel_float(S_gpu, newK);
+    launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
     // Display S_gpu
     // float *S_cpu = new float[newK];
     // CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(float) * newK, cudaMemcpyDeviceToHost));
@@ -644,11 +644,11 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     VT_gpu = nullptr;
 
     // Compute the new truncated rank
-    launch_FindK_double(S_gpu, epsilon, a->cols, newK_gpu);
+    launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
     CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
 
     // Compute the squareroots of all singular values
-    launch_Sqrt_SingularVals_Kernel_double(S_gpu, newK);
+    launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
     // Display S_gpu
     // double *S_cpu = new double[newK];
     // CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(double) * newK, cudaMemcpyDeviceToHost));
