@@ -370,32 +370,18 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   CUDA_CHECK(cudaFree(Rb_gpu));
   Rb_gpu = nullptr;
 
+  // Décomposition SVD de Ra
+  typename Types<T>::real *S_gpu = nullptr;
+  T *U_gpu = nullptr, *VT_gpu = nullptr;
+  proxy_cuda::gesvd('A', 'A', a->cols, a->cols, Ra_gpu, a->cols, &S_gpu, &U_gpu, &VT_gpu);
+  HMAT_ASSERT(!info);
+
+  CUDA_CHECK(cudaFree(Ra_gpu));
+  Ra_gpu = nullptr;
+
   if constexpr (std::is_same_v<T, float>) {
     T alpha = 1.0f;
     T beta = 0.0f;
-    T* workspace = nullptr;
-    
-    // Décomposition SVD de Ra
-    float *S_gpu = nullptr, *U_gpu = nullptr, *VT_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&U_gpu, a->cols * a->cols * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&S_gpu, a->cols * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&VT_gpu, a->cols * a->cols * sizeof(float)));
-    int size_workspace_svd = 0;
-    CUSOLVER_CHECK(cusolverDnSgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(float)));
-    CUSOLVER_CHECK(cusolverDnSgesvd(cusolver_handle, 'A', 'A', a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VT_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info == 0) {
-      //  printf("SVD convergée avec succès.\n");
-    } else if (info < 0) {
-      printf("Erreur: Le paramètre %d est invalide.\n", -info);
-    } else {
-      printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
-    }
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-    CUDA_CHECK(cudaFree(Ra_gpu));
-    Ra_gpu = nullptr;
 
     // Transposition de VT (VT^T = V : k x k)
     float *V_gpu = nullptr;
@@ -481,39 +467,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaFree(QbV_gpu));
     QbV_gpu = nullptr;
 
-    CUDA_CHECK(cudaFree(info_GPU));
-    info_GPU = nullptr;
-
-
   } else if constexpr (std::is_same_v<T, double>) {
     T alpha = 1.0;
     T beta = 0.0;
-    T* workspace = nullptr;
 
-    // Décomposition SVD
-    double *S_gpu, *U_gpu, *VT_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&U_gpu, a->cols * a->cols * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&S_gpu, a->cols * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&VT_gpu, a->cols * a->cols * sizeof(double)));
-
-    int size_workspace_svd = 0;
-
-    CUSOLVER_CHECK(cusolverDnDgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(double)));
-
-    signed char jobu = 'A';   // Toutes les colonnes de U
-    signed char jobvt = 'A';  // Toutes les lignes de VT
-
-    CUSOLVER_CHECK(cusolverDnDgesvd(cusolver_handle, jobu, jobvt, a->cols, a->cols, Ra_gpu, a->cols, S_gpu, U_gpu, a->cols, VT_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU)); // rwork_svd dans le cas float et double = nullptr
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info == 0) {
-      //  printf("SVD convergée avec succès.\n");
-    } else if (info < 0) {
-      printf("Erreur: Le paramètre %d est invalide.\n", -info);
-    } else {
-      printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
-    }
-          
     launch_FindK_double(S_gpu, epsilon, a->cols, newK_gpu);
     CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
     launch_Sqrt_SingularVals_Kernel_double(S_gpu, newK);
@@ -567,66 +524,35 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
         
     if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
 
-    CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(work_Dormqr_a));
     CUDA_CHECK(cudaFree(work_Dormqr_b));
     CUDA_CHECK(cudaFree(tauA_gpu));
     CUDA_CHECK(cudaFree(tauB_gpu));
     CUDA_CHECK(cudaFree(QaU_gpu));
     CUDA_CHECK(cudaFree(QbV_gpu));
-    CUDA_CHECK(cudaFree(info_GPU));
     CUDA_CHECK(cudaFree(a_gpu));
     CUDA_CHECK(cudaFree(b_gpu));
-    CUDA_CHECK(cudaFree(Ra_gpu));
     CUDA_CHECK(cudaFree(VT_gpu));
-    Ra_gpu = nullptr;
     VT_gpu = nullptr;
-    workspace = nullptr;
     work_Dormqr_a = nullptr;
     work_Dormqr_b = nullptr;
     tauA_gpu = nullptr;
     tauB_gpu = nullptr;
     QaU_gpu = nullptr;
     QbV_gpu = nullptr;
-    info_GPU = nullptr;
     a_gpu = nullptr;
     b_gpu = nullptr;
 
   } else if constexpr (std::is_same_v<T, std::complex<float>>) { 
     cuComplex alpha = make_cuComplex(1.0f, 0.0f);
     cuComplex beta  = make_cuComplex(0.0f, 0.0f);
-    cuComplex* workspace = nullptr; 
-
-    // Décomposition SVD de Ra
-    float *S_gpu = nullptr;
-    cuComplex *U_gpu = nullptr, *VH_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&U_gpu, a->cols * a->cols * sizeof(cuComplex)));
-    CUDA_CHECK(cudaMalloc(&S_gpu, a->cols * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&VH_gpu, a->cols * a->cols * sizeof(cuComplex)));
-    int size_workspace_svd = 0;
-    CUSOLVER_CHECK(cusolverDnCgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(cuComplex)));
-    /**** ATTENTION CE QUI SORT DE LA SVD C'EST VH (trans conjugé) ****** */
-    CUSOLVER_CHECK(cusolverDnCgesvd(cusolver_handle, 'A', 'A', a->cols, a->cols, reinterpret_cast<cuComplex*>(Ra_gpu), a->cols, S_gpu, U_gpu, a->cols, VH_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info == 0) {
-      //  printf("SVD convergée avec succès.\n");
-    } else if (info < 0) {
-      printf("Erreur: Le paramètre %d est invalide.\n", -info);
-    } else {
-      printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
-    }
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-    CUDA_CHECK(cudaFree(Ra_gpu));
-    Ra_gpu = nullptr;
 
     // Transposition de VH (VH^T = Vconj)
     cuComplex *V_gpu = nullptr;
     CUDA_CHECK(cudaMalloc(&V_gpu, a->cols * a->cols * sizeof(cuComplex)));
-    CUBLAS_CHECK(cublasCgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, VH_gpu, a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
-    CUDA_CHECK(cudaFree(VH_gpu));
-    VH_gpu = nullptr;
+    CUBLAS_CHECK(cublasCgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, reinterpret_cast<cuComplex*>(VT_gpu), a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
+    CUDA_CHECK(cudaFree(VT_gpu));
+    VT_gpu = nullptr;
 
     // Compute the new truncated rank
     launch_FindK_float(S_gpu, epsilon, a->cols, newK_gpu);
@@ -657,7 +583,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaMemset(QbV_gpu, 0, b->rows * newK * sizeof(cuComplex)));
     for (int j = 0; j < newK; ++j) {
       // U_gpu est k x k (leading dimension k) QaU_gpu est m x k (leading dimension m)
-      CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &U_gpu[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
+      CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &reinterpret_cast<cuComplex*>(U_gpu)[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
       // V_gpu est k x k (leading dimension k) QbV_gpu est n x k (leading dimension n)
       CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &V_gpu[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
     }
@@ -706,43 +632,16 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaFree(QbV_gpu));
     QbV_gpu = nullptr;
 
-    CUDA_CHECK(cudaFree(info_GPU));
-    info_GPU = nullptr;
   } else if constexpr (std::is_same_v<T, std::complex<double>>) {
     cuDoubleComplex alpha = make_cuDoubleComplex(1.0, 0.0);
     cuDoubleComplex beta  = make_cuDoubleComplex(0.0, 0.0);
-    cuDoubleComplex* workspace = nullptr; 
-
-    // Décomposition SVD de Ra
-    double *S_gpu = nullptr;
-    cuDoubleComplex *U_gpu = nullptr, *VH_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&U_gpu, a->cols * a->cols * sizeof(cuDoubleComplex)));
-    CUDA_CHECK(cudaMalloc(&S_gpu, a->cols * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&VH_gpu, a->cols * a->cols * sizeof(cuDoubleComplex)));
-    int size_workspace_svd = 0;
-    CUSOLVER_CHECK(cusolverDnZgesvd_bufferSize(cusolver_handle, a->cols, a->cols, &size_workspace_svd));
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(cuDoubleComplex)));
-    /**** ATTENTION CE QUI SORT DE LA SVD C'EST VH (trans conjugé) ****** */
-    CUSOLVER_CHECK(cusolverDnZgesvd(cusolver_handle, 'A', 'A', a->cols, a->cols, reinterpret_cast<cuDoubleComplex*>(Ra_gpu), a->cols, S_gpu, U_gpu, a->cols, VH_gpu, a->cols, workspace, size_workspace_svd, nullptr, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info == 0) {
-      //  printf("SVD convergée avec succès.\n");
-    } else if (info < 0) {
-      printf("Erreur: Le paramètre %d est invalide.\n", -info);
-    } else {
-      printf("Attention: SVD n'a pas convergé. Code retour: %d\n", info);
-    }
-    CUDA_CHECK(cudaFree(workspace));
-    workspace = nullptr;
-    CUDA_CHECK(cudaFree(Ra_gpu));
-    Ra_gpu = nullptr;
 
     // Transposition de VH (VH^T = Vconj)
     cuDoubleComplex *V_gpu = nullptr;
     CUDA_CHECK(cudaMalloc(&V_gpu, a->cols * a->cols * sizeof(cuDoubleComplex)));
-    CUBLAS_CHECK(cublasZgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, VH_gpu, a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
-    CUDA_CHECK(cudaFree(VH_gpu));
-    VH_gpu = nullptr;
+    CUBLAS_CHECK(cublasZgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, reinterpret_cast<cuDoubleComplex*>(VT_gpu), a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
+    CUDA_CHECK(cudaFree(VT_gpu));
+    VT_gpu = nullptr;
 
     // Compute the new truncated rank
     launch_FindK_double(S_gpu, epsilon, a->cols, newK_gpu);
@@ -773,7 +672,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaMemset(QbV_gpu, 0, b->rows * newK * sizeof(cuDoubleComplex)));
     for (int j = 0; j < newK; ++j) {
       // U_gpu est k x k (leading dimension k) QaU_gpu est m x k (leading dimension m)
-      CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &U_gpu[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
+      CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &reinterpret_cast<cuDoubleComplex*>(U_gpu)[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
       // V_gpu est k x k (leading dimension k) QbV_gpu est n x k (leading dimension n)
       CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &V_gpu[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
     }
@@ -822,12 +721,12 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaFree(QbV_gpu));
     QbV_gpu = nullptr;
   
-    CUDA_CHECK(cudaFree(info_GPU));
-    info_GPU = nullptr;
   } else {
     std::cout << "Type non supporté \n";
   }
     
+  CUDA_CHECK(cudaFree(info_GPU));
+  info_GPU = nullptr;
   CUDA_CHECK(cudaFree(newK_gpu));
   newK_gpu = nullptr;
 
