@@ -327,33 +327,15 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   */
   
 #ifdef HAVE_CUDA
-  int newK = 0;
-  int *newK_gpu = nullptr;
-  CUDA_CHECK(cudaMalloc(&newK_gpu, sizeof(int)));
-  CUDA_CHECK(cudaMemcpy(newK_gpu, &a->cols, sizeof(int), cudaMemcpyHostToDevice));  
-  // Récupération des données
-  T* a_data = a->ptr();
-  T* b_data = b->ptr(); 
   
-  T* a_data_copy = nullptr, *b_data_copy = nullptr;
+  T *a_gpu = nullptr;
+  CUDA_CHECK(cudaMalloc(&a_gpu, sizeof(T) * a->rows * a->cols));
+  CUDA_CHECK(cudaMemcpy(a_gpu, a->ptr(), sizeof(T) * a->rows * a->cols, cudaMemcpyHostToDevice));
+  T *b_gpu = nullptr;
+  CUDA_CHECK(cudaMalloc(&b_gpu, sizeof(T) * b->rows * b->cols));
+  CUDA_CHECK(cudaMemcpy(b_gpu, b->ptr(), sizeof(T) * b->rows * b->cols, cudaMemcpyHostToDevice));
   
-  size_t size_bytes = sizeof(T) * a->rows * a->cols;
-  T *a_gpu;
-  CUDA_CHECK(cudaMalloc(&a_gpu, size_bytes));
-  CUDA_CHECK(cudaMemcpy(a_gpu, a_data, size_bytes, cudaMemcpyHostToDevice));
-  //std::cout << "a->cols " << a->cols << " = (?) b-> cols " << b->cols << "\n"; vérifie on est bon !
-  size_bytes = sizeof(T) * b->rows * b->cols;
-  T *b_gpu;
-  CUDA_CHECK(cudaMalloc(&b_gpu, size_bytes));
-  CUDA_CHECK(cudaMemcpy(b_gpu, b_data, size_bytes, cudaMemcpyHostToDevice));
-  
-  cusolverDnHandle_t cusolver_handle = CudaManager::getInstance().getCusolverHandle();
-  cublasHandle_t cublas_handle = CudaManager::getInstance().getCublasHandle();
-  
-  int *info_GPU = 0;
   int info = 0;
-  
-  CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
   
   // Facto QR de a = Qa * Ra
   T *tauA_gpu = nullptr, *Ra_gpu = nullptr;
@@ -368,28 +350,31 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // Ra_gpu <- Ra_gpu * T^Rb_gpu        
   proxy_cuda::trmm('R', 'U', 'T', 'N', a->cols, a->cols, (T)1., Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols);
   CUDA_CHECK(cudaFree(Rb_gpu));
-  Rb_gpu = nullptr;
 
-  // Décomposition SVD de Ra
+  // Décomposition SVD de Ra = U.S.VT/VH
   typename Types<T>::real *S_gpu = nullptr;
   T *U_gpu = nullptr, *VT_gpu = nullptr;
-  proxy_cuda::gesvd('A', 'A', a->cols, a->cols, Ra_gpu, a->cols, &S_gpu, &U_gpu, &VT_gpu);
+  info = proxy_cuda::gesvd('A', 'A', a->cols, a->cols, Ra_gpu, a->cols, &S_gpu, &U_gpu, &VT_gpu);
   HMAT_ASSERT(!info);
-
   CUDA_CHECK(cudaFree(Ra_gpu));
-  Ra_gpu = nullptr;
+
+  // Compute the new truncated rank
+  int *newK_gpu = nullptr;
+  CUDA_CHECK(cudaMalloc(&newK_gpu, sizeof(int)));
+  CUDA_CHECK(cudaMemcpy(newK_gpu, &a->cols, sizeof(int), cudaMemcpyHostToDevice));  
+  launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
+  int newK = 0;
+  CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaFree(newK_gpu));
+  newK_gpu = nullptr;
+
+  // Compute the squareroots of all singular values
+  launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
 
   // Transposition de VT/VH (VT^T = V : k x k)
   T* V_gpu=nullptr;
-  proxy_cuda::geam('T', 'N', a->cols, a->cols, (T)1., VT_gpu, a->cols, (T)0., (T*)nullptr, a->cols, &V_gpu, a->cols);
+  proxy_cuda::geam('T', 'N', a->cols, newK, (T)1., VT_gpu, a->cols, (T)0., (T*)nullptr, a->cols, &V_gpu, a->cols);
   CUDA_CHECK(cudaFree(VT_gpu));
-  VT_gpu = nullptr;
-
-  // Compute the new truncated rank
-  launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
-  CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-  // Compute the squareroots of all singular values
-  launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
 
   // Apply the squareroots of singular values to the columns of U and V
   // Since S_gpu is a real array, we use S/D dgmm even with U,V complex, with twice the number of rows
@@ -397,248 +382,30 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   proxy_cuda::dgmm<typename Types<T>::real>('R', mult*a->cols, newK, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols, S_gpu, 1, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols);
   proxy_cuda::dgmm<typename Types<T>::real>('R', mult*a->cols, newK, reinterpret_cast<typename Types<T>::real*>(V_gpu), mult*a->cols, S_gpu, 1, reinterpret_cast<typename Types<T>::real*>(V_gpu), mult*a->cols);
   CUDA_CHECK(cudaFree(S_gpu));
-  S_gpu = nullptr;
 
-    if constexpr (std::is_same_v<T, float>) {
-    // Copie U et V en haut de QaU et QbV
-    float *QaU_gpu = nullptr, *QbV_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&QaU_gpu, a->rows * newK * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&QbV_gpu, b->rows * newK * sizeof(float)));
-    CUDA_CHECK(cudaMemset(QaU_gpu, 0, a->rows * newK * sizeof(float)));
-    CUDA_CHECK(cudaMemset(QbV_gpu, 0, b->rows * newK * sizeof(float)));
-    for (int j = 0; j < newK; ++j) {
-      // U_gpu est k x k (leading dimension k) QaU_gpu est m x k (leading dimension m)
-      CUBLAS_CHECK(cublasScopy(cublas_handle, a->cols, &U_gpu[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
-      // V_gpu est k x k (leading dimension k) QbV_gpu est n x k (leading dimension n)
-      CUBLAS_CHECK(cublasScopy(cublas_handle, a->cols, &V_gpu[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
-    }
-    CUDA_CHECK(cudaFree(U_gpu)); CUDA_CHECK(cudaFree(V_gpu));
-    U_gpu = nullptr; V_gpu =nullptr;
+  // Construction du panneau QaU_gpu (a->rows x newK) <- Qa (a->rows x a->rows) * U (a->rows x newK)
+  T *QaU_gpu = nullptr; 
+  info = proxy_cuda::or_un_mqr('L', 'N', a->rows, newK, a->cols, a_gpu, a->rows, tauA_gpu, U_gpu, a->cols, &QaU_gpu);  
+  HMAT_ASSERT(!info);
+  CUDA_CHECK(cudaFree(U_gpu));
+  CUDA_CHECK(cudaFree(tauA_gpu));
+  CUDA_CHECK(cudaFree(a_gpu));
 
-    // Construction du panneau a_gpu (a->rows x newK) <- Qa (a->rows x a->rows) * U (a->rows x newK)
-    float* work_sormqr_a = nullptr;
-    int worksize_sormqr_a = 0;
-    CUSOLVER_CHECK(cusolverDnSormqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, a_gpu, a->rows, tauA_gpu, QaU_gpu, a->rows, &worksize_sormqr_a));
-    CUDA_CHECK(cudaMalloc(&work_sormqr_a, worksize_sormqr_a * sizeof(float)));
-    // Application de Qa sur U :
-    CUSOLVER_CHECK(cusolverDnSormqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, a_gpu, a->rows, tauA_gpu, QaU_gpu, a->rows, work_sormqr_a, worksize_sormqr_a, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
-    CUDA_CHECK(cudaFree(work_sormqr_a));
-    work_sormqr_a = nullptr;
-    CUDA_CHECK(cudaFree(tauA_gpu));
-    tauA_gpu = nullptr;
-    CUDA_CHECK(cudaFree(a_gpu));
-    a_gpu = nullptr;
+  // Construction du panneau QbV_gpu (b->rows x newK) <- Qb (b->rows x b->rows) * U (b->rows x newK)
+  T *QbV_gpu = nullptr; 
+  info = proxy_cuda::or_un_mqr('L', 'N', b->rows, newK, b->cols, b_gpu, b->rows, tauB_gpu, V_gpu, b->cols, &QbV_gpu);  
+  HMAT_ASSERT(!info);
+  CUDA_CHECK(cudaFree(V_gpu));
+  CUDA_CHECK(cudaFree(tauB_gpu));
+  CUDA_CHECK(cudaFree(b_gpu));
 
-    // Construction du panneau b_gpu (b->rows x newK) <- Qb (b->rows x b->rows) * V (b->rows x newK)
-    float* work_sormqr_b = nullptr;
-    int worksize_sormqr_b = 0;
-    CUSOLVER_CHECK(cusolverDnSormqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, b_gpu, b->rows, tauB_gpu, QbV_gpu, b->rows, &worksize_sormqr_b));
-    CUDA_CHECK(cudaMalloc(&work_sormqr_b, worksize_sormqr_b * sizeof(float)));
-    // Application de Qb sur V
-    CUSOLVER_CHECK(cusolverDnSormqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, b_gpu, b->rows, tauB_gpu, QbV_gpu, b->rows, work_sormqr_b, worksize_sormqr_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
-    CUDA_CHECK(cudaFree(work_sormqr_b));
-    work_sormqr_b = nullptr;
-    CUDA_CHECK(cudaFree(tauB_gpu));
-    tauB_gpu = nullptr;
-    CUDA_CHECK(cudaFree(b_gpu));
-    b_gpu = nullptr;
+  T* a_data_copy = (T*)malloc(sizeof(T)* a->rows * newK);
+  CUDA_CHECK(cudaMemcpy(a_data_copy, QaU_gpu, sizeof(T)* a->rows * newK, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaFree(QaU_gpu));
 
-    a_data_copy = (float*)malloc(sizeof(float)* a->rows * newK);
-    CUDA_CHECK(cudaMemcpy(a_data_copy, QaU_gpu, a->rows * newK * sizeof(float), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(QaU_gpu));
-    QaU_gpu = nullptr;
-
-    b_data_copy = (float*)malloc(sizeof(float)* b->rows * newK);
-    CUDA_CHECK(cudaMemcpy(b_data_copy, QbV_gpu, b->rows * newK * sizeof(float), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(QbV_gpu));
-    QbV_gpu = nullptr;
-
-  } else if constexpr (std::is_same_v<T, double>) {
-    double *QaU_gpu, *QbV_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&QaU_gpu, a->rows * newK * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&QbV_gpu, b->rows * newK * sizeof(double)));
-
-    CUDA_CHECK(cudaMemset(QaU_gpu, 0, a->rows * newK * sizeof(double)));
-    CUDA_CHECK(cudaMemset(QbV_gpu, 0, b->rows * newK * sizeof(double)));
-      
-          
-    for (int j = 0; j < newK; ++j) {
-      CUBLAS_CHECK(cublasDcopy(cublas_handle, a->cols, &U_gpu[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
-      CUBLAS_CHECK(cublasDcopy(cublas_handle, a->cols, &V_gpu[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
-    }
-    CUDA_CHECK(cudaFree(U_gpu)); CUDA_CHECK(cudaFree(V_gpu));
-    U_gpu = nullptr; V_gpu = nullptr;
-    double* work_Dormqr_a = nullptr, *work_Dormqr_b = nullptr;
-    int worksize_Dormqr_a = 0, worksize_Dormqr_b = 0;
-          
-    CUSOLVER_CHECK(cusolverDnDormqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, a_gpu, a->rows, tauA_gpu, QaU_gpu, a->rows, &worksize_Dormqr_a));
-    CUSOLVER_CHECK(cusolverDnDormqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, b_gpu, b->rows, tauB_gpu, QbV_gpu, b->rows, &worksize_Dormqr_b));
-          
-    CUDA_CHECK(cudaMalloc(&work_Dormqr_a, worksize_Dormqr_a * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&work_Dormqr_b, worksize_Dormqr_b * sizeof(double)));
-          
-    // Application de Qa sur U :
-    CUSOLVER_CHECK(cusolverDnDormqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, a_gpu, a->rows, tauA_gpu, QaU_gpu, a->rows, work_Dormqr_a, worksize_Dormqr_a, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
-
-    // Application de Qb sur V
-    CUSOLVER_CHECK(cusolverDnDormqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, b_gpu, b->rows, tauB_gpu, QbV_gpu, b->rows, work_Dormqr_b, worksize_Dormqr_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-        
-    a_data_copy = (double*)malloc(sizeof(double)* a->rows * newK);
-    b_data_copy = (double*)malloc(sizeof(double)* b->rows * newK);
-    CUDA_CHECK(cudaMemcpy(a_data_copy, QaU_gpu, a->rows * newK * sizeof(double), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(b_data_copy, QbV_gpu, b->rows * newK * sizeof(double), cudaMemcpyDeviceToHost));
-        
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
-
-    CUDA_CHECK(cudaFree(work_Dormqr_a));
-    CUDA_CHECK(cudaFree(work_Dormqr_b));
-    CUDA_CHECK(cudaFree(tauA_gpu));
-    CUDA_CHECK(cudaFree(tauB_gpu));
-    CUDA_CHECK(cudaFree(QaU_gpu));
-    CUDA_CHECK(cudaFree(QbV_gpu));
-    CUDA_CHECK(cudaFree(a_gpu));
-    CUDA_CHECK(cudaFree(b_gpu));
-    work_Dormqr_a = nullptr;
-    work_Dormqr_b = nullptr;
-    tauA_gpu = nullptr;
-    tauB_gpu = nullptr;
-    QaU_gpu = nullptr;
-    QbV_gpu = nullptr;
-    a_gpu = nullptr;
-    b_gpu = nullptr;
-
-  } else if constexpr (std::is_same_v<T, std::complex<float>>) { 
-
-    // Copie U et V en haut de QaU et QbV
-    cuComplex *QaU_gpu = nullptr, *QbV_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&QaU_gpu, a->rows * newK * sizeof(cuComplex)));
-    CUDA_CHECK(cudaMalloc(&QbV_gpu, b->rows * newK * sizeof(cuComplex)));
-    CUDA_CHECK(cudaMemset(QaU_gpu, 0, a->rows * newK * sizeof(cuComplex)));
-    CUDA_CHECK(cudaMemset(QbV_gpu, 0, b->rows * newK * sizeof(cuComplex)));
-    for (int j = 0; j < newK; ++j) {
-      // U_gpu est k x k (leading dimension k) QaU_gpu est m x k (leading dimension m)
-      CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &reinterpret_cast<cuComplex*>(U_gpu)[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
-      // V_gpu est k x k (leading dimension k) QbV_gpu est n x k (leading dimension n)
-      CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &reinterpret_cast<cuComplex*>(V_gpu)[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
-    }
-    CUDA_CHECK(cudaFree(U_gpu)); CUDA_CHECK(cudaFree(V_gpu));
-    U_gpu = nullptr; V_gpu =nullptr;
-
-    // Construction du panneau a_gpu (a->rows x newK) <- Qa (a->rows x a->rows) * U (a->rows x newK)
-    cuComplex* work_unmqr_a = nullptr;
-    int worksize_unmqr_a = 0;
-    CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, reinterpret_cast<cuComplex*>(tauA_gpu), QaU_gpu, a->rows, &worksize_unmqr_a));
-    CUDA_CHECK(cudaMalloc(&work_unmqr_a, worksize_unmqr_a * sizeof(cuComplex)));
-    // Application de Qa sur U :
-    CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuComplex*>(a_gpu), a->rows, reinterpret_cast<cuComplex*>(tauA_gpu), QaU_gpu, a->rows, work_unmqr_a, worksize_unmqr_a, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnCunmqr : info = %d\n", info);}
-    CUDA_CHECK(cudaFree(work_unmqr_a));
-    work_unmqr_a = nullptr;
-    CUDA_CHECK(cudaFree(tauA_gpu));
-    tauA_gpu = nullptr;
-    CUDA_CHECK(cudaFree(a_gpu));
-    a_gpu = nullptr;
-
-    // Construction du panneau b_gpu (b->rows x newK) <- Qb (b->rows x b->rows) * U (b->rows x newK)
-    cuComplex *work_unmqr_b = nullptr;
-    int worksize_unmqr_b = 0;
-    CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, reinterpret_cast<cuComplex*>(tauB_gpu), QbV_gpu, b->rows, &worksize_unmqr_b));
-    CUDA_CHECK(cudaMalloc(&work_unmqr_b, worksize_unmqr_b * sizeof(cuComplex)));
-    // Application de Qb sur V
-    CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuComplex*>(b_gpu), b->rows, reinterpret_cast<cuComplex*>(tauB_gpu), QbV_gpu, b->rows, work_unmqr_b, worksize_unmqr_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnCunmqr : info = %d\n", info);}
-    CUDA_CHECK(cudaFree(work_unmqr_b));
-    work_unmqr_b = nullptr;
-    CUDA_CHECK(cudaFree(tauB_gpu));
-    tauB_gpu = nullptr;
-    CUDA_CHECK(cudaFree(b_gpu));
-    b_gpu = nullptr;
-
-    a_data_copy = (std::complex<float>*)malloc(sizeof(std::complex<float>) * a->rows * newK);
-    CUDA_CHECK(cudaMemcpy(a_data_copy, QaU_gpu, a->rows * newK * sizeof(cuComplex), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(QaU_gpu));
-    QaU_gpu = nullptr;
-
-    b_data_copy = (std::complex<float>*)malloc(sizeof(std::complex<float>) * b->rows * newK);
-    CUDA_CHECK(cudaMemcpy(b_data_copy, QbV_gpu, b->rows * newK * sizeof(cuComplex), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(QbV_gpu));
-    QbV_gpu = nullptr;
-
-  } else if constexpr (std::is_same_v<T, std::complex<double>>) {
-    // Copie U et V en haut de QaU et QbV
-    cuDoubleComplex *QaU_gpu = nullptr, *QbV_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&QaU_gpu, a->rows * newK * sizeof(cuDoubleComplex)));
-    CUDA_CHECK(cudaMalloc(&QbV_gpu, b->rows * newK * sizeof(cuDoubleComplex)));
-    CUDA_CHECK(cudaMemset(QaU_gpu, 0, a->rows * newK * sizeof(cuDoubleComplex)));
-    CUDA_CHECK(cudaMemset(QbV_gpu, 0, b->rows * newK * sizeof(cuDoubleComplex)));
-    for (int j = 0; j < newK; ++j) {
-      // U_gpu est k x k (leading dimension k) QaU_gpu est m x k (leading dimension m)
-      CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &reinterpret_cast<cuDoubleComplex*>(U_gpu)[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
-      // V_gpu est k x k (leading dimension k) QbV_gpu est n x k (leading dimension n)
-      CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &reinterpret_cast<cuDoubleComplex*>(V_gpu)[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
-    }
-    CUDA_CHECK(cudaFree(U_gpu)); CUDA_CHECK(cudaFree(V_gpu));
-    U_gpu = nullptr; V_gpu =nullptr;
-
-    // Construction du panneau a_gpu (a->rows x newK) <- Qa (a->rows x a->rows) * U (a->rows x newK)
-    cuDoubleComplex* work_unmqr_a = nullptr;
-    int worksize_unmqr_a = 0;
-    CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, reinterpret_cast<cuDoubleComplex*>(tauA_gpu), QaU_gpu, a->rows, &worksize_unmqr_a));
-    CUDA_CHECK(cudaMalloc(&work_unmqr_a, worksize_unmqr_a * sizeof(cuDoubleComplex)));
-    // Application de Qa sur U :
-    CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, a->rows, newK, a->cols, reinterpret_cast<cuDoubleComplex*>(a_gpu), a->rows, reinterpret_cast<cuDoubleComplex*>(tauA_gpu), QaU_gpu, a->rows, work_unmqr_a, worksize_unmqr_a, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnZunmqr : info = %d\n", info);}
-    CUDA_CHECK(cudaFree(work_unmqr_a));
-    work_unmqr_a = nullptr;
-    CUDA_CHECK(cudaFree(tauA_gpu));
-    tauA_gpu = nullptr;
-    CUDA_CHECK(cudaFree(a_gpu));
-    a_gpu = nullptr;
-
-    // Construction du panneau b_gpu (b->rows x newK) <- Qb (b->rows x b->rows) * U (b->rows x newK)
-    cuDoubleComplex*work_unmqr_b = nullptr;
-    int worksize_unmqr_b = 0;
-    CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, reinterpret_cast<cuDoubleComplex*>(tauB_gpu), QbV_gpu, b->rows, &worksize_unmqr_b));
-    CUDA_CHECK(cudaMalloc(&work_unmqr_b, worksize_unmqr_b * sizeof(cuDoubleComplex)));
-    // Application de Qb sur V :
-    CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, CUBLAS_SIDE_LEFT, CUBLAS_OP_N, b->rows, newK, b->cols, reinterpret_cast<cuDoubleComplex*>(b_gpu), b->rows, reinterpret_cast<cuDoubleComplex*>(tauB_gpu), QbV_gpu, b->rows, work_unmqr_b, worksize_unmqr_b, info_GPU));
-    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnZunmqr : info = %d\n", info);}
-    CUDA_CHECK(cudaFree(work_unmqr_b));
-    work_unmqr_b = nullptr;
-    CUDA_CHECK(cudaFree(tauB_gpu));
-    tauB_gpu = nullptr;
-    CUDA_CHECK(cudaFree(b_gpu));
-    b_gpu = nullptr;
-
-    a_data_copy = (std::complex<double>*)malloc(sizeof(std::complex<double>) * a->rows * newK);
-    CUDA_CHECK(cudaMemcpy(a_data_copy, QaU_gpu, a->rows * newK * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(QaU_gpu));
-    QaU_gpu = nullptr;
-
-    b_data_copy = (std::complex<double>*)malloc(sizeof(std::complex<double>) * b->rows * newK);
-    CUDA_CHECK(cudaMemcpy(b_data_copy, QbV_gpu, b->rows * newK * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(QbV_gpu));
-    QbV_gpu = nullptr;
-  
-  } else {
-    std::cout << "Type non supporté \n";
-  }
-    
-  CUDA_CHECK(cudaFree(info_GPU));
-  info_GPU = nullptr;
-  CUDA_CHECK(cudaFree(newK_gpu));
-  newK_gpu = nullptr;
+  T* b_data_copy = (T*)malloc(sizeof(T)* b->rows * newK);
+  CUDA_CHECK(cudaMemcpy(b_data_copy, QbV_gpu, sizeof(T)* b->rows * newK, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaFree(QbV_gpu));
 
   ScalarArray<T> *newA_CUDA = new ScalarArray<T>(a_data_copy, a->rows, newK, a->rows);
   ScalarArray<T> *newB_CUDA = new ScalarArray<T>(b_data_copy, b->rows, newK, b->rows);
