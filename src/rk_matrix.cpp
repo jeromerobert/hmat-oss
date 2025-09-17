@@ -35,7 +35,7 @@
 #include "common/timeline.hpp"
 #include "lapack_exception.hpp"
 #include <iomanip>
-#include <type_traits> // pour tester les types
+
 #include <algorithm>
 #include <chrono>
 
@@ -252,19 +252,6 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
   newAB->setOrtho( uv->getOrtho());
   delete  uv;
   return newAB;
-}
-template <typename T>
-int find_newK(T &sigma, double epsilon, int old_rank) {
-  assert(epsilon >= 0.);
-  double threshold_eigenvalue = sigma[0];
-  threshold_eigenvalue *= epsilon;
-  int i = 0;
-  for (i = 0; i < old_rank; i++) {
-    if (sigma[i] <= threshold_eigenvalue){
-      break;
-    }
-  }
-  return i;
 }
 
 template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {

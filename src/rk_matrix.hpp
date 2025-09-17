@@ -23,7 +23,6 @@
 #ifndef _RK_MATRIX_HPP
 #define _RK_MATRIX_HPP
 /* Implementation of Rk-matrices */
-#include "config.h"
 
 #include "full_matrix.hpp"
 #include "compression.hpp"
