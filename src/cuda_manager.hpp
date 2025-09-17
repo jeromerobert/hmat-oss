@@ -11,9 +11,8 @@
   do {									\
     auto status = call;							\
     if ((int)status != (int)cudaSuccess) { /* This is 0 for both libs */ \
-      fprintf(stderr, "CUDA Error %d (%s: %s) at %s:%d\n",		\
-	      status, cudaGetErrorName(status), cudaGetErrorString(status), __FILE__, __LINE__); \
-      /* In a real app, you might throw an exception */                 \
+      std::cerr << "CUDA Error " << status << " (" << cudaGetErrorName(status) << ": " << cudaGetErrorString(status) << ") at " << __FILE__ << ":" << __LINE__ << std::endl;   \
+     /* In a real app, you might throw an exception */                 \
       exit(EXIT_FAILURE);						\
     }									\
   } while (0)
@@ -22,8 +21,7 @@
   do {									\
     auto status = call;							\
     if ((int)status != (int)CUBLAS_STATUS_SUCCESS) { /* This is 0 for both libs */ \
-      fprintf(stderr, "cuBLAS Error %d (%s: %s) at %s:%d\n",		\
-	      status, cublasGetStatusName(status), cublasGetStatusString(status), __FILE__, __LINE__); \
+      std::cerr << "cuBLAS Error " << status << " (" << cublasGetStatusName(status) << ": " << cublasGetStatusString(status) << ") at " << __FILE__ << ":" << __LINE__ << std::endl;   \
       /* In a real app, you might throw an exception */                 \
       exit(EXIT_FAILURE);						\
     }									\
@@ -33,8 +31,7 @@
   do {									\
     auto status = call;							\
     if ((int)status != (int)CUSOLVER_STATUS_SUCCESS) { /* This is 0 for both libs */ \
-      fprintf(stderr, "cuSOLVER Error %d at %s:%d\n",			\
-	      status, __FILE__, __LINE__);				\
+      std::cerr << "cuSOLVER Error " << status << " at " << __FILE__ << ":" << __LINE__ << std::endl;   \
       /* In a real app, you might throw an exception */                 \
       exit(EXIT_FAILURE);						\
     }									\
@@ -145,7 +142,8 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnSgeqrf(cusolver_handle, m, n, a_gpu, lda, *tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
+    if (info != 0)
+      std::cerr << "Error in QR factorization of A. Code : " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -173,7 +171,8 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnDgeqrf(cusolver_handle, m, n, a_gpu, lda, *tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
+    if (info != 0)
+      std::cerr << "Error in QR factorization of A. Code : " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -201,7 +200,8 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnCgeqrf(cusolver_handle, m, n, reinterpret_cast<cuComplex*>(a_gpu), lda, reinterpret_cast<cuComplex*>(*tauA_gpu), reinterpret_cast<cuComplex*>(workspace), size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
+    if (info != 0)
+      std::cerr << "Error in QR factorization of A. Code : " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -229,7 +229,8 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnZgeqrf(cusolver_handle, m, n, reinterpret_cast<cuDoubleComplex*>(a_gpu), lda, reinterpret_cast<cuDoubleComplex*>(*tauA_gpu), reinterpret_cast<cuDoubleComplex*>(workspace), size_workspace_geqrf_a, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info != 0) {printf("Error in QR factorization of A. Code : %d\n", info);}
+    if (info != 0)
+      std::cerr << "Error in QR factorization of A. Code : " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
@@ -323,11 +324,10 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnSgesvd(cusolver_handle, jobu, jobvt, m, n, a, m, *s, *u, m, *vt, n, workspace, size_workspace_svd, nullptr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info < 0) {
-      printf("Error: parameter %d is invalid.\n", -info);
-    } else if (info>0) {
-      printf("Warning: SVD has not converged. Return code: %d\n", info);
-    }
+    if (info < 0)
+      std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
+    else if (info>0)
+      std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
@@ -351,11 +351,10 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnDgesvd(cusolver_handle, jobu, jobvt, m, n, a, m, *s, *u, m, *vt, n, workspace, size_workspace_svd, nullptr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info < 0) {
-      printf("Error: parameter %d is invalid.\n", -info);
-    } else if (info>0) {
-      printf("Warning: SVD has not converged. Return code: %d\n", info);
-    }
+    if (info < 0)
+      std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
+    else if (info>0)
+      std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
@@ -379,11 +378,10 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnCgesvd(cusolver_handle, jobu, jobvt, m, n, reinterpret_cast<cuComplex*>(a), m, *s, reinterpret_cast<cuComplex*>(*u), m, reinterpret_cast<cuComplex*>(*vt), n, reinterpret_cast<cuComplex*>(workspace), size_workspace_svd, nullptr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info < 0) {
-      printf("Error: parameter %d is invalid.\n", -info);
-    } else if (info>0) {
-      printf("Warning: SVD has not converged. Return code: %d\n", info);
-    }
+    if (info < 0)
+      std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
+    else if (info>0)
+      std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
@@ -407,11 +405,10 @@ namespace proxy_cuda {
     CUSOLVER_CHECK(cusolverDnZgesvd(cusolver_handle, jobu, jobvt, m, n, reinterpret_cast<cuDoubleComplex*>(a), m, *s, reinterpret_cast<cuDoubleComplex*>(*u), m, reinterpret_cast<cuDoubleComplex*>(*vt), n, reinterpret_cast<cuDoubleComplex*>(workspace), size_workspace_svd, nullptr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if (info < 0) {
-      printf("Error: parameter %d is invalid.\n", -info);
-    } else if (info>0) {
-      printf("Warning: SVD has not converged. Return code: %d\n", info);
-    }
+    if (info < 0)
+      std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
+    else if (info>0)
+      std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
@@ -541,7 +538,8 @@ template<typename T>
     CUSOLVER_CHECK(cusolverDnSormqr(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, work_sormqr, worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    if (info != 0)
+      std::cerr << "Erreur cusolverDnSormqr : info = " << info << std::endl;
     CUDA_CHECK(cudaFree(work_sormqr));
     work_sormqr = nullptr;
     CUDA_CHECK(cudaFree(info_GPU));
@@ -574,7 +572,8 @@ template<typename T>
     CUSOLVER_CHECK(cusolverDnDormqr(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, work_sormqr, worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    if (info != 0)
+      std::cerr << "Erreur cusolverDnDormqr : info = " << info << std::endl;
     CUDA_CHECK(cudaFree(work_sormqr));
     work_sormqr = nullptr;
     CUDA_CHECK(cudaFree(info_GPU));
@@ -607,7 +606,8 @@ template<typename T>
     CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuComplex*>(q), m, reinterpret_cast<const cuComplex*>(tau), reinterpret_cast<cuComplex*>(*qu), m, reinterpret_cast<cuComplex*>(work_sormqr), worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    if (info != 0)
+      std::cerr << "Erreur cusolverDnCunmqr : info = " << info << std::endl;
     CUDA_CHECK(cudaFree(work_sormqr));
     work_sormqr = nullptr;
     CUDA_CHECK(cudaFree(info_GPU));
@@ -640,7 +640,8 @@ template<typename T>
     CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuDoubleComplex*>(q), m, reinterpret_cast<const cuDoubleComplex*>(tau), reinterpret_cast<cuDoubleComplex*>(*qu), m, reinterpret_cast<cuDoubleComplex*>(work_sormqr), worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
-    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    if (info != 0)
+      std::cerr << "Erreur cusolverDnZunmqr : info = " << info << std::endl;
     CUDA_CHECK(cudaFree(work_sormqr));
     work_sormqr = nullptr;
     CUDA_CHECK(cudaFree(info_GPU));
