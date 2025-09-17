@@ -71,7 +71,7 @@ template<typename T> RkMatrix<T>::~RkMatrix() {
 
 
 template<typename T> ScalarArray<T>* RkMatrix<T>::evalArray(ScalarArray<T>* result) const {
-  if(result==NULL)
+  if(result==nullptr)
     result = new ScalarArray<T>(rows->size(), cols->size());
   if (rank())
     result->gemm('N', 'T', 1, a, b, 0);
@@ -106,8 +106,8 @@ template<typename T> void RkMatrix<T>::transpose() {
 template<typename T> void RkMatrix<T>::clear() {
   delete a;
   delete b;
-  a = NULL;
-  b = NULL;
+  a = nullptr;
+  b = nullptr;
 }
 
 template<typename T>
@@ -167,8 +167,8 @@ template<typename T> const RkMatrix<T>* RkMatrix<T>::subset(const IndexSet* subR
                                                             const IndexSet* subCols) const {
   assert(subRows->isSubset(*rows));
   assert(subCols->isSubset(*cols));
-  ScalarArray<T>* subA = NULL;
-  ScalarArray<T>* subB = NULL;
+  ScalarArray<T>* subA = nullptr;
+  ScalarArray<T>* subB = nullptr;
   if(rank() > 0) {
     // The offset in the matrix, and not in all the indices
     int rowsOffset = subRows->offset() - rows->offset();
@@ -184,7 +184,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::truncatedSubset(const IndexSet* s
                                                                double epsilon) const {
   assert(subRows->isSubset(*rows));
   assert(subCols->isSubset(*cols));
-  RkMatrix<T> * r = new RkMatrix<T>(NULL, subRows, NULL, subCols);
+  RkMatrix<T> * r = new RkMatrix<T>(nullptr, subRows, nullptr, subCols);
   if(rank() > 0) {
     r->a = ScalarArray<T>(*a, subRows->offset() - rows->offset(),
                           subRows->size(), 0, rank()).copy();
@@ -328,7 +328,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   
 #ifdef HAVE_CUDA
   int newK = 0;
-  int *newK_gpu = NULL;
+  int *newK_gpu = nullptr;
   CUDA_CHECK(cudaMalloc(&newK_gpu, sizeof(int)));
   CUDA_CHECK(cudaMemcpy(newK_gpu, &a->cols, sizeof(int), cudaMemcpyHostToDevice));  
   // Récupération des données
@@ -366,7 +366,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   HMAT_ASSERT(!info);
 
   // Ra_gpu <- Ra_gpu * T^Rb_gpu        
-  proxy_cuda::trmm('R', 'U', 'T', 'N', a->cols, a->cols, 1., Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols);
+  proxy_cuda::trmm('R', 'U', 'T', 'N', a->cols, a->cols, (T)1., Rb_gpu, a->cols, Ra_gpu, a->cols, Ra_gpu, a->cols);
   CUDA_CHECK(cudaFree(Rb_gpu));
   Rb_gpu = nullptr;
 
@@ -379,30 +379,19 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   CUDA_CHECK(cudaFree(Ra_gpu));
   Ra_gpu = nullptr;
 
+  // Transposition de VT/VH (VT^T = V : k x k)
+  T* V_gpu=nullptr;
+  proxy_cuda::geam('T', 'N', a->cols, a->cols, (T)1., VT_gpu, a->cols, (T)0., (T*)nullptr, a->cols, &V_gpu, a->cols);
+  CUDA_CHECK(cudaFree(VT_gpu));
+  VT_gpu = nullptr;
+
+  // Compute the new truncated rank
+  launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
+  CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
+  // Compute the squareroots of all singular values
+  launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
+
   if constexpr (std::is_same_v<T, float>) {
-    T alpha = 1.0f;
-    T beta = 0.0f;
-
-    // Transposition de VT (VT^T = V : k x k)
-    float *V_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&V_gpu, a->cols * a->cols * sizeof(float)));
-    CUBLAS_CHECK(cublasSgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, VT_gpu, a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
-    CUDA_CHECK(cudaFree(VT_gpu));
-    VT_gpu = nullptr;
-
-    // Compute the new truncated rank
-    launch_FindK<T>(S_gpu, epsilon, a->cols, newK_gpu);
-    CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-
-    // Compute the squareroots of all singular values
-    launch_Sqrt_SingularVals_Kernel<T>(S_gpu, newK);
-    // Display S_gpu
-    // float *S_cpu = new float[newK];
-    // CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(float) * newK, cudaMemcpyDeviceToHost));
-    // for (int i=0 ; i<newK ; i++)
-    //   std::cout << "sigma["<<i<<"]="<<S_cpu[i]<< "\n";
-    // delete S_cpu;
-    // S_cpu = nullptr;
 
     // Apply the squareroots of singular values to the columns of U and V
     CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
@@ -468,15 +457,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     QbV_gpu = nullptr;
 
   } else if constexpr (std::is_same_v<T, double>) {
-    T alpha = 1.0;
-    T beta = 0.0;
-
-    launch_FindK<T>(S_gpu, epsilon, a->cols, newK_gpu);
-    CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-    launch_Sqrt_SingularVals_Kernel<T>(S_gpu, newK);
           
     CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
-    CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_LEFT, newK, a->cols, VT_gpu, a->cols, S_gpu, 1, VT_gpu, a->cols));
+    CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, V_gpu, a->cols, S_gpu, 1, V_gpu, a->cols));
       
     CUDA_CHECK(cudaFree(S_gpu));
     S_gpu = nullptr;
@@ -488,10 +471,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaMemset(QaU_gpu, 0, a->rows * newK * sizeof(double)));
     CUDA_CHECK(cudaMemset(QbV_gpu, 0, b->rows * newK * sizeof(double)));
       
-    // Transposition de VT (VT^T = V)
-    double *V_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&V_gpu, a->cols * a->cols * sizeof(double)));
-    CUBLAS_CHECK(cublasDgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, VT_gpu, a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
           
     for (int j = 0; j < newK; ++j) {
       CUBLAS_CHECK(cublasDcopy(cublas_handle, a->cols, &U_gpu[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
@@ -532,8 +511,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaFree(QbV_gpu));
     CUDA_CHECK(cudaFree(a_gpu));
     CUDA_CHECK(cudaFree(b_gpu));
-    CUDA_CHECK(cudaFree(VT_gpu));
-    VT_gpu = nullptr;
     work_Dormqr_a = nullptr;
     work_Dormqr_b = nullptr;
     tauA_gpu = nullptr;
@@ -544,30 +521,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     b_gpu = nullptr;
 
   } else if constexpr (std::is_same_v<T, std::complex<float>>) { 
-    cuComplex alpha = make_cuComplex(1.0f, 0.0f);
-    cuComplex beta  = make_cuComplex(0.0f, 0.0f);
-
-    // Transposition de VH (VH^T = Vconj)
-    cuComplex *V_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&V_gpu, a->cols * a->cols * sizeof(cuComplex)));
-    CUBLAS_CHECK(cublasCgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, reinterpret_cast<cuComplex*>(VT_gpu), a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
-    CUDA_CHECK(cudaFree(VT_gpu));
-    VT_gpu = nullptr;
-
-    // Compute the new truncated rank
-    launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
-    CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-
-    // Compute the squareroots of all singular values
-    launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
-    // Display S_gpu
-    // float *S_cpu = new float[newK];
-    // CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(float) * newK, cudaMemcpyDeviceToHost));
-    // for (int i=0 ; i<newK ; i++)
-    //   std::cout << "sigma["<<i<<"]="<<S_cpu[i]<< "\n";
-    // delete S_cpu;
-    // S_cpu = nullptr;
-
     // Apply the squareroots of singular values to the columns of U and V
     // Since S_gpu is a real array, we use Sdgmm as if U and V were real arrays too with twice the number of rows
     CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, 2*a->cols, newK, reinterpret_cast<float*>(U_gpu), 2*a->cols, S_gpu, 1, reinterpret_cast<float*>(U_gpu), 2*a->cols));
@@ -585,7 +538,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
       // U_gpu est k x k (leading dimension k) QaU_gpu est m x k (leading dimension m)
       CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &reinterpret_cast<cuComplex*>(U_gpu)[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
       // V_gpu est k x k (leading dimension k) QbV_gpu est n x k (leading dimension n)
-      CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &V_gpu[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
+      CUBLAS_CHECK(cublasCcopy(cublas_handle, a->cols, &reinterpret_cast<cuComplex*>(V_gpu)[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
     }
     CUDA_CHECK(cudaFree(U_gpu)); CUDA_CHECK(cudaFree(V_gpu));
     U_gpu = nullptr; V_gpu =nullptr;
@@ -633,30 +586,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     QbV_gpu = nullptr;
 
   } else if constexpr (std::is_same_v<T, std::complex<double>>) {
-    cuDoubleComplex alpha = make_cuDoubleComplex(1.0, 0.0);
-    cuDoubleComplex beta  = make_cuDoubleComplex(0.0, 0.0);
-
-    // Transposition de VH (VH^T = Vconj)
-    cuDoubleComplex *V_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&V_gpu, a->cols * a->cols * sizeof(cuDoubleComplex)));
-    CUBLAS_CHECK(cublasZgeam(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, a->cols, a->cols, &alpha, reinterpret_cast<cuDoubleComplex*>(VT_gpu), a->cols, &beta, nullptr, a->cols, V_gpu, a->cols));
-    CUDA_CHECK(cudaFree(VT_gpu));
-    VT_gpu = nullptr;
-
-    // Compute the new truncated rank
-    launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
-    CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
-
-    // Compute the squareroots of all singular values
-    launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
-    // Display S_gpu
-    // double *S_cpu = new double[newK];
-    // CUDA_CHECK(cudaMemcpy(S_cpu, S_gpu, sizeof(double) * newK, cudaMemcpyDeviceToHost));
-    // for (int i=0 ; i<newK ; i++)
-    //   std::cout << "sigma["<<i<<"]="<<S_cpu[i]<< "\n";
-    // delete S_cpu;
-    // S_cpu = nullptr;
-
     // Apply the squareroots of singular values to the columns of U and V
     // Since S_gpu is a real array, we use Sdgmm as if U and V were real arrays too with twice the number of rows
     CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, 2*a->cols, newK, reinterpret_cast<double*>(U_gpu), 2*a->cols, S_gpu, 1, reinterpret_cast<double*>(U_gpu), 2*a->cols));
@@ -674,7 +603,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
       // U_gpu est k x k (leading dimension k) QaU_gpu est m x k (leading dimension m)
       CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &reinterpret_cast<cuDoubleComplex*>(U_gpu)[j * a->cols], 1, &QaU_gpu[j * a->rows], 1));                      
       // V_gpu est k x k (leading dimension k) QbV_gpu est n x k (leading dimension n)
-      CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &V_gpu[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
+      CUBLAS_CHECK(cublasZcopy(cublas_handle, a->cols, &reinterpret_cast<cuDoubleComplex*>(V_gpu)[j * a->cols], 1, &QbV_gpu[j * b->rows], 1));
     }
     CUDA_CHECK(cudaFree(U_gpu)); CUDA_CHECK(cudaFree(V_gpu));
     U_gpu = nullptr; V_gpu =nullptr;
@@ -752,7 +681,7 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   r.gemm('N','T', 1, &ra, &rb , 0);
   
   // truncated SVD of Ra Rb^t (allows failure)
-  ScalarArray<T> *u = NULL, *v = NULL;
+  ScalarArray<T> *u = nullptr, *v = nullptr;
   int newK_cpu = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
   
   if (newK_cpu == 0) {
@@ -930,8 +859,8 @@ template<typename T> void RkMatrix<T>::mGSTruncate(double epsilon, int initialPi
   matR.gemm('N','T', 1, &ra, &rb , 0);
 
   // truncatedSVD (allows failure)
-  ScalarArray<T>* ur = NULL;
-  ScalarArray<T>* vr = NULL;
+  ScalarArray<T>* ur = nullptr;
+  ScalarArray<T>* vr = nullptr;
   newK = matR.truncatedSvdDecomposition(&ur, &vr, epsilon, true);
   // On output, ur->rows = kA, vr->rows = kB
 
@@ -1077,7 +1006,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   }
 
   for (int i = 0; i < n; i++) {
-    // exclude the NULL and 0-rank matrices
+    // exclude the nullptr and 0-rank matrices
     if (!parts[i] || parts[i]->rank() == 0 || parts[i]->rows->size() == 0 || parts[i]->cols->size() == 0 || alpha[i] == T(0))
       continue;
     // Check that partial RkMatrix indices are subsets of their global indices set.
@@ -1098,7 +1027,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   // full matrix.
   if (rankTotal >= std::min(rows->size(), cols->size())) {
     const FullMatrix<T>** fullParts = new const FullMatrix<T>*[notNullParts];
-    fullParts[0] = NULL ;
+    fullParts[0] = nullptr ;
     for (int i = rank() ? 1 : 0 ; i < notNullParts; i++) // exclude usedParts[0] if it is 'this'
       fullParts[i] = usedParts[i]->eval();
     formattedAddParts(std::abs(epsilon), usedAlpha.data(), fullParts, notNullParts);
@@ -1155,7 +1084,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
   }
   assert(rankOffset==rankTotal);
 
-  if(!useRealloc && a != NULL)
+  if(!useRealloc && a != nullptr)
     delete a;
   a = resultA;
 
@@ -1177,7 +1106,7 @@ void RkMatrix<T>::formattedAddParts(double epsilon, const T* alpha, const RkMatr
     rankOffset += usedParts[i]->b->cols;
   }
 
-  if(!useRealloc && b != NULL)
+  if(!useRealloc && b != nullptr)
     delete b;
   b = resultB;
 
@@ -1231,7 +1160,7 @@ template<typename T> RkMatrix<T>* RkMatrix<T>::multiplyRkFull(char transR, char 
   const IndexSet *mCols = ((transM == 'N')? m->cols_ : m->rows_);
 
   if(rk->rank() == 0) {
-      return new RkMatrix<T>(NULL, rkRows, NULL, mCols);
+      return new RkMatrix<T>(nullptr, rkRows, nullptr, mCols);
   }
   // If transM is 'N' and transR is 'N', we compute
   //  A * B^T * M ==> newA = A, newB = M^T * B
@@ -1407,7 +1336,7 @@ RkMatrix<T>* RkMatrix<T>::multiplyHRk(char transH, char transR,
   if (rk->rank() == 0) {
     const IndexSet* newRows = ((transH == 'N') ? h-> rows() : h->cols());
     const IndexSet* newCols = ((transR == 'N') ? rk->cols : rk->rows);
-    return new RkMatrix<T>(NULL, newRows, NULL, newCols);
+    return new RkMatrix<T>(nullptr, newRows, nullptr, newCols);
   }
 
   // If transH is 'N' and transR is 'N', we compute
@@ -1496,12 +1425,12 @@ RkMatrix<T>* RkMatrix<T>::multiplyRkRk(char trans1, char trans2,
     tmp.gemm('T', 'N', 1, b1, a2, 0);
   }
 
-  ScalarArray<T> *newA=NULL, *newB=NULL;
+  ScalarArray<T> *newA=nullptr, *newB=nullptr;
   static char *oldRKRK = getenv("HMAT_OLD_RKRK"); // Option to use the OLD version, without SVD-in-the-middle
   if (!oldRKRK) {
     // NEW version
-    ScalarArray<T>* ur = NULL;
-    ScalarArray<T>* vr = NULL;
+    ScalarArray<T>* ur = nullptr;
+    ScalarArray<T>* vr = nullptr;
     // truncated SVD tmp = ur.t^vr
     int newK = tmp.truncatedSvdDecomposition(&ur, &vr, epsilon, true);
     //printf("%d %d\n", newK, std::min(tmp.rows, tmp.cols));
@@ -1630,12 +1559,12 @@ template<typename T> void RkMatrix<T>::copy(const RkMatrix<T>* o) {
   delete b;
   rows = o->rows;
   cols = o->cols;
-  a = (o->a ? o->a->copy() : NULL);
-  b = (o->b ? o->b->copy() : NULL);
+  a = (o->a ? o->a->copy() : nullptr);
+  b = (o->b ? o->b->copy() : nullptr);
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::copy() const {
-  RkMatrix<T> *result = new RkMatrix<T>(NULL, rows, NULL, cols);
+  RkMatrix<T> *result = new RkMatrix<T>(nullptr, rows, nullptr, cols);
   result->copy(this);
   return result;
 }
@@ -1666,7 +1595,7 @@ template<typename T> void RkMatrix<T>::writeArray(hmat_iostream writeFunc, void 
 template <typename T>
 bool (*RkMatrix<T>::formatedAddPartsHook)(RkMatrix<T> *me, double epsilon, const T *alpha,
                                                const RkMatrix<T> *const *parts,
-                                               const int n) = NULL;
+                                               const int n) = nullptr;
 
 // Templates declaration
 template class RkMatrix<S_t>;
