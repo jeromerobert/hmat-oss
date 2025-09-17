@@ -470,4 +470,37 @@ namespace proxy_cuda {
     CUBLAS_CHECK(cublasZgeam(cublas_handle, ta, tb, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(&beta), reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(*c), ldc));
   }
 
+  // DGMM computes a matrix-matrix multiplication with a diagonal matrix
+  // https://docs.nvidia.com/cuda/archive/12.6.0/cublas/index.html#id10
+template<typename T>
+  void dgmm(const char side, const int m, const int n, const T* a, const int lda,
+	    const T* x, int incx, T* c, int ldc);
+  template <>
+  inline void dgmm<hmat::S_t>(const char side, const int m, const int n, const hmat::S_t* a, const int lda,
+	    const hmat::S_t* x, int incx, hmat::S_t* c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    CUBLAS_CHECK(cublasSdgmm(cublas_handle, s, m, n, a, lda, x, incx, c, ldc));
+  }
+  template <>
+  inline void dgmm<hmat::D_t>(const char side, const int m, const int n, const hmat::D_t* a, const int lda,
+	    const hmat::D_t* x, int incx, hmat::D_t* c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    CUBLAS_CHECK(cublasDdgmm(cublas_handle, s, m, n, a, lda, x, incx, c, ldc));
+  }
+  template <>
+  inline void dgmm<hmat::C_t>(const char side, const int m, const int n, const hmat::C_t* a, const int lda,
+	    const hmat::C_t* x, int incx, hmat::C_t* c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    CUBLAS_CHECK(cublasCdgmm(cublas_handle, s, m, n, reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(x), incx, reinterpret_cast<cuComplex*>(c), ldc));
+  }
+  template <>
+  inline void dgmm<hmat::Z_t>(const char side, const int m, const int n, const hmat::Z_t* a, const int lda,
+	    const hmat::Z_t* x, int incx, hmat::Z_t* c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    CUBLAS_CHECK(cublasZdgmm(cublas_handle, s, m, n, reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(x), incx, reinterpret_cast<cuDoubleComplex*>(c), ldc));
+  }
 }  // end namespace proxy_cuda

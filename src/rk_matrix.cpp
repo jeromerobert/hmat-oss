@@ -391,14 +391,15 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   // Compute the squareroots of all singular values
   launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
 
-  if constexpr (std::is_same_v<T, float>) {
+  // Apply the squareroots of singular values to the columns of U and V
+  // Since S_gpu is a real array, we use S/D dgmm even with U,V complex, with twice the number of rows
+  int mult = hmat::Types<T>::IS_REAL::value ? 1 : 2;
+  proxy_cuda::dgmm<typename Types<T>::real>('R', mult*a->cols, newK, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols, S_gpu, 1, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols);
+  proxy_cuda::dgmm<typename Types<T>::real>('R', mult*a->cols, newK, reinterpret_cast<typename Types<T>::real*>(V_gpu), mult*a->cols, S_gpu, 1, reinterpret_cast<typename Types<T>::real*>(V_gpu), mult*a->cols);
+  CUDA_CHECK(cudaFree(S_gpu));
+  S_gpu = nullptr;
 
-    // Apply the squareroots of singular values to the columns of U and V
-    CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
-    CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, V_gpu, a->cols, S_gpu, 1, V_gpu, a->cols));
-    CUDA_CHECK(cudaFree(S_gpu));
-    S_gpu = nullptr;
-
+    if constexpr (std::is_same_v<T, float>) {
     // Copie U et V en haut de QaU et QbV
     float *QaU_gpu = nullptr, *QbV_gpu = nullptr;
     CUDA_CHECK(cudaMalloc(&QaU_gpu, a->rows * newK * sizeof(float)));
@@ -457,13 +458,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     QbV_gpu = nullptr;
 
   } else if constexpr (std::is_same_v<T, double>) {
-          
-    CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, U_gpu, a->cols, S_gpu, 1, U_gpu, a->cols));
-    CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, a->cols, newK, V_gpu, a->cols, S_gpu, 1, V_gpu, a->cols));
-      
-    CUDA_CHECK(cudaFree(S_gpu));
-    S_gpu = nullptr;
-
     double *QaU_gpu, *QbV_gpu = nullptr;
     CUDA_CHECK(cudaMalloc(&QaU_gpu, a->rows * newK * sizeof(double)));
     CUDA_CHECK(cudaMalloc(&QbV_gpu, b->rows * newK * sizeof(double)));
@@ -521,12 +515,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     b_gpu = nullptr;
 
   } else if constexpr (std::is_same_v<T, std::complex<float>>) { 
-    // Apply the squareroots of singular values to the columns of U and V
-    // Since S_gpu is a real array, we use Sdgmm as if U and V were real arrays too with twice the number of rows
-    CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, 2*a->cols, newK, reinterpret_cast<float*>(U_gpu), 2*a->cols, S_gpu, 1, reinterpret_cast<float*>(U_gpu), 2*a->cols));
-    CUBLAS_CHECK(cublasSdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, 2*a->cols, newK, reinterpret_cast<float*>(V_gpu), 2*a->cols, S_gpu, 1, reinterpret_cast<float*>(V_gpu), 2*a->cols));
-    CUDA_CHECK(cudaFree(S_gpu));
-    S_gpu = nullptr;
 
     // Copie U et V en haut de QaU et QbV
     cuComplex *QaU_gpu = nullptr, *QbV_gpu = nullptr;
@@ -586,13 +574,6 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     QbV_gpu = nullptr;
 
   } else if constexpr (std::is_same_v<T, std::complex<double>>) {
-    // Apply the squareroots of singular values to the columns of U and V
-    // Since S_gpu is a real array, we use Sdgmm as if U and V were real arrays too with twice the number of rows
-    CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, 2*a->cols, newK, reinterpret_cast<double*>(U_gpu), 2*a->cols, S_gpu, 1, reinterpret_cast<double*>(U_gpu), 2*a->cols));
-    CUBLAS_CHECK(cublasDdgmm(cublas_handle, CUBLAS_SIDE_RIGHT, 2*a->cols, newK, reinterpret_cast<double*>(V_gpu), 2*a->cols, S_gpu, 1, reinterpret_cast<double*>(V_gpu), 2*a->cols));
-    CUDA_CHECK(cudaFree(S_gpu));
-    S_gpu = nullptr;
-
     // Copie U et V en haut de QaU et QbV
     cuDoubleComplex *QaU_gpu = nullptr, *QbV_gpu = nullptr;
     CUDA_CHECK(cudaMalloc(&QaU_gpu, a->rows * newK * sizeof(cuDoubleComplex)));
