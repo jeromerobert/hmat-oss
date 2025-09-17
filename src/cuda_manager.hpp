@@ -138,9 +138,9 @@ namespace proxy_cuda {
     // Compute the size of the workspace and allocate on the GPU
     int size_workspace_geqrf_a = 0;
     CUSOLVER_CHECK(cusolverDnSgeqrf_bufferSize(cusolver_handle, m, n, a_gpu, lda, &size_workspace_geqrf_a));  
-    float* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(tauA_gpu, n * sizeof(float)));
+    hmat::S_t* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::S_t) * size_workspace_geqrf_a));
+    CUDA_CHECK(cudaMalloc(tauA_gpu, sizeof(hmat::S_t) * n));
     // compute the QR facto
     CUSOLVER_CHECK(cusolverDnSgeqrf(cusolver_handle, m, n, a_gpu, lda, *tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
     int info=0;
@@ -149,8 +149,8 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
-    CUDA_CHECK(cudaMalloc(Ra_gpu, n * n * sizeof(float)));
-    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, n * n * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(Ra_gpu, sizeof(hmat::S_t) * n * n));
+    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, sizeof(hmat::S_t) * n * n));
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasScopy(cublas_handle, j + 1, &a_gpu[j * m], 1, *Ra_gpu + j * n, 1));
     }
@@ -166,9 +166,9 @@ namespace proxy_cuda {
     // Compute the size of the workspace and allocate on the GPU
     int size_workspace_geqrf_a = 0;
     CUSOLVER_CHECK(cusolverDnDgeqrf_bufferSize(cusolver_handle, m, n, a_gpu, lda, &size_workspace_geqrf_a));  
-    double* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(tauA_gpu, n * sizeof(double)));
+    hmat::D_t* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::D_t) * size_workspace_geqrf_a));
+    CUDA_CHECK(cudaMalloc(tauA_gpu, sizeof(hmat::D_t) * n));
     // compute the QR facto
     CUSOLVER_CHECK(cusolverDnDgeqrf(cusolver_handle, m, n, a_gpu, lda, *tauA_gpu, workspace, size_workspace_geqrf_a, info_GPU));
     int info=0;
@@ -177,8 +177,8 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
-    CUDA_CHECK(cudaMalloc(Ra_gpu, n * n * sizeof(double)));
-    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, n * n * sizeof(double)));
+    CUDA_CHECK(cudaMalloc(Ra_gpu, sizeof(hmat::D_t) * n * n));
+    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, sizeof(hmat::D_t) * n * n));
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasDcopy(cublas_handle, j + 1, &a_gpu[j * m], 1, *Ra_gpu + j * n, 1));
     }
@@ -195,8 +195,8 @@ namespace proxy_cuda {
     int size_workspace_geqrf_a = 0;
     CUSOLVER_CHECK(cusolverDnCgeqrf_bufferSize(cusolver_handle, m, n, reinterpret_cast<cuComplex*>(a_gpu), lda, &size_workspace_geqrf_a));  
     hmat::C_t* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(hmat::C_t)));
-    CUDA_CHECK(cudaMalloc(tauA_gpu, n * sizeof(hmat::C_t)));
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::C_t) * size_workspace_geqrf_a));
+    CUDA_CHECK(cudaMalloc(tauA_gpu, sizeof(hmat::C_t) * n));
     // compute the QR facto
     CUSOLVER_CHECK(cusolverDnCgeqrf(cusolver_handle, m, n, reinterpret_cast<cuComplex*>(a_gpu), lda, reinterpret_cast<cuComplex*>(*tauA_gpu), reinterpret_cast<cuComplex*>(workspace), size_workspace_geqrf_a, info_GPU));
     int info=0;
@@ -205,8 +205,8 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
-    CUDA_CHECK(cudaMalloc(Ra_gpu, n * n * sizeof(hmat::C_t)));
-    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, n * n * sizeof(hmat::C_t)));
+    CUDA_CHECK(cudaMalloc(Ra_gpu, sizeof(hmat::C_t) * n * n));
+    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, sizeof(hmat::C_t) * n * n));
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasCcopy(cublas_handle, j + 1, reinterpret_cast<cuComplex*>(a_gpu) + j * m, 1, reinterpret_cast<cuComplex*>(*Ra_gpu) + j * n, 1));
     }
@@ -223,8 +223,8 @@ namespace proxy_cuda {
     int size_workspace_geqrf_a = 0;
     CUSOLVER_CHECK(cusolverDnZgeqrf_bufferSize(cusolver_handle, m, n, reinterpret_cast<cuDoubleComplex*>(a_gpu), lda, &size_workspace_geqrf_a));  
     hmat::Z_t* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_geqrf_a * sizeof(hmat::Z_t)));
-    CUDA_CHECK(cudaMalloc(tauA_gpu, n * sizeof(hmat::Z_t)));
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::Z_t) * size_workspace_geqrf_a));
+    CUDA_CHECK(cudaMalloc(tauA_gpu, sizeof(hmat::Z_t) * n));
     // compute the QR facto
     CUSOLVER_CHECK(cusolverDnZgeqrf(cusolver_handle, m, n, reinterpret_cast<cuDoubleComplex*>(a_gpu), lda, reinterpret_cast<cuDoubleComplex*>(*tauA_gpu), reinterpret_cast<cuDoubleComplex*>(workspace), size_workspace_geqrf_a, info_GPU));
     int info=0;
@@ -233,8 +233,8 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
     // Copy R factor in a separate array
-    CUDA_CHECK(cudaMalloc(Ra_gpu, n * n * sizeof(hmat::Z_t)));
-    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, n * n * sizeof(hmat::Z_t)));
+    CUDA_CHECK(cudaMalloc(Ra_gpu, sizeof(hmat::Z_t) * n * n));
+    CUDA_CHECK(cudaMemset(*Ra_gpu, 0, sizeof(hmat::Z_t) * n * n));
     for (int j = 0; j < n; ++j) {
       CUBLAS_CHECK(cublasZcopy(cublas_handle, j + 1, reinterpret_cast<cuDoubleComplex*>(a_gpu) + j * m, 1, reinterpret_cast<cuDoubleComplex*>(*Ra_gpu) + j * n, 1));
     }
@@ -310,14 +310,14 @@ namespace proxy_cuda {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnSgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
-    float* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(float)));
+    hmat::S_t* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::S_t) * size_workspace_svd));
     *u = nullptr;
-    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(u, sizeof(hmat::S_t) * m * m));
     *s = nullptr;
-    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(s, sizeof(hmat::S_t) * std::min(m,n)));
     *vt = nullptr;
-    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(vt, sizeof(hmat::S_t) * n * n));
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
     CUSOLVER_CHECK(cusolverDnSgesvd(cusolver_handle, jobu, jobvt, m, n, a, m, *s, *u, m, *vt, n, workspace, size_workspace_svd, nullptr, info_GPU));
@@ -338,14 +338,14 @@ namespace proxy_cuda {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnDgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
-    double* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(double)));
+    hmat::D_t* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::D_t) * size_workspace_svd));
     *u = nullptr;
-    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(double)));
+    CUDA_CHECK(cudaMalloc(u, sizeof(hmat::D_t) * m * m));
     *s = nullptr;
-    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(double)));
+    CUDA_CHECK(cudaMalloc(s, sizeof(hmat::D_t) * std::min(m,n)));
     *vt = nullptr;
-    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(double)));
+    CUDA_CHECK(cudaMalloc(vt, sizeof(hmat::D_t) * n * n));
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
     CUSOLVER_CHECK(cusolverDnDgesvd(cusolver_handle, jobu, jobvt, m, n, a, m, *s, *u, m, *vt, n, workspace, size_workspace_svd, nullptr, info_GPU));
@@ -366,14 +366,14 @@ namespace proxy_cuda {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnCgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
-    double* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(hmat::C_t)));
+    hmat::C_t* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::C_t) * size_workspace_svd));
     *u = nullptr;
-    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(hmat::C_t)));
+    CUDA_CHECK(cudaMalloc(u, sizeof(hmat::C_t) * m * m));
     *s = nullptr;
-    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(hmat::S_t)));
+    CUDA_CHECK(cudaMalloc(s, sizeof(hmat::S_t) * std::min(m,n)));
     *vt = nullptr;
-    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(hmat::C_t)));
+    CUDA_CHECK(cudaMalloc(vt, sizeof(hmat::C_t) * n * n));
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
     CUSOLVER_CHECK(cusolverDnCgesvd(cusolver_handle, jobu, jobvt, m, n, reinterpret_cast<cuComplex*>(a), m, *s, reinterpret_cast<cuComplex*>(*u), m, reinterpret_cast<cuComplex*>(*vt), n, reinterpret_cast<cuComplex*>(workspace), size_workspace_svd, nullptr, info_GPU));
@@ -394,14 +394,14 @@ namespace proxy_cuda {
     cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
     int size_workspace_svd = 0;
     CUSOLVER_CHECK(cusolverDnZgesvd_bufferSize(cusolver_handle, m, n, &size_workspace_svd));
-    double* workspace = nullptr;
-    CUDA_CHECK(cudaMalloc(&workspace, size_workspace_svd * sizeof(hmat::Z_t)));
+    hmat::Z_t* workspace = nullptr;
+    CUDA_CHECK(cudaMalloc(&workspace, sizeof(hmat::Z_t) * size_workspace_svd));
     *u = nullptr;
-    CUDA_CHECK(cudaMalloc(u, m * m * sizeof(hmat::Z_t)));
+    CUDA_CHECK(cudaMalloc(u, sizeof(hmat::Z_t) * m * m));
     *s = nullptr;
-    CUDA_CHECK(cudaMalloc(s, std::min(m,n) * sizeof(hmat::D_t)));
+    CUDA_CHECK(cudaMalloc(s, sizeof(hmat::D_t) * std::min(m,n)));
     *vt = nullptr;
-    CUDA_CHECK(cudaMalloc(vt, n * n * sizeof(hmat::Z_t)));
+    CUDA_CHECK(cudaMalloc(vt, sizeof(hmat::Z_t) * n * n));
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
     CUSOLVER_CHECK(cusolverDnZgesvd(cusolver_handle, jobu, jobvt, m, n, reinterpret_cast<cuDoubleComplex*>(a), m, *s, reinterpret_cast<cuDoubleComplex*>(*u), m, reinterpret_cast<cuDoubleComplex*>(*vt), n, reinterpret_cast<cuDoubleComplex*>(workspace), size_workspace_svd, nullptr, info_GPU));
@@ -431,7 +431,7 @@ namespace proxy_cuda {
 	    const hmat::S_t& beta, const hmat::S_t* b, int ldb, hmat::S_t** c, int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
     if ( (*c != a && *c != b) || (*c == nullptr) )
-      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::S_t)));
+      CUDA_CHECK(cudaMalloc(c, sizeof(hmat::S_t) * m * n));
     const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     CUBLAS_CHECK(cublasSgeam(cublas_handle, ta, tb, m, n, &alpha, a, lda, &beta, b, ldb, *c, ldc));
@@ -442,7 +442,7 @@ namespace proxy_cuda {
 	    const hmat::D_t& beta, const hmat::D_t* b, int ldb, hmat::D_t** c, int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
     if ( (*c != a && *c != b) || (*c == nullptr) )
-      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::D_t)));
+      CUDA_CHECK(cudaMalloc(c, sizeof(hmat::D_t) * m * n));
     const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     CUBLAS_CHECK(cublasDgeam(cublas_handle, ta, tb, m, n, &alpha, a, lda, &beta, b, ldb, *c, ldc));
@@ -453,7 +453,7 @@ namespace proxy_cuda {
 	    const hmat::C_t& beta, const hmat::C_t* b, int ldb, hmat::C_t** c, int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
     if ( (*c != a && *c != b) || (*c == nullptr) )
-      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::C_t)));
+      CUDA_CHECK(cudaMalloc(c, sizeof(hmat::C_t) * m * n));
     const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     CUBLAS_CHECK(cublasCgeam(cublas_handle, ta, tb, m, n, reinterpret_cast<const cuComplex*>(&alpha), reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(&beta), reinterpret_cast<const cuComplex*>(b), ldb, reinterpret_cast<cuComplex*>(*c), ldc));
@@ -464,7 +464,7 @@ namespace proxy_cuda {
 	    const hmat::Z_t& beta, const hmat::Z_t* b, int ldb, hmat::Z_t** c, int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
     if ( (*c != a && *c != b) || (*c == nullptr) )
-      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::Z_t)));
+      CUDA_CHECK(cudaMalloc(c, sizeof(hmat::Z_t) * m * n));
     const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     CUBLAS_CHECK(cublasZgeam(cublas_handle, ta, tb, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(&beta), reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(*c), ldc));
@@ -502,5 +502,149 @@ template<typename T>
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
     const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
     CUBLAS_CHECK(cublasZdgmm(cublas_handle, s, m, n, reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(x), incx, reinterpret_cast<cuDoubleComplex*>(c), ldc));
+  }
+
+  // ORMQR/UNMQR compute the product of a Q matrix (from QR decomposition) with another matrix u (k x n)
+  // The output matrix qu (m x n) is allocated and returned by this routine.
+  // ORMQR for real orthogonal matrices, UNMQR from complex unitary matrices
+  // https://docs.nvidia.com/cuda/archive/12.6.0/cusolver/index.html#cusolverdn-t-ormqr
+  template <typename T>
+  int or_un_mqr(char side, char trans, int m, int n, int k,
+      const T *q, int ldq,
+	    const T *tau,
+      T *u, int ldu,
+      T **qu);
+
+  template <>
+  inline int or_un_mqr<hmat::S_t>(char side, char trans, int m, int n, int k,
+    const hmat::S_t *q, int ldq, const hmat::S_t *tau, hmat::S_t *u, int ldu, hmat::S_t **qu) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+
+    // Copie u en haut de qu
+    CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::S_t) * m * n));
+    CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::S_t) * m * n));
+    for (int j = 0; j < n; ++j) {
+      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      CUBLAS_CHECK(cublasScopy(cublas_handle, k, &u[j * k], 1, *qu + j * m, 1));                      
+    }
+    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    hmat::S_t* work_sormqr = nullptr;
+    int worksize_sormqr = 0;
+    CUSOLVER_CHECK(cusolverDnSormqr_bufferSize(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, &worksize_sormqr));
+    CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::S_t) * worksize_sormqr));
+    // Application de Qa sur U :
+    CUSOLVER_CHECK(cusolverDnSormqr(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, work_sormqr, worksize_sormqr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    CUDA_CHECK(cudaFree(work_sormqr));
+    work_sormqr = nullptr;
+    CUDA_CHECK(cudaFree(info_GPU));
+    
+    return 0;
+  }
+  template <>
+  inline int or_un_mqr<hmat::D_t>(char side, char trans, int m, int n, int k,
+    const hmat::D_t *q, int ldq, const hmat::D_t *tau, hmat::D_t *u, int ldu, hmat::D_t **qu) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+
+    // Copie u en haut de qu
+    CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::D_t) * m * n));
+    CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::D_t) * m * n));
+    for (int j = 0; j < n; ++j) {
+      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      CUBLAS_CHECK(cublasDcopy(cublas_handle, k, &u[j * k], 1, *qu + j * m, 1));                      
+    }
+    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    hmat::D_t* work_sormqr = nullptr;
+    int worksize_sormqr = 0;
+    CUSOLVER_CHECK(cusolverDnDormqr_bufferSize(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, &worksize_sormqr));
+    CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::D_t) * worksize_sormqr));
+    // Application de Qa sur U :
+    CUSOLVER_CHECK(cusolverDnDormqr(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, work_sormqr, worksize_sormqr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    CUDA_CHECK(cudaFree(work_sormqr));
+    work_sormqr = nullptr;
+    CUDA_CHECK(cudaFree(info_GPU));
+    
+    return 0;
+  }
+  template <>
+  inline int or_un_mqr<hmat::C_t>(char side, char trans, int m, int n, int k,
+    const hmat::C_t *q, int ldq, const hmat::C_t *tau, hmat::C_t *u, int ldu, hmat::C_t **qu) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+
+    // Copie u en haut de qu
+    CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::C_t) * m * n ));
+    CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::C_t) * m * n));
+    for (int j = 0; j < n; ++j) {
+      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      CUBLAS_CHECK(cublasCcopy(cublas_handle, k, &reinterpret_cast<const cuComplex*>(u)[j * k], 1, reinterpret_cast<cuComplex*>(*qu) + j * m, 1));                      
+    }
+    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    hmat::C_t* work_sormqr = nullptr;
+    int worksize_sormqr = 0;
+    CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuComplex*>(q), m, reinterpret_cast<const cuComplex*>(tau), reinterpret_cast<cuComplex*>(*qu), m, &worksize_sormqr));
+    CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::C_t) * worksize_sormqr));
+    // Application de Qa sur U :
+    CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuComplex*>(q), m, reinterpret_cast<const cuComplex*>(tau), reinterpret_cast<cuComplex*>(*qu), m, reinterpret_cast<cuComplex*>(work_sormqr), worksize_sormqr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    CUDA_CHECK(cudaFree(work_sormqr));
+    work_sormqr = nullptr;
+    CUDA_CHECK(cudaFree(info_GPU));
+    
+    return 0;
+  }
+  template <>
+  inline int or_un_mqr<hmat::Z_t>(char side, char trans, int m, int n, int k,
+    const hmat::Z_t *q, int ldq, const hmat::Z_t *tau, hmat::Z_t *u, int ldu, hmat::Z_t **qu) {
+    cusolverDnHandle_t cusolver_handle = hmat::CudaManager::getInstance().getCusolverHandle();
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    const cublasSideMode_t s = (side == 'L' ? CUBLAS_SIDE_LEFT : CUBLAS_SIDE_RIGHT);
+    const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    int *info_GPU = NULL;
+    CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
+
+    // Copie u en haut de qu
+    CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::Z_t) * m * n));
+    CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::Z_t) * m * n));
+    for (int j = 0; j < n; ++j) {
+      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      CUBLAS_CHECK(cublasZcopy(cublas_handle, k, &reinterpret_cast<const cuDoubleComplex*>(u)[j * k], 1, reinterpret_cast<cuDoubleComplex*>(*qu) + j * m, 1));                      
+    }
+    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    hmat::Z_t* work_sormqr = nullptr;
+    int worksize_sormqr = 0;
+    CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuDoubleComplex*>(q), m, reinterpret_cast<const cuDoubleComplex*>(tau), reinterpret_cast<cuDoubleComplex*>(*qu), m, &worksize_sormqr));
+    CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::Z_t) * worksize_sormqr));
+    // Application de Qa sur U :
+    CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuDoubleComplex*>(q), m, reinterpret_cast<const cuDoubleComplex*>(tau), reinterpret_cast<cuDoubleComplex*>(*qu), m, reinterpret_cast<cuDoubleComplex*>(work_sormqr), worksize_sormqr, info_GPU));
+    int info=0;
+    CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
+    if(info != 0) {printf("Erreur cusolverDnSormqr : info = %d\n", info);}
+    CUDA_CHECK(cudaFree(work_sormqr));
+    work_sormqr = nullptr;
+    CUDA_CHECK(cudaFree(info_GPU));
+    
+    return 0;
   }
 }  // end namespace proxy_cuda
