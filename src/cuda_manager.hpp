@@ -248,8 +248,8 @@ namespace proxy_cuda {
 	    const int m, const int n, const T& alpha, const T* a, const int lda,
 	    const T* b, int ldb, T* c, const int ldc);
 
-  inline
-  void trmm(const char side, const char uplo, const char trans, const char diag,
+  template <>
+  inline void trmm<hmat::S_t>(const char side, const char uplo, const char trans, const char diag,
 	    const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
 	    const hmat::S_t* b, const int ldb, hmat::S_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
@@ -259,8 +259,8 @@ namespace proxy_cuda {
     const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
     cublasStrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
   }
-  inline
-  void trmm(const char side, const char uplo, const char trans, const char diag,
+  template <>
+  inline void trmm<hmat::D_t>(const char side, const char uplo, const char trans, const char diag,
 	    const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
 	    const hmat::D_t* b, const int ldb, hmat::D_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
@@ -270,8 +270,8 @@ namespace proxy_cuda {
     const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
     cublasDtrmm(cublas_handle, s, u, t, d, m, n, &alpha, a, lda, b, ldb, c, ldc);
   }
-  inline
-  void trmm(const char side, const char uplo, const char trans, const char diag,
+  template <>
+  inline void trmm<hmat::C_t>(const char side, const char uplo, const char trans, const char diag,
 	    const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
 	    const hmat::C_t* b, const int ldb, hmat::C_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
@@ -282,8 +282,8 @@ namespace proxy_cuda {
     // WARNING: &alpha instead of alpha for complex values
     cublasCtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuComplex*>(&alpha), reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(b), ldb, reinterpret_cast<cuComplex*>(c), ldc);
   }
-  inline
-  void trmm(const char side, const char uplo, const char trans, const char diag,
+  template <>
+  inline void trmm<hmat::Z_t>(const char side, const char uplo, const char trans, const char diag,
 	    const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
 	    const hmat::Z_t* b, const int ldb, hmat::Z_t* c, const int ldc) {
     cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
@@ -416,4 +416,58 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaFree(info_GPU));
     return info;
   }
+
+  // GEAM computes a matrix-matrix addition/transposition
+  // C is allocated and returned by this routine (unless *c=a or *c=b, for in-place variants)
+  // https://docs.nvidia.com/cuda/archive/12.6.0/cublas/index.html#cublas-t-geam
+  template<typename T>
+  void geam(const char transa, const char transb,
+	    const int m, const int n, const T& alpha, const T* a, const int lda,
+	    const T& beta, const T* b, int ldb, T** c, int ldc);
+
+  template <>
+  inline void geam<hmat::S_t>(const char transa, const char transb,
+	    const int m, const int n, const hmat::S_t& alpha, const hmat::S_t* a, const int lda,
+	    const hmat::S_t& beta, const hmat::S_t* b, int ldb, hmat::S_t** c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    if ( (*c != a && *c != b) || (*c == nullptr) )
+      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::S_t)));
+    const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    CUBLAS_CHECK(cublasSgeam(cublas_handle, ta, tb, m, n, &alpha, a, lda, &beta, b, ldb, *c, ldc));
+  }
+  template <>
+  inline void geam<hmat::D_t>(const char transa, const char transb,
+	    const int m, const int n, const hmat::D_t& alpha, const hmat::D_t* a, const int lda,
+	    const hmat::D_t& beta, const hmat::D_t* b, int ldb, hmat::D_t** c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    if ( (*c != a && *c != b) || (*c == nullptr) )
+      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::D_t)));
+    const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    CUBLAS_CHECK(cublasDgeam(cublas_handle, ta, tb, m, n, &alpha, a, lda, &beta, b, ldb, *c, ldc));
+  }
+  template <>
+  inline void geam<hmat::C_t>(const char transa, const char transb,
+	    const int m, const int n, const hmat::C_t& alpha, const hmat::C_t* a, const int lda,
+	    const hmat::C_t& beta, const hmat::C_t* b, int ldb, hmat::C_t** c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    if ( (*c != a && *c != b) || (*c == nullptr) )
+      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::C_t)));
+    const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    CUBLAS_CHECK(cublasCgeam(cublas_handle, ta, tb, m, n, reinterpret_cast<const cuComplex*>(&alpha), reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(&beta), reinterpret_cast<const cuComplex*>(b), ldb, reinterpret_cast<cuComplex*>(*c), ldc));
+  }
+  template <>
+  inline void geam<hmat::Z_t>(const char transa, const char transb,
+	    const int m, const int n, const hmat::Z_t& alpha, const hmat::Z_t* a, const int lda,
+	    const hmat::Z_t& beta, const hmat::Z_t* b, int ldb, hmat::Z_t** c, int ldc) {
+    cublasHandle_t cublas_handle = hmat::CudaManager::getInstance().getCublasHandle();
+    if ( (*c != a && *c != b) || (*c == nullptr) )
+      CUDA_CHECK(cudaMalloc(c, m * n * sizeof(hmat::Z_t)));
+    const cublasOperation_t ta = (transa == 'C' ? CUBLAS_OP_C : (transa == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    const cublasOperation_t tb = (transb == 'C' ? CUBLAS_OP_C : (transb == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
+    CUBLAS_CHECK(cublasZgeam(cublas_handle, ta, tb, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(&beta), reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(*c), ldc));
+  }
+
 }  // end namespace proxy_cuda
