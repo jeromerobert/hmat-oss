@@ -281,7 +281,6 @@ namespace proxy_cuda {
     const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
     const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
-    // WARNING: &alpha instead of alpha for complex values
     cublasCtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuComplex*>(&alpha), reinterpret_cast<const cuComplex*>(a), lda, reinterpret_cast<const cuComplex*>(b), ldb, reinterpret_cast<cuComplex*>(c), ldc);
   }
   template <>
@@ -293,7 +292,6 @@ namespace proxy_cuda {
     const cublasFillMode_t u = (uplo == 'U' ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER);
     const cublasOperation_t t = (trans == 'C' ? CUBLAS_OP_C : (trans == 'T' ? CUBLAS_OP_T : CUBLAS_OP_N));
     const cublasDiagType_t d = (diag == 'N' ?  CUBLAS_DIAG_NON_UNIT : CUBLAS_DIAG_UNIT );
-    // WARNING: &alpha instead of alpha for complex values
     cublasZtrmm(cublas_handle, s, u, t, d, m, n, reinterpret_cast<const cuDoubleComplex*>(&alpha), reinterpret_cast<const cuDoubleComplex*>(a), lda, reinterpret_cast<const cuDoubleComplex*>(b), ldb, reinterpret_cast<cuDoubleComplex*>(c), ldc);
   }
 
@@ -327,7 +325,7 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if (info < 0)
       std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
-    else if (info>0)
+    else if (info > 0)
       std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
@@ -354,7 +352,7 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if (info < 0)
       std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
-    else if (info>0)
+    else if (info > 0)
       std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
@@ -381,7 +379,7 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if (info < 0)
       std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
-    else if (info>0)
+    else if (info > 0)
       std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
@@ -408,7 +406,7 @@ namespace proxy_cuda {
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
     if (info < 0)
       std::cerr << "Error: parameter " << -info << "is invalid." << std::endl;
-    else if (info>0)
+    else if (info > 0)
       std::cerr << "Warning: SVD has not converged. Return code: " << info << std::endl;
     CUDA_CHECK(cudaFree(workspace));
     CUDA_CHECK(cudaFree(info_GPU));
@@ -523,19 +521,19 @@ template<typename T>
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
 
-    // Copie u en haut de qu
+    // Copy u at the top of qu
     CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::S_t) * m * n));
     CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::S_t) * m * n));
     for (int j = 0; j < n; ++j) {
-      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      // u is k x k (leading dimension k) *qu is m x k (leading dimension m)
       CUBLAS_CHECK(cublasScopy(cublas_handle, k, &u[j * k], 1, *qu + j * m, 1));                      
     }
-    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    // Construction of the panel qu (m x n) <- q (m x m) * u (m x n) with k reflectors in q
     hmat::S_t* work_sormqr = nullptr;
     int worksize_sormqr = 0;
     CUSOLVER_CHECK(cusolverDnSormqr_bufferSize(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, &worksize_sormqr));
     CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::S_t) * worksize_sormqr));
-    // Application de Qa sur U :
+    // Multiply q by u
     CUSOLVER_CHECK(cusolverDnSormqr(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, work_sormqr, worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
@@ -557,19 +555,19 @@ template<typename T>
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
 
-    // Copie u en haut de qu
+    // Copy u at the top of qu
     CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::D_t) * m * n));
     CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::D_t) * m * n));
     for (int j = 0; j < n; ++j) {
-      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      // u is k x k (leading dimension k) *qu is m x k (leading dimension m)
       CUBLAS_CHECK(cublasDcopy(cublas_handle, k, &u[j * k], 1, *qu + j * m, 1));                      
     }
-    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    // Construction of the panel qu (m x n) <- q (m x m) * u (m x n) with k reflectors in q
     hmat::D_t* work_sormqr = nullptr;
     int worksize_sormqr = 0;
     CUSOLVER_CHECK(cusolverDnDormqr_bufferSize(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, &worksize_sormqr));
     CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::D_t) * worksize_sormqr));
-    // Application de Qa sur U :
+    // Multiply q by u
     CUSOLVER_CHECK(cusolverDnDormqr(cusolver_handle, s, t, m, n, k, q, m, tau, *qu, m, work_sormqr, worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
@@ -591,19 +589,19 @@ template<typename T>
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
 
-    // Copie u en haut de qu
+    // Copy u at the top of qu
     CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::C_t) * m * n ));
     CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::C_t) * m * n));
     for (int j = 0; j < n; ++j) {
-      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      // u is k x k (leading dimension k) *qu is m x k (leading dimension m)
       CUBLAS_CHECK(cublasCcopy(cublas_handle, k, &reinterpret_cast<const cuComplex*>(u)[j * k], 1, reinterpret_cast<cuComplex*>(*qu) + j * m, 1));                      
     }
-    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    // Construction of the panel qu (m x n) <- q (m x m) * u (m x n) with k reflectors in q
     hmat::C_t* work_sormqr = nullptr;
     int worksize_sormqr = 0;
     CUSOLVER_CHECK(cusolverDnCunmqr_bufferSize(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuComplex*>(q), m, reinterpret_cast<const cuComplex*>(tau), reinterpret_cast<cuComplex*>(*qu), m, &worksize_sormqr));
     CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::C_t) * worksize_sormqr));
-    // Application de Qa sur U :
+    // Multiply q by u
     CUSOLVER_CHECK(cusolverDnCunmqr(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuComplex*>(q), m, reinterpret_cast<const cuComplex*>(tau), reinterpret_cast<cuComplex*>(*qu), m, reinterpret_cast<cuComplex*>(work_sormqr), worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
@@ -625,19 +623,19 @@ template<typename T>
     int *info_GPU = NULL;
     CUDA_CHECK(cudaMalloc(&info_GPU, sizeof(int)));
 
-    // Copie u en haut de qu
+    // Copy u at the top of qu
     CUDA_CHECK(cudaMalloc(qu, sizeof(hmat::Z_t) * m * n));
     CUDA_CHECK(cudaMemset(*qu, 0, sizeof(hmat::Z_t) * m * n));
     for (int j = 0; j < n; ++j) {
-      // u est k x k (leading dimension k) *qu est m x k (leading dimension m)
+      // u is k x k (leading dimension k) *qu is m x k (leading dimension m)
       CUBLAS_CHECK(cublasZcopy(cublas_handle, k, &reinterpret_cast<const cuDoubleComplex*>(u)[j * k], 1, reinterpret_cast<cuDoubleComplex*>(*qu) + j * m, 1));                      
     }
-    // Construction du panneau qu (m x n) <- q (m x m) * u (m x n) avec k reflecteur dans q
+    // Construction of the panel qu (m x n) <- q (m x m) * u (m x n) with k reflectors in q
     hmat::Z_t* work_sormqr = nullptr;
     int worksize_sormqr = 0;
     CUSOLVER_CHECK(cusolverDnZunmqr_bufferSize(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuDoubleComplex*>(q), m, reinterpret_cast<const cuDoubleComplex*>(tau), reinterpret_cast<cuDoubleComplex*>(*qu), m, &worksize_sormqr));
     CUDA_CHECK(cudaMalloc(&work_sormqr, sizeof(hmat::Z_t) * worksize_sormqr));
-    // Application de Qa sur U :
+    // Multiply q by u
     CUSOLVER_CHECK(cusolverDnZunmqr(cusolver_handle, s, t, m, n, k, reinterpret_cast<const cuDoubleComplex*>(q), m, reinterpret_cast<const cuDoubleComplex*>(tau), reinterpret_cast<cuDoubleComplex*>(*qu), m, reinterpret_cast<cuDoubleComplex*>(work_sormqr), worksize_sormqr, info_GPU));
     int info=0;
     CUDA_CHECK(cudaMemcpy(&info, info_GPU, sizeof(int), cudaMemcpyDeviceToHost));
