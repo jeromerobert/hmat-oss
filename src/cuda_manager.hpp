@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cublas_v2.h>
 #include <cusolverDn.h>
+#include <cuda_runtime.h>
 #include <cstdlib> // For exit() and EXIT_FAILURE
 #include "data_types.hpp"
 
@@ -649,3 +650,5 @@ template<typename T>
     return 0;
   }
 }  // end namespace proxy_cuda
+
+template<typename T> void launch_FindKAndSqrtAll(T* S_gpu, double epsilon, int old_rank, int* newK_gpu);

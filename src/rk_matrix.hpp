@@ -29,12 +29,6 @@
 #include "compression.hpp"
 #include "common/my_assert.h"
 
-#ifdef HAVE_CUDA
-#include <cusolverDn.h>
-#include <cublas_v2.h> 
-#include <cuda_runtime.h>
-#endif // HAVE_CUDA
-
 namespace hmat {
 
 template<typename T> class HMatrix;
@@ -298,13 +292,5 @@ public:
 };
 
 }  // end namespace hmat
-
-#ifdef HAVE_CUDA
-// pour le lancement du Kernel (définit dans rk_matrix.cu)
-    template<typename T>
-    void launch_FindK(T* S_gpu, double epsilon, int old_rank, int* newK_gpu);
-    template <typename T>
-    void launch_Sqrt_SingularVals_Kernel(T* deviceData, int k);
-#endif // HAVE_CUDA
 
 #endif

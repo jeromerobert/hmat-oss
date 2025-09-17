@@ -358,18 +358,14 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   HMAT_ASSERT(!info);
   CUDA_CHECK(cudaFree(Ra_gpu));
 
-  // Compute the new truncated rank
+  // Compute the new truncated rank and the squareroots of all singular values
   int *newK_gpu = nullptr;
   CUDA_CHECK(cudaMalloc(&newK_gpu, sizeof(int)));
   CUDA_CHECK(cudaMemcpy(newK_gpu, &a->cols, sizeof(int), cudaMemcpyHostToDevice));  
-  launch_FindK<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
+  launch_FindKAndSqrtAll<typename Types<T>::real>(S_gpu, epsilon, a->cols, newK_gpu);
   int newK = 0;
   CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
   CUDA_CHECK(cudaFree(newK_gpu));
-  newK_gpu = nullptr;
-
-  // Compute the squareroots of all singular values
-  launch_Sqrt_SingularVals_Kernel<typename Types<T>::real>(S_gpu, newK);
 
   // Transposition de VT/VH (VT^T = V : k x k)
   T* V_gpu=nullptr;
@@ -413,6 +409,10 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   a = newA_CUDA;
   delete b;
   b = newB_CUDA;
+
+  // NOTE: The panels a and b can usually not be directly compared between CPU and GPU. If the singular values are all distincts,
+  // the columns of a resp. b on CPU and GPU are equal up to a norm 1 constant (+-1 in real, exp(i.theta) in complex): if I
+  // multiply a column of a by exp(i.theta) and the same column of b by exp(-i.theta), my Rk matrix is unchanged.
   
 #else // HAVE_CUDA
 
@@ -447,31 +447,30 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   b = newB;
 
 #endif // HAVE_CUDA
-  
-// #ifdef HAVE_CUDA
-//   if(newK_cpu != newK)
-//     std::cout << "New rank sur CPU : " << newK_cpu << " sur GPU " << newK << "\n";
-//   if (1) {
-//     // The panels a and b can usually not be directly compared between CPU and GPU. If the singular values are all distinct,
-//     // the columns of a resp. b on CPU and GPU are equal up to a norm 1 complex constant.
-//     double frob_a = newA->norm();
-//     double frob_b = newB->norm();
-//     double frob_a_gpu = newA_CUDA->norm();
-//     double frob_b_gpu = newB_CUDA->norm();
-//     newA_CUDA->axpy(-1, a);  
-//     newB_CUDA->axpy(-1, b);
-//     double frob_a_diff = newA_CUDA->norm();
-//     double frob_b_diff = newB_CUDA->norm();
-//     newA_CUDA->axpy(1, a);  
-//     newB_CUDA->axpy(1, b);
-//     if(frob_a_diff / frob_a > 1e-4)
-//       std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur a : " << frob_a_diff / frob_a << " frob_a " << frob_a << "frob_a_gpu " << frob_a_gpu << "\n";
-//     if(frob_b_diff / frob_b > 1e-4)
-//       std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur a : " << frob_b_diff / frob_b << " frob_b " << frob_b << "frob_b_gpu " << frob_b_gpu << "\n";
-//   }
-// #endif // HAVE_CUDA
 
-  /*---------------------------------- --------------------------------- --------------------------------- --------------------------------- */
+#ifdef HAVE_CUDA
+  /*if(newK_cpu != newK)
+    std::cout << "New rank sur CPU : " << newK_cpu << " sur GPU " << newK << "\n";
+  double frob_a = newA->norm();
+  double frob_b = newB->norm();
+  double frob_a_gpu = newA_CUDA->norm();
+  double frob_b_gpu = newB_CUDA->norm();
+  newA_CUDA->axpy(-1, a);
+  newB_CUDA->axpy(-1, b);
+  double frob_a_diff = newA_CUDA->norm();
+  double frob_b_diff = newB_CUDA->norm();
+  newA_CUDA->axpy(2, a);
+  newB_CUDA->axpy(2, b);
+  double frob_a_diff2 = newA_CUDA->norm();
+  double frob_b_diff2 = newB_CUDA->norm();
+  if(frob_a_diff / frob_a > 1e-4 && frob_a_diff2 / frob_a > 1e-4)
+    std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur a : " << frob_a_diff / frob_a << " ou "  << frob_a_diff2 / frob_a << " frob_a " << frob_a << "frob_a_gpu " << frob_a_gpu << "\n";
+  if(frob_b_diff / frob_b > 1e-4 && frob_b_diff2 / frob_b > 1e-4)
+    std::cout << "Norme de Froebenius de l'erreur relative entre CPU et GPU sur a : " << frob_b_diff / frob_b << " ou " << frob_b_diff2 / frob_b << " frob_b " << frob_b << "frob_b_gpu " << frob_b_gpu << "\n";
+  delete newA_CUDA;
+  delete newB_CUDA;*/
+#endif // HAVE_CUDA
+
 }
 
 template<typename T> 
