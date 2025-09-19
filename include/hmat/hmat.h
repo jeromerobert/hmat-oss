@@ -760,6 +760,33 @@ typedef struct
     */
     hmat_matrix_t * (*get_child)( hmat_matrix_t *hmatrix, int i, int j );
 
+    /*! \brief Replace a parent sub-block (i,j) with an existing child HMatrix.
+
+    Inserts \p child into \p parent at block (i,j), transfers ownership of the
+    child's underlying HMatrix to the parent, and destroys the child wrapper.
+    After grafting, the function clones the row/col ClusterTree windows *from
+    the target block (i,j) in the parent* and installs the clones onto the
+    grafted subtree. The clones:
+      - reuse the parent's global DofData (no index re-permutation),
+      - preserve offsets (already aligned to the global context),
+      - preserve ClusterTree depths.
+
+    Finally, the HMatrix *block-tree* depths of the grafted subtree are updated
+    to remain consistent with the parent's hierarchy.
+
+    Preconditions:
+      - \p parent and \p child have the same factorization type.
+      - The DOF sizes of block (i,j) in \p parent and of \p child match.
+
+      \param parent  The parent HMatrix.
+      \param i       Row index of the target block.
+      \param j       Column index of the target block.
+      \param child   The child HMatrix to graft (the wrapper is consumed/destroyed).
+      \return 0 on success, non-zero on error (a message is printed to stderr).
+    */
+    int (*set_child)(hmat_matrix_t* parent, int i, int j, hmat_matrix_t* child);
+
+
     /*! \brief Destroy a child HMatrix.
 
       \param hmatrix the child matrix to destroy

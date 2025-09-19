@@ -730,6 +730,75 @@ hmat_matrix_t *get_child( hmat_matrix_t *hmatrix, int i, int j ) {
     return (hmat_matrix_t*) r;
 }
 
+// Update the block-tree (HMatrix) depth only (NOT the cluster trees).
+// If your HMatrix API names differ, adjust nrChildRows()/nrChildCols().
+template <typename T>
+static void hmat_update_block_depth(hmat::HMatrix<T>* node, int parentDepth) {
+  node->depth = parentDepth + 1;
+  for (int ii = 0; ii < node->nrChildRows(); ++ii) {
+    for (int jj = 0; jj < node->nrChildCols(); ++jj) {
+      if (auto* ch = node->get(ii, jj))
+        hmat_update_block_depth(ch, node->depth);
+    }
+  }
+}
+
+template <typename T, template <typename> class E>
+int set_child(hmat_matrix_t *hmatrix, int i, int j, hmat_matrix_t *child_holder) {
+  DECLARE_CONTEXT;
+  auto* parent = reinterpret_cast<hmat::HMatInterface<T>*>(hmatrix);
+  auto* child  = reinterpret_cast<hmat::HMatInterface<T>*>(child_holder);
+
+  try {
+    // 0) Factorization invariant
+    HMAT_ASSERT_MSG(parent->factorization() == child->factorization(),
+                    "set_child: parent/child factorization mismatch");
+
+    // 1) Access the target block and the incoming subtree
+    hmat::HMatrix<T>* target = parent->get(i, j);
+    HMAT_ASSERT_MSG(target != nullptr, "set_child: target block (i,j) not found");
+    hmat::HMatrix<T>* sub    = child->engine().hmat;
+    HMAT_ASSERT_MSG(sub != nullptr, "set_child: child has no underlying HMatrix");
+
+    // 2) Size checks (DOFs)
+    const int m_t = target->rows()->size();
+    const int n_t = target->cols()->size();
+    const int m_c = sub->rows()->size();
+    const int n_c = sub->cols()->size();
+
+    HMAT_ASSERT_MSG(m_t == m_c && n_t == n_c,
+                    "set_child: incompatible block sizes (different number of DOFs)");
+
+    // 3) Copy clusters
+    const hmat::ClusterTree* copyRows  = target->rowsTree()->copy(target->rowsTree());
+    const hmat::ClusterTree* copyCols  = target->colsTree()->copy(target->colsTree());
+
+    // 4) Install the copy ClusterTrees into the grafted subtree and own them
+    sub->setClusterTrees(copyRows, copyCols);
+    // sub must NOT own these trees: they belong to the parent/target
+    sub->ownClusterTrees(true, true);
+
+    // 5) Graft: consume/replace the target subtree with 'sub'
+    //    - clear current target contents
+    target->setHMatrix();
+    //    - detach child wrapper from its HMatrix to avoid double free
+    child->setHMatrix();
+    //    - install the child's HMatrix into the parent at (i,j)
+    target->setHMatrix(sub);
+    //    - destroy the now-empty child wrapper
+    delete child;
+
+    // 6) Refresh the HMatrix *block-tree* depths below (i,j)
+    HMAT_ASSERT(target->depth >= 0);
+    hmat_update_block_depth(sub, target->depth - 1);
+
+  } catch (const std::exception& e) {
+    fprintf(stderr, "%s\n", e.what());
+    return 1;
+  }
+  return 0;
+}
+
 template <typename T, template <typename> class E>
 int get_block(struct hmat_get_values_context_t *ctx) {
   DECLARE_CONTEXT;
@@ -864,6 +933,7 @@ static void createCInterface(hmat_interface_t * i)
     i->create_empty_hmatrix_admissibility = create_empty_hmatrix_admissibility<T, E>;
     i->destroy = destroy<T, E>;
     i->get_child = get_child<T, E>;
+    i->set_child = set_child<T, E>;
     i->destroy_child = destroy_child<T, E>;
     i->inverse = inverse<T, E>;
     i->finalize = finalize<T, E>;
