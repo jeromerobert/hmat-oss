@@ -186,6 +186,9 @@ public:
    */
   void swap(ClusterTree* other);
 
+  /*! Add an offset  */
+  void offset(int offset);
+
   /*! \brief Return a short string describing the content of this ClusterTree for debug (like: "[320, 452]")
     */
   std::string description() const {

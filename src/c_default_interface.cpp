@@ -162,6 +162,10 @@ void hmat_swap_cluster_tree(hmat_cluster_tree_t *first, hmat_cluster_tree_t *sec
   reinterpret_cast<ClusterTree*>(first)->swap(reinterpret_cast<ClusterTree*>(second));
 }
 
+void hmat_offset_cluster_tree(hmat_cluster_tree_t *tree, int offset) {
+  reinterpret_cast<ClusterTree*>(tree)->offset(offset);
+}
+
 int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree)
 {
     return ((ClusterTree*)tree)->nodesCount();
@@ -184,6 +188,10 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
 
 const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree) {
     return reinterpret_cast<const ClusterTree*>(tree)->data.indices();
+}
+
+const double * hmat_cluster_get_coordinates(const hmat_cluster_tree_t *tree) {
+    return &reinterpret_cast<const ClusterTree*>(tree)->data.coordinates()->get(0, 0);
 }
 
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
