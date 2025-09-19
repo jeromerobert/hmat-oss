@@ -192,7 +192,6 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
 }
 
 void ClusterTree::swap(ClusterTree* other) {
-  HMAT_ASSERT(father == NULL && other->father == NULL);
   std::swap(data, other->data);
   std::swap(cache_, other->cache_);
   std::swap(children, other->children);
@@ -203,6 +202,14 @@ void ClusterTree::swap(ClusterTree* other) {
   for(int i = 0; i < other->children.size(); ++i) {
     if (other->children[i])
       other->children[i]->father = other;
+  }
+}
+
+void ClusterTree::offset(int offset) {
+  data.offset_ += offset;
+  for(int i = 0; i < children.size(); ++i) {
+    if (children[i])
+      children[i]->offset(offset);
   }
 }
 
