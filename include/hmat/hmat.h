@@ -252,6 +252,8 @@ HMAT_API hmat_cluster_tree_t * hmat_copy_cluster_tree(const hmat_cluster_tree_t 
 
 HMAT_API void hmat_swap_cluster_tree(hmat_cluster_tree_t *first, hmat_cluster_tree_t *second);
 
+HMAT_API void hmat_offset_cluster_tree(hmat_cluster_tree_t *tree, int offset);
+
 struct hmat_cluster_tree_create_context_t {
     /** Spatial dimension */
     unsigned dimension;
@@ -307,6 +309,14 @@ HMAT_API int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_
  * tree (after renumbering). This array must not be freed nor modified by the caller.
  */
 HMAT_API const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree);
+
+/**
+ * @brief Return the coordinates of the cluster tree
+ * @param tree a cluster tree
+ * @return The position of degrees of freedom.
+ * This array must not be freed nor modified by the caller.
+ */
+HMAT_API const double * hmat_cluster_get_coordinates(const hmat_cluster_tree_t *tree);
 
 typedef struct {
     /** eta for Hackbusch condition */
