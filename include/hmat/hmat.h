@@ -1048,6 +1048,12 @@ typedef struct
      * \param diag allocated memory area in which diagonal values are written
      */
     int (*extract_diagonal_block)(hmat_matrix_t* holder, int components, void* diag);
+    /**
+     * @brief Replace diagonal children
+     * \param holder A hmatrix
+     * \param holder_children  array of diagonal children
+     */
+    int (*set_diagonal_children)(hmat_matrix_t* holder, hmat_matrix_t** holder_children);
 
 }  hmat_interface_t;
 
