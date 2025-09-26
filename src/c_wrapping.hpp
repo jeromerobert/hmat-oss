@@ -731,6 +731,34 @@ hmat_matrix_t *get_child( hmat_matrix_t *hmatrix, int i, int j ) {
 }
 
 template <typename T, template <typename> class E>
+int set_diagonal_children(hmat_matrix_t* holder, hmat_matrix_t** holder_children) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T> *hmat = reinterpret_cast<hmat::HMatInterface<T>*>(holder);
+  hmat::HMatrix<T>* m = hmat->engine().hmat;
+  try {
+    HMAT_ASSERT_MSG(m->nrChildRow() == m->nrChildCol(), "Cannot call set_diagonal_children on non symmetric matrix");
+    for (int i = 0; i < m->nrChildRow(); ++i, ++holder_children) {
+      hmat::HMatrix<T>* currentChild = m->get(i, i);
+      if (currentChild) {
+        // Detach it; there may be memory leaks
+        currentChild->father = NULL;
+        currentChild->ownClusterTrees(false, false);
+        delete currentChild;
+      }
+      hmat::HMatrix<T>* newChild = reinterpret_cast<hmat::HMatInterface<T>*>(*holder_children)->engine().hmat;
+      // insertChild takes care of father and depth
+      m->insertChild(i, i, newChild);
+    }
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  // Call setClusterTrees to overwrite children ClusterTree
+  m->setClusterTrees(m->rowsTree(), m->colsTree());
+  return 0;
+}
+
+template <typename T, template <typename> class E>
 int get_block(struct hmat_get_values_context_t *ctx) {
   DECLARE_CONTEXT;
   DISABLE_THREADING_IN_BLOCK;
@@ -909,6 +937,7 @@ static void createCInterface(hmat_interface_t * i)
     i->gemm_dense = gemm_dense<T, E>;
     i->vector_reorder = vector_reorder<T, E>;
     i->vector_restore = vector_restore<T, E>;
+    i->set_diagonal_children = set_diagonal_children<T, E>;
 }
 
 }  // end namespace hmat
