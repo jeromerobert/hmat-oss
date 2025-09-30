@@ -1664,7 +1664,7 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
 
   if (this->isLeaf()) {
     if (isFullMatrix()) {
-      size_t size = r*c;
+      size_t size = r*c * sizeof(T);
       double cr = 1;
       if(full()->_compressor)
       {
@@ -1676,7 +1676,7 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
 
     } else {
       size_t k = rk()->rank();
-      size_t size = k*(r + c);
+      size_t size = k*(r + c) * sizeof(T);
 
       double cr = 1;
       if(rk()->_compressors)
