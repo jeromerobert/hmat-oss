@@ -380,9 +380,9 @@ template <typename T> void DefaultEngine<T>::ratio(hmat_FPCompressionRatio_t &r)
 }
 
 template <typename T>
-void DefaultEngine<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk)
+void DefaultEngine<T>::FPcompress()
 {
-  this->hmat->FPcompress(epsilon, nb_blocs, method, compressFull, compressRk);
+  this->hmat->FPcompress();
 }
 
 template <typename T>
@@ -390,6 +390,18 @@ void DefaultEngine<T>::FPdecompress()
 {
   this->hmat->FPdecompress();
 }
+
+template <typename T>
+FPCompressionSettings DefaultEngine<T>::GetFPCompressionSettings() {
+  return this->hmat->GetFPCompressionSettings();
+};
+
+template <typename T>
+void DefaultEngine<T>::SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk) {
+  this->hmat->SetFPCompressionSettings(compressor, nb_blocs, epsilonFP, compressFull, compressRk);
+};
+  
+
 
 }  // end namespace hmat
 

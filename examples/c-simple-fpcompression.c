@@ -195,12 +195,10 @@ int main(int argc, char **argv) {
   hmat_info_t mat_info;
   hmat_profile_t mat_profile;
   hmat_FPCompressionRatio_t mat_ratio;
+  hmat_fp_settings_t fp_settings;
   int n;
   char arithmetic;
   char* comp_code;
-  int nb_blocs = 0; //Default value : no compression if <= 0;
-  double epsilon;
-  hmat_FPcompress_t compressor_type = DEFAULT_COMPRESSOR;
   hmat_clustering_algorithm_t* clustering, * clustering_algo;
   hmat_cluster_tree_t* cluster_tree;
   hmat_matrix_t* hmatrix;
@@ -215,25 +213,26 @@ int main(int argc, char **argv) {
 
   n = atoi(argv[1]);
   arithmetic = argv[2][0];
-  epsilon = atof(argv[3]);
+  fp_settings.epsilonFP = atof(argv[3]);
 
+  fp_settings.nb_blocs = 0; //Default value : no compression if <= 0;
   if (argc == 5 || argc == 6)
-    {nb_blocs = atoi(argv[4]);}
+    {fp_settings.nb_blocs = atoi(argv[4]);}
 
   if (argc == 6)
   {
     comp_code = argv[5];
     if(strcmp(comp_code,"SZ2")==0) {
-      compressor_type = SZ_COMPRESSOR;
+      fp_settings.compressor = SZ_COMPRESSOR;
 
     } else if(strcmp(comp_code,"SZ")==0) { //"SZ2" and "SZ" both works
-      compressor_type = SZ_COMPRESSOR;
+      fp_settings.compressor = SZ_COMPRESSOR;
 
     } else if(strcmp(comp_code,"SZ3")==0) {
-      compressor_type = SZ3_COMPRESSOR;
+      fp_settings.compressor = SZ3_COMPRESSOR;
 
     } else if(strcmp(comp_code,"ZFP")==0) {
-      compressor_type = ZFP_COMPRESSOR;
+      fp_settings.compressor = ZFP_COMPRESSOR;
 
     } else {
       fprintf(stderr, "Unknown compressor : %s. Leave blank for default value\n", comp_code);
@@ -241,8 +240,11 @@ int main(int argc, char **argv) {
     }
   }
 
+  fp_settings.compressFull = true;
+  fp_settings.compressRk = true;
+
   printf("\n =================== Tests Compression on Cylinder ===================\n");
-  printf("With parameters epsilon = %.2e, n_blocs = %d,\non a problem of size %d with arithmetic %c\n\n", epsilon, nb_blocs, n, arithmetic);
+  printf("With parameters epsilon = %.2e, n_blocs = %d,\non a problem of size %d with arithmetic %c\n\n", fp_settings.epsilonFP, fp_settings.nb_blocs, n, arithmetic);
 
 
   hmat_get_parameters(&settings);
@@ -265,6 +267,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Unknown arithmetic code %c\n", arithmetic);
     return 1;
   }
+
 
   hmat_init_default_interface(&hmat, scalar_type);
 
@@ -337,10 +340,13 @@ int main(int argc, char **argv) {
   clock_t decompression = compression;
 
     //Compression de hmatrix_c
-  if(nb_blocs>0) 
+  if(fp_settings.nb_blocs>0) 
   {
     printf("\nCompressing...\n");
-    hmat.FPcompress(hmatrix_c, epsilon, nb_blocs, compressor_type, true, true);
+    //Setting compression parameters
+    hmat.SetFPCompressionSettings(hmatrix_c, fp_settings); //Also possible : hmat.SetFPCompressionSettings(hmatrix_c, epsilon, nb_blocs, compressor_type, true, true);
+    //Applying compression
+    hmat.FPcompress(hmatrix_c);
     
     compression = clock();
   }
@@ -364,7 +370,7 @@ int main(int argc, char **argv) {
 
 
     //Décompression de hmatrix_c
-  if(nb_blocs>0) 
+  if(fp_settings.nb_blocs>0) 
   {
     
     printf("\nUncompressing...\n");
@@ -429,7 +435,7 @@ int main(int argc, char **argv) {
   printf("Initialization : %8.3f s\n", initTime);
   printf("Generation     : %8.3f s\n", generationTime);
   printf("Assembling     : %8.3f s\n", assemblingTime);
-  if(nb_blocs>0){
+  if(fp_settings.nb_blocs>0){
     printf("Compression    : %8.3f s\n", compressionTime);
     printf("Decompression  : %8.3f s\n", decompressionTIme);
   }

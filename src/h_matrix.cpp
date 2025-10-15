@@ -1702,21 +1702,22 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
 }
 
 template <typename T>
-void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk)
+void HMatrix<T>::FPcompress()
 {
-
   
   if (this->isLeaf()) {
+    
     if (isFullMatrix()) {
       //Compress Full block
-      if(compressFull)
+      if(localSettings.FPSettings->compressFull)
       {
-        full()->FPcompress(epsilon, method);
+        full()->FPcompress(localSettings.FPSettings->epsilonFP, localSettings.FPSettings->compressor);
       }
     } else {
       //Compress RK block
-      if(compressRk)
+      if(localSettings.FPSettings->compressRk)
       {
+        int nb_blocs = localSettings.FPSettings->nb_blocs;
         int min_size = 2048; //The Minimum bloc size we want for compression 
         int total_size = std::min(rows()->size(), cols()->size()) * rk()->rank() * sizeof(T);
         float bloc_size = total_size / nb_blocs;
@@ -1731,7 +1732,8 @@ void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t meth
     
         nb_blocs = std::min(nb_blocs, rk()->rank());
         
-        rk()->FPcompress(epsilon, nb_blocs, method);
+        rk()->FPcompress(localSettings.FPSettings->epsilonFP, nb_blocs, localSettings.FPSettings->compressor);
+
       }
       
       
@@ -1741,7 +1743,7 @@ void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t meth
     for (int i = 0; i < nrChildRow(); i++) {
       for(int j = 0; j < nrChildCol(); j++) {
 	      if(get(i,j)) {
-          get(i,j)->FPcompress(epsilon, nb_blocs, method, compressFull, compressRk);
+          get(i,j)->FPcompress();
         }
       }
     }
@@ -1753,8 +1755,9 @@ void HMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t meth
 template <typename T>
 void HMatrix<T>::FPdecompress()
 {
-  
+
   if (this->isLeaf()) {
+   
     if (isFullMatrix()) {
       //Uncompress Full block if compressed
       if(full()->_compressor)
@@ -1781,6 +1784,43 @@ void HMatrix<T>::FPdecompress()
 
 
 }
+
+
+template<typename T>
+FPCompressionSettings HMatrix<T>::GetFPCompressionSettings() {
+  return *(localSettings.FPSettings);
+}
+
+template<typename T>
+void HMatrix<T>::SetFPCompressionSettings(FPCompressionSettings* settings){
+  
+
+  if (this->isLeaf()) {
+    if(localSettings.FPSettings){
+      //delete (localSettings.FPSettings);
+    }
+    
+    localSettings.FPSettings = settings;
+
+  } else {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for(int j = 0; j < nrChildCol(); j++) {
+	      if(get(i,j)) {
+          get(i,j)->SetFPCompressionSettings(settings);
+        }
+      }
+    }
+  }
+}
+
+template<typename T>
+void HMatrix<T>::SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk){
+  FPCompressionSettings* settings = new FPCompressionSettings(compressor, nb_blocs, epsilonFP, compressFull, compressRk);
+  this->SetFPCompressionSettings(settings);
+  
+}
+
+
 
 template<typename T>
 FullMatrix<T>* multiplyHFull(char transH, char transM,

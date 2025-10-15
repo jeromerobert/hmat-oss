@@ -60,6 +60,18 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 // or removed
 enum DefaultRank {UNINITIALIZED_BLOCK = -3, NONLEAF_BLOCK = -2, FULL_BLOCK = -1};
 
+struct FPCompressionSettings {
+    hmat_FPcompress_t compressor;
+    int nb_blocs; //TODO : -1 => p=n_cols;  0 => p varied, depends on min block size
+    float epsilonFP;
+    bool compressFull;
+    bool compressRk;
+
+    FPCompressionSettings(hmat_FPcompress_t c = DEFAULT_COMPRESSOR, int p = 4, float eps = 1e-4, bool cF = true, bool cR = true)
+      : compressor(c), nb_blocs(p), epsilonFP(eps), compressFull(cF), compressRk(cR) {}
+
+};
+
 
 
 /** Settings global to a whole matrix */
@@ -737,13 +749,27 @@ public:
   /**
    * Apply FP compression to the HMatrix
    */
-  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, bool compressFull = true, bool compressRk = true);
+  void FPcompress();
 
   /**
    * Decompress the Hmatrix after an FP compression
    */
   void FPdecompress();
 
+  /**
+   * Return the FP compression settings of the HMatrix
+   */
+  FPCompressionSettings GetFPCompressionSettings();
+
+  /**
+   * Set the FP compression settings of the HMatrix.
+   */
+  void SetFPCompressionSettings(FPCompressionSettings* settings); //TODO set private member ? Used for recursion of the second version, maybe should not be usable outside
+
+  /**
+   * Set the FP compression settings of the HMatrix.
+   */
+  void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk);
 
   /**
    * Tag a not leaf block as assembled.

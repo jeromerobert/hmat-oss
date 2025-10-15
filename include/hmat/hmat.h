@@ -983,9 +983,15 @@ typedef struct
 
     int (*get_ratio)(hmat_matrix_t *hmatrix, hmat_FPCompressionRatio_t* ratio);
 
-    int (*FPcompress)(hmat_matrix_t *hmatrix, double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull, bool compressRk);
+    int (*FPcompress)(hmat_matrix_t *hmatrix);
 
     int (*FPdecompress)(hmat_matrix_t *hmatrix);
+
+    hmat_fp_settings_t (*GetFPCompressionSettings)(hmat_matrix_t *hmatrix);
+
+    int (*SetFPCompressionSettings)(hmat_matrix_t *hmatrix, hmat_fp_settings_t settings);
+
+    int (*SetFPCompressionSettingsParams)(hmat_matrix_t *hmatrix, float epsilonFP, int nb_blocs, hmat_FPcompress_t compressor, bool compressFull, bool compressRk);
 
     /*! \brief Dump json & postscript informations about matrix
         \param hmatrix A hmatrix
