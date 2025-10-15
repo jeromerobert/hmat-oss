@@ -316,12 +316,22 @@ public:
   /**
    * Apply a Floating-Point compression to the Hmatrix blocs
    */
-  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, bool compressFull = true, bool compressRk = true);
+  void FPcompress();
 
   /**
    * Uncompress the Hmatrix blocs resulting of the Floating-point compression
    */
   void FPdecompress();
+
+  /**
+   * Return the FP compression settings of this HMatrix
+   */
+  FPCompressionSettings GetFPCompressionSettings();
+
+  /**
+   * Set the FP compression settings of this HMatrix
+   */
+  void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk);
 
   /*! \brief Dump some HMatrix metadata to a Python-readable file.
 
