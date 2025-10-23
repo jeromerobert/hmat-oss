@@ -63,7 +63,7 @@ namespace trace {
 
   // Maximum number of parallel workers + 1 (for the main non-parallel context)
 #ifndef MAX_ROOTS
-  #define MAX_ROOTS 128
+  #define MAX_ROOTS 130
 #endif
 
   /** Set the function tasked with returning the current root index.

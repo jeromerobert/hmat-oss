@@ -23,6 +23,7 @@
 #include "hmat/config.h"
 
 #include "context.hpp"
+#include "common/my_assert.h"
 
 #include <assert.h>
 #include <cstring>
@@ -44,7 +45,7 @@ namespace trace {
    */
   int currentNodeIndex() {
     int res = (nodeIndexFunction ? nodeIndexFunction() : -1) + 1;
-    assert(res>=0 && res<MAX_ROOTS);
+    HMAT_ASSERT_MSG(res>=0 && res<MAX_ROOTS, "Worker index %d exceeds maximum value allowed %d", res, MAX_ROOTS);
     return res;
   }
 
