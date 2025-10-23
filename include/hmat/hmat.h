@@ -202,7 +202,7 @@ HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_
  * delegate to an other algorithm.
  * @param algo the delegate algorithm
  * @param ratio ratio between the number of DOF in a cluster and
- * a span size so a DOF is concidered as large
+ * a span size so a DOF is considered as large
  */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_span(
         const hmat_clustering_algorithm_t* algo, double ratio);

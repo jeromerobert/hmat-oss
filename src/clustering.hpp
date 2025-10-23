@@ -198,7 +198,7 @@ class SpanClusteringAlgorithm: public AxisAlignClusteringAlgorithm {
     double ratio_;
 public:
     /** @param ratio ratio between the number of DOF in a cluster and
-     * a span size so a DOF is concidered as large */
+     * a span size so a DOF is considered as large */
     SpanClusteringAlgorithm(const ClusteringAlgorithm &algo, double ratio);
     std::string str() const;
     ClusteringAlgorithm* clone() const;

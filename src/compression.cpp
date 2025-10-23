@@ -294,6 +294,7 @@ void acaFull(ScalarArray<T> & m, ScalarArray<T>* & tmpA, ScalarArray<T>* & tmpB,
 
       // performs the rank 1 operation m := m - va_nu*vb_nu^T
       // in order to nullify m->get(i_nu, j_nu) (the previous maximum value)
+      // as well as the whole row i_nu and column j_nu
       m.rankOneUpdate(-1, va_nu, vb_nu);
 
       // Update the estimate norm

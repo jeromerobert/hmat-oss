@@ -1328,7 +1328,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
       pivmax = norm2_update[pivot];
       relative_epsilon = prec * prec;
     }
-    if (j<initialPivot) {
+    if (j<initialPivot) { // is it possible ?
       pivot = j;
       pivmax = 1.;
     }
@@ -1363,7 +1363,7 @@ template<typename T> int ScalarArray<T>::modifiedGramSchmidt(ScalarArray<T> *res
 
       // Remove the qj-component from vectors bk (k=j+1,...,n-1)
       if (j<cols-1) {
-        int firstcol=std::max(j+1, initialPivot) ;
+        int firstcol=std::max(j+1, initialPivot) ; // should always be j+1, no ?
         ScalarArray<T> bK(*this, 0, rows, firstcol, cols-firstcol); // All the columns of 'this' after column 'firstcol'
         ScalarArray<T> aj_bK(r, j, 1, firstcol, cols-firstcol); // In 'r': row 'j', all the columns after column 'firstcol'
         // Compute in 1 operation all the scalar products between aj and a_firstcol, ..., a_n

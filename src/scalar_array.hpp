@@ -562,7 +562,7 @@ public:
     Vector(T* _m, int _rows):ScalarArray<T>(_m, _rows, 1){}
     Vector(int _rows):ScalarArray<T>(_rows, 1){}
     Vector(int _rows, bool zeroinit):ScalarArray<T>(_rows , 1 , zeroinit){}
-    /** \brief Create Vector with column 'col' of existing ScalarArray
+    /** \brief Create Vector with column '_col' of existing ScalarArray
      */
     Vector(const ScalarArray<T> &d, int _col):ScalarArray<T>(d, 0, d.rows, _col, 1){}
     //~Vector(){}
