@@ -45,7 +45,7 @@ namespace trace {
    */
   int currentNodeIndex() {
     int res = (nodeIndexFunction ? nodeIndexFunction() : -1) + 1;
-    HMAT_ASSERT_MSG(res>=0 && res<MAX_ROOTS, "Worker index %d exceeds maximum value allowed %d", res, MAX_ROOTS);
+    HMAT_ASSERT_MSG(res>=0 && res<MAX_ROOTS, "Worker index %d exceeds interval allowed [0, %d]", res, MAX_ROOTS-1);
     return res;
   }
 

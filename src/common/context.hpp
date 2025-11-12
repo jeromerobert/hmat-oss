@@ -61,9 +61,9 @@ namespace trace {
     Time lastCommInitiationTime;
   };
 
-  // Maximum number of parallel workers + 1 (for the main non-parallel context)
+// Maximum number of threads + 3 (for the main non-parallel context, the IO thread & the comm thread)
 #ifndef MAX_ROOTS
-  #define MAX_ROOTS 130
+  #define MAX_ROOTS 259
 #endif
 
   /** Set the function tasked with returning the current root index.
