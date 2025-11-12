@@ -49,7 +49,7 @@ namespace hmat {
         break;
     }
     assert(pivots_.size() - (size + 1) >= numberOfPivotsToRemove);
-    pivots_.resize(size + 1);
+    pivots_.resize(size + 1); // note: resize() does not release memory, call shrink_to_fit() to do so
   }
 
   template<typename T>

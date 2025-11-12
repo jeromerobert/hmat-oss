@@ -78,7 +78,7 @@ void HMatInterface<T>::factorize(Factorization t, hmat_progress_t * progress) {
   if(progress != NULL)
     progress->max = engine_->hmat->rows()->size();
   engine_->factorization(t);
-  factorizationType = t;
+  factorizationType = t; // used by the solve() methods
   engine_->hmat->checkStructure();
 }
 

@@ -70,7 +70,7 @@ namespace trace {
 
       The function set this way is used to determine to which tree the current
       tracing context belongs to. By default, a single context is assumed, and
-      this behavior can be restored by setting the fuction to NULL.
+      this behavior can be restored by setting the function to NULL.
 
       \param nodeIndexFunc a function returning a worker index, which is:
         - 0 in non-parallel parts of the code
