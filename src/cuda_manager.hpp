@@ -73,6 +73,10 @@ namespace hmat {
       return cusolver_handle_;
     }
 
+    int getCudaDeviceCount() const {
+      return cuda_device_count_;
+    }
+
     // --- Rule of Five: Prevent Duplication ---
     // Delete copy constructor and copy assignment to ensure only one instance exists.
     CudaManager(const CudaManager&) = delete;
@@ -90,10 +94,15 @@ namespace hmat {
      * library handles occurs.
      */
     CudaManager() {
-      std::cout << "--> Initializing global CUDA handles (one-time operation)..." << std::endl;
-      CUBLAS_CHECK(cublasCreate(&cublas_handle_));
-      CUSOLVER_CHECK(cusolverDnCreate(&cusolver_handle_));
-      std::cout << "--> Handles initialized successfully." << std::endl;
+      cudaError_t error_code = cudaGetDeviceCount(&cuda_device_count_);
+      if (error_code != cudaSuccess) cuda_device_count_=0;
+      if (cuda_device_count_) {
+        CUBLAS_CHECK(cublasCreate(&cublas_handle_));
+        CUSOLVER_CHECK(cusolverDnCreate(&cusolver_handle_));
+        std::cout << "--> CUDA handles initialized successfully (#GPU=" << cuda_device_count_ << ")." << std::endl;
+      } else {
+        std::cout << "--> No CUDA devices..." << std::endl;
+      }
     }
 
     /**
@@ -103,16 +112,18 @@ namespace hmat {
      * all acquired resources are released properly.
      */
     ~CudaManager() {
-      std::cout << "--> Destroying global CUDA handles (at program exit)..." << std::endl;
-      if (cusolver_handle_) {
-	CUSOLVER_CHECK(cusolverDnDestroy(cusolver_handle_));
+      if (cuda_device_count_) {
+        if (cusolver_handle_) {
+	        CUSOLVER_CHECK(cusolverDnDestroy(cusolver_handle_));
+        }
+        if (cublas_handle_) {
+	        CUBLAS_CHECK(cublasDestroy(cublas_handle_));
+        }
+        std::cout << "--> CUDA handles destroyed successfully." << std::endl;
       }
-      if (cublas_handle_) {
-	CUBLAS_CHECK(cublasDestroy(cublas_handle_));
-      }
-      std::cout << "--> Handles destroyed successfully." << std::endl;
     }
 
+    int cuda_device_count_ = 0;
     // Member variables holding the unique handles
     cublasHandle_t   cublas_handle_   = nullptr;
     cusolverDnHandle_t cusolver_handle_ = nullptr;
