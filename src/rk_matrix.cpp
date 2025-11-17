@@ -315,6 +315,9 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
   
 #ifdef HAVE_CUDA
   if (hmat::CudaManager::getInstance().getCudaDeviceCount()) {
+
+    // Set the right GPU as active to allocate and free memory there
+    hmat::CudaManager::getInstance().setCudaDevice();
     T *a_gpu = nullptr;
     CUDA_CHECK(cudaMalloc(&a_gpu, sizeof(T) * a->rows * a->cols));
     CUDA_CHECK(cudaMemcpy(a_gpu, a->ptr(), sizeof(T) * a->rows * a->cols, cudaMemcpyHostToDevice));

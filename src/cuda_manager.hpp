@@ -77,6 +77,10 @@ namespace hmat {
       return cuda_device_count_;
     }
 
+    void setCudaDevice() const {
+      cudaSetDevice(cuda_device_used_);
+    }
+
     // --- Rule of Five: Prevent Duplication ---
     // Delete copy constructor and copy assignment to ensure only one instance exists.
     CudaManager(const CudaManager&) = delete;
@@ -97,9 +101,14 @@ namespace hmat {
       cudaError_t error_code = cudaGetDeviceCount(&cuda_device_count_);
       if (error_code != cudaSuccess) cuda_device_count_=0;
       if (cuda_device_count_) {
+        // Select CUDA Device (0 by default)
+        const char *ds = getenv("HMAT_CUDA_DEVICE");
+        cuda_device_used_ = (ds != nullptr) ? atoi(ds) : 0;
+        HMAT_ASSERT_MSG(cuda_device_used_ >= 0 && cuda_device_used_ < cuda_device_count_, "Invalid value for HMAT_CUDA_DEVICE=%d, should be in [0, %d]", cuda_device_used_, cuda_device_count_-1);
+        cudaSetDevice(cuda_device_used_);
         CUBLAS_CHECK(cublasCreate(&cublas_handle_));
         CUSOLVER_CHECK(cusolverDnCreate(&cusolver_handle_));
-        std::cout << "--> CUDA handles initialized successfully (#GPU=" << cuda_device_count_ << ")." << std::endl;
+        std::cout << "--> CUDA handles initialized successfully on device " << cuda_device_used_ << " (#GPU=" << cuda_device_count_ << ")." << std::endl;
       } else {
         std::cout << "--> No CUDA devices..." << std::endl;
       }
@@ -113,6 +122,8 @@ namespace hmat {
      */
     ~CudaManager() {
       if (cuda_device_count_) {
+        // You must select the correct device BEFORE destroying its handle
+        cudaSetDevice(cuda_device_used_);
         if (cusolver_handle_) {
 	        CUSOLVER_CHECK(cusolverDnDestroy(cusolver_handle_));
         }
@@ -124,6 +135,7 @@ namespace hmat {
     }
 
     int cuda_device_count_ = 0;
+    int cuda_device_used_ = -1;
     // Member variables holding the unique handles
     cublasHandle_t   cublas_handle_   = nullptr;
     cusolverDnHandle_t cusolver_handle_ = nullptr;
