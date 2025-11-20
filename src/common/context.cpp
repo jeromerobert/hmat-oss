@@ -42,7 +42,7 @@ namespace trace {
 
       \return a number between 0 (not in a parallel region) and the number of
       workers (included).
-   */
+  */
   int currentNodeIndex() {
     int res = (nodeIndexFunction ? nodeIndexFunction() : -1) + 1;
     HMAT_ASSERT_MSG(res>=0 && res<MAX_ROOTS, "Worker index %d exceeds interval allowed [0, %d]", res, MAX_ROOTS-1);
@@ -61,7 +61,7 @@ namespace trace {
     : name_(_name), data(), parent(_parent), children() {}
 
   Node::~Node() {
-    for (std::vector<Node*>::iterator it = children.begin(); it != children.end(); ++it) {
+    for (auto it = children.begin(); it != children.end(); ++it) {
       delete *it;
     }
   }
@@ -122,7 +122,7 @@ namespace trace {
   }
 
   Node* Node::findChild(const char* name) const {
-    for (std::vector<Node*>::const_iterator it = children.begin(); it != children.end(); ++it) {
+    for (auto it = children.begin(); it != children.end(); ++it) {
       // On cherche la correspondance avec le pointeur. Puisqu'on demande que
       // tous les noms soient des pointeurs qui existent tout le long de
       // l'execution, on peut forcer l'unicite.
@@ -145,7 +145,7 @@ namespace trace {
       << "\"totalCommTime\": " << data.totalCommTime / 1e9 << "," << std::endl;
     f << "\"children\": [";
     std::string delimiter("");
-    for (std::vector<Node*>::const_iterator it = children.begin(); it != children.end(); ++it) {
+    for (auto it = children.begin(); it != children.end(); ++it) {
       f << delimiter;
       (*it)->jsonDump(f);
       delimiter = ", ";
@@ -160,13 +160,12 @@ namespace trace {
     std::string delimiter("");
     for (int i = 0; i < MAX_ROOTS; i++) {
       if (!currentNodes[i].empty()) {
-        UM_NS::unordered_map<void*, Node*>::iterator p = currentNodes[i].begin();
-        for(; p != currentNodes[i].end(); ++p) {
-          Node* root = p->second;
-          f << delimiter << std::endl;
-          root->jsonDump(f);
-          delimiter = ", ";
-        }
+	for (auto p : currentNodes[i]) {
+	  Node* root = p.second;
+	  f << delimiter << std::endl;
+	  root->jsonDump(f);
+	  delimiter = ", ";
+	}
       }
     }
     f << std::endl << "]" << std::endl;
@@ -177,7 +176,7 @@ namespace trace {
   Node* Node::currentNode() {
     int index = currentNodeIndex();
     void* enclosing = enclosingContext[index];
-    UM_NS::unordered_map<void*, Node*>::iterator it = currentNodes[index].find(enclosing);
+    auto it = currentNodes[index].find(enclosing);
     Node* current;
     if (it == currentNodes[index].end()) {
       // TODO : avec toyrt, les threads 1 et 2 ne sont pas des workers, ce sont les threads IO & MPI
@@ -190,14 +189,14 @@ namespace trace {
         // old Visual C++ do not have snprintf
         sprintf(name,
 #else
-        snprintf(name, strlen(name)+1,
+		snprintf(name, strlen(name)+1,
 #endif
-        "Worker #%03d - %p", index, enclosing);
-      }
-      current = new Node(name, NULL);
-      currentNodes[index][enclosing] = current;
+			 "Worker #%03d - %p", index, enclosing);
+		}
+      current = new Node(name, nullptr);
+	    currentNodes[index][enclosing] = current;
     } else {
-      current = it->second;
+	    current = it->second;
     }
     return current;
   }
