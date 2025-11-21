@@ -2032,13 +2032,22 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
   } else if(!b->isLeaf()) {
     // B isn't a leaf, then 'this' is one
     assert(this->isLeaf());
-    // Evaluate B as a full matrix, solve, and restore in the matrix
-    // TODO: check if it's not too bad
-    FullMatrix<T> bFull(b->rows(), b->cols());
-    b->evalPart(&bFull, b->rows(), b->cols());
-    this->solveLowerTriangularLeft(&bFull, algo, diag, uplo);
-    b->clear();
-    b->axpy(1, &bFull);
+    if(b->nrChildRow() == 1) {
+      // When we have much more RHS than the DOFs number
+      for(int j=0; j<b->nrChildCol();j++) {
+         if(b->get(0,j))
+           this->solveLowerTriangularLeft(b->get(0,j), algo, diag, uplo);
+      }
+    }
+    else {
+      // Evaluate B as a full matrix, solve, and restore in the matrix
+      // TODO: check if it's not too bad
+      FullMatrix<T> bFull(b->rows(), b->cols());
+      b->evalPart(&bFull, b->rows(), b->cols());
+      this->solveLowerTriangularLeft(&bFull, algo, diag, uplo);
+      b->clear();
+      b->axpy(1, &bFull);
+    }
   } else if(b->isNull()) {
     // nothing to do
   } else {
@@ -2189,13 +2198,22 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
   } else if(!b->isLeaf()) {
     // B isn't a leaf, then 'this' is one
     assert(this->isLeaf());
-    // Evaluate B, solve by column, and restore in the matrix
-    // TODO: check if it's not too bad
-    FullMatrix<T> bFull(b->rows(), b->cols());
-    b->evalPart(&bFull, b->rows(), b->cols());
-    this->solveUpperTriangularLeft(&bFull, algo, diag, uplo);
-    b->clear();
-    b->axpy(1, &bFull);
+    if(b->nrChildRow() == 1) {
+      // When we have much more RHS than the DOFs number
+      for(int j=0; j<b->nrChildCol();j++) {
+         if(b->get(0,j))
+           this->solveUpperTriangularLeft(b->get(0,j), algo, diag, uplo);
+      }
+    }
+    else {
+      // Evaluate B, solve by column, and restore in the matrix
+      // TODO: check if it's not too bad
+      FullMatrix<T> bFull(b->rows(), b->cols());
+      b->evalPart(&bFull, b->rows(), b->cols());
+      this->solveUpperTriangularLeft(&bFull, algo, diag, uplo);
+      b->clear();
+      b->axpy(1, &bFull);
+    }
   } else if(b->isNull()) {
     // nothing to do
   } else {
