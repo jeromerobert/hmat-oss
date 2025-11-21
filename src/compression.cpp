@@ -431,7 +431,7 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
       delete bCol;
       // We look for another row which has not already been used.
       row_index = 0;
-      while (!rowFree[row_index]) {
+      while (row_index < rowCount && !rowFree[row_index]) {
         row_index++;
       }
     } else {
