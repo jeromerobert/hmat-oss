@@ -120,8 +120,8 @@ class ClusterData : public IndexSet {
 friend class ClusterTree;
 public:
   ClusterData(const DofData* dofData) : IndexSet(0, dofData->size()), dofData_(dofData) {}
-  ClusterData(const ClusterData& data) : IndexSet(data), dofData_(data.dofData_) {}
   ClusterData(const ClusterData& data, int offset, int size) : IndexSet(offset, size), dofData_(data.dofData_) {}
+
   /**
    * @brief indices()[i] is the index in the original coordinate
    * array which match the ith point in the underlying hmat/dofData_
