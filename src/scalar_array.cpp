@@ -239,13 +239,25 @@ template<typename T> void ScalarArray<T>::resize(int col_num) {
   else
     MemoryInstrumenter::instance().free(sizeof(T) * rows * -diffcol,
                                         MemoryInstrumenter::FULL_MATRIX);
-  cols = col_num;
+
+  size_t new_size_bytes = sizeof(T) * rows * col_num;
 #ifdef HAVE_JEMALLOC
-  void * p = je_realloc(m, sizeof(T) * rows * cols);
+  void * p = je_realloc(m, new_size_bytes);
 #else
-  void * p = realloc(m, sizeof(T) * rows * cols);
+  void * p = realloc(m, new_size_bytes);
 #endif
+
+if(p == NULL && new_size_bytes > 0) {
+  if(diffcol > 0)
+    MemoryInstrumenter::instance().free(sizeof(T) * lda * diffcol,
+                                          MemoryInstrumenter::FULL_MATRIX);
+
+
+  throw std::bad_alloc();
+}
+
   m = static_cast<T*>(p);
+  cols = col_num;
 }
 
 template<typename T> void ScalarArray<T>::clear() {
