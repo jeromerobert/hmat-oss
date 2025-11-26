@@ -387,7 +387,11 @@ void FullMatrix<T>::FPdecompress()
 
   if(!isFPcompressed())
   {
-     printf("Compressors not instanciated\n");
+     //printf("Compressors not instanciated\n");
+    return;
+  }
+  if(!(_compressor->compressor))
+  {
     return;
   }
 
