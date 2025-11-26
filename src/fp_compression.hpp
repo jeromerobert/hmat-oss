@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <mutex>
 
 #include "rk_matrix.hpp"
 
@@ -42,6 +43,8 @@ private:
     composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>* _compressor;
     size_t _size;
 
+    mutable std::recursive_mutex _mutex;
+
 public:
     SZcompressor() {};
 
@@ -64,6 +67,8 @@ class SZ3compressor : public FPCompressorInterface<T> {
 private:
     composyx::SZ3_compressor<T, SZ3::EB::EB_REL>* _compressor;
     size_t _size;
+
+    mutable std::recursive_mutex _mutex;
 
 public:
     SZ3compressor() {};
@@ -88,6 +93,8 @@ class ZFPcompressor : public FPCompressorInterface<T> {
 private:
     composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>* _compressor;
     size_t _size;
+
+    mutable std::recursive_mutex _mutex;
 
 public:
     ZFPcompressor() {};

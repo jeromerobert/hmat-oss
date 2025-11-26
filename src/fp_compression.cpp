@@ -91,6 +91,8 @@ SZcompressor<T>::~SZcompressor()
 template <typename T>
 void SZcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     this->_size = size;
     this->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(data.data(), size, epsilon);
 }
@@ -98,6 +100,8 @@ void SZcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 template<typename T>
 std::vector<T> SZcompressor<T>::decompress()
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     std::vector<T> out = _compressor->decompress();
     delete _compressor;
     _compressor = nullptr;
@@ -107,6 +111,8 @@ std::vector<T> SZcompressor<T>::decompress()
 template <typename T>
 double SZcompressor<T>::get_ratio()
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     //printf("Number of bytes : %ld, Compressed bytes : %ld, ratio = %f\n",sizeof(T)* this->_compressor->get_n_elts(), this->_compressor->get_compressed_bytes(), this->_compressor->get_ratio());
     
     return this->_compressor->get_ratio();
@@ -130,6 +136,8 @@ SZ3compressor<T>::~SZ3compressor()
 template <typename T>
 void SZ3compressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     this->_size = size;
     this->_compressor = new composyx::SZ3_compressor<T, SZ3::EB::EB_REL>(data.data(), size, epsilon);
     //this->_compressor->print_config();
@@ -138,6 +146,8 @@ void SZ3compressor<T>::compress(std::vector<T> data, size_t size, double epsilon
 template<typename T>
 std::vector<T> SZ3compressor<T>::decompress()
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     std::vector<T> out = _compressor->decompress();
     delete _compressor;
     _compressor = nullptr;
@@ -147,6 +157,8 @@ std::vector<T> SZ3compressor<T>::decompress()
 template <typename T>
 double SZ3compressor<T>::get_ratio()
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     //printf("Number of bytes : %ld, Compressed bytes : %ld, ratio = %f\n", sizeof(T)*this->_compressor->get_n_elts(), this->_compressor->get_compressed_bytes(), this->_compressor->get_ratio());
     
     return this->_compressor->get_ratio();
@@ -170,6 +182,8 @@ ZFPcompressor<T>::~ZFPcompressor()
 template <typename T>
 void ZFPcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     this->_size = size;
     this->_compressor = new composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>(data.data(), size, epsilon);
 }
@@ -177,6 +191,8 @@ void ZFPcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon
 template<typename T>
 std::vector<T> ZFPcompressor<T>::decompress()
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     std::vector<T> out = _compressor->decompress();
     delete _compressor;
     _compressor = nullptr;
@@ -186,6 +202,8 @@ std::vector<T> ZFPcompressor<T>::decompress()
 template <typename T>
 double ZFPcompressor<T>::get_ratio()
 {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
     //printf("Number of bytes : %ld, Compressed bytes : %ld, ratio = %f\n", sizeof(T)*this->_compressor->get_n_elts(), this->_compressor->get_compressed_bytes(), this->_compressor->get_ratio());
     return this->_compressor->get_ratio();
 }
