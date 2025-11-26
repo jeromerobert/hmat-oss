@@ -308,7 +308,7 @@ int main(int argc, char **argv) {
   clock_t decompression = compression;
 
   //Compression de hmatrix_c
-  if(fp_settings.nb_blocs>0) 
+  if(fp_settings.compressRk || fp_settings.compressFull) 
   {
     printf("\nCompressing...\n");
     
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
 
 
     //Décompression de hmatrix_c
-  if(fp_settings.nb_blocs>0) 
+  if(fp_settings.compressRk || fp_settings.compressFull) 
   {
     
     printf("\nUncompressing...\n");
@@ -498,7 +498,7 @@ int main(int argc, char **argv) {
   printf("Initialization : %8.3f s\n", initTime);
   printf("Generation     : %8.3f s\n", generationTime);
   printf("Assembling     : %8.3f s\n", assemblingTime);
-  if(fp_settings.nb_blocs>0){
+  if(fp_settings.compressRk || fp_settings.compressFull){
     printf("Compression    : %8.3f s\n", compressionTime);
     printf("Decompression  : %8.3f s\n", decompressionTIme);
   }

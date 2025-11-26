@@ -1704,7 +1704,15 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
 template <typename T>
 void HMatrix<T>::FPcompress()
 {
-  
+
+  if(!localSettings.FPSettings){
+    return;
+  }
+
+  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk)){
+    return;
+  }
+
   if (this->isLeaf()) {
     
     if (isFullMatrix()) {
