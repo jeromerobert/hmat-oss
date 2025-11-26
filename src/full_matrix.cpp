@@ -400,16 +400,16 @@ void FullMatrix<T>::FPdecompress()
   data.resize(_compressor->n_cols);
   std::vector<T> tmp_out = _compressor->compressor->decompress();
 
-  ScalarArray<T>* tmp  = new ScalarArray<T>(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
-  data.copyMatrixAtOffset(tmp, 0, 0);
+  ScalarArray<T> tmp(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
 
+  data.copyMatrixAtOffset(&tmp, 0, 0);
+
+  
   auto end = std::chrono::high_resolution_clock::now();
   _compressor->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
   delete _compressor;
   _compressor = nullptr;
-
-  delete tmp;
 }
 
 template <typename T>

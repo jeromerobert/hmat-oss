@@ -757,6 +757,11 @@ public:
   void FPdecompress();
 
   /**
+   * Return true iif the HMatrix is a Leaf and is currently FP compressed
+   */
+  bool isFPcompressed() const;
+
+  /**
    * Return the FP compression settings of the HMatrix
    */
   FPCompressionSettings GetFPCompressionSettings();

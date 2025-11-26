@@ -450,7 +450,7 @@ void RkMatrix<T>::FPdecompress()
   int n = this->cols->size();
   int nb_blocs = _compressors->nb_blocs;
 
-  int i = 0;
+  int offset = 0;
   this->a = new ScalarArray<T>(m, k);
   this->b = new ScalarArray<T>(n, k);
   
@@ -465,20 +465,18 @@ void RkMatrix<T>::FPdecompress()
     { //We want to release a_p as soon as possible
       std::vector<T> data = _compressors->compressors_A[p]->decompress();
       
-      ScalarArray<T>*a_p = new ScalarArray<T>(data.data(), m, k_p);
-      a->copyMatrixAtOffset(a_p, 0, i);    
-      delete a_p;
+      ScalarArray<T> a_p(data.data(), m, k_p);
+      a->copyMatrixAtOffset(&a_p, 0, offset);    
     }   
 
     {//We want to release b_p as soon as possible
       std::vector<T> data = _compressors->compressors_B[p]->decompress();
       
-      ScalarArray<T>* b_p = new ScalarArray<T>(data.data(), n, k_p);
-      b->copyMatrixAtOffset(b_p, 0, i);
-      delete b_p;
+      ScalarArray<T> b_p(data.data(), n, k_p);
+      b->copyMatrixAtOffset(&b_p, 0, offset);
     }   
 
-    i+=k_p;
+    offset+=k_p;
   }
 
   auto end = std::chrono::high_resolution_clock::now();
