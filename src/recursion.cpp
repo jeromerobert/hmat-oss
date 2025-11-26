@@ -372,11 +372,15 @@ namespace hmat {
 
     for (int k=0 ; k<me()->nrChildRow() ; k++) {
       // Hkk <- Lkk * tLkk
+      me()->get(k,k)->FPdecompress();
       me()->get(k,k)->lltDecomposition(progress);
       // Solve the rest of column k: solve Lik tLkk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         if (me()->get(i,k))
+        {
+          me()->get(i,k)->FPdecompress();
           me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), Factorization::LLT, Diag::NONUNIT, Uplo::LOWER);
+        }
       // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
         if (!me()->get(i,k))
@@ -384,7 +388,11 @@ namespace hmat {
         for (int j=k+1 ; j<=i ; j++)
           // Hij <- Hij - Lik tLjk
           if (me()->get(i,j) && me()->get(j,k))
+          {
+            me()->get(i,j)->FPdecompress();
+            me()->get(j,k)->FPdecompress();
             me()->get(i,j)->gemm('N', 'T', -1, me()->get(i,k), me()->get(j,k), 1);
+          }
       }
     }
   }
