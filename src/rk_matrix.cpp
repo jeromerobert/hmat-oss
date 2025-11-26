@@ -488,8 +488,84 @@ void RkMatrix<T>::FPdecompress()
 }
 
 template <typename T>
-bool RkMatrix<T>::isFPcompressed()
+RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
 {
+  if(result == NULL)
+  {
+    result = new RkMatrix<T>(NULL, new IndexSet(*this->rows), NULL, new IndexSet(*this->cols));
+  }
+
+
+  if(!isFPcompressed())
+  {
+    if(result->a) delete result->a;
+    if(result->b) delete result->b;
+
+    result->a = this->a->copy();
+    result->b = this->b->copy();
+    return result;
+  }
+   
+//Copying the matrix
+  if(result->a) { delete result->a; result->a = nullptr; }
+  if(result->b) { delete result->b; result->b = nullptr; }
+  if(result->_compressors)
+  {
+    delete result->_compressors;
+    result->_compressors = nullptr;
+  }
+
+  
+
+ //Decompression
+  auto start = std::chrono::high_resolution_clock::now();
+
+  int k = this->rank();
+  int m = this->rows->size();
+  int n = this->cols->size();
+  int nb_blocs = _compressors->nb_blocs;
+
+  int offset = 0;
+  result->a = new ScalarArray<T>(m, k);
+  result->b = new ScalarArray<T>(n, k);
+
+  
+  for(int p = 0; p < nb_blocs; p++)
+  {
+    int k_p = _compressors->cols[p];
+
+    if(k_p ==0)
+      continue;
+
+
+    { //We want to release data as soon as possible
+      std::vector<T> data = _compressors->compressors_A[p]->decompressCopy();
+      
+      ScalarArray<T> a_p(data.data(), m, k_p);
+      result->a->copyMatrixAtOffset(&a_p, 0, offset);    
+
+    }   
+
+    {//We want to release data as soon as possible
+      std::vector<T> data = _compressors->compressors_B[p]->decompressCopy();
+      
+      ScalarArray<T> b_p(data.data(), n, k_p);
+      result->b->copyMatrixAtOffset(&b_p, 0, offset);
+    }   
+
+    offset+=k_p;
+  }
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressors->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
+  
+  return result;
+
+}
+
+template <typename T>
+bool RkMatrix<T>::isFPcompressed() const {
     return _compressors != nullptr;
 }
 

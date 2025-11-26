@@ -216,6 +216,8 @@ public:
        AdmissibilityCondition * admissibilityCondition,
        FPCompressionSettings * FPSettings = NULL); //Default argument for non regression 
 
+    HMatrix(const HMatrix& other) = delete;
+    HMatrix& operator=(const HMatrix& other) = delete;
   /*! \brief Create a copy of this matrix for internal use only.
    * Only copy this node, not the whole tree. The created matrix
    * is an uninitialized leaf with same rows and cols as this.
@@ -755,6 +757,9 @@ public:
    * Decompress the Hmatrix after an FP compression
    */
   void FPdecompress();
+
+  /** Decompress the Hmatrix into another Matrix */
+  HMatrix<T>* FPdecompressCopy(HMatrix<T>* result = NULL, bool isRootTree = true) ;
 
   /**
    * Return true iif the HMatrix is a Leaf and is currently FP compressed

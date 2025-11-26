@@ -54,7 +54,19 @@ public:
 
     std::vector<T> decompress() override;
 
+    std::vector<T> decompressCopy() override;
+
     double get_ratio() override;
+
+    SZcompressor* copy() override {
+      std::lock_guard<std::recursive_mutex> lock(_mutex);
+      
+      SZcompressor* newComp = new SZcompressor();
+      newComp->_size = _size;
+      //TODO : implement deepcopy method in composyx
+      //newComp->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(*_compressor);
+      return newComp;
+    }
 
     
 };
@@ -79,7 +91,19 @@ public:
 
     std::vector<T> decompress() override;
 
+    std::vector<T> decompressCopy() override;
+
     double get_ratio() override;
+
+    SZ3compressor* copy() override {
+      std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+      SZ3compressor* newComp = new SZ3compressor();
+      newComp->_size = _size;
+      //TODO : implement deepcopy method in composyx
+      //newComp->_compressor = new composyx::SZ3_compressor<T, SZ3::EB::EB_REL>(*_compressor);
+      return newComp;
+    }
 
     
 };
@@ -105,7 +129,19 @@ public:
 
     std::vector<T> decompress() override;
 
+    std::vector<T> decompressCopy() override;
+
     double get_ratio() override;
+
+    ZFPcompressor* copy() override {
+      std::lock_guard<std::recursive_mutex> lock(_mutex);
+      
+      ZFPcompressor* newComp = new ZFPcompressor();
+      newComp->_size = _size;
+      //TODO : implement deepcopy method in composyx
+      //newComp->_compressor = _compressor->copy();
+      return newComp;
+    }
 
     
 };
@@ -130,7 +166,15 @@ public:
 
     std::vector<T> decompress() override;
 
+    std::vector<T> decompressCopy() override;
+
     double get_ratio() override;
+
+    Defaultcompressor* copy() override {
+      Defaultcompressor* newComp = new Defaultcompressor();
+      newComp->_data = _data;
+      return newComp;
+    }
 
     
 };

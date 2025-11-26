@@ -56,6 +56,30 @@ struct FPAdaptiveCompressor{
     FPAdaptiveCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
 
     ~FPAdaptiveCompressor();
+
+    FPAdaptiveCompressor* copy() {
+      FPAdaptiveCompressor* newComp = new FPAdaptiveCompressor();
+      newComp->nb_blocs = nb_blocs;
+      newComp->n_rows_A = n_rows_A;
+      newComp->n_rows_B = n_rows_B;
+      newComp->n_cols = n_cols;
+      newComp->compressionRatio = compressionRatio;
+      newComp->compressionTime = compressionTime;
+      newComp->decompressionTime = decompressionTime;
+      
+      newComp->cols = cols;
+
+      newComp->compressors_A.resize(nb_blocs);
+      newComp->compressors_B.resize(nb_blocs);
+
+      for(int i =0; i < nb_blocs; i++)
+      {
+        newComp->compressors_A[i] = compressors_A[i]->copy();
+        newComp->compressors_B[i] = compressors_B[i]->copy();
+      }
+
+      return newComp;
+    }
 };
 
 
@@ -130,6 +154,10 @@ public:
            ScalarArray<T>* _b, const IndexSet* _cols);
   ~RkMatrix();
 
+  RkMatrix(const RkMatrix& other) = delete;
+  
+  RkMatrix& operator=(const RkMatrix& other) = delete;
+
   int rank() const {
       return a ? a->cols : 0;
   }
@@ -167,8 +195,12 @@ public:
 /** Decompress the panels of a RkMatrix after FP Compression.*/
   void FPdecompress();
 
+
+  /** Decompress the panels of a RkMatrix after FP compression into a copy of the original RkMatrix */
+  RkMatrix<T>* FPdecompressCopy(RkMatrix<T>* result = NULL) const;
+
   /** Return True iff the rk matrix is FP compressed */
-  bool isFPcompressed();
+  bool isFPcompressed() const;
 
 
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);

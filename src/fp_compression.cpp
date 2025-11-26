@@ -64,6 +64,13 @@ template<typename T>
 std::vector<T> Defaultcompressor<T>::decompress()
 {
     return _data;
+    this->_data.clear();
+}
+
+template <typename T>
+std::vector<T> Defaultcompressor<T>::decompressCopy()
+{
+    return _data;
 }
 
 template <typename T>
@@ -102,10 +109,18 @@ std::vector<T> SZcompressor<T>::decompress()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
-    std::vector<T> out = _compressor->decompress();
+    std::vector<T> out = decompressCopy();
     delete _compressor;
     _compressor = nullptr;
     return out;
+}
+
+template <typename T>
+std::vector<T> SZcompressor<T>::decompressCopy()
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    return _compressor->decompress();
 }
 
 template <typename T>
@@ -148,10 +163,18 @@ std::vector<T> SZ3compressor<T>::decompress()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
-    std::vector<T> out = _compressor->decompress();
+    std::vector<T> out = decompressCopy();
     delete _compressor;
     _compressor = nullptr;
     return out;
+}
+
+template <typename T>
+std::vector<T> SZ3compressor<T>::decompressCopy()
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    return _compressor->decompress();
 }
 
 template <typename T>
@@ -193,10 +216,18 @@ std::vector<T> ZFPcompressor<T>::decompress()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
-    std::vector<T> out = _compressor->decompress();
+    std::vector<T> out = decompressCopy();
     delete _compressor;
     _compressor = nullptr;
     return out;
+}
+
+template <typename T>
+std::vector<T> ZFPcompressor<T>::decompressCopy()
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    return _compressor->decompress();
 }
 
 template <typename T>

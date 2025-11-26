@@ -156,14 +156,16 @@ template<typename T> FullMatrix<T>* FullMatrix<T>::copy(FullMatrix<T>* result) c
     result = new FullMatrix<T>(rows_, cols_, false);
 
   data.copy(&result->data);
+  //result->_compressor = (_compressor ? _compressor->copy() : NULL);
+
   if (diagonal) {
     if(!result->diagonal)
       result->diagonal = new Vector<T>(rows());
     diagonal->copy(result->diagonal);
   }
 
-  result->rows_ = rows_;
-  result->cols_ = cols_;
+  result->rows_ = new IndexSet(rows_->offset(), rows_->size());
+  result->cols_ = new IndexSet(cols_->offset(), cols_->size());
   result->triLower_ = triLower_;
   result->triUpper_ = triUpper_;
   return result;
@@ -413,8 +415,58 @@ void FullMatrix<T>::FPdecompress()
 }
 
 template <typename T>
-bool FullMatrix<T>::isFPcompressed()
+FullMatrix<T> *FullMatrix<T>::FPdecompressCopy(FullMatrix<T> *result) const
 {
+  if(result == NULL)
+    result = new FullMatrix<T>(rows_, cols_, false);
+
+  data.copy(&result->data);
+
+  if (diagonal) {
+    if(!result->diagonal)
+      result->diagonal = new Vector<T>(rows());
+    diagonal->copy(result->diagonal);
+  }
+
+  result->rows_ = rows_;
+  result->cols_ = cols_;
+  result->triLower_ = triLower_;
+  result->triUpper_ = triUpper_;
+
+   if(!isFPcompressed())
+  {
+     //printf("Compressors not instanciated\n");
+    return result;
+  }
+  if(!(_compressor->compressor))
+  {
+    return result;
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  result->data.resize(_compressor->n_cols);
+  
+  std::vector<T> tmp_out = _compressor->compressor->decompressCopy();
+
+  ScalarArray<T> tmp(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
+
+  result->data.copyMatrixAtOffset(&tmp, 0, 0);
+
+  
+  auto end = std::chrono::high_resolution_clock::now();
+
+  _compressor->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+  
+
+
+  return result;
+}
+
+
+
+template <typename T>
+bool FullMatrix<T>::isFPcompressed() const {
     return _compressor != nullptr;
 }
 

@@ -1799,6 +1799,76 @@ void HMatrix<T>::FPdecompress()
 }
 
 template <typename T>
+HMatrix<T>* HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)
+{
+
+  if(isRootTree) 
+  {
+    result = this->copyStructure();
+    result->ownClusterTrees(false, false);
+    
+    
+  }
+
+  if (this->isLeaf()) {
+    if (isFullMatrix() && full()) {
+      // 1. On prépare le pointeur de destination
+      FullMatrix<T>* destPtr = (result->isFullMatrix()) ? result->full() : NULL;
+      
+      // 2. SI il n'existe pas, on le crée MANUELLEMENT avec les pointeurs PARTAGÉS de la HMatrix
+      if (!destPtr) {
+         // On caste pour récupérer les IndexSet de la HMatrix parente
+         IndexSet* sharedRows = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->rows()));
+         IndexSet* sharedCols = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->cols()));
+         
+         // On crée la FullMatrix avec CES pointeurs
+         destPtr = new FullMatrix<T>(sharedRows, sharedCols);
+         
+         // On l'attache tout de suite
+         result->full(destPtr);
+      }
+
+      // 3. On remplit les données (la fonction va utiliser destPtr sans toucher aux pointeurs rows/cols)
+      full()->FPdecompressCopy(destPtr);
+      
+    } else if (isRkMatrix() && rk()){
+      // 1. On prépare le pointeur
+      RkMatrix<T>* destPtr = (result->isRkMatrix()) ? result->rk() : NULL;
+      
+      // 2. SI il n'existe pas, on le crée MANUELLEMENT avec les pointeurs PARTAGÉS
+      if (!destPtr) {
+         IndexSet* sharedRows = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->rows()));
+         IndexSet* sharedCols = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->cols()));
+         
+         // On crée la RkMatrix avec CES pointeurs (et NULL pour les données a,b pour l'instant)
+         destPtr = new RkMatrix<T>(NULL, sharedRows, NULL, sharedCols);
+         
+         // On l'attache tout de suite
+         result->rk(destPtr);
+      }
+
+      // 3. On remplit les données
+      // IMPORTANT : Votre fonction RkMatrix::FPdecompressCopy (corrigée précédemment)
+      // doit accepter ce destPtr sans faire de 'delete rows' dessus.
+      rk()->FPdecompressCopy(destPtr);
+
+      result->rank(destPtr->rank());
+    }
+  } else {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for(int j = 0; j < nrChildCol(); j++) {
+        if(get(i,j)) {
+          get(i,j)->FPdecompressCopy(result->get(i,j), false);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+
+template <typename T>
 bool HMatrix<T>::isFPcompressed() const
 {
   if (this->isLeaf()) {
