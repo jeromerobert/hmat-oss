@@ -902,7 +902,7 @@ public:
     }
     if(this->GetL1Position() == kOnL1)
     {
-      this->FPcompress();
+      //this->FPcompress();
     }
   }
 
@@ -922,7 +922,7 @@ public:
     }
     if(this->GetL1Position() == kOnL1)
     {
-      this->FPdecompress();
+      //this->FPdecompress();
     }
   }
 
