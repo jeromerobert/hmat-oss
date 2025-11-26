@@ -1117,10 +1117,14 @@ void HMatrix<T>::addRand(double epsilon)
 template<typename T> HMatrix<T> * HMatrix<T>::subset(
     const IndexSet * rows, const IndexSet * cols) const
 {
-    if((this->rows() == rows && this->cols() == cols) ||
-       (*(this->rows()) == *rows && *(this->cols()) == *cols) ||
-       (!rows->isSubset(*(this->rows())) || !cols->isSubset(*(this->cols())))) // TODO cette ligne me parait louche... si rows et cols sont pas bons, on renvoie 'this' sans meme se plaindre ???
+  if((this->rows() == rows && this->cols() == cols) ||
+       (*(this->rows()) == *rows && *(this->cols()) == *cols))
+    {
         return const_cast<HMatrix<T>*>(this);
+    }
+
+    HMAT_ASSERT(rows->isSubset(*(this->rows())) && "HMatrix::subset - Requested rows are not a subset of matrix rows.");
+    HMAT_ASSERT(cols->isSubset(*(this->cols())) && "HMatrix::subset - Requested cols are not a subset of matrix cols.");
 
     // this could be implemented but if you need it you more
     // likely have something to fix at a higher level.
@@ -1573,36 +1577,43 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       return;
 
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
-  if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull() && rk()->b == b->rk()->b) {
-    // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
-    // As Cb = Bb we get
-    // Ca = beta * Ca + alpha A * Ba with only Ca and Ba scalar arrays
-    // We support C and B not compatible (larger) with A so we first slice them
-    assert(transB == 'N');
-    const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
-    const IndexSet * c = transA == 'N' ? a->cols() : a->rows();
-    ScalarArray<T> cSubset(rk()->a->rowsSubset( r->offset() -    rows()->offset(), r->size()));
-    ScalarArray<T> bSubset(b->rk()->a->rowsSubset( c->offset() - b->rows()->offset(), c->size()));
-    a->gemv(transA, alpha, &bSubset, beta, &cSubset);
-    return;
+  if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull()) {
+   if( (rk()->b == b->rk()->b) || 
+                   (rk()->b->getOriginId() == b->rk()->b->getOriginId())) {
+      // Ca * CbT = beta * Ca * CbT + alpha * A * Ba * BbT
+      // As Cb = Bb we get
+      // Ca = beta * Ca + alpha A * Ba with only Ca and Ba scalar arrays
+      // We support C and B not compatible (larger) with A so we first slice them
+      assert(transB == 'N');
+      const IndexSet * r = transA == 'N' ? a->rows() : a->cols();
+      const IndexSet * c = transA == 'N' ? a->cols() : a->rows();
+      ScalarArray<T> cSubset(rk()->a->rowsSubset( r->offset() -    rows()->offset(), r->size()));
+      ScalarArray<T> bSubset(b->rk()->a->rowsSubset( c->offset() - b->rows()->offset(), c->size()));
+      a->gemv(transA, alpha, &bSubset, beta, &cSubset);
+      return;
+    }
   }
 
   // This and A are Rk matrices with the same panel 'a' -> the gemm is only applied on the panels 'b'
-  if(isRkMatrix() && !isNull() && a->isRkMatrix() && !a->isNull() && rk()->a == a->rk()->a) {
+  if(isRkMatrix() && !isNull() && a->isRkMatrix() && !a->isNull()) {
+    if((rk()->a == a->rk()->a) || 
+                   (rk()->a->getOriginId() == a->rk()->a->getOriginId()))
+    {
     // Ca * CbT = beta * Ca * CbT + alpha * Aa * AbT * B
     // As Ca = Aa we get
     // CbT = beta * CbT + alpha AbT * B with only Cb and Ab scalar arrays
     // we transpose:
     // Cb = beta * Cb + alpha BT * Ab
     // We support C and B not compatible (larger) with A so we first slice them
-    assert(transA == 'N');
-    assert(transB != 'C');
-    const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
-    const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
-    ScalarArray<T> cSubset(rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size()));
-    ScalarArray<T> aSubset(a->rk()->b->rowsSubset( r->offset() - a->cols()->offset(), r->size()));
-    b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
-    return;
+      assert(transA == 'N');
+      assert(transB != 'C');
+      const IndexSet * r = transB == 'N' ? b->rows() : b->cols();
+      const IndexSet * c = transB == 'N' ? b->cols() : b->rows();
+      ScalarArray<T> cSubset(rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size()));
+      ScalarArray<T> aSubset(a->rk()->b->rowsSubset( r->offset() - a->cols()->offset(), r->size()));
+      b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
+      return;
+    }
   }
 
   this->scale(beta);

@@ -337,6 +337,8 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   
   _compressors = new FPAdaptiveCompressor<T>(method, nb_blocs);
 
+  if (this->a) _compressors->saved_id_A = this->a->getOriginId();
+  if (this->b) _compressors->saved_id_B = this->b->getOriginId();
 
   _compressors->n_rows_A = m;
   _compressors->n_rows_B = n;
@@ -351,7 +353,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   double sigma_1 = Sigma->maxAbsolute(); 
 
   size_t size = (a->rows*a->cols)+(b->rows*b->cols);
-  size_t size_c = 0; 
+  size_t size_c = 0;
 
   for(int p = 0; p < nb_blocs; p++)
   {
@@ -439,7 +441,6 @@ void RkMatrix<T>::FPdecompress()
   //Decompression
   if(_compressors== nullptr)
   {
-    printf("Compressors not instanciated\n");
     return;
   }
 
@@ -479,6 +480,13 @@ void RkMatrix<T>::FPdecompress()
     offset+=k_p;
   }
 
+
+  if (this->_compressors && this->a) {
+      this->a->setOriginId(this->_compressors->saved_id_A);
+  }
+  if (this->_compressors && this->b) {
+      this->b->setOriginId(this->_compressors->saved_id_B);  }
+
   auto end = std::chrono::high_resolution_clock::now();
   _compressors->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
@@ -486,7 +494,6 @@ void RkMatrix<T>::FPdecompress()
   _compressors = nullptr;
   
 }
-
 template <typename T>
 RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
 {
@@ -554,6 +561,13 @@ RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
     }   
 
     offset+=k_p;
+  }
+
+  if (this->_compressors && result->a) {
+      result->a->setOriginId(this->_compressors->saved_id_A);
+  }
+  if (this->_compressors && result->b) {
+      result->b->setOriginId(this->_compressors->saved_id_B);
   }
 
   auto end = std::chrono::high_resolution_clock::now();
@@ -1500,12 +1514,16 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
 }
 
 template<typename T> void RkMatrix<T>::copy(const RkMatrix<T>* o) {
+  rows = new IndexSet(o->rows->offset(), o->rows->size());
+  cols = new IndexSet(o->cols->offset(), o->cols->size());
   delete a;
   delete b;
-  rows = o->rows;
-  cols = o->cols;
+  delete _compressors;
+
   a = (o->a ? o->a->copy() : NULL);
   b = (o->b ? o->b->copy() : NULL);
+  //_compressors = (o->_compressors ? o->_compressors->copy() : NULL);
+  
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::copy() const {

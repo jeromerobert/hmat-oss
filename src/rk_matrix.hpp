@@ -53,6 +53,9 @@ struct FPAdaptiveCompressor{
     double compressionTime;
     double decompressionTime;
 
+    const void* saved_id_A = nullptr;
+    const void* saved_id_B = nullptr;
+
     FPAdaptiveCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
 
     ~FPAdaptiveCompressor();
@@ -67,6 +70,9 @@ struct FPAdaptiveCompressor{
       newComp->compressionTime = compressionTime;
       newComp->decompressionTime = decompressionTime;
       
+      newComp->saved_id_A = saved_id_A;
+      newComp->saved_id_B = saved_id_B;
+
       newComp->cols = cols;
 
       newComp->compressors_A.resize(nb_blocs);
