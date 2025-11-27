@@ -1817,9 +1817,9 @@ HMatrix<T>* HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)
   {
     result = this->copyStructure();
     result->ownClusterTrees(false, false);
-    
-    
   }
+  FPCompressionSettings settings = this->GetFPCompressionSettings();
+  result->SetFPCompressionSettings(&settings);
 
   if (this->isLeaf()) {
     if (isFullMatrix() && full()) {
@@ -1896,7 +1896,7 @@ bool HMatrix<T>::isFPcompressed() const
 }
 
 template<typename T>
-FPCompressionSettings HMatrix<T>::GetFPCompressionSettings() {
+FPCompressionSettings HMatrix<T>::GetFPCompressionSettings() const {
   return *(localSettings.FPSettings);
 }
 

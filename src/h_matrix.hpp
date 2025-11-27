@@ -769,7 +769,7 @@ public:
   /**
    * Return the FP compression settings of the HMatrix
    */
-  FPCompressionSettings GetFPCompressionSettings();
+  FPCompressionSettings GetFPCompressionSettings() const;
 
   /**
    * Set the FP compression settings of the HMatrix.
