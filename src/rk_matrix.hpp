@@ -198,8 +198,8 @@ public:
   /** Compress the panels of a RkMatrix using FP Compression.*/
   void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, Vector<typename Types<T>::real> *sigma=NULL);
 
-/** Decompress the panels of a RkMatrix after FP Compression.*/
-  void FPdecompress();
+/** Decompress the panels of a RkMatrix after FP Compression. Return the decompresion time*/ 
+  float FPdecompress();
 
 
   /** Decompress the panels of a RkMatrix after FP compression into a copy of the original RkMatrix */

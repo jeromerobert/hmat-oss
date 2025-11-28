@@ -165,6 +165,12 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
     approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
   }
   assert(!this->isLeaf() || isAssembled());
+
+  if(this->isLeaf())
+  {
+    fpProfile_ = FPCompressionProfile();
+  }
+
   if(FPSettings)
   {
     localSettings.FPSettings = FPSettings;
@@ -227,8 +233,14 @@ HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings, FPCompressionSettings
     isUpper(false), isLower(false), isTriUpper(false), isTriLower(false),
     keepSameRows(true), keepSameCols(true), temporary_(false), ownRowsClusterTree_(false),
     ownColsClusterTree_(false), localSettings(settings, -1.0)
-     {if(FPSettings){
+    {
+      if(FPSettings){
         localSettings.FPSettings = FPSettings;
+      }
+
+      if(this->isLeaf())
+      {
+        fpProfile_ = FPCompressionProfile();
       }
 }
 
@@ -516,44 +528,30 @@ void HMatrix<T>::profile(HMatProfile & result)
     if (isFullMatrix()) {
       result.n_full_blocs[size] +=1;
 
-       if(full()->_compressor)
-      {
-      result.full_comp_ratios[size].push_back(full()->_compressor->compressionRatio);
+      result.full_comp_ratios[size].push_back(fpProfile_.lastRatio);
 
-      result.full_comp_times[size].push_back(full()->_compressor->compressionTime);
+      result.full_comp_times[size].push_back(fpProfile_.compressionTimeTotal);
 
-      result.full_decomp_times[size].push_back(full()->_compressor->decompressionTime);
-      }
-      else
-      {
-        result.full_comp_ratios[size].push_back(1.0);
+      result.full_decomp_times[size].push_back(fpProfile_.decompressionTimeTotal);
+      
+      result.full_comp_nb[size].push_back(fpProfile_.nbCompressions);
 
-        result.full_comp_times[size].push_back(0.0);
-
-        result.full_decomp_times[size].push_back(0.0);
-      }
+      result.full_decomp_nb[size].push_back(fpProfile_.nbDecompressions);
        
     } else {
       //printf("Rk Bloc of size %ld and rank %d\n", size, rk()->rank());
       result.n_rk_blocs[rk()->rank()][size] +=1;
-
-      if(rk()->_compressors)
-      {
       
-        result.rk_comp_ratios[rk()->rank()][size].push_back(rk()->_compressors->compressionRatio);
+      result.rk_comp_ratios[rk()->rank()][size].push_back(fpProfile_.lastRatio);
 
-        result.rk_comp_times[rk()->rank()][size].push_back(rk()->_compressors->compressionTime);
+      result.rk_comp_times[rk()->rank()][size].push_back(fpProfile_.compressionTimeTotal);
 
-        result.rk_decomp_times[rk()->rank()][size].push_back(rk()->_compressors->decompressionTime);
-      }
-      else
-      {
-        result.rk_comp_ratios[rk()->rank()][size].push_back(1.0);
+      result.rk_decomp_times[rk()->rank()][size].push_back(fpProfile_.decompressionTimeTotal);
 
-        result.rk_comp_times[rk()->rank()][size].push_back(0.0);
+      result.rk_comp_nb[rk()->rank()][size].push_back(fpProfile_.nbCompressions);
 
-        result.rk_decomp_times[rk()->rank()][size].push_back(0.0);
-      }
+      result.rk_decomp_nb[rk()->rank()][size].push_back(fpProfile_.nbDecompressions);
+     
     }
   } else {
     for (int i = 0; i < nrChildRow(); i++) {
@@ -1674,27 +1672,17 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
   }
 
   if (this->isLeaf()) {
+    double cr = fpProfile_.lastRatio;
+
     if (isFullMatrix()) {
       size_t size = r*c * sizeof(T);
-      double cr = 1;
-      if(full()->_compressor)
-      {
-        cr = full()->_compressor->compressionRatio;
-      }
-     
+      
       result.size_Full += size;
       result.size_Full_compressed += size / cr;
 
     } else {
       size_t k = rk()->rank();
       size_t size = k*(r + c) * sizeof(T);
-
-      double cr = 1;
-      if(rk()->_compressors)
-      {
-        cr = rk()->_compressors->compressionRatio;
-      }
-
 
       result.size_Rk += size;
       result.size_Rk_compressed += size / cr;
@@ -1730,6 +1718,11 @@ void HMatrix<T>::FPcompress()
       if(localSettings.FPSettings->compressFull && !full()->isFPcompressed())
       {
         full()->FPcompress(localSettings.FPSettings->epsilonFP, localSettings.FPSettings->compressor);
+
+        this->fpProfile_.lastRatio = full()->_compressor->compressionRatio;
+        this->fpProfile_.compressionTimeTotal += full()->_compressor->compressionTime;
+        this->fpProfile_.nbCompressions += 1;
+
       }
     } else if (isRkMatrix() && rk()) {
       //Compress RK block
@@ -1760,6 +1753,9 @@ void HMatrix<T>::FPcompress()
         
         rk()->FPcompress(localSettings.FPSettings->epsilonFP, nb_blocs, localSettings.FPSettings->compressor);
 
+        this->fpProfile_.lastRatio = rk()->_compressors->compressionRatio;
+        this->fpProfile_.compressionTimeTotal += rk()->_compressors->compressionTime;
+        this->fpProfile_.nbCompressions += 1;
       }
       
       
@@ -1786,14 +1782,16 @@ void HMatrix<T>::FPdecompress()
       //Uncompress Full block if compressed
       if(full()->isFPcompressed())
       {
-        full()->FPdecompress();
+        this->fpProfile_.decompressionTimeTotal += full()->FPdecompress();
+        this->fpProfile_.nbDecompressions += 1;
       }
       
     } else if (isRkMatrix() && rk()){
       //Uncompress RK block if compressed
       if(rk()->isFPcompressed())
       {
-        rk()->FPdecompress();
+        this->fpProfile_.decompressionTimeTotal += rk()->FPdecompress();
+        this->fpProfile_.nbDecompressions += 1;
       }
     }
   } else {
@@ -1824,46 +1822,64 @@ HMatrix<T>* HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)
   if (this->isLeaf()) {
     if (isFullMatrix() && full()) {
       // 1. On prépare le pointeur de destination
-      FullMatrix<T>* destPtr = (result->isFullMatrix()) ? result->full() : NULL;
-      
-      // 2. SI il n'existe pas, on le crée MANUELLEMENT avec les pointeurs PARTAGÉS de la HMatrix
-      if (!destPtr) {
-         // On caste pour récupérer les IndexSet de la HMatrix parente
-         IndexSet* sharedRows = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->rows()));
-         IndexSet* sharedCols = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->cols()));
-         
-         // On crée la FullMatrix avec CES pointeurs
-         destPtr = new FullMatrix<T>(sharedRows, sharedCols);
-         
-         // On l'attache tout de suite
-         result->full(destPtr);
-      }
+      if(full()->isFPcompressed())
+      { 
+        FullMatrix<T>* destPtr = (result->isFullMatrix()) ? result->full() : NULL;
+        
+        // 2. SI il n'existe pas, on le crée MANUELLEMENT avec les pointeurs PARTAGÉS de la HMatrix
+        if (!destPtr) {
+            // On caste pour récupérer les IndexSet de la HMatrix parente
+            IndexSet* sharedRows = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->rows()));
+            IndexSet* sharedCols = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->cols()));
+            
+            // On crée la FullMatrix avec CES pointeurs
+            destPtr = new FullMatrix<T>(sharedRows, sharedCols);
+            
+            // On l'attache tout de suite
+            result->full(destPtr);
+        }
 
-      // 3. On remplit les données (la fonction va utiliser destPtr sans toucher aux pointeurs rows/cols)
-      full()->FPdecompressCopy(destPtr);
+        // 3. On remplit les données (la fonction va utiliser destPtr sans toucher aux pointeurs rows/cols)
+        full()->FPdecompressCopy(destPtr);
+        this->fpProfile_.decompressionTimeTotal += full()->_compressor->decompressionTime;
+        this->fpProfile_.nbDecompressions += 1;
+      }
+      else{
+        result->full(this->full()->copy());
+      }
       
     } else if (isRkMatrix() && rk()){
       // 1. On prépare le pointeur
-      RkMatrix<T>* destPtr = (result->isRkMatrix()) ? result->rk() : NULL;
-      
-      // 2. SI il n'existe pas, on le crée MANUELLEMENT avec les pointeurs PARTAGÉS
-      if (!destPtr) {
-         IndexSet* sharedRows = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->rows()));
-         IndexSet* sharedCols = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->cols()));
-         
-         // On crée la RkMatrix avec CES pointeurs (et NULL pour les données a,b pour l'instant)
-         destPtr = new RkMatrix<T>(NULL, sharedRows, NULL, sharedCols);
-         
-         // On l'attache tout de suite
-         result->rk(destPtr);
+      if(rk()->isFPcompressed())
+      {
+        RkMatrix<T>* destPtr = (result->isRkMatrix()) ? result->rk() : NULL;
+        
+        // 2. SI il n'existe pas, on le crée MANUELLEMENT avec les pointeurs PARTAGÉS
+        if (!destPtr) {
+          IndexSet* sharedRows = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->rows()));
+          IndexSet* sharedCols = const_cast<IndexSet*>(static_cast<const IndexSet*>(result->cols()));
+          
+          // On crée la RkMatrix avec CES pointeurs (et NULL pour les données a,b pour l'instant)
+          destPtr = new RkMatrix<T>(NULL, sharedRows, NULL, sharedCols);
+          
+          // On l'attache tout de suite
+          result->rk(destPtr);
+        }
+
+        // 3. On remplit les données
+        
+        rk()->FPdecompressCopy(destPtr);
+
+        result->rank(destPtr->rank());
+     
+        this->fpProfile_.decompressionTimeTotal += rk()->_compressors->decompressionTime;
+        this->fpProfile_.nbDecompressions += 1;
       }
+      else{
+        result->rk(this->rk()->copy());
+      }
+      
 
-      // 3. On remplit les données
-      // IMPORTANT : Votre fonction RkMatrix::FPdecompressCopy (corrigée précédemment)
-      // doit accepter ce destPtr sans faire de 'delete rows' dessus.
-      rk()->FPdecompressCopy(destPtr);
-
-      result->rank(destPtr->rank());
     }
   } else {
     for (int i = 0; i < nrChildRow(); i++) {

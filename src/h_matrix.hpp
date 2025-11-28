@@ -38,6 +38,8 @@ namespace hmat {
 }
 
 #include "recursion.hpp"
+
+#include <iostream>
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -72,7 +74,15 @@ struct FPCompressionSettings {
 
 };
 
+struct FPCompressionProfile {
+  float lastRatio;
+  float compressionTimeTotal;
+  float decompressionTimeTotal;
+  int nbCompressions;
+  int nbDecompressions;
 
+  FPCompressionProfile() : lastRatio(1.0), compressionTimeTotal(0.0), decompressionTimeTotal(0.0), nbCompressions(0), nbDecompressions(0) {}
+};
 
 /** Settings global to a whole matrix */
 struct MatrixSettings {
@@ -94,13 +104,20 @@ struct HMatProfile
   //n_full_blocs[size] = number of full blocs for which n_rows * n_cols = size
   std::map<size_t, int> n_full_blocs;
 
+  //Compression ratio for the last FP compression
   std::map<size_t, std::vector<float>> full_comp_ratios;
 
-  //Time spent in compressing full blocs
+  //Total time spent in compressing full blocs
   std::map<size_t, std::vector<float>> full_comp_times;
 
-  //Time spent in decompressing full blocs
+  //Total time spent in decompressing full blocs
   std::map<size_t, std::vector<float>> full_decomp_times;
+
+  //Number of compressions of full blocs of size 'size'
+  std::map<size_t, std::vector<int>> full_comp_nb;
+
+  //Number of decompressions of full blocs of size 'size'
+  std::map<size_t, std::vector<int>> full_decomp_nb;
 
   //n_rk_blocs[rank, size] = number of Rk blocs for which n_rows * n_cols = size and this->rank = rank
   std::map<size_t, std::map<size_t, int>> n_rk_blocs;
@@ -110,12 +127,137 @@ struct HMatProfile
   std::map<size_t, std::map<size_t, std::vector<float>>> rk_comp_ratios;
 
 
-  //Time spent in compressing rk blocs
+  //Total time spent in compressing rk blocs
   std::map<size_t, std::map<size_t, std::vector<float>>> rk_comp_times;
 
-  //Time spent in decompressing rk blocs
+  //Total time spent in decompressing rk blocs
   std::map<size_t, std::map<size_t, std::vector<float>>> rk_decomp_times;
 
+
+  //Number of compressions of full blocs of size 'size' and rank 'rank'
+  std::map<size_t, std::map<size_t, std::vector<int>>> rk_comp_nb;
+
+  //Number of compressions of full blocs of size 'size' and rank 'rank'
+  std::map<size_t, std::map<size_t, std::vector<int>>> rk_decomp_nb;
+
+  /**
+   * Enregistre la structure dans un fichier JSON.
+   * @param filename Le chemin du fichier (défaut: "profile.json")
+   */
+  void dump(const std::string& filename = "profile.json") const {
+        std::ofstream out(filename.c_str());
+        if (!out.is_open()) {
+            std::cerr << "Error: Could not open " << filename << " for writing." << std::endl;
+            return;
+        }
+
+        out << "{" << std::endl;
+
+        // 1. Simple Maps (Level 1)
+        dump_map_generic(out, "n_full_blocs", n_full_blocs, false);
+
+        // 2. Maps to Vectors (Level 1)
+        dump_map_generic(out, "full_comp_ratios", full_comp_ratios, false);
+        dump_map_generic(out, "full_comp_times", full_comp_times, false);
+        dump_map_generic(out, "full_decomp_times", full_decomp_times, false);
+        dump_map_generic(out, "full_comp_nb", full_comp_nb, false);
+        dump_map_generic(out, "full_decomp_nb", full_decomp_nb, false);
+
+        // 3. Nested Maps (Level 2)
+        dump_nested_map_generic(out, "n_rk_blocs", n_rk_blocs, false);
+
+        // 4. Nested Maps to Vectors (Level 2)
+        dump_nested_map_generic(out, "rk_comp_ratios", rk_comp_ratios, false);
+        dump_nested_map_generic(out, "rk_comp_times", rk_comp_times, false);
+        dump_nested_map_generic(out, "rk_decomp_times", rk_decomp_times, false);
+        dump_nested_map_generic(out, "rk_comp_nb", rk_comp_nb, false);
+        
+        // Le dernier élément doit avoir is_last = true pour ne pas mettre de virgule finale
+        dump_nested_map_generic(out, "rk_decomp_nb", rk_decomp_nb, true);
+
+        out << "}" << std::endl;
+        out.close();
+    }
+
+private:
+    // --- Helpers inspirés de dump_points/dump_mapping ---
+
+    // Écriture d'une valeur simple (int, float)
+    template <typename T>
+    static void write_value(std::ostream& out, const T& val) {
+        out << val;
+    }
+
+    // Écriture d'un vecteur (surcharge) : [ val, val, ... ]
+    template <typename T>
+    static void write_value(std::ostream& out, const std::vector<T>& vec) {
+        out << "[";
+        std::string delimiter = "";
+        for (size_t i = 0; i < vec.size(); ++i) {
+            out << delimiter << vec[i];
+            delimiter = ", "; 
+        }
+        out << "]";
+    }
+
+    // Helper générique pour std::map<size_t, T>
+    // T peut être un int, float ou un std::vector (grâce à la surcharge de write_value ci-dessus)
+    template <typename T>
+    static void dump_map_generic(std::ostream& out, const std::string& name, const std::map<size_t, T>& map_data, bool is_last_block) {
+        out << "  \"" << name << "\": {" << std::endl;
+        
+        std::string line_delimiter = ""; // Gère la virgule entre les lignes du JSON
+        typename std::map<size_t, T>::const_iterator it;
+
+        for (it = map_data.begin(); it != map_data.end(); ++it) {
+            if (it != map_data.begin()) {
+                out << "," << std::endl;
+            }
+            // Note: les clés JSON doivent être des strings, donc on met des guillemets autour du size_t
+            out << "    \"" << it->first << "\": ";
+            write_value(out, it->second);
+        }
+        
+        out << std::endl << "  }";
+        if (!is_last_block) {
+            out << ",";
+        }
+        out << std::endl;
+    }
+
+    // Helper générique pour les maps imbriquées : std::map<size_t, std::map<size_t, T>>
+    template <typename T>
+    static void dump_nested_map_generic(std::ostream& out, const std::string& name, const std::map<size_t, std::map<size_t, T>>& map_data, bool is_last_block) {
+        out << "  \"" << name << "\": {" << std::endl;
+
+        typename std::map<size_t, std::map<size_t, T>>::const_iterator it_outer;
+        for (it_outer = map_data.begin(); it_outer != map_data.end(); ++it_outer) {
+            if (it_outer != map_data.begin()) {
+                out << "," << std::endl;
+            }
+
+            out << "    \"" << it_outer->first << "\": {";
+            
+            // Boucle interne
+            std::string inner_delimiter = "";
+            const auto& inner_map = it_outer->second;
+            typename std::map<size_t, T>::const_iterator it_inner;
+            
+            for (it_inner = inner_map.begin(); it_inner != inner_map.end(); ++it_inner) {
+                out << inner_delimiter;
+                out << "\"" << it_inner->first << "\": ";
+                write_value(out, it_inner->second);
+                inner_delimiter = ", ";
+            }
+            out << "}";
+        }
+
+        out << std::endl << "  }";
+        if (!is_last_block) {
+            out << ",";
+        }
+        out << std::endl;
+    }
 };
 
 /** Degrees of freedom permutation of a vector required in HMatrix context.
@@ -183,6 +325,10 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   int rank_;
   /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
   int approximateRank_;
+
+  ///FP Compression Info
+  FPCompressionProfile fpProfile_;
+
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);

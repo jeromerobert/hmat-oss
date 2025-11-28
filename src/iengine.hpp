@@ -70,7 +70,7 @@ namespace hmat {
     hmat_progress_t * progress() const { return progress_; }
     virtual void info(hmat_info_t &i) const =0;
 
-    virtual void profile(hmat_profile_t &p) const =0;
+    virtual void profile(hmat_profile_t &p, const std::string& filename = "profile.json") const =0;
 
     virtual void ratio(hmat_FPCompressionRatio_t &r) const =0;
 

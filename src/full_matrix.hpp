@@ -327,8 +327,8 @@ public:
   /** Compress a full block using FP compresison */
   void FPcompress(double epsilon, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
 
-  /**Decompress the full block after FP compression */
-  void FPdecompress();
+  /**Decompress the full block after FP compression. Return the decompression time */
+  float FPdecompress();
 
   /** Decompress the full block after FP compression into a copy of the original full block */
   FullMatrix<T>* FPdecompressCopy(FullMatrix<T>* result = NULL) const;
