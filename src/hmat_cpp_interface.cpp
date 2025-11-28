@@ -248,7 +248,7 @@ void HMatInterface<T>::info(hmat_info_t & result) const {
 }
 
 template <typename T>
-void HMatInterface<T>::profile(hmat_profile_t & result) const
+void HMatInterface<T>::profile(hmat_profile_t & result, const std::string& filename) const
 {
   DECLARE_CONTEXT;
   memset(&result, 0, sizeof(hmat_profile_t));

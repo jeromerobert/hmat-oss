@@ -309,7 +309,7 @@ public:
    * Fill a hmat_profile_t structure with profile of this matrix.
    * @note This is only meaningful once the HMatrix has been assembled.
    */
-  void profile(hmat_profile_t &) const;
+  void profile(hmat_profile_t &, const std::string& filename = "profile.json") const;
 
   void ratio(hmat_FPCompressionRatio_t &result) const;
 

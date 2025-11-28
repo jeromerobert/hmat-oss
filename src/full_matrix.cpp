@@ -360,7 +360,7 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
   {
     return;
   }
-  //printf("Begin Compression of full block !\n");
+  //printf("Begin Compression of Full block. Parameters : epsilon = %e , method = %d \n\n", epsilon, method);
 
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -383,18 +383,18 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
 
 
 template <typename T>
-void FullMatrix<T>::FPdecompress()
+float FullMatrix<T>::FPdecompress()
 {
   //printf("Begin Decompression of full block !\n");
 
   if(!isFPcompressed())
   {
      //printf("Compressors not instanciated\n");
-    return;
+    return 0;
   }
   if(!(_compressor->compressor))
   {
-    return;
+    return 0;
   }
 
   auto start = std::chrono::high_resolution_clock::now();
@@ -408,10 +408,11 @@ void FullMatrix<T>::FPdecompress()
 
   
   auto end = std::chrono::high_resolution_clock::now();
-  _compressor->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
   delete _compressor;
   _compressor = nullptr;
+
+ return std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 }
 
 template <typename T>

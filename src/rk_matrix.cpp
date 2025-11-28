@@ -298,7 +298,7 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
 template <typename T>
 void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
 {
-  //printf("Begin Compression\n");
+  //printf("Begin Compression of Rk block. Parameters : epsilon = %e , method = %d, nb_blocs = %d\n\n", epsilon, method, nb_blocs);
 
   assert(nb_blocs <= this->rank());//We may want to fix nb_blocs to this->rank() in that case in the future; for now, it is simpler to assert nb_blocs <= this->rank().
 
@@ -429,19 +429,19 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 }
 
 template <typename T>
-void RkMatrix<T>::FPdecompress()
+float RkMatrix<T>::FPdecompress()
 {
 
   //printf("Begin Decompression\n");
   if(!isFPcompressed()) //Already uncompressed !
   {
-    return;
+    return 0;
   }
 
   //Decompression
   if(_compressors== nullptr)
   {
-    return;
+    return 0;
   }
 
   auto start = std::chrono::high_resolution_clock::now();
@@ -488,10 +488,11 @@ void RkMatrix<T>::FPdecompress()
       this->b->setOriginId(this->_compressors->saved_id_B);  }
 
   auto end = std::chrono::high_resolution_clock::now();
-  _compressors->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
   delete _compressors;
   _compressors = nullptr;
+
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
   
 }
 template <typename T>

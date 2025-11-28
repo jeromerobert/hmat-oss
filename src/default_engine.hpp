@@ -62,7 +62,7 @@ public:
   HMatrix<T> * getHandle() const { return IEngine<T>::hmat; }
   void scale(T alpha) override;
   void info(hmat_info_t &i) const override;
-  void profile(hmat_profile_t &p) const override;
+  void profile(hmat_profile_t &p, const std::string& filename = "profile.json") const override;
   void ratio(hmat_FPCompressionRatio_t &r) const override;
   void FPcompress() override;
   void FPdecompress() override;
