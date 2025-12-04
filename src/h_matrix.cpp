@@ -1301,63 +1301,70 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
         return;
 
     const ClusterData* a_rows = transA == 'N' ? a->rows() : a->cols();
-    const ClusterData* a_cols = transA == 'N' ? a->cols() : a->rows();
     const ClusterData* b_cols = transB == 'N' ? b->cols() : b->rows();
-    const ClusterData* b_rows = transB == 'N' ? b->rows() : b->cols();
-
-    bool super_a = !a->isLeaf() && (a_cols->isStrictSuperSet(*b_rows) || a_rows->isStrictSuperSet(*this->rows()));
-    bool super_b = !b->isLeaf() && (b_rows->isStrictSuperSet(*a_cols) || b_cols->isStrictSuperSet(*this->cols()));
-    bool super_c = !this->isLeaf() && (this->rows()->isStrictSuperSet(*a_rows) || this->cols()->isStrictSuperSet(*b_cols));
-    bool conditionA = !a->isLeaf() && !(super_b || super_c);
-    bool conditionB = !b->isLeaf() && !(super_a || super_c);
-    bool conditionC = !this->isLeaf() && !(super_a || super_b);
-    bool any_super = super_a || super_b || super_c;
-
-    if ((conditionA && conditionB && conditionC) || super_a || super_b || super_c) {
-        const bool childrenA = (super_a || !(any_super || a->isLeaf()));
-        const bool childrenB = (super_b || !(any_super || b->isLeaf()));
-        const bool childrenC = (super_c || !(any_super || this->isLeaf()));
-
-        const int row_a = (!childrenA ? 1 : (transA=='N' ? a->nrChildRow() : a->nrChildCol()));
-        const int col_a = (!childrenA ? 1 : (transA=='N' ? a->nrChildCol() : a->nrChildRow()));
-        const int row_b = (!childrenB ? 1 : (transB=='N' ? b->nrChildRow() : b->nrChildCol()));
-        const int col_b = (!childrenB ? 1 : (transB=='N' ? b->nrChildCol() : b->nrChildRow()));
-        const int row_c = (!childrenC ? 1 : this->nrChildRow());
-        const int col_c = (!childrenC ? 1 : this->nrChildCol());
+    const ClusterData* c_rows = this->rows();
+    const ClusterData* c_cols = this->cols();
+    const int row_a = transA=='N' ? a->nrChildRow() : a->nrChildCol();
+    const int col_a = transA=='N' ? a->nrChildCol() : a->nrChildRow();
+    const int row_b = transB=='N' ? b->nrChildRow() : b->nrChildCol();
+    const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
+    const int row_c = this->nrChildRow();
+    const int col_c = this->nrChildCol();
+    // induction constant A.cols == B.rows && C.rows (resp C.cols) <= A.rows (resp. B.cols) && C.father does not respect the previous condition
+    // We want that to ensure that uncompatibleGemm will only act to read big A and B and not to write in a big C
+    // dig_x_before_y : "digging y would break the induction constant with respect to x (regardless of if we dig x or not)"
+    bool dig_a_before_b = col_a==1 && row_b>1;
+    bool dig_b_before_a = col_a>1 && row_b==1;
+    bool super_a_c = a_rows->isStrictSuperSet(*c_rows);
+    bool super_b_c = b_cols->isStrictSuperSet(*c_cols);
+    bool dig_c_before_a = !super_a_c && row_a>1 && row_c==1;
+    bool dig_c_before_b = !super_b_c && col_b>1 && col_c==1;
+    bool dig_a_before_c = super_a_c || row_a==1;
+    bool dig_b_before_c = super_b_c || col_b==1;
+    const bool dig_a = !a->isLeaf() && !dig_b_before_a && !dig_c_before_a;
+    const bool dig_b = !b->isLeaf() && !dig_a_before_b && !dig_c_before_b;
+    const bool dig_c = !this->isLeaf() && !dig_a_before_c && !dig_b_before_c;
+    if (dig_a || dig_b || dig_c) {
+        const int effective_row_a = (!dig_a ? 1 : row_a);
+        const int effective_col_a = (!dig_a ? 1 : col_a);
+        const int effective_row_b = (!dig_b ? 1 : row_b);
+        const int effective_col_b = (!dig_b ? 1 : col_b);
+        const int effective_row_c = (!dig_c ? 1 : row_c);
+        const int effective_col_c = (!dig_c ? 1 : col_c);
         // There are 6 nested loops, this may be an issue if there are more
         // than 2 children in each direction; precompute compatibility between
         // blocks to improve performance:
         //   + columns of a and rows of b
-        unsigned char * is_compatible_a_b = compatibilityGridForGEMM(a, childrenA, Axis::COL, transA, b, childrenB, Axis::ROW, transB);
+        unsigned char * is_compatible_a_b = compatibilityGridForGEMM(a, dig_a, Axis::COL, transA, b, dig_b, Axis::ROW, transB);
         //   + rows of a and rows of c
-        unsigned char * is_compatible_a_c = compatibilityGridForGEMM(a, childrenA, Axis::ROW, transA, this, childrenC, Axis::ROW, 'N');
+        unsigned char * is_compatible_a_c = compatibilityGridForGEMM(a, dig_a, Axis::ROW, transA, this, dig_c, Axis::ROW, 'N');
         //   + columns of b and columns of c
-        unsigned char * is_compatible_b_c = compatibilityGridForGEMM(b, childrenB, Axis::COL, transB, this, childrenC, Axis::COL, 'N');
+        unsigned char * is_compatible_b_c = compatibilityGridForGEMM(b, dig_b, Axis::COL, transB, this, dig_c, Axis::COL, 'N');
         //  With these arrays, we can exit early from loops on iA, jB and l
         //  when blocks are not compatible, and thus there are only 3 real
         //  loops (on i, j, k) and performance penalty should be negligible.
-        for (int i = 0; i < row_c; i++) {
+        for (int i = 0; i < effective_row_c; i++) {
             for (int j = 0; j < col_c; j++) {
-                HMatrix<T>* child = !childrenC ? this : get(i, j);
+                HMatrix<T>* child = !dig_c ? this : get(i, j);
                 if (!child) { // symmetric/triangular case or empty block coming from symbolic factorisation of sparse matrices
                   continue;
                 }
-                for (int iA = 0; iA < row_a; iA++) {
-                    if (!is_compatible_a_c[iA * row_c + i])
+                for (int iA = 0; iA < effective_row_a; iA++) {
+                    if (!is_compatible_a_c[iA * effective_row_c + i])
                       continue;
-                    for (int jB = 0; jB < col_b; jB++) {
-                        if (!is_compatible_b_c[jB * col_c + j])
+                    for (int jB = 0; jB < effective_col_b; jB++) {
+                        if (!is_compatible_b_c[jB * effective_col_c + j])
                             continue;
-                        for (int k = 0; k < col_a; k++) {
+                        for (int k = 0; k < effective_col_a; k++) {
                             char tA = transA;
-                            const HMatrix<T> *childA = !childrenA ? a : a->getChildForGEMM(tA, iA, k);
+                            const HMatrix<T> *childA = !dig_a ? a : a->getChildForGEMM(tA, iA, k);
                             if (!childA)
                                 continue;
-                            for (int l = 0; l < row_b; l++) {
-                                if (!is_compatible_a_b[k * row_b + l])
+                            for (int l = 0; l < effective_row_b; l++) {
+                                if (!is_compatible_a_b[k * effective_row_b + l])
                                     continue;
                                 char tB = transB;
-                                const HMatrix<T> *childB = !childrenB ? b : b->getChildForGEMM(tB, l, jB);
+                                const HMatrix<T> *childB = !dig_b ? b : b->getChildForGEMM(tB, l, jB);
                                 if(childB)
                                     child->gemm(tA, tB, alpha, childA, childB, 1);
                             }
