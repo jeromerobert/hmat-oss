@@ -139,7 +139,8 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
   int approximateRank_;
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
-  void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
+  std::tuple<bool,bool, bool> computeGemmRecursion(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b);
+  void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, bool dig_a, bool dig_b, bool dig_c);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;
 
