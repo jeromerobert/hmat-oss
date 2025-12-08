@@ -1300,30 +1300,19 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     if(isVoid() || a->isVoid())
         return;
 
-    const ClusterData* a_rows = transA == 'N' ? a->rows() : a->cols();
-    const ClusterData* b_cols = transB == 'N' ? b->cols() : b->rows();
-    const ClusterData* c_rows = this->rows();
-    const ClusterData* c_cols = this->cols();
     const int row_a = transA=='N' ? a->nrChildRow() : a->nrChildCol();
     const int col_a = transA=='N' ? a->nrChildCol() : a->nrChildRow();
     const int row_b = transB=='N' ? b->nrChildRow() : b->nrChildCol();
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = this->nrChildRow();
     const int col_c = this->nrChildCol();
-    // induction constant A.cols == B.rows && C.rows (resp C.cols) <= A.rows (resp. B.cols) && C.father does not respect the previous condition
-    // We want that to ensure that uncompatibleGemm will only act to read big A and B and not to write in a big C
-    // dig_x_before_y : "digging y would break the induction constant with respect to x (regardless of if we dig x or not)"
-    bool dig_a_before_b = col_a==1 && row_b>1;
-    bool dig_b_before_a = col_a>1 && row_b==1;
-    bool super_a_c = a_rows->isStrictSuperSet(*c_rows);
-    bool super_b_c = b_cols->isStrictSuperSet(*c_cols);
-    bool dig_c_before_a = !super_a_c && row_a>1 && row_c==1;
-    bool dig_c_before_b = !super_b_c && col_b>1 && col_c==1;
-    bool dig_a_before_c = super_a_c || row_a==1;
-    bool dig_b_before_c = super_b_c || col_b==1;
-    const bool dig_a = !a->isLeaf() && !dig_b_before_a && !dig_c_before_a;
-    const bool dig_b = !b->isLeaf() && !dig_a_before_b && !dig_c_before_b;
-    const bool dig_c = !this->isLeaf() && !dig_a_before_c && !dig_b_before_c;
+    // induction constant A.rows (resp.B.cols) == C.rows (resp C.cols)
+    // We want that to ensure that uncompatibleGemm will make at most one subset on either A or B, and not try funky stuff to write in a subset of C.
+    // TODO add something so that A and B don't get too far appart (but maybe, that's a problem for their admissibility)
+    const bool dig_c = !this->isLeaf() && row_a>=row_c && col_b>=col_c;
+    const bool dig_a = !a->isLeaf() && (row_a==1 || (dig_c && row_a==row_c));
+    const bool dig_b = !b->isLeaf() && (col_b==1 || (dig_c && col_b==col_c));
+    HMAT_ASSERT(dig_a || dig_b || dig_c || a->isLeaf() || b->isLeaf() || this->isLeaf());
     if (dig_a || dig_b || dig_c) {
         const int effective_row_a = (!dig_a ? 1 : row_a);
         const int effective_col_a = (!dig_a ? 1 : col_a);
