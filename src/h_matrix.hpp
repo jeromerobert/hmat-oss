@@ -666,7 +666,28 @@ public:
   const HMatrix<T> * getChildForGEMM(char & t, int i, int j) const;
 
   void setClusterTrees(const ClusterTree* rows, const ClusterTree* cols);
+
+
+  /**  Returns a pointer to a new HMatrix representing a subset of indices.
+       The pointer is supposed to be read-only (for efficiency reasons).
+       In this version, this must be a Leaf and not Null
+
+       \param rows subset of rows
+       \param cols subset of columns
+       \return pointer to a new matrix size(rows and cols), unless there is no need for a subset, in which case this is returned as is.
+   */
+
   HMatrix<T> * subset(const IndexSet * rows, const IndexSet * cols) const;
+
+  /**  Returns a pointer to a new HMatrix representing a subset of indices.
+       The pointer is supposed to be read-only (for efficiency reasons).
+       In this version, this can be any HMatrix, even non-Leaf or Null
+
+       \param rows subset of rows
+       \param cols subset of columns
+       \return pointer to a new matrix of size(rows and cols), unless there is no need for a subset, in which case this is returned as is.
+   */
+  HMatrix<T> * subset(const ClusterTree * rows, const ClusterTree * cols) const;
 
   /* \brief Retrieve diagonal values.
   */

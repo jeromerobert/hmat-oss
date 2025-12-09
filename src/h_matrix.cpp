@@ -1126,11 +1126,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
        (!rows->isSubset(*(this->rows())) || !cols->isSubset(*(this->cols())))) // TODO cette ligne me parait louche... si rows et cols sont pas bons, on renvoie 'this' sans meme se plaindre ???
         return const_cast<HMatrix<T>*>(this);
 
-    // this could be implemented but if you need it you more
-    // likely have something to fix at a higher level.
-    assert(!this->isNull());
-
-    if(this->isLeaf()) {
+    if(this->isLeaf()&& !this->isNull()) {
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global, this->localSettings.FPSettings);
         tmpMatrix->temporary_=true;
         tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
@@ -1152,9 +1148,33 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         }
         return tmpMatrix;
     } else {
+        //implemented via subset(clusterTree * rows, clusterTree * cols)
+        HMAT_ASSERT(false);    }
+}
+
+template<typename T> HMatrix<T> * HMatrix<T>::subset(
+    const ClusterTree * rows, const ClusterTree * cols) const
+{
+    if((this->rowsTree() == rows && this->colsTree() == cols) ||
+       (*(this->rows()) == rows->data && *(this->cols()) == cols->data) ||
+       (!rows->data.isSubset(*(this->rows())) || !cols->data.isSubset(*(this->cols())))) // TODO cette ligne me parait louche... si rows et cols sont pas bons, on renvoie 'this' sans meme se plaindre ???
+        return const_cast<HMatrix<T>*>(this);
+
+    if(this->isLeaf() && !this->isNull()) {
+        return this->subset(&(rows->data), &(cols->data));
+    } else {
         // 'This' is not a leaf
-        //TODO not yet implemented but should not happen
-        HMAT_ASSERT(false);
+        // Evaluate this to a full matrix, then subset the full matrix
+        FullMatrix<T> * tmpFull = new FullMatrix<T>(&(rows->data), &(cols->data));
+        this->evalPart(tmpFull, tmpFull->rows_, tmpFull->cols_);
+        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global, this->localSettings.FPSettings);
+        tmpMatrix->temporary_=true;
+        tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
+        tmpMatrix->rows_ = rows;
+        tmpMatrix->cols_ = cols;
+        tmpMatrix->ownClusterTrees(false, false);
+        tmpMatrix->full(tmpFull);
+        return tmpMatrix;
     }
 }
 
@@ -1177,20 +1197,20 @@ makeCompatible(bool row_a, bool row_b,
                HMatrix<T> * & out_a, HMatrix<T> * & out_b) {
 
     // suppose that A is bigger than B: in that case A will change, not B
-    const IndexSet * cdb = row_b ? in_b->rows() : in_b->cols();
+    const ClusterTree * cdb = row_b ? in_b->rowsTree() : in_b->colsTree();
     if(row_a) // restrict the rows of in_a to cdb
-        out_a = in_a->subset(cdb, in_a->cols());
+        out_a = in_a->subset(cdb, in_a->colsTree());
     else // or the cols
-        out_a = in_a->subset(in_a->rows(), cdb);
+        out_a = in_a->subset(in_a->rowsTree(), cdb);
 
     // if A has changed, B won't change so we bypass this second step
     if(out_a == in_a) {
         // suppose than B is bigger than A: B will change, not A
-        const IndexSet * cda = row_a ? in_a->rows() : in_a->cols();
+        const ClusterTree * cda = row_a ? in_a->rowsTree() : in_a->colsTree();
         if(row_b)
-            out_b = in_b->subset(cda, in_b->cols());
+            out_b = in_b->subset(cda, in_b->colsTree());
         else
-            out_b = in_b->subset(in_b->rows(), cda);
+            out_b = in_b->subset(in_b->rowsTree(), cda);
     }
     else
         out_b = const_cast<HMatrix<T> *>(in_b);
