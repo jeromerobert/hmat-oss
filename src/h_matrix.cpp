@@ -1071,8 +1071,24 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         return tmpMatrix;
     } else {
         // 'This' is not a leaf
-        //TODO not yet implemented but should not happen
-        HMAT_ASSERT(false);
+        // Evaluate this to a full matrix, then subset the full matrix
+        FullMatrix<T> * tmpFull = new FullMatrix<T>(this->rows(), this->cols());
+        this->evalPart(tmpFull, tmpFull->rows_, tmpFull->cols_);
+        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
+        tmpMatrix->temporary_=true;
+        tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
+        ClusterTree * r = const_cast<ClusterTree*>(this->rows_);
+        ClusterTree * c = const_cast<ClusterTree*>(this->cols_);
+        // ensure the cluster tree are properly freed
+        r->father = r;
+        c->father = c;
+
+        tmpMatrix->rows_ = r;
+        tmpMatrix->cols_ = c;
+        tmpMatrix->ownClusterTrees(true, true);
+        tmpMatrix->full(tmpFull);
+        assert(tmpMatrix->isLeaf()); // don't make an infinite loop
+        return tmpMatrix->subset(rows, cols);
     }
 }
 
