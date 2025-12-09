@@ -1047,8 +1047,6 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
 
     // this could be implemented but if you need it you more
     // likely have something to fix at a higher level.
-    assert(!this->isNull());
-
     if(this->isLeaf()) {
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
         tmpMatrix->temporary_=true;
