@@ -1124,7 +1124,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
 
     // this could be implemented but if you need it you more
     // likely have something to fix at a higher level.
-    if(this->isLeaf()) {
+    if(this->isLeaf()&& !this->isNull()) {
         HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global, this->localSettings.FPSettings);
         tmpMatrix->temporary_=true;
         tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
@@ -1150,7 +1150,7 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
         // Evaluate this to a full matrix, then subset the full matrix
         FullMatrix<T> * tmpFull = new FullMatrix<T>(this->rows(), this->cols());
         this->evalPart(tmpFull, tmpFull->rows_, tmpFull->cols_);
-        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
+        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global, this->localSettings.FPSettings);
         tmpMatrix->temporary_=true;
         tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
         ClusterTree * r = const_cast<ClusterTree*>(this->rows_);
