@@ -182,6 +182,10 @@ public:
    */
   ClusterTree* copy(const ClusterTree* copyFather=NULL) const;
 
+  /*! \brief Return a copy to this.
+   */
+  void coarsen(const std::vector<int> &mergedChildren);
+
   /*! \brief Swap contents of two ClusterTree
    */
   void swap(ClusterTree* other);

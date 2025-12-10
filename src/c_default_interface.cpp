@@ -194,6 +194,13 @@ const double * hmat_cluster_get_coordinates(const hmat_cluster_tree_t *tree) {
     return &reinterpret_cast<const ClusterTree*>(tree)->data.coordinates()->get(0, 0);
 }
 
+void hmat_cluster_coarsen(hmat_cluster_tree_t *tree, int new_count, int *merged_children) {
+    ClusterTree* cl = static_cast<ClusterTree*>((void*) tree);
+    std::vector<int> mergedChildren(new_count);
+    std::copy(merged_children, merged_children + new_count, mergedChildren.begin());
+    cl->coarsen(mergedChildren);
+}
+
 void hmat_init_admissibility_param(hmat_admissibility_param_t * p) {
     p->eta = 2;
     p->ratio = 0.0;
