@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <numeric>
 
 namespace hmat {
 
@@ -189,6 +190,28 @@ ClusterTree* ClusterTree::copy(const ClusterTree* copyFather) const {
       result->insertChild(i, ((ClusterTree*) getChild(i))->copy(copyFather));
   }
   return result;
+}
+
+void ClusterTree::coarsen(const std::vector<int> &mergedChildren) {
+  int oldSize = std::accumulate(mergedChildren.begin(), mergedChildren.end(), 0);
+  HMAT_ASSERT(oldSize == children.size());
+  int newSize = mergedChildren.size();
+  std::vector<ClusterTree*> oldChildren(children);
+  detachChildren();
+  int index = 0;
+  for(int i = 0; i < newSize; ++i) {
+    int nrChildren = mergedChildren[i];
+    int count = 0;
+    for(int j = 0; j < nrChildren; ++j) {
+      count += oldChildren[index + j]->data.size_;
+    }
+    ClusterTree *newChild = slice(oldChildren[index]->data.offset_, count);
+    for(int j = 0; j < nrChildren; ++j) {
+      newChild->insertChild(j, oldChildren[index + j]);
+    }
+    insertChild(i, newChild);
+    index += nrChildren;
+  }
 }
 
 void ClusterTree::swap(ClusterTree* other) {

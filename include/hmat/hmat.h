@@ -318,6 +318,14 @@ HMAT_API const int * hmat_cluster_get_indices(const hmat_cluster_tree_t *tree);
  */
 HMAT_API const double * hmat_cluster_get_coordinates(const hmat_cluster_tree_t *tree);
 
+/*
+ * @brief Merge children nodes together
+ * @param tree a cluster tree
+ * @param new_count new number of children
+ * @param merged_children for each new child, the number of merged children
+ */
+HMAT_API void hmat_cluster_coarsen(hmat_cluster_tree_t *tree, int new_count, int *merged_children);
+
 typedef struct {
     /** eta for Hackbusch condition */
     double eta;
