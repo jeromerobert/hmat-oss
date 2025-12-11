@@ -1320,10 +1320,11 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = this->nrChildRow();
     const int col_c = this->nrChildCol();
-    // induction constant A.rows (resp.B.cols) == C.rows (resp C.cols)
+    // induction constant A.rows (resp.B.cols) >= C.rows (resp C.cols)
     // We want that to ensure that uncompatibleGemm will make at most one subset on either A or B, and not try funky stuff to write in a subset of C.
+    // So that we don't have to do superset on the clusters, we use A.rows (resp.B.cols) == C.rows (resp C.cols) and allow digging C once the leaves of A (resp. B) are reached
     // TODO add something so that A and B don't get too far appart (but maybe, that's a problem for their admissibility)
-    const bool dig_c = !this->isLeaf() && row_a>=row_c && col_b>=col_c;
+    const bool dig_c = !this->isLeaf() && (row_a>=row_c || a->isLeaf()) && (col_b>=col_c || b->isLeaf());
     const bool dig_a = !a->isLeaf() && (row_a==1 || (dig_c && row_a==row_c));
     const bool dig_b = !b->isLeaf() && (col_b==1 || (dig_c && col_b==col_c));
     HMAT_ASSERT(dig_a || dig_b || dig_c || a->isLeaf() || b->isLeaf() || this->isLeaf());
