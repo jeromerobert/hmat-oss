@@ -25,6 +25,7 @@
 
 #include <string>
 #include <cstring>
+#include <vector>
 
 #include "common/context.hpp"
 #include "common/my_assert.h"
@@ -734,26 +735,48 @@ template <typename T, template <typename> class E>
 int set_diagonal_children(hmat_matrix_t* holder, hmat_matrix_t** holder_children) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T> *hmat = reinterpret_cast<hmat::HMatInterface<T>*>(holder);
-  hmat::HMatrix<T>* m = hmat->engine().hmat;
-  try {
-    HMAT_ASSERT_MSG(m->nrChildRow() == m->nrChildCol(), "Cannot call set_diagonal_children on non symmetric matrix");
-    for (int i = 0; i < m->nrChildRow(); ++i, ++holder_children) {
-      hmat::HMatrix<T>* currentChild = m->get(i, i);
-      if (currentChild) {
-        // Detach it; there may be memory leaks
-        currentChild->father = NULL;
-        currentChild->ownClusterTrees(false, false);
-        delete currentChild;
+  std::vector<hmat::HMatrix<T>*> stack(1, hmat->engine().hmat);
+  hmat::HMatInterface<T> *hmatChild = reinterpret_cast<hmat::HMatInterface<T>*>(*holder_children);
+  hmat::HMatrix<T>* newChild = hmatChild->engine().hmat;
+  unsigned nrDofChild = newChild->rowsTree()->data.size();
+  while (!stack.empty()) {
+    try {
+      hmat::HMatrix<T>* m = stack.back();
+      stack.pop_back();
+      HMAT_ASSERT_MSG(m->nrChildRow() == m->nrChildCol(), "Cannot call set_diagonal_children on non symmetric matrix");
+      const unsigned nrDof = m->rowsTree()->data.size();
+      if (nrDof == nrDofChild) {
+        // Replace m by newChild in father node
+        hmat::HMatrix<T>* father = m->father;
+        for (int i = 0; i < father->nrChildRow(); ++i) {
+          if (father->get(i, i) == m) {
+            // Detach it; there may be memory leaks
+            m->father = NULL;
+            m->ownClusterTrees(false, false);
+            delete m;
+            // insertChild takes care of father and depth
+            father->insertChild(i, i, newChild);
+            if (!stack.empty()) {
+              ++holder_children;
+              hmatChild = reinterpret_cast<hmat::HMatInterface<T>*>(*holder_children);
+              newChild = hmatChild->engine().hmat;
+              nrDofChild = newChild->rowsTree()->data.size();
+            }
+            break;
+          }
+        }
+      } else {
+        for (int i = m->nrChildRow() - 1; i >= 0; --i) {
+          stack.push_back(m->get(i, i));
+        }
       }
-      hmat::HMatrix<T>* newChild = reinterpret_cast<hmat::HMatInterface<T>*>(*holder_children)->engine().hmat;
-      // insertChild takes care of father and depth
-      m->insertChild(i, i, newChild);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
     }
-  } catch (const std::exception& e) {
-      fprintf(stderr, "%s\n", e.what());
-      return 1;
   }
   // Call setClusterTrees to overwrite children ClusterTree
+  hmat::HMatrix<T>* m = hmat->engine().hmat;
   m->setClusterTrees(m->rowsTree(), m->colsTree());
   return 0;
 }
