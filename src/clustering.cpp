@@ -230,21 +230,22 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
   int dim = largestDimension(current, currentAxis);
   sortByDimension(current, dim);
   int previousIndex = 0;
+  int * indices = current.data.indices();
   // Loop on 'divider_' = the number of children created
   for (int i=1 ; i<divider_ ; i++) {
     int middleIndex = current.data.size() * i / divider_;
     if (NULL != current.data.group_index())
     {
       // Ensure that we do not split inside a group
-      const int* group_index = current.data.group_index() + current.data.offset();
-      const int group(group_index[middleIndex]);
-      if (group_index[middleIndex-1] == group)
+      const int* group_index = current.data.group_index();
+      const int group(group_index[indices[middleIndex]]);
+      if (group_index[indices[middleIndex-1]] == group)
       {
         int upper = middleIndex;
         int lower = middleIndex-1;
-        while (upper < current.data.size() && group_index[upper] == group)
+        while (upper < current.data.size() && group_index[indices[upper]] == group)
           ++upper;
-        while (lower >= 0 && group_index[lower] == group)
+        while (lower >= 0 && group_index[indices[lower]] == group)
           --lower;
         if (lower < 0 && upper == current.data.size())
         {
@@ -361,12 +362,12 @@ NTilesRecursiveAlgorithm::subpartition( ClusterTree& father, ClusterTree *curren
     sortByDimension( *current, dim );
 
     lsize = tileSize_ * (( ntiles + 1 ) / 2 );
-    
+
     loffset = current->data.offset();
     roffset = loffset + lsize;
     rsize   = size - lsize;
     assert( rsize > 0 );
-    
+
     ClusterTree *slice;
     /* Left */
     slice = current->slice( loffset, lsize );
