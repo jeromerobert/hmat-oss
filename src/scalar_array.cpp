@@ -1155,7 +1155,7 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
 template <typename T>
 void ScalarArray<T>::reflect(Vector<T> &v_house, double beta, char transA)
 {
-    assert(abs(beta) >= abs(std::numeric_limits<T>::epsilon()));
+    assert(std::abs(beta) >= std::abs(std::numeric_limits<T>::epsilon()));
     ScalarArray<T> w_house(1,cols);
     w_house.gemm(transA , 'N' , beta ,  &v_house ,this, 0);
     rankOneUpdateT(1,v_house, w_house);
