@@ -1309,7 +1309,7 @@ std::tuple<bool ,bool , bool> HMatrix<T>::computeGemmRecursion(char transA, char
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = this->nrChildRow();
     const int col_c = this->nrChildCol();
-    bool dig_c = !this->isLeaf() && row_a>=row_c && col_b>=col_c;
+    bool dig_c = !this->isLeaf() && (row_a>=row_c || a->isLeaf()) && (col_b>=col_c || b->isLeaf());
     bool dig_a = !a->isLeaf() && (row_a==1 || (dig_c && row_a==row_c));
     bool dig_b = !b->isLeaf() && (col_b==1 || (dig_c && col_b==col_c));
     return(std::tuple<bool ,bool , bool>{dig_a, dig_b, dig_c});
