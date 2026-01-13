@@ -426,6 +426,12 @@ if (BUILD_EXAMPLES)
     add_test (NAME cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-cylinder 1000 Z)
     add_test (NAME simple-cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-simple-cylinder 1000 Z)
     add_test (NAME hodlrvsllt COMMAND ${HMAT_PREFIX_EXAMPLE}hodlrvsllt)
+    if(composyx_FOUND AND ZFP_FOUND)  
+        add_test (NAME simple-cylinder_zfp COMMAND ${HMAT_PREFIX_EXAMPLE}c-simple-fpcompression 1000 Z 1e-4 1 ZFP)
+    endif ()
+    if(composyx_FOUND AND SZ3_FOUND)  
+        add_test (NAME cholesky_sz3 COMMAND ${HMAT_PREFIX_EXAMPLE}c-cholesky-fpcompression 1000 S 1e-4 4 SZ3)
+    endif ()
 endif ()
 
 # ========================
