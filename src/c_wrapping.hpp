@@ -611,6 +611,105 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
 }
 
 template<typename T, template <typename> class E>
+int hmat_get_profile(hmat_matrix_t* holder, hmat_profile_t* profile) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->profile(*profile);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int hmat_get_ratio(hmat_matrix_t* holder, hmat_FPCompressionRatio_t* ratio) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->ratio(*ratio);
+      double s_r = ratio->size_Rk;
+      double s_r_c = ratio->size_Rk_compressed;
+      double s_f = ratio->size_Full;
+      double s_f_c = ratio->size_Full_compressed;
+
+      ratio->rkRatio = s_r / s_r_c;
+      ratio->fullRatio = s_f / s_f_c;
+      ratio->ratio = (s_r + s_f) / (s_r_c + s_f_c);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int hmat_FPcompress(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->FPcompress();
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+template<typename T, template <typename> class E>
+int hmat_FPdecompress(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->FPdecompress();
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+hmat_fp_settings_t hmat_GetFPCompressionSettings(hmat_matrix_t* holder) {
+  DECLARE_CONTEXT; 
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  hmat::FPCompressionSettings settings = hmat->GetFPCompressionSettings();
+  hmat_fp_settings_t res;
+  res.compressor = settings.compressor;
+  res.epsilonFP = settings.epsilonFP;
+  res.nb_blocs = settings.nb_blocs;
+  res.compressFull = settings.compressFull;
+  res.compressRk = settings.compressRk;
+  return res;
+}
+
+template<typename T, template <typename> class E>
+int hmat_SetFPCompressionSettings(hmat_matrix_t* holder, hmat_fp_settings_t settings) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->SetFPCompressionSettings(settings.compressor, settings.nb_blocs, settings.epsilonFP, settings.compressFull, settings.compressRk);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
+int hmat_SetFPCompressionSettingsParams(hmat_matrix_t* holder, float epsilonFP, int nb_blocs, hmat_FPcompress_t compressor, bool compressFull, bool compressRk) {
+  DECLARE_CONTEXT;
+  hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
+  try {
+      hmat->SetFPCompressionSettings(compressor, nb_blocs, epsilonFP, compressFull, compressRk);
+  } catch (const std::exception& e) {
+      fprintf(stderr, "%s\n", e.what());
+      return 1;
+  }
+  return 0;
+}
+
+template<typename T, template <typename> class E>
 int get_cluster_trees(hmat_matrix_t* holder, const hmat_cluster_tree_t ** rows, const hmat_cluster_tree_t ** cols) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
@@ -884,6 +983,13 @@ static void createCInterface(hmat_interface_t * i)
     i->internal = NULL;
     i->get_info  = hmat_get_info<T, E>;
     i->dump_info = hmat_dump_info<T, E>;
+    i->get_profile  = hmat_get_profile<T, E>;
+    i->get_ratio  = hmat_get_ratio<T, E>;
+    i->FPcompress = hmat_FPcompress<T, E>;
+    i->FPdecompress = hmat_FPdecompress<T, E>;
+    i->GetFPCompressionSettings = hmat_GetFPCompressionSettings<T, E>;
+    i->SetFPCompressionSettings = hmat_SetFPCompressionSettings<T, E>;
+    i->SetFPCompressionSettingsParams = hmat_SetFPCompressionSettingsParams<T, E>;
     i->get_cluster_trees = get_cluster_trees<T, E>;
     i->set_cluster_trees = set_cluster_trees<T, E>;
     i->own_cluster_trees = own_cluster_trees<T, E>;
