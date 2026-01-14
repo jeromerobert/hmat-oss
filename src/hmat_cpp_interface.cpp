@@ -247,6 +247,49 @@ void HMatInterface<T>::info(hmat_info_t & result) const {
     engine_->info(result);
 }
 
+template <typename T>
+void HMatInterface<T>::profile(hmat_profile_t & result) const
+{
+  DECLARE_CONTEXT;
+  memset(&result, 0, sizeof(hmat_profile_t));
+  engine_->profile(result);
+}
+
+template <typename T>
+void HMatInterface<T>::ratio(hmat_FPCompressionRatio_t &result) const
+{
+    DECLARE_CONTEXT;
+    memset(&result, 0, sizeof(hmat_FPCompressionRatio_t));
+    engine_->ratio(result);
+}
+
+template <typename T>
+void HMatInterface<T>::FPcompress()
+{
+  DECLARE_CONTEXT;
+  engine_->FPcompress();
+}
+
+template <typename T>
+void HMatInterface<T>::FPdecompress()
+{
+  DECLARE_CONTEXT;
+  engine_->FPdecompress();
+}
+
+template<typename T>
+FPCompressionSettings HMatInterface<T>::GetFPCompressionSettings(){
+
+  return engine_->GetFPCompressionSettings();
+}
+
+
+template<typename T>
+void HMatInterface<T>::SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk){
+  
+  engine_->SetFPCompressionSettings(compressor, nb_blocs, epsilonFP, compressFull, compressRk);
+}
+
 template<typename T>
 void HMatInterface<T>::dumpTreeToFile(const std::string& filename) const {
   DECLARE_CONTEXT;

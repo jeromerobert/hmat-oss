@@ -28,6 +28,7 @@
 #define _HMAT_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include "hmat/config.h"
 
 #if defined _WIN32
@@ -67,6 +68,14 @@ typedef enum {
   hmat_compress_aca_random,
   hmat_compress_rrqr
 } hmat_compress_t;
+
+/**The different Floating Point compression methods to use */
+typedef enum { 
+  DEFAULT_COMPRESSOR = 0, 
+  ZFP_COMPRESSOR = 1,
+  SZ_COMPRESSOR = 2, 
+  SZ3_COMPRESSOR = 3
+} hmat_FPcompress_t;
 
 typedef enum {
     hmat_block_full,
@@ -121,6 +130,15 @@ typedef struct hmat_block_info_struct {
     /** the number of strata in the block */
     int number_of_strata;
 } hmat_block_info_t;
+
+typedef struct hmat_fp_settings_struct {
+    hmat_FPcompress_t compressor;
+    int nb_blocs;
+    float epsilonFP;
+    bool compressFull;
+    bool compressRk;
+
+} hmat_fp_settings_t;
 
 /*! \brief Prepare block assembly.
  \param row_start starting row
@@ -418,6 +436,13 @@ typedef struct
   int largest_rk_mem_rank;
 } hmat_info_t;
 
+/** Profile of the HMatrix */
+typedef struct
+{
+  //TO DO : uses C Hashtable instead of C++ map for profiling the Matrices;
+  
+} hmat_profile_t;
+
 typedef struct hmat_matrix_struct hmat_matrix_t;
 
 /** Allow to implement a progress bar associated to assemble or factorize */
@@ -434,6 +459,26 @@ typedef struct hmat_progress_struct {
  * This is a singleton which must/can not be freed.
  */
 hmat_progress_t * hmat_default_progress(void);
+
+/** Structure containing the FPcompression Ratio */
+typedef struct {
+  //The compression ratio for the Rk-Matrices only
+  double rkRatio;
+
+  //Total number of elements in the Rk-Matrices only
+  size_t size_Rk;
+  size_t size_Rk_compressed;
+
+  //The compression ratio for the full blocs only
+  double fullRatio;
+
+  //Total number of elements in the full blocs only
+  size_t size_Full;
+  size_t size_Full_compressed;
+
+  //The compression ratio for the Whole HMatrix
+  double ratio;
+} hmat_FPCompressionRatio_t;
 
 /**
  * Function representing a generic stream.
@@ -933,6 +978,20 @@ typedef struct
         \param info A structure to fill with current informations
      */
     int (*get_info)(hmat_matrix_t *hmatrix, hmat_info_t* info);
+
+    int (*get_profile)(hmat_matrix_t *hmatrix, hmat_profile_t* profile);
+
+    int (*get_ratio)(hmat_matrix_t *hmatrix, hmat_FPCompressionRatio_t* ratio);
+
+    int (*FPcompress)(hmat_matrix_t *hmatrix);
+
+    int (*FPdecompress)(hmat_matrix_t *hmatrix);
+
+    hmat_fp_settings_t (*GetFPCompressionSettings)(hmat_matrix_t *hmatrix);
+
+    int (*SetFPCompressionSettings)(hmat_matrix_t *hmatrix, hmat_fp_settings_t settings);
+
+    int (*SetFPCompressionSettingsParams)(hmat_matrix_t *hmatrix, float epsilonFP, int nb_blocs, hmat_FPcompress_t compressor, bool compressFull, bool compressRk);
 
     /*! \brief Dump json & postscript informations about matrix
         \param hmatrix A hmatrix

@@ -58,8 +58,28 @@
 #endif
 
 #include <stdlib.h>
+#include <chrono>
 
 namespace hmat {
+
+template <typename T>
+inline FPSimpleCompressor<T>::FPSimpleCompressor(hmat_FPcompress_t method)
+{
+  compressor = initCompressor<T>(method);
+  compressionRatio = 1;
+  compressionTime = 0;
+  decompressionTime = 0;
+}
+
+template <typename T>
+FPSimpleCompressor<T>::~FPSimpleCompressor()
+{
+  if(compressor)
+    {
+        delete compressor;
+        compressor = nullptr;
+    }
+}
 
 /** FullMatrix */
 
@@ -69,6 +89,7 @@ FullMatrix<T>::FullMatrix(T* _m, const IndexSet*  _rows, const IndexSet*  _cols,
     rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
   assert(rows_);
   assert(cols_);
+  _compressor = nullptr;
 }
 
 template<typename T>
@@ -80,6 +101,7 @@ FullMatrix<T>::FullMatrix(ScalarArray<T> *s, const IndexSet*  _rows, const Index
   // check the coherency between IndexSet and ScalarArray
   assert(rows_->size() == s->rows);
   assert(cols_->size() == s->cols);
+  _compressor = nullptr;
 }
 
 template<typename T>
@@ -88,6 +110,7 @@ FullMatrix<T>::FullMatrix(const IndexSet*  _rows, const IndexSet*  _cols, bool z
     rows_(_rows), cols_(_cols), pivots(NULL), diagonal(NULL) {
   assert(rows_);
   assert(cols_);
+  _compressor = nullptr;
 }
 
 template<typename T> FullMatrix<T>::~FullMatrix() {
@@ -327,6 +350,71 @@ template<typename T> void FullMatrix<T>::conjugate() {
   if (diagonal)
     diagonal->conjugate();
 }
+
+template <typename T>
+void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
+{
+  if(isFPcompressed()) //Already compressed !
+  {
+    return;
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  _compressor = new FPSimpleCompressor<T>(method);
+
+  _compressor->n_rows = data.rows;
+  _compressor->n_cols = data.cols;
+
+  std::vector<T> tmp(data.ptr(), data.ptr()+ _compressor->n_rows*_compressor->n_cols);
+
+  _compressor->compressor->compress(tmp, data.rows * data.cols, epsilon);
+  _compressor->compressionRatio = _compressor->compressor->get_ratio();
+
+  data.resize(0);
+
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressor->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+}
+
+
+template <typename T>
+void FullMatrix<T>::FPdecompress()
+{
+
+  if(!isFPcompressed())
+  {
+    return;
+  }
+  if(!(_compressor->compressor))
+  {
+    return;
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  data.resize(_compressor->n_cols);
+  std::vector<T> tmp_out = _compressor->compressor->decompress();
+
+  ScalarArray<T> tmp(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
+
+  data.copyMatrixAtOffset(&tmp, 0, 0);
+
+  
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressor->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
+  delete _compressor;
+  _compressor = nullptr;
+}
+
+template <typename T>
+bool FullMatrix<T>::isFPcompressed()
+{
+    return _compressor != nullptr;
+}
+
 
 template<typename T> std::string FullMatrix<T>::description() const {
     std::ostringstream convert;

@@ -239,13 +239,25 @@ template<typename T> void ScalarArray<T>::resize(int col_num) {
   else
     MemoryInstrumenter::instance().free(sizeof(T) * rows * -diffcol,
                                         MemoryInstrumenter::FULL_MATRIX);
-  cols = col_num;
+
+  size_t new_size_bytes = sizeof(T) * rows * col_num;
 #ifdef HAVE_JEMALLOC
-  void * p = je_realloc(m, sizeof(T) * rows * cols);
+  void * p = je_realloc(m, new_size_bytes);
 #else
-  void * p = realloc(m, sizeof(T) * rows * cols);
+  void * p = realloc(m, new_size_bytes);
 #endif
+
+if(p == NULL && new_size_bytes > 0) {
+  if(diffcol > 0)
+    MemoryInstrumenter::instance().free(sizeof(T) * lda * diffcol,
+                                          MemoryInstrumenter::FULL_MATRIX);
+
+
+  throw std::bad_alloc();
+}
+
   m = static_cast<T*>(p);
+  cols = col_num;
 }
 
 template<typename T> void ScalarArray<T>::clear() {
@@ -389,6 +401,13 @@ template<typename T>
 ScalarArray<T> ScalarArray<T>::rowsSubset(const int rowsOffset, const int rowsSize) const { //TODO: remove it, we have a constructor to do this
   assert(rowsOffset + rowsSize <= rows);
   return ScalarArray<T>(*this, rowsOffset, rowsSize, 0, cols);
+}
+
+template <typename T>
+ScalarArray<T> ScalarArray<T>::colsSubset(const int colOffset, const int colSize) const
+{
+  assert(colOffset + colSize <= cols);
+  return ScalarArray<T>(*this, 0, rows, colOffset, colSize);
 }
 
 template<typename T>
@@ -904,7 +923,7 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures) const {
+template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures, Vector<typename Types<T>::real> *sigma_out) const {
   Vector<typename Types<T>::real>* sigma = NULL;
 
   svdDecomposition(u, &sigma, v, workAroundFailures);
@@ -932,7 +951,15 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   // Apply sigma 'symmetrically' on u and v
   (*u)->multiplyWithDiag(sigma);
   (*v)->multiplyWithDiag(sigma);
+  if(sigma_out)
+  {
+    //printf("\nsqrt(Sigma_0) = %f, (MID)\n", (*sigma)[0]);
+    *sigma_out = *sigma;
+  }
+  else{
+
   delete sigma;
+  }
 
   return newK;
 }
@@ -1504,10 +1531,27 @@ T Vector<T>::dot(const Vector<T>* x, const Vector<T>* y) {
   return proxy_cblas_convenience::dot_c(x->rows, x->const_ptr(), 1, y->const_ptr(), 1);
 }
 
-template<typename T>
-int Vector<T>::absoluteMaxIndex(int startIndex) const {
-  assert(this->cols == 1);
-  return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->const_ptr() + startIndex, 1);
+template <typename T>
+double Vector<T>::maxAbsolute() const
+{
+  double res = std::abs(this->get(0));
+
+  for (int i = 1; i < this->rows; i++)
+  {
+    double val = std::abs(this->get(i));
+    if(val > res)
+    {
+      res = val;
+    }
+  }
+    return res;
+}
+
+template <typename T>
+int Vector<T>::absoluteMaxIndex(int startIndex) const
+{
+    assert(this->cols == 1);
+    return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->const_ptr() + startIndex, 1);
 }
 
 // the classes declaration
