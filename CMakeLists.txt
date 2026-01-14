@@ -257,6 +257,36 @@ target_link_libraries(hmat
         ${BLAS_LIBRARIES}
 )
 
+
+# ========================
+# COMPOSYX
+# ========================
+option(ENABLE_COMPOSYX "Enable composyx" OFF)
+if(ENABLE_COMPOSYX)  
+    if ( NOT TARGET COMPOSYX::composyx )
+        find_package(PkgConfig REQUIRED)
+        pkg_search_module(ZSTD REQUIRED IMPORTED_TARGET libzstd)
+        find_package(composyx REQUIRED)
+        if(composyx_FOUND)
+            message(STATUS "Found composyx")
+            set(HMAT_HAVE_COMPOSYX TRUE)
+            set(HAVE_COMPOSYX TRUE)
+        endif()
+    else()
+        set(HAVE_COMPOSYX TRUE)
+        message(STATUS "Found composyx")
+    endif()
+
+    if(composyx_FOUND)
+        target_link_libraries(hmat PRIVATE COMPOSYX::composyx)
+        target_compile_features(hmat PRIVATE cxx_std_20) ## needed for composyx<=1.4.2
+        set(composyx_FOUND ${composyx_FOUND} PARENT_SCOPE)
+        set(ZFP_FOUND ${ZFP_FOUND} PARENT_SCOPE)
+        set(SZ_FOUND ${SZ_FOUND} PARENT_SCOPE)
+        set(SZ3_FOUND ${SZ3_FOUND} PARENT_SCOPE)
+    endif()
+endif()
+
 # ========================
 # Compiler flags
 # ========================
@@ -389,6 +419,8 @@ hmat_add_example(NAME c-simple-cylinder)
 hmat_add_example(NAME c-simple-kriging)
 hmat_add_example(NAME c-cholesky)
 hmat_add_example(NAME hodlrvsllt)
+hmat_add_example(NAME c-simple-fpcompression)
+hmat_add_example(NAME c-cholesky-fpcompression)
 
 if (BUILD_EXAMPLES)
     enable_testing ()
@@ -396,6 +428,12 @@ if (BUILD_EXAMPLES)
     add_test (NAME cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-cylinder 1000 Z)
     add_test (NAME simple-cylinder COMMAND ${HMAT_PREFIX_EXAMPLE}c-simple-cylinder 1000 Z)
     add_test (NAME hodlrvsllt COMMAND ${HMAT_PREFIX_EXAMPLE}hodlrvsllt)
+    if(composyx_FOUND AND ZFP_FOUND)  
+        add_test (NAME simple-cylinder_zfp COMMAND ${HMAT_PREFIX_EXAMPLE}c-simple-fpcompression 1000 Z 1e-4 1 ZFP)
+    endif ()
+    if(composyx_FOUND AND SZ3_FOUND)  
+        add_test (NAME cholesky_sz3 COMMAND ${HMAT_PREFIX_EXAMPLE}c-cholesky-fpcompression 1000 S 1e-4 4 SZ3)
+    endif ()
 endif ()
 
 # ========================
@@ -415,7 +453,7 @@ endif()
 # Allow using HMAT targets from add_subdirectory()
 add_library(HMAT::hmat ALIAS hmat)
 
-# We want users to link agains HMAT::hmat target
+# We want users to link against HMAT::hmat target
 set_target_properties(hmat PROPERTIES EXPORT_NAME hmat)
 
 # Define our exported target

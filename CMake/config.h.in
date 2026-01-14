@@ -65,3 +65,5 @@
 #cmakedefine HMAT_TIMELINE
 
 #cmakedefine HMAT_EXPORT_BUILD_DATE
+
+#cmakedefine HAVE_COMPOSYX

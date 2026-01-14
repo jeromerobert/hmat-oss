@@ -142,7 +142,7 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices, int axis) {
 
 template<typename T>
 HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hmat::MatrixSettings * settings,
-                    int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition)
+                    int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition,  FPCompressionSettings * FPSettings)
   : Tree<HMatrix<T> >(NULL, _depth), RecursionMatrix<T, HMatrix<T> >(),
     rows_(_rows), cols_(_cols), rk_(NULL),
     rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
@@ -165,6 +165,10 @@ HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hm
     approximateRank_ = admissibilityCondition->getApproximateRank(*(rows_), *(cols_));
   }
   assert(!this->isLeaf() || isAssembled());
+  if(FPSettings)
+  {
+    localSettings.FPSettings = FPSettings;
+  }
 }
 
 template<typename T>
@@ -203,7 +207,8 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
                             new HMatrix<T>(rowChild, colChild, localSettings.global,
                                            this->depth + 1,
                                            i == j ? symFlag : kNotSymmetric,
-                                           admissibilityCondition));
+                                           admissibilityCondition,
+                                          localSettings.FPSettings));
         } else
           // If 'inert', the child is NULL
           this->insertChild(i, j, NULL);
@@ -216,20 +221,24 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
 }
 
 template<typename T>
-HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings) :
+HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings, FPCompressionSettings * FPSettings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false), isTriUpper(false), isTriLower(false),
     keepSameRows(true), keepSameCols(true), temporary_(false), ownRowsClusterTree_(false),
     ownColsClusterTree_(false), localSettings(settings, -1.0)
-    {}
+     {if(FPSettings){
+        localSettings.FPSettings = FPSettings;
+      }
+}
 
 template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool withRowChild, bool withColChild) const {
-    HMatrix<T> * r = new HMatrix<T>(localSettings.global);
+    HMatrix<T> * r = new HMatrix<T>(localSettings.global, localSettings.FPSettings);
     r->rows_ = rows_;
     r->cols_ = cols_;
     r->temporary_ = temporary;
     r->localSettings.epsilon_ = localSettings.epsilon_;
+    r->localSettings.FPSettings = localSettings.FPSettings;
     if(withRowChild || withColChild) {
         // Here, we come from HMatrixHandle<T>::createGemmTemporaryRk()
         // we want to go 1 level below data (which is an Rk)
@@ -240,11 +249,12 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
         r->keepSameCols = !withColChild;
         for(int i = 0; i < r->nrChildRow(); i++) {
             for(int j = 0; j < r->nrChildCol(); j++) {
-                HMatrix<T>* child = new HMatrix<T>(localSettings.global);
+                HMatrix<T>* child = new HMatrix<T>(localSettings.global, localSettings.FPSettings);
                 child->temporary_ = temporary;
                 child->rows_ = withRowChild ? rows_->getChild(i) : rows_;
                 child->cols_ = withColChild ? cols_->getChild(j) : cols_;
                 child->localSettings.epsilon_ = localSettings.epsilon_;
+                child->localSettings.FPSettings = localSettings.FPSettings;
                 assert(child->rows_ != NULL);
                 assert(child->cols_ != NULL);
                 assert(child->localSettings.epsilon_ > 0);
@@ -258,11 +268,12 @@ template<typename T> HMatrix<T> * HMatrix<T>::internalCopy(bool temporary, bool 
 
 template<typename T> HMatrix<T>* HMatrix<T>::internalCopy(
         const ClusterTree * rows, const ClusterTree * cols) const {
-    HMatrix<T> * r = new HMatrix<T>(localSettings.global);
+    HMatrix<T> * r = new HMatrix<T>(localSettings.global, localSettings.FPSettings);
     r->temporary_ = true;
     r->rows_ = rows;
     r->cols_ = cols;
     r->localSettings.epsilon_ = localSettings.epsilon_;
+    r->localSettings.FPSettings = localSettings.FPSettings;
     return r;
 }
 
@@ -488,6 +499,72 @@ template<typename T> void HMatrix<T>::info(hmat_info_t & result) {
                 child->info(result);
         }
     }
+}
+
+template <typename T>
+void HMatrix<T>::profile(HMatProfile & result)
+{
+  size_t r = rows()->size();
+  size_t c = cols()->size();
+  if(r == 0 || c == 0) {
+      return;
+  }
+
+  size_t size = c*r;
+
+  if (this->isLeaf()) {
+    if (isFullMatrix()) {
+      result.n_full_blocs[size] +=1;
+
+       if(full()->_compressor)
+      {
+      result.full_comp_ratios[size].push_back(full()->_compressor->compressionRatio);
+
+      result.full_comp_times[size].push_back(full()->_compressor->compressionTime);
+
+      result.full_decomp_times[size].push_back(full()->_compressor->decompressionTime);
+      }
+      else
+      {
+        result.full_comp_ratios[size].push_back(1.0);
+
+        result.full_comp_times[size].push_back(0.0);
+
+        result.full_decomp_times[size].push_back(0.0);
+      }
+       
+    } else {
+      //printf("Rk Bloc of size %ld and rank %d\n", size, rk()->rank());
+      result.n_rk_blocs[rk()->rank()][size] +=1;
+
+      if(rk()->_compressors)
+      {
+      
+        result.rk_comp_ratios[rk()->rank()][size].push_back(rk()->_compressors->compressionRatio);
+
+        result.rk_comp_times[rk()->rank()][size].push_back(rk()->_compressors->compressionTime);
+
+        result.rk_decomp_times[rk()->rank()][size].push_back(rk()->_compressors->decompressionTime);
+      }
+      else
+      {
+        result.rk_comp_ratios[rk()->rank()][size].push_back(1.0);
+
+        result.rk_comp_times[rk()->rank()][size].push_back(0.0);
+
+        result.rk_decomp_times[rk()->rank()][size].push_back(0.0);
+      }
+    }
+  } else {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for(int j = 0; j < nrChildCol(); j++) {
+	      if(get(i,j)) {
+          get(i,j)->profile(result);
+        }
+      }
+    }
+  }
+
 }
 
 template<typename T>
@@ -1050,9 +1127,10 @@ template<typename T> HMatrix<T> * HMatrix<T>::subset(
     assert(!this->isNull());
 
     if(this->isLeaf()) {
-        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global);
+        HMatrix<T> * tmpMatrix = new HMatrix<T>(this->localSettings.global, this->localSettings.FPSettings);
         tmpMatrix->temporary_=true;
         tmpMatrix->localSettings.epsilon_ = localSettings.epsilon_;
+        tmpMatrix->localSettings.FPSettings = localSettings.FPSettings;
         ClusterTree * r = rows_->slice(rows->offset(), rows->size());
         ClusterTree * c = cols_->slice(cols->offset(), cols->size());
 
@@ -1574,6 +1652,199 @@ template<typename T> bool HMatrix<T>::isRecursivelyNull() const {
   }
   return true;
 }
+
+template <typename T>
+void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
+{
+  size_t r = rows()->size();
+  size_t c = cols()->size();
+  if(r == 0 || c == 0) {
+      return;
+  }
+
+  if (this->isLeaf()) {
+    if (isFullMatrix()) {
+      size_t size = r*c * sizeof(T);
+      double cr = 1;
+      if(full()->_compressor)
+      {
+        cr = full()->_compressor->compressionRatio;
+      }
+     
+      result.size_Full += size;
+      result.size_Full_compressed += size / cr;
+
+    } else {
+      size_t k = rk()->rank();
+      size_t size = k*(r + c) * sizeof(T);
+
+      double cr = 1;
+      if(rk()->_compressors)
+      {
+        cr = rk()->_compressors->compressionRatio;
+      }
+
+
+      result.size_Rk += size;
+      result.size_Rk_compressed += size / cr;
+    }
+  } else {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for(int j = 0; j < nrChildCol(); j++) {
+	      if(get(i,j)) {
+          get(i,j)->FPratio(result);
+        }
+      }
+    }
+  }
+
+
+}
+
+template <typename T>
+void HMatrix<T>::FPcompress()
+{
+
+  if(!localSettings.FPSettings){
+    return;
+  }
+
+  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk)){
+    return;
+  }
+
+  if (this->isLeaf()) {
+    if (isFullMatrix() && full()) {
+      //Compress Full block
+      if(localSettings.FPSettings->compressFull && !full()->isFPcompressed())
+      {
+        full()->FPcompress(localSettings.FPSettings->epsilonFP, localSettings.FPSettings->compressor);
+      }
+    } else if (isRkMatrix() && rk()) {
+      //Compress RK block
+      if(localSettings.FPSettings->compressRk && !rk()->isFPcompressed())
+      {
+        int nb_blocs = localSettings.FPSettings->nb_blocs;
+        if(nb_blocs > 0)
+        {
+          int min_size = 2048; //The Minimum bloc size we want for compression 
+          //Ideal matrix dimensions for ZFP should be multiples of 4x4 (or, if not possible, a multiple of 16.)
+          int total_size = std::min(rows()->size(), cols()->size()) * rk()->rank() * sizeof(T);
+          float bloc_size = total_size / nb_blocs;
+
+          if(bloc_size < min_size)
+          {
+            nb_blocs = std::max((int)round(total_size/min_size), (int)1); //To make sure we compress blocks large enough for the compressors to work properly
+          }
+        }
+        else
+        {
+          nb_blocs = rk()->rank();
+        }
+        
+        //printf("\nDims : (%d + %d) x %d; N blocs = %d\n",rows()->size(), cols()->size(), rk()->rank(), nb_blocs);
+        //size_t size = rows()->size() * cols()->size();
+    
+        nb_blocs = std::min(nb_blocs, rk()->rank());
+        
+        rk()->FPcompress(localSettings.FPSettings->epsilonFP, nb_blocs, localSettings.FPSettings->compressor);
+
+      }
+      
+      
+
+    }
+  } else {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for(int j = 0; j < nrChildCol(); j++) {
+	      if(get(i,j)) {
+          get(i,j)->FPcompress();
+        }
+      }
+    }
+  }
+
+  
+}
+
+template <typename T>
+void HMatrix<T>::FPdecompress()
+{
+  if (this->isLeaf()) {
+    if (isFullMatrix() && full()) {
+      //Uncompress Full block if compressed
+      if(full()->isFPcompressed())
+      {
+        full()->FPdecompress();
+      }
+      
+    } else if (isRkMatrix() && rk()){
+      //Uncompress RK block if compressed
+      if(rk()->isFPcompressed())
+      {
+        rk()->FPdecompress();
+      }
+    }
+  } else {
+    for (int i = 0; i < nrChildRow(); i++) {
+      for(int j = 0; j < nrChildCol(); j++) {
+	      if(get(i,j)) {
+          get(i,j)->FPdecompress();
+        }
+      }
+    }
+  }
+
+
+}
+
+template <typename T>
+bool HMatrix<T>::isFPcompressed() const
+{
+  if (this->isLeaf()) {
+  
+    if (isFullMatrix() && full()) {
+      return full()->isFPcompressed();
+    } 
+    if(isRkMatrix() && rk()){ 
+      return rk()->isFPcompressed();
+    }
+  }
+  return false;
+  
+}
+
+template<typename T>
+FPCompressionSettings HMatrix<T>::GetFPCompressionSettings() {
+  return *(localSettings.FPSettings);
+}
+
+template<typename T>
+void HMatrix<T>::SetFPCompressionSettings(FPCompressionSettings* settings){
+  
+  localSettings.FPSettings = settings;
+
+  if (this->isLeaf()) {
+    return;
+  }
+
+  for (int i = 0; i < nrChildRow(); i++) {
+    for(int j = 0; j < nrChildCol(); j++) {
+      if(get(i,j)) {
+        get(i,j)->SetFPCompressionSettings(settings);
+      }
+    }
+  }
+}
+
+template<typename T>
+void HMatrix<T>::SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk){
+  FPCompressionSettings* settings = new FPCompressionSettings(compressor, nb_blocs, epsilonFP, compressFull, compressRk);
+  this->SetFPCompressionSettings(settings);
+  
+}
+
+
 
 template<typename T>
 FullMatrix<T>* multiplyHFull(char transH, char transM,
@@ -2888,6 +3159,7 @@ template<typename T> std::string HMatrix<T>::toString() const {
 
 template<typename T>
 HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, int approxRank, char bitfield, double epsilon) {
+  //TODO : Handle FPSettings
     HMatrix<T> * m = new HMatrix<T>(settings);
     m->rank_ = rank;
     m->isUpper = (bitfield & 1 << 0 ? true : false);
@@ -2909,7 +3181,7 @@ HMatrix<T>::HMatrix(const ClusterTree * rows, const ClusterTree * cols,
     rk_(NULL), rank_(UNINITIALIZED_BLOCK),
     approximateRank_(UNINITIALIZED_BLOCK), isUpper(false), isLower(false),
     keepSameRows(false), keepSameCols(false), temporary_(true), ownRowsClusterTree_(false),
-    ownColsClusterTree_(false), localSettings(_children[0]->localSettings.global, -1.0) {
+    ownColsClusterTree_(false), localSettings(_children[0]->localSettings.global,_children[0]->localSettings.FPSettings, -1.0) {
     this->children = _children;
 }
 

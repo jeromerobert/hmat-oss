@@ -28,12 +28,56 @@
 #define _FULL_MATRIX_HPP
 #include <cstddef>
 
+
+
+
 #include "data_types.hpp"
 #include "scalar_array.hpp"
-#include "h_matrix.hpp"
 #include "cluster_tree.hpp"
 
+
 namespace hmat {
+
+  template<typename T>
+  class FPCompressorInterface    {
+  public:
+      virtual void compress(std::vector<T> data, size_t size, double epsilon) = 0;
+  
+      virtual std::vector<T> decompress() = 0;
+  
+      virtual double get_ratio() = 0;
+  
+      virtual ~FPCompressorInterface() {};
+  
+  };
+
+  template<typename T>
+  FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method);
+  
+}
+
+
+#include "h_matrix.hpp"
+
+namespace hmat {
+
+
+
+  template<typename T>
+struct FPSimpleCompressor{
+    int n_rows;
+    int n_cols;
+    FPCompressorInterface<T>* compressor;
+
+    double compressionRatio;
+    double compressionTime;
+    double decompressionTime;
+
+    FPSimpleCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
+
+    ~FPSimpleCompressor();
+
+};
 
   /*! \brief Templated dense Matrix type.
 
@@ -55,6 +99,8 @@ private:
 public:
   const IndexSet *rows_;
   const IndexSet *cols_;
+
+  FPSimpleCompressor<T>* _compressor;
 
 public:
   /*! Holds the pivots for the LU decomposition. */
@@ -263,6 +309,15 @@ public:
   /*! Conjugate the content of the complex matrix */
   void conjugate();
 
+  /** Compress a full block using FP compresison */
+  void FPcompress(double epsilon, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR);
+
+  /** Decompress the full block after FP compression */
+  void FPdecompress();
+
+  /** Return True iff the full matrix is FP compressed */
+  bool isFPcompressed();
+
   size_t memorySize() const; //TODO not used
 
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320, 452]x[760, 890] norm=22.34758")
@@ -270,6 +325,7 @@ public:
   std::string description() const;
 };
 
-}  // end namespace hmat
+
+} // end namespace hmat
 
 #endif

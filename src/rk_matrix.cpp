@@ -38,10 +38,55 @@
 #include <algorithm>
 #include <chrono>
 
+
+
+
 namespace hmat {
+
+
+  
+  template<typename T>
+  FPAdaptiveCompressor<T>::FPAdaptiveCompressor(hmat_FPcompress_t method, int n)
+  {
+      nb_blocs = n;
+      cols.resize(nb_blocs);
+      compressors_A.resize(nb_blocs);
+      compressors_B.resize(nb_blocs);
+
+      for(int i =0; i < nb_blocs; i++)
+      {
+        compressors_A[i] = initCompressor<T>(method);
+        compressors_B[i] = initCompressor<T>(method);
+        
+      }
+      compressionRatio = 1;
+      compressionTime = 0;
+      decompressionTime = 0;
+     
+  }
+
+  template <typename T>
+  FPAdaptiveCompressor<T>::~FPAdaptiveCompressor()
+  {
+    for(int i =0; i < nb_blocs; i++)
+      {
+        if(compressors_A[i])
+        {
+            delete compressors_A[i];
+            compressors_A[i] = nullptr;
+        }
+         if(compressors_B[i])
+        {
+          delete compressors_B[i];
+          compressors_B[i] = nullptr;
+        }
+        
+      }
+  }
 
 /** RkApproximationControl */
 template<typename T> RkApproximationControl RkMatrix<T>::approx;
+
 
 /** RkMatrix */
 template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _rows,
@@ -51,13 +96,14 @@ template<typename T> RkMatrix<T>::RkMatrix(ScalarArray<T>* _a, const IndexSet* _
     a(_a),
     b(_b)
 {
-
+  _compressors = nullptr;
   // We make a special case for empty matrices.
   if ((!a) && (!b)) {
     return;
   }
   assert(a->rows == rows->size());
   assert(b->rows == cols->size());
+  
 }
 
 template<typename T> RkMatrix<T>::~RkMatrix() {
@@ -249,94 +295,296 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
   return newAB;
 }
 
-template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB) {
-  DECLARE_CONTEXT;
+template <typename T>
+void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
+{
 
-  if (rank() == 0) {
-    assert(!(a || b));
-    return;
-  }
+  assert(nb_blocs <= this->rank());//We may want to fix nb_blocs to this->rank() in that case in the future; for now, it is simpler to assert nb_blocs <= this->rank().
 
-  assert(rows->size() >= rank());
-  // Case: more columns than one dimension of the matrix.
-  // In this case, the calculation of the SVD of the matrix "R_a R_b^t" is more
-  // expensive than computing the full SVD matrix. We make then a full matrix conversion,
-  // and compress it with RkMatrix::fromMatrix().
-  if (rank() > std::min(rows->size(), cols->size())) {
-    FullMatrix<T>* tmp = eval();
-    RkMatrix<T>* rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
-    delete tmp;
-    // "Move" rk into this, and delete the old "this".
-    swap(*rk);
-    delete rk;
-    return;
-  }
-
-  static bool usedRecomp = getenv("HMAT_RECOMPRESS") && strcmp(getenv("HMAT_RECOMPRESS"), "MGS") == 0 ;
-  if (usedRecomp){
-    mGSTruncate(epsilon, initialPivotA, initialPivotB);
-    return;
-  }
-
-  /* To recompress an Rk-matrix to Rk-matrix, we need :
-      - A = Q_a R_A (QR decomposition)
-      - B = Q_b R_b (QR decomposition)
-      - Calculate the SVD of R_a R_b^t  = U S V^t
-      - Make truncation U, S, and V in the same way as for
-      compression of a full rank matrix, ie:
-      - Restrict U to its newK first columns U_tilde
-      - Restrict S to its newK first values (diagonal matrix) S_tilde
-      - Restrict V to its newK first columns V_tilde
-      - Put A = Q_a U_tilde SQRT (S_tilde)
-      B = Q_b V_tilde SQRT(S_tilde)
-
-     The sizes of the matrices are:
-      - Qa : rows x k
-      - Ra : k x k
-      - Qb : cols x k
-      - Rb : k x k
-     So:
-      - Ra Rb^t: k x k
-      - U  : k * k
-      - S  : k (diagonal)
-      - V^t: k * k
-     Hence:
-      - newA: rows x newK
-      - newB: cols x newK
-
-  */
-
-  // truncated SVD of Ra Rb^t (allows failure)
-  ScalarArray<T> *u = NULL, *v = NULL;
-  int newK;
-  // context block to release ra, rb, r ASAP
+  if(isFPcompressed()) //Already compressed !
   {
-    // QR decomposition of A and B
-    ScalarArray<T> ra(rank(), rank());
-    a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
-    ScalarArray<T> rb(rank(), rank());
-    b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
+    return;
+  }
 
-    // R <- Ra Rb^t
-    ScalarArray<T> r(rank(), rank());
-    r.gemm('N','T', 1, &ra, &rb , 0);
+  auto start = std::chrono::high_resolution_clock::now();
+
+  int k = this->rank();
+  int m = a->rows;
+  int n = b->rows;
+  bool isSigma;
+
+  if(Sigma)
+  {
+    isSigma = true;
+    if(this->rank() != Sigma->rows)
+      throw std::invalid_argument( "Number of Singular Values and rank don't match\n");
+  }
+  else
+  {
+    isSigma = false;
+    Sigma = new Vector<typename Types<T>::real>(k);
+
+    for(int i = 0; i < k; i++)
+    {
+      
+      (*Sigma)[i] = (a->colsSubset(i,1)).norm();
+      (*Sigma)[i] *=  (b->colsSubset(i,1)).norm();
+
+      (*Sigma)[i] = std::sqrt((*Sigma)[i]);
+    }
+  }
+  
+  _compressors = new FPAdaptiveCompressor<T>(method, nb_blocs);
+
+
+  _compressors->n_rows_A = m;
+  _compressors->n_rows_B = n;
+  _compressors->n_cols = k;
+
+
+  double p_sqrt = sqrt((double)nb_blocs);
+  double k0 = k/(double)nb_blocs;
+
+  Vector<typename Types<T>::real> *Sigma_p;
+
+  double sigma_1 = Sigma->maxAbsolute(); 
+
+  size_t size = (a->rows*a->cols)+(b->rows*b->cols);
+  size_t size_c = 0; 
+
+  for(int p = 0; p < nb_blocs; p++)
+  {
+      int kp = round(k0*p);
+      int kpOffset = round(k0 *(p+1)) - kp;
+
+      size_t size_a = m * kpOffset;
+      size_t size_b = n * kpOffset;
+      
+      if(kpOffset <= 0) //In that case 0 columns are selected. Can happen when nb_blocs > k
+          continue;
+
+     
+      Sigma_p = new Vector<typename Types<T>::real>(Sigma->rowsSubset(kp, kpOffset), 0);
+
+      double sigma_p = Sigma_p->maxAbsolute();
+
+      double epsilon_p = epsilon *sigma_1/(p_sqrt * sigma_p);
+      _compressors->cols[p] = kpOffset;
+
+      {
+        ScalarArray<T>* a_p = new ScalarArray<T>(a->colsSubset(kp, kpOffset));
+
+        std::vector<T> tmp(a_p->ptr(), a_p->ptr() + size_a);
+
+        _compressors->compressors_A[p]->compress(tmp, size_a, epsilon_p);      
+        
+
+        size_c += size_a / _compressors->compressors_A[p]->get_ratio();
+        
+        delete a_p;
+      }
+      
+
+
+      {
+       ScalarArray<T>* b_p = new ScalarArray<T>(b->colsSubset(kp, kpOffset));
+
+        std::vector<T> tmp(b_p->ptr(), b_p->ptr() + size_b);
+
+
+        _compressors->compressors_B[p]->compress(tmp, size_b, epsilon_p);      
+
+        size_c += size_b / _compressors->compressors_B[p]->get_ratio();
+        delete b_p;
+      }
+
+      delete Sigma_p;
+      
+  }
+  if(!isSigma)
+  {
+    delete Sigma; //In that case we do own Sigma
+  }
+  //a->clear(); //The memory for the panels a and b is freed. To replace with this->clear() or add clearing of compressors in this-> clear() ?
+  //b->clear();
+  delete a;
+  delete b;
+  this->a = new ScalarArray<T>(0, k);
+  this->b = new ScalarArray<T>(0, k);
+  
+
+  _compressors->compressionRatio = (double)size/(double)size_c;
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressors->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+}
+
+template <typename T>
+void RkMatrix<T>::FPdecompress()
+{
+
+  if(!isFPcompressed()) //Already uncompressed !
+  {
+    return;
+  }
+
+  //Decompression
+  if(_compressors== nullptr)
+  {
+    printf("Compressors not instanciated\n");
+    return;
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  int k =this->rank();
+  int m = this->rows->size();
+  int n = this->cols->size();
+  int nb_blocs = _compressors->nb_blocs;
+
+  int offset = 0;
+  this->a = new ScalarArray<T>(m, k);
+  this->b = new ScalarArray<T>(n, k);
+  
+  for(int p = 0; p < nb_blocs; p++)
+  {
+    int k_p = _compressors->cols[p];
+
+    if(k_p ==0)
+      continue;
+
+
+    { //We want to release a_p as soon as possible
+      std::vector<T> data = _compressors->compressors_A[p]->decompress();
+      
+      ScalarArray<T> a_p(data.data(), m, k_p);
+      a->copyMatrixAtOffset(&a_p, 0, offset);    
+    }   
+
+    {//We want to release b_p as soon as possible
+      std::vector<T> data = _compressors->compressors_B[p]->decompress();
+      
+      ScalarArray<T> b_p(data.data(), n, k_p);
+      b->copyMatrixAtOffset(&b_p, 0, offset);
+    }   
+
+    offset+=k_p;
+  }
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _compressors->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
+  delete _compressors;
+  _compressors = nullptr;
+  
+}
+
+template <typename T>
+bool RkMatrix<T>::isFPcompressed()
+{
+    return _compressors != nullptr;
+}
+
+template <typename T>
+void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB)
+{
+    DECLARE_CONTEXT;
+
+    if (rank() == 0)
+    {
+        assert(!(a || b));
+        return;
+    }
+
+    assert(rows->size() >= rank());
+    // Case: more columns than one dimension of the matrix.
+    // In this case, the calculation of the SVD of the matrix "R_a R_b^t" is more
+    // expensive than computing the full SVD matrix. We make then a full matrix conversion,
+    // and compress it with RkMatrix::fromMatrix().
+    int p = std::min(rows->size(), cols->size());
+    if (rank() > p)
+    {
+        FullMatrix<T> *tmp = eval();
+        RkMatrix<T> *rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
+        delete tmp;
+        // "Move" rk into this, and delete the old "this".
+        swap(*rk);
+        delete rk;
+        return;
+    }
+
+    static bool usedRecomp = getenv("HMAT_RECOMPRESS") && strcmp(getenv("HMAT_RECOMPRESS"), "MGS") == 0;
+    if (usedRecomp)
+    {
+        mGSTruncate(epsilon, initialPivotA, initialPivotB);
+        return;
+    }
+
+    /* To recompress an Rk-matrix to Rk-matrix, we need :
+        - A = Q_a R_A (QR decomposition)
+        - B = Q_b R_b (QR decomposition)
+        - Calculate the SVD of R_a R_b^t  = U S V^t
+        - Make truncation U, S, and V in the same way as for
+        compression of a full rank matrix, ie:
+        - Restrict U to its newK first columns U_tilde
+        - Restrict S to its newK first values (diagonal matrix) S_tilde
+        - Restrict V to its newK first columns V_tilde
+        - Put A = Q_a U_tilde SQRT (S_tilde)
+        B = Q_b V_tilde SQRT(S_tilde)
+
+       The sizes of the matrices are:
+        - Qa : rows x k
+        - Ra : k x k
+        - Qb : cols x k
+        - Rb : k x k
+       So:
+        - Ra Rb^t: k x k
+        - U  : k * k
+        - S  : k (diagonal)
+        - V^t: k * k
+       Hence:
+        - newA: rows x newK
+        - newB: cols x newK
+
+    */
 
     // truncated SVD of Ra Rb^t (allows failure)
-    newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true); // TODO use something else than SVD ?
-  }
-  if (newK == 0) {
-    clear();
-    return;
-  }
-  // We need to know if qrDecomposition has used initPivot...
-  // (Not so great, because HMAT_TRUNC_INITPIV is checked at 2 different locations)
-  static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
-  ScalarArray<T>* newA = truncatedAB(a, rows, newK, u, useInitPivot, initialPivotA);
-  delete a;
-  a = newA;
-  ScalarArray<T>* newB = truncatedAB(b, cols, newK, v, useInitPivot, initialPivotB);
-  delete b;
-  b = newB;
+    ScalarArray<T> *u = NULL, *v = NULL;
+
+    Vector<typename Types<T>::real> *sigma = new Vector<typename Types<T>::real>(p);
+    int newK;
+    // context block to release ra, rb, and r ASAP
+    {
+        // QR decomposition of A and B
+        ScalarArray<T> ra(rank(), rank());
+        a->qrDecomposition(&ra, initialPivotA); // A contains Qa and tau_a
+        ScalarArray<T> rb(rank(), rank());
+        b->qrDecomposition(&rb, initialPivotB); // B contains Qb and tau_b
+
+        // R <- Ra Rb^t
+        ScalarArray<T> r(rank(), rank());
+        r.gemm('N', 'T', 1, &ra, &rb, 0);
+        // truncated SVD of Ra Rb^t (allows failure)
+
+        newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true, sigma); // TODO use something else than SVD ?
+    }
+    if (newK == 0)
+    {
+        clear();
+        return;
+    }
+    // We need to know if qrDecomposition has used initPivot...
+    // (Not so great, because HMAT_TRUNC_INITPIV is checked at 2 different locations)
+    static char *useInitPivot = getenv("HMAT_TRUNC_INITPIV");
+    ScalarArray<T> *newA = truncatedAB(a, rows, newK, u, useInitPivot, initialPivotA);
+    delete a;
+    a = newA;
+    ScalarArray<T> *newB = truncatedAB(b, cols, newK, v, useInitPivot, initialPivotB);
+    delete b;
+    b = newB;
+
+      
+delete sigma;
 }
 
 template<typename T> 

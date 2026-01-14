@@ -28,7 +28,37 @@
 #include "compression.hpp"
 #include "common/my_assert.h"
 
+
+#include <stdbool.h>
+
+
+
 namespace hmat {
+
+
+
+  
+template<typename T>
+struct FPAdaptiveCompressor{
+    int nb_blocs;
+    int n_rows_A;
+    int n_rows_B;
+    int n_cols;
+    std::vector<FPCompressorInterface<T>*> compressors_A;
+    std::vector<FPCompressorInterface<T>*> compressors_B;
+
+    std::vector<int> cols;
+    
+    double compressionRatio;
+    double compressionTime;
+    double decompressionTime;
+
+    FPAdaptiveCompressor(hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, int n = 1);
+
+    ~FPAdaptiveCompressor();
+};
+
+
 
 template<typename T> class HMatrix;
 template<typename T, template <typename> class F> class AssemblyFunction;
@@ -76,10 +106,11 @@ public:
   static bool (*formatedAddPartsHook)(RkMatrix<T> * me, double epsilon, const T* alpha, const RkMatrix<T>* const * parts, const int n);
   const IndexSet *rows;
   const IndexSet *cols;
+
   // A B^t
   ScalarArray<T>* a;
   ScalarArray<T>* b;
-
+  FPAdaptiveCompressor<T>* _compressors;
   /// Control of the approximation. See \a RkApproximationControl for more
   /// details.
   static RkApproximationControl approx;
@@ -129,6 +160,17 @@ public:
       @warning The previous rk->a and rk->b are no longer valid after this function.
       \param initialPivotA/B is the number of orthogonal columns in panels a and b
    */
+  
+  /** Compress the panels of a RkMatrix using FP Compression.*/
+  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, Vector<typename Types<T>::real> *sigma=NULL);
+
+/** Decompress the panels of a RkMatrix after FP Compression.*/
+  void FPdecompress();
+
+  /** Return True iff the rk matrix is FP compressed */
+  bool isFPcompressed();
+
+
   void truncate(double epsilon, int initialPivotA=0, int initialPivotB=0);
   /** Recompress an RkMatrix in place using RRQR */
   void truncateAlter(double epsilon);
@@ -288,6 +330,10 @@ public:
   /*! \brief Write the RkMatrix data 'a' and 'b' in a stream (FILE*, unix fd, ...)
     */
   void writeArray(hmat_iostream writeFunc, void * userData) const;
+
+
+
+
 };
 
 }  // end namespace hmat

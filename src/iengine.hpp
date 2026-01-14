@@ -70,6 +70,18 @@ namespace hmat {
     hmat_progress_t * progress() const { return progress_; }
     virtual void info(hmat_info_t &i) const =0;
 
+    virtual void profile(hmat_profile_t &p) const =0;
+
+    virtual void ratio(hmat_FPCompressionRatio_t &r) const =0;
+
+    virtual void FPcompress() = 0;
+
+    virtual void FPdecompress() = 0;
+
+    virtual FPCompressionSettings GetFPCompressionSettings() = 0;
+
+    virtual void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk) = 0;
+
     virtual EngineSettings &GetSettings() = 0;
 
     virtual void setHMatrix(HMatrix<T>* m = NULL){IEngine<T>::hmat = m;}
