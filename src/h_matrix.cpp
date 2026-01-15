@@ -1397,6 +1397,8 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T> *a, bool recurseA, Axi
  */
 template<typename T>
 std::tuple<bool ,bool , bool> HMatrix<T>::computeGemmRecursion(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b) {
+    HMAT_ASSERT((transA=='N' ? a->rows()->size() : a->cols()->size()) == this->rows()->size());
+    HMAT_ASSERT((transB=='N' ? b->cols()->size() : b->rows()->size()) == this->cols()->size());
     const int row_a = transA=='N' ? a->nrChildRow() : a->nrChildCol();
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = this->nrChildRow();
