@@ -1314,20 +1314,34 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T> *a, bool recurseA, Axi
  *dig_b : if True recursiveGemm will recurse on the matrix B (a.k.a. b) and call gemm on its children
  *dig_c : if True recursiveGemm will recurse on the matrix C (a.k.a. this) and call gemm on its children
 
- * induction constant A.rows (resp.B.cols) == C.rows (resp C.cols)
+ * induction constant A.rows (resp.B.cols) == C.rows (resp C.cols) OR C.isFullMatrix
  * We want that to ensure that uncompatibleGemm will make at most one subset on either A or B, and not try funky stuff to write in a subset of C.
  */
 template<typename T>
 std::tuple<bool ,bool , bool> HMatrix<T>::computeGemmRecursion(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b) {
     HMAT_ASSERT(this->isFullMatrix() || (transA=='N' ? a->rows()->size() : a->cols()->size()) == this->rows()->size());
     HMAT_ASSERT(this->isFullMatrix() || (transB=='N' ? b->cols()->size() : b->rows()->size()) == this->cols()->size());
+    bool dig_a;
+    bool dig_b;
+    bool dig_c;
     const int row_a = transA=='N' ? a->nrChildRow() : a->nrChildCol();
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = this->nrChildRow();
     const int col_c = this->nrChildCol();
-    bool dig_c = !this->isLeaf() && row_a>=row_c && col_b>=col_c;
-    bool dig_a = !a->isLeaf() && (row_a==1 || (dig_c && row_a==row_c));
-    bool dig_b = !b->isLeaf() && (col_b==1 || (dig_c && col_b==col_c));
+    dig_c = !this->isLeaf() && row_a>=row_c && col_b>=col_c;
+    if (this->isFullMatrix()) {
+      // It's okay to write in subsets of full matrices
+      // in that case, we can aim to get A.cols==B.rows (but it's okay if they are not)
+      const ClusterData * cluster_a = transA=='N' ? a->cols() : a->rows();
+      const ClusterData * cluster_b = transB=='N' ? b->rows() : b->cols();
+      dig_a = !a->isLeaf() && cluster_b->isSubset(*cluster_a);
+      dig_b = !b->isLeaf() && cluster_a->isSubset(*cluster_b);
+    } else {
+      // keep A.rows (resp.B.cols) == C.rows (resp C.cols)
+      // we can't care force A.cols==B.rows as it would be too much a constraint on the structure
+      dig_a = !a->isLeaf() && (row_a==1 || (dig_c && row_a==row_c));
+      dig_b = !b->isLeaf() && (col_b==1 || (dig_c && col_b==col_c));
+    }
     return(std::tuple<bool ,bool , bool>{dig_a, dig_b, dig_c});
 }
 
