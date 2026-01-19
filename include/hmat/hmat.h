@@ -140,6 +140,8 @@ typedef struct hmat_fp_settings_struct {
 
 } hmat_fp_settings_t;
 
+#define DEFAULT_FP_SETTINGS {.compressor = DEFAULT_COMPRESSOR, .nb_blocs = 4, .epsilonFP = 1e-4, .compressFull = true, .compressRk = true }
+
 /*! \brief Prepare block assembly.
  \param row_start starting row
  \param row_count number of rows
@@ -990,8 +992,6 @@ typedef struct
     hmat_fp_settings_t (*GetFPCompressionSettings)(hmat_matrix_t *hmatrix);
 
     int (*SetFPCompressionSettings)(hmat_matrix_t *hmatrix, hmat_fp_settings_t settings);
-
-    int (*SetFPCompressionSettingsParams)(hmat_matrix_t *hmatrix, float epsilonFP, int nb_blocs, hmat_FPcompress_t compressor, bool compressFull, bool compressRk);
 
     /*! \brief Dump json & postscript informations about matrix
         \param hmatrix A hmatrix

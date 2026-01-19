@@ -324,13 +324,13 @@ void DefaultEngine<T>::FPdecompress()
 }
 
 template <typename T>
-FPCompressionSettings DefaultEngine<T>::GetFPCompressionSettings() {
+hmat_fp_settings_t DefaultEngine<T>::GetFPCompressionSettings() {
   return this->hmat->GetFPCompressionSettings();
 };
 
 template <typename T>
-void DefaultEngine<T>::SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk) {
-  this->hmat->SetFPCompressionSettings(compressor, nb_blocs, epsilonFP, compressFull, compressRk);
+void DefaultEngine<T>::SetFPCompressionSettings(hmat_fp_settings_t& settings) {
+  this->hmat->SetFPCompressionSettings(&settings);
 };
   
 

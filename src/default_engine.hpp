@@ -66,8 +66,8 @@ public:
   void ratio(hmat_FPCompressionRatio_t &r) const override;
   void FPcompress() override;
   void FPdecompress() override;
-  FPCompressionSettings GetFPCompressionSettings() override;
-  void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk) override;
+  hmat_fp_settings_t GetFPCompressionSettings() override;
+  void SetFPCompressionSettings(hmat_fp_settings_t& settings) override;
   typename Types<T>::dp logdet() const override;
   double norm() const override;
 };

@@ -142,7 +142,7 @@ void restoreVectorOrder(ScalarArray<T>* v, int* indices, int axis) {
 
 template<typename T>
 HMatrix<T>::HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const hmat::MatrixSettings * settings,
-                    int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition,  FPCompressionSettings * FPSettings)
+                    int _depth, SymmetryFlag symFlag, AdmissibilityCondition * admissibilityCondition,  hmat_fp_settings_t * FPSettings)
   : Tree<HMatrix<T> >(NULL, _depth), RecursionMatrix<T, HMatrix<T> >(),
     rows_(_rows), cols_(_cols), rk_(NULL),
     rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
@@ -227,7 +227,7 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
 }
 
 template<typename T>
-HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings, FPCompressionSettings * FPSettings) :
+HMatrix<T>::HMatrix(const hmat::MatrixSettings * settings, hmat_fp_settings_t * FPSettings) :
     Tree<HMatrix<T> >(NULL), RecursionMatrix<T, HMatrix<T> >(), rows_(NULL), cols_(NULL),
     rk_(NULL), rank_(UNINITIALIZED_BLOCK), approximateRank_(UNINITIALIZED_BLOCK),
     isUpper(false), isLower(false), isTriUpper(false), isTriLower(false),
@@ -1816,7 +1816,7 @@ HMatrix<T>* HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)
     result = this->copyStructure();
     result->ownClusterTrees(false, false);
   }
-  FPCompressionSettings settings = this->GetFPCompressionSettings();
+  hmat_fp_settings_t settings = this->GetFPCompressionSettings();
   result->SetFPCompressionSettings(&settings);
 
   if (this->isLeaf()) {
@@ -1912,12 +1912,12 @@ bool HMatrix<T>::isFPcompressed() const
 }
 
 template<typename T>
-FPCompressionSettings HMatrix<T>::GetFPCompressionSettings() const {
+hmat_fp_settings_t HMatrix<T>::GetFPCompressionSettings() const {
   return *(localSettings.FPSettings);
 }
 
 template<typename T>
-void HMatrix<T>::SetFPCompressionSettings(FPCompressionSettings* settings){
+void HMatrix<T>::SetFPCompressionSettings(hmat_fp_settings_t* settings){
   
   localSettings.FPSettings = settings;
 
@@ -1933,15 +1933,6 @@ void HMatrix<T>::SetFPCompressionSettings(FPCompressionSettings* settings){
     }
   }
 }
-
-template<typename T>
-void HMatrix<T>::SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk){
-  FPCompressionSettings* settings = new FPCompressionSettings(compressor, nb_blocs, epsilonFP, compressFull, compressRk);
-  this->SetFPCompressionSettings(settings);
-  
-}
-
-
 
 template<typename T>
 FullMatrix<T>* multiplyHFull(char transH, char transM,

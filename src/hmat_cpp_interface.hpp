@@ -326,12 +326,12 @@ public:
   /**
    * Return the FP compression settings of this HMatrix
    */
-  FPCompressionSettings GetFPCompressionSettings();
+  hmat_fp_settings_t GetFPCompressionSettings();
 
   /**
    * Set the FP compression settings of this HMatrix
    */
-  void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk);
+  void SetFPCompressionSettings(hmat_fp_settings_t& settings);
 
   /*! \brief Dump some HMatrix metadata to a Python-readable file.
 

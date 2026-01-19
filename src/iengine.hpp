@@ -78,9 +78,9 @@ namespace hmat {
 
     virtual void FPdecompress() = 0;
 
-    virtual FPCompressionSettings GetFPCompressionSettings() = 0;
+    virtual hmat_fp_settings_t GetFPCompressionSettings() = 0;
 
-    virtual void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk) = 0;
+    virtual void SetFPCompressionSettings(hmat_fp_settings_t& settings) = 0;
 
     virtual EngineSettings &GetSettings() = 0;
 

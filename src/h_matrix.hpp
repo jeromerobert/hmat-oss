@@ -62,18 +62,6 @@ enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 // or removed
 enum DefaultRank {UNINITIALIZED_BLOCK = -3, NONLEAF_BLOCK = -2, FULL_BLOCK = -1};
 
-struct FPCompressionSettings {
-    hmat_FPcompress_t compressor;
-    int nb_blocs; //TODO : -1 => p=n_cols;  0 => p varied, depends on min block size
-    float epsilonFP;
-    bool compressFull;
-    bool compressRk;
-
-    FPCompressionSettings(hmat_FPcompress_t c = DEFAULT_COMPRESSOR, int p = 4, float eps = 1e-4, bool cF = true, bool cR = true)
-      : compressor(c), nb_blocs(p), epsilonFP(eps), compressFull(cF), compressRk(cR) {}
-
-};
-
 struct FPCompressionProfile {
   float lastRatio;
   float compressionTimeTotal;
@@ -91,9 +79,9 @@ struct MatrixSettings {
 /** Settings local to a matrix bloc */
 struct LocalSettings {
     const MatrixSettings * global;
-    FPCompressionSettings * FPSettings;
-    LocalSettings(const MatrixSettings * s, double epsilon): global(s), epsilon_(epsilon) {FPSettings = new FPCompressionSettings();}
-    LocalSettings(const MatrixSettings * s, FPCompressionSettings * FPs, double epsilon): global(s), FPSettings(FPs), epsilon_(epsilon) {}
+    hmat_fp_settings_t * FPSettings;
+    LocalSettings(const MatrixSettings * s, double epsilon): global(s), epsilon_(epsilon) {hmat_fp_settings_t fps = DEFAULT_FP_SETTINGS; FPSettings = &fps;}
+    LocalSettings(const MatrixSettings * s, hmat_fp_settings_t * FPs, double epsilon): global(s), FPSettings(FPs), epsilon_(epsilon) {}
     /// epsilon used for SVD truncations
     double epsilon_;
 };
@@ -336,7 +324,7 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
 
   /** Only used by internalCopy */
   HMatrix(const MatrixSettings * settings,
-    FPCompressionSettings * FPSettings = NULL); //Default argument for non regression
+    hmat_fp_settings_t * FPSettings = NULL); //Default argument for non regression
   /** This <- This + alpha * b
 
       \param alpha
@@ -360,7 +348,7 @@ public:
   HMatrix(const ClusterTree* _rows, const ClusterTree* _cols, const MatrixSettings * settings,
        int depth, SymmetryFlag symmetryFlag,
        AdmissibilityCondition * admissibilityCondition,
-       FPCompressionSettings * FPSettings = NULL); //Default argument for non regression 
+       hmat_fp_settings_t * FPSettings = NULL); //Default argument for non regression 
 
     HMatrix(const HMatrix& other) = delete;
     HMatrix& operator=(const HMatrix& other) = delete;
@@ -915,17 +903,12 @@ public:
   /**
    * Return the FP compression settings of the HMatrix
    */
-  FPCompressionSettings GetFPCompressionSettings() const;
+  hmat_fp_settings_t GetFPCompressionSettings() const;
 
   /**
    * Set the FP compression settings of the HMatrix.
    */
-  void SetFPCompressionSettings(FPCompressionSettings* settings); //TODO set private member ? Used for recursion of the second version, maybe should not be usable outside
-
-  /**
-   * Set the FP compression settings of the HMatrix.
-   */
-  void SetFPCompressionSettings(hmat_FPcompress_t compressor, int nb_blocs, float epsilonFP, bool compressFull, bool compressRk);
+  void SetFPCompressionSettings(hmat_fp_settings_t* settings);
 
   /**
    * Tag a not leaf block as assembled.
