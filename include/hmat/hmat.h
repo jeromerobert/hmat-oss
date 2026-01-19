@@ -137,10 +137,11 @@ typedef struct hmat_fp_settings_struct {
     float epsilonFP;
     bool compressFull;
     bool compressRk;
+    int L1depth;
 
 } hmat_fp_settings_t;
 
-#define DEFAULT_FP_SETTINGS {.compressor = DEFAULT_COMPRESSOR, .nb_blocs = 4, .epsilonFP = 1e-4, .compressFull = true, .compressRk = true }
+#define DEFAULT_FP_SETTINGS {.compressor = DEFAULT_COMPRESSOR, .nb_blocs = 4, .epsilonFP = 1e-4, .compressFull = true, .compressRk = true, .L1depth = 0 }
 
 /*! \brief Prepare block assembly.
  \param row_start starting row

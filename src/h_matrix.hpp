@@ -56,6 +56,9 @@ template<typename T> class FullMatrix;
  */
 enum SymmetryFlag {kNotSymmetric, kLowerSymmetric};
 
+/** Position of a node relative to the FP Compression level (aka L1) */
+enum L1Position {kUndefinedL1Position, kOnL1, kAboveL1, kBelowL1};
+
 /** Default rank value for blocks that dont have an actual computed rank
    */
 // TODO: the meaning/usage of UNINITIALIZED_BLOCK is not clear, it should be reworked
@@ -316,6 +319,8 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
 
   ///FP Compression Info
   FPCompressionProfile fpProfile_;
+  /// Position relative to the L1 cut
+  L1Position L1position;
 
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
@@ -908,7 +913,7 @@ public:
   /**
    * Set the FP compression settings of the HMatrix.
    */
-  void SetFPCompressionSettings(hmat_fp_settings_t* settings);
+  void SetFPCompressionSettings(hmat_fp_settings_t* settings, int depth = 0);
 
   /**
    * Tag a not leaf block as assembled.
