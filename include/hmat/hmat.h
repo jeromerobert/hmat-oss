@@ -291,11 +291,20 @@ typedef struct
   /* ! Spatial dimension of degrees of freedom */
   int spatial_dimension;
 
-  /* ! Number of degrees of freedom */
+  /* ! Number of tree degrees of freedom */
   int dimension;
 
   /* ! Number of tree nodes */
   size_t nr_tree_nodes;
+
+  /* ! Number of node children */
+  int nr_children;
+
+  /* ! Number of node dofs */
+  int nr_dofs;
+
+  /* ! Node dofs offet */
+  int offset;
 } hmat_cluster_info_t;
 
 HMAT_API int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info);

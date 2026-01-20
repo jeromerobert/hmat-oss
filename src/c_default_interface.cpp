@@ -179,6 +179,9 @@ int hmat_cluster_get_info(hmat_cluster_tree_t *tree, hmat_cluster_info_t* info)
     info->spatial_dimension  = cl->data.coordinates()->dimension();
     info->dimension          = cl->data.coordinates()->numberOfDof();
     info->nr_tree_nodes      = cl->nodesCount();
+    info->nr_children        = cl->nrChild();
+    info->nr_dofs            = cl->data.size();
+    info->offset             = cl->data.offset();
     return 0;
 }
 
