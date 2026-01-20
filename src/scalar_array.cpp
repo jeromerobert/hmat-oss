@@ -777,8 +777,10 @@ void ScalarArray<T>::lltDecomposition() {
     // For real matrices, we can use the lapack version.
     // (There is no L.Lt factorisation for complex matrices in lapack)
     int info = proxy_lapack::potrf('L', rows, m, lda);
-    if(info != 0)
-      assertPositive(T(-1), info, "potrf");
+    if(info > 0)
+      assertPositive(get(info, info), info, "potrf");
+    if(info < 0)
+      throw LapackException("potrf", info);
   } else {
     for (int j = 0; j < n; j++) {
       for (int k = 0; k < j; k++)
@@ -894,7 +896,8 @@ void ScalarArray<T>::inverse() {
     increment_flops(Multipliers<T>::add * additions + Multipliers<T>::mul * multiplications);
   }
   info = proxy_lapack::getrf(rows, cols, ptr(), lda, ipiv);
-  HMAT_ASSERT(!info);
+  if (info)
+    throw LapackException("getrf", info);
   info = proxy_lapack::getri(rows, ptr(), lda, ipiv);
   if (info)
     throw LapackException("getri", info);
@@ -1080,7 +1083,8 @@ template<typename T> void ScalarArray<T>::qrDecomposition(ScalarArray<T> *result
     increment_flops(Multipliers<T>::mul * multiplications + Multipliers<T>::add * additions);
   }
   int info = proxy_lapack::geqrf(a->rows, a->cols, a->ptr(), a->rows, tau);
-  HMAT_ASSERT(!info);
+  if (info)
+    throw LapackException("geqrf", info);
 
   // Copy the 'r' factor in the upper part of resultR
   for (int col = 0; col < a->cols; col++) {
@@ -1148,7 +1152,8 @@ int ScalarArray<T>::productQ(char side, char trans, ScalarArray<T>* c) const {
 
   // We don't use c->ptr() on purpose, because c->is_ortho is preserved here (Q is orthogonal)
   int info = proxy_lapack_convenience::or_un_mqr(side, trans, c->rows, c->cols, cols, const_ptr(), lda, tau.data(), c->m, c->lda);
-  HMAT_ASSERT(!info);
+  if (info)
+    throw LapackException("or_un_mqr", info);
   return 0;
 }
 
