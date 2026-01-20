@@ -286,7 +286,10 @@ hmat_fp_settings_t HMatInterface<T>::GetFPCompressionSettings(){
 
 template<typename T>
 void HMatInterface<T>::SetFPCompressionSettings(hmat_fp_settings_t& settings){
-  engine_->SetFPCompressionSettings(settings);
+  hmat_fp_settings_t* _settings = (hmat_fp_settings_t*)calloc(1, sizeof(hmat_fp_settings_t)); //This pointer is shared by the whole H-Matrix. As the parameters are the same for every block, we don't need a copy on each node
+  if(_settings)
+    *_settings = settings;
+  engine_->SetFPCompressionSettings(_settings);
 }
 
 template<typename T>

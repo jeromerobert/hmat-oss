@@ -329,8 +329,8 @@ hmat_fp_settings_t DefaultEngine<T>::GetFPCompressionSettings() {
 };
 
 template <typename T>
-void DefaultEngine<T>::SetFPCompressionSettings(hmat_fp_settings_t& settings) {
-  this->hmat->SetFPCompressionSettings(&settings);
+void DefaultEngine<T>::SetFPCompressionSettings(hmat_fp_settings_t* settings) {
+  this->hmat->SetFPCompressionSettings(settings);
 };
   
 

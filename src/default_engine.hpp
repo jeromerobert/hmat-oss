@@ -67,7 +67,7 @@ public:
   void FPcompress() override;
   void FPdecompress() override;
   hmat_fp_settings_t GetFPCompressionSettings() override;
-  void SetFPCompressionSettings(hmat_fp_settings_t& settings) override;
+  void SetFPCompressionSettings(hmat_fp_settings_t* settings) override;
   typename Types<T>::dp logdet() const override;
   double norm() const override;
 };

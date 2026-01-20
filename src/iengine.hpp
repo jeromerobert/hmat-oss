@@ -80,7 +80,7 @@ namespace hmat {
 
     virtual hmat_fp_settings_t GetFPCompressionSettings() = 0;
 
-    virtual void SetFPCompressionSettings(hmat_fp_settings_t& settings) = 0;
+    virtual void SetFPCompressionSettings(hmat_fp_settings_t* settings) = 0;
 
     virtual EngineSettings &GetSettings() = 0;
 
