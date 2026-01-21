@@ -53,7 +53,10 @@ template <typename T>
 int sddCall(char jobz, int m, int n, T *a, int lda,
             typename hmat::Types<T>::real *sigma, T *u, int ldu, T *vt,
             int ldvt) {
-  return proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt);
+  int result = proxy_lapack::gesdd(jobz, m, n, a, lda, sigma, u, ldu, vt, ldvt);
+  if (result != 0)
+    throw hmat::LapackException("gesdd", result);
+  return result;
 }
 
 template int svdCall(char jobu, char jobv, int m, int n, S_t *a, int lda,
