@@ -357,12 +357,12 @@ template<typename T> void RkMatrix<T>::truncate(double epsilon, int initialPivot
     CUDA_CHECK(cudaMemcpy(&newK, newK_gpu, sizeof(int), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaFree(newK_gpu));
 
-    // Transposition de VT/VH (VT^T = V : k x k)
+    // Transposition de VT/VH (VT^T = V : k x newK)
     T* V_gpu=nullptr;
     proxy_cuda::geam('T', 'N', a->cols, newK, (T)1., VT_gpu, a->cols, (T)0., (T*)nullptr, a->cols, &V_gpu, a->cols);
     CUDA_CHECK(cudaFree(VT_gpu));
 
-    // Apply the squareroots of singular values to the columns of U and V
+    // Apply the squareroots of singular values to the newK columns of U and V
     // Since S_gpu is a real array, we use S/D dgmm even with U,V complex, with twice the number of rows
     int mult = hmat::Types<T>::IS_REAL::value ? 1 : 2;
     proxy_cuda::dgmm<typename Types<T>::real>('R', mult*a->cols, newK, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols, S_gpu, 1, reinterpret_cast<typename Types<T>::real*>(U_gpu), mult*a->cols);
