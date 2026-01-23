@@ -1319,8 +1319,8 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T> *a, bool recurseA, Axi
  */
 template<typename T>
 std::tuple<bool ,bool , bool> HMatrix<T>::computeGemmRecursion(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b) {
-    HMAT_ASSERT(this->isFullMatrix() || (transA=='N' ? a->rows()->size() : a->cols()->size()) == this->rows()->size());
-    HMAT_ASSERT(this->isFullMatrix() || (transB=='N' ? b->cols()->size() : b->rows()->size()) == this->cols()->size());
+    HMAT_ASSERT(this->isFullMatrix() || a->isLeaf() || (transA=='N' ? a->rows()->size() : a->cols()->size()) == this->rows()->size());
+    HMAT_ASSERT(this->isFullMatrix() || b->isLeaf() || (transB=='N' ? b->cols()->size() : b->rows()->size()) == this->cols()->size());
     bool dig_a;
     bool dig_b;
     bool dig_c;
@@ -1328,7 +1328,7 @@ std::tuple<bool ,bool , bool> HMatrix<T>::computeGemmRecursion(char transA, char
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = this->nrChildRow();
     const int col_c = this->nrChildCol();
-    dig_c = !this->isLeaf() && row_a>=row_c && col_b>=col_c;
+    dig_c = !this->isLeaf() && (row_a>=row_c || a->isLeaf()) && (col_b>=col_c|| b->isLeaf());
     if (this->isFullMatrix()) {
       // It's okay to write in subsets of full matrices
       // in that case, we can aim to get A.cols==B.rows (but it's okay if they are not)
