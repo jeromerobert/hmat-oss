@@ -990,6 +990,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
     return;
   }
 
+  this->FPdecompressL1();
   // If 'this' is not a leaf, we recurse with the same 'b'
   if (!this->isLeaf()) {
     for (int i = 0; i < this->nrChild(); i++) {
@@ -1041,6 +1042,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
   DECLARE_CONTEXT;
   bool bSuperSetThis = b->rows_->isStrictSuperSet(*this->rows()) || b->cols_->isStrictSuperSet(*this->cols());
   bool thisSuperSetb = this->rows()->isStrictSuperSet(*b->rows_) || this->cols()->isStrictSuperSet(*b->cols_);
+  this->FPdecompressL1();
   // this += alpha * b
   // If 'this' is not a leaf, we recurse with the same 'b'
   if (!this->isLeaf()) {
