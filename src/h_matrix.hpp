@@ -318,7 +318,7 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   int approximateRank_;
 
   ///FP Compression Info
-  FPCompressionProfile fpProfile_;
+  mutable FPCompressionProfile fpProfile_;
   /// Position relative to the L1 cut
   L1Position L1position;
 
@@ -890,12 +890,23 @@ public:
   /**
    * Apply FP compression to the HMatrix
    */
-  void FPcompress();
+  void FPcompress() const;
+
+    /**
+   * Apply FP compression to the HMatrix only if at L1 Level
+   */
+  void FPcompressL1() const;
 
   /**
    * Decompress the Hmatrix after an FP compression
    */
-  void FPdecompress();
+  void FPdecompress() const;
+
+  /**
+   * Decompress the Hmatrix after an FP compression only if at L1 Level
+   */
+  void FPdecompressL1() const;
+
 
   /** Decompress the Hmatrix into another Matrix */
   HMatrix<T>* FPdecompressCopy(HMatrix<T>* result = NULL, bool isRootTree = true) ;
@@ -904,6 +915,22 @@ public:
    * Return true iif the HMatrix is a Leaf and is currently FP compressed
    */
   bool isFPcompressed() const;
+
+  /**
+   * Return the position of the tree node compared to the L1 cut
+   */
+  inline L1Position GetL1Position() const 
+  {
+    return this->L1position;
+  }
+
+  /**
+   * Set the position of the tree node compared to the L1 cut
+   */
+  inline void SetL1Position(L1Position p) 
+  {
+    this->L1position = p;
+  }
 
   /**
    * Return the FP compression settings of the HMatrix

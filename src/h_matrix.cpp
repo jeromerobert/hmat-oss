@@ -624,6 +624,7 @@ template<typename T> double HMatrix<T>::normSqr() const {
   if (rows()->size() == 0 || cols()->size() == 0) {
     return result;
   }
+  this->FPdecompressL1();
   if (this->isLeaf() && isAssembled() && !isNull()) {
     if (isRkMatrix()) {
       result = rk()->normSqr();
@@ -650,6 +651,7 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
   if (rows()->size() == 0 || cols()->size() == 0) {
     return 0.0;
   }
+  this->FPdecompressL1();
   const int nrow = rows()->size();
   Vector<T>  xv(nrow);
   Vector<T>  xv1(nrow);
@@ -692,9 +694,12 @@ template<typename T>
 void HMatrix<T>::scale(T alpha) {
   if(alpha == T(0)) {
     this->clear();
+    return;
   } else if(alpha == T(1)) {
     return;
-  } else if (this->isLeaf()) {
+  }
+  this->FPdecompressL1();
+  if (this->isLeaf()) {
     if (isNull()) {
       // nothing to do
     } else if (isRkMatrix()) {
@@ -790,6 +795,7 @@ template<typename T>
 void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, ScalarArray<T>* y, Side side) const {
   if (rows()->size() == 0 || cols()->size() == 0) return;
   // The dimensions of the H-matrix and the 2 ScalarArrays must match exactly
+  this->FPdecompressL1();
   if(side == Side::LEFT) {
     // Y + H * X
     assert(x->cols == y->cols);
@@ -926,6 +932,8 @@ template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<
  * @brief generic AXPY implementation that dispatch to others or recurse
  */
 template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
+  this->FPdecompressL1();
+  x->FPdecompress();
   if (x->isLeaf()) {
     if (x->isNull()) {
       // nothing to do
@@ -1073,6 +1081,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
 template<typename T>
 void HMatrix<T>::addIdentity(T alpha)
 {
+  this->FPdecompressL1();
   if (this->isLeaf()) {
     if (isNull()) {
       HMAT_ASSERT(!this->isRkMatrix());
@@ -1095,6 +1104,7 @@ void HMatrix<T>::addIdentity(T alpha)
 template<typename T>
 void HMatrix<T>::addRand(double epsilon)
 {
+  this->FPdecompressL1();
   if (this->isLeaf()) {
     if (isFullMatrix()) {
       full()->addRand(epsilon);
@@ -1574,6 +1584,9 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   if(isVoid() || a->isVoid())
       return;
 
+  this->FPdecompressL1();
+  a->FPdecompress();
+  b->FPdecompress();
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull()) {
    if( (rk()->b == b->rk()->b) || 
@@ -1701,7 +1714,7 @@ void HMatrix<T>::FPratio(hmat_FPCompressionRatio_t &result)
 }
 
 template <typename T>
-void HMatrix<T>::FPcompress()
+void HMatrix<T>::FPcompress() const
 {
 
   if(!localSettings.FPSettings){
@@ -1775,8 +1788,25 @@ void HMatrix<T>::FPcompress()
 }
 
 template <typename T>
-void HMatrix<T>::FPdecompress()
+void HMatrix<T>::FPcompressL1() const
 {
+  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
+  {
+    return;
+  }
+   if(this->GetL1Position() == kOnL1)
+  {
+    this->FPcompress();
+  }
+}
+
+template <typename T>
+void HMatrix<T>::FPdecompress() const
+{
+  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
+  {
+    return;
+  }
   if (this->isLeaf()) {
     if (isFullMatrix() && full()) {
       //Uncompress Full block if compressed
@@ -1808,7 +1838,20 @@ void HMatrix<T>::FPdecompress()
 }
 
 template <typename T>
-HMatrix<T>* HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)
+void HMatrix<T>::FPdecompressL1() const
+{
+  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
+  {
+    return;
+  }
+  if(this->GetL1Position() == kOnL1)
+  {
+    this->FPdecompress();
+  }
+}
+
+template <typename T>
+HMatrix<T> *HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)
 {
 
   if(isRootTree) 
@@ -1921,11 +1964,8 @@ void HMatrix<T>::SetFPCompressionSettings(hmat_fp_settings_t* settings, int dept
   
   localSettings.FPSettings = settings;
 
-  if (this->isLeaf()) {
-    return;
-  }
 
-  if(depth == localSettings.FPSettings->L1depth)
+  if(depth == localSettings.FPSettings->L1depth || (this->isLeaf() && depth < localSettings.FPSettings->L1depth) )
   {
     this->L1position = kOnL1;
   }
@@ -1936,6 +1976,10 @@ void HMatrix<T>::SetFPCompressionSettings(hmat_fp_settings_t* settings, int dept
   else
   {
     this->L1position = kAboveL1;
+  }
+
+  if (this->isLeaf()) {
+    return;
   }
 
   for (int i = 0; i < nrChildRow(); i++) {
@@ -2057,6 +2101,9 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, Side side, bool inverse) 
   assert(side == Side::RIGHT || (*rows() == *d->cols()));
 
   if (isVoid()) return;
+
+  this->FPdecompressL1();
+  d->FPdecompress();
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!this->isLeaf()) {
@@ -2322,6 +2369,7 @@ void HMatrix<T>::inverse() {
 
   HMAT_ASSERT_MSG(!isLower, "HMatrix::inverse not available for symmetric matrices");
 
+  this->FPdecompressL1();
   if (this->isLeaf()) {
     assert(isFullMatrix());
     full()->inverse();
@@ -2398,6 +2446,8 @@ template<typename T>
 void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
   DECLARE_CONTEXT;
   if (isVoid()) return;
+  this->FPdecompressL1();
+  b->FPdecompress();
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, algo, diag, uplo);
@@ -2441,6 +2491,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows);
   if (isVoid()) return;
+  this->FPdecompressL1();
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
     full()->solveLowerTriangularLeft(b, algo, diag, uplo);
@@ -2481,6 +2532,8 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
+  this->FPdecompressL1();
+  b->FPdecompress();
   // The recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularRight(b, algo, diag, uplo);
@@ -2521,6 +2574,7 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
   assert(*rows() == *cols());
   assert(rows()->size() == b->cols);
   if (isVoid()) return;
+  this->FPdecompressL1();
   if (this->isLeaf()) {
     assert(this->isFullMatrix());
     full()->solveUpperTriangularRight(b, algo, diag, uplo);
@@ -2564,6 +2618,8 @@ template<typename T>
 void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, MainOp) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
+  this->FPdecompressL1();
+  b->FPdecompress();
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularLeft(b, algo, diag, uplo);
@@ -2608,6 +2664,7 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo,
   assert(rows()->size() == b->rows || uplo == Uplo::UPPER);
   assert(cols()->size() == b->rows || uplo == Uplo::LOWER);
   if (rows()->size() == 0 || cols()->size() == 0) return;
+  this->FPdecompressL1();
   if (this->isLeaf()) {
     full()->solveUpperTriangularLeft(b, algo, diag, uplo);
   } else {
@@ -2648,6 +2705,7 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, Factorization algo, 
 template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progress) {
 
     assertLower(this);
+  this->FPdecompressL1();
     if (isVoid()) {
         // nothing to do
     } else if(this->isLeaf()) {
@@ -2667,7 +2725,7 @@ template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progres
 template<typename T>
 void HMatrix<T>::luDecomposition(hmat_progress_t * progress) {
   DECLARE_CONTEXT;
-
+  this->FPdecompressL1();
   if (rows()->size() == 0 || cols()->size() == 0) return;
   if (this->isLeaf()) {
     assert(isFullMatrix());
@@ -2706,6 +2764,10 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   assert(*this->rows() == *this->cols()); // this is square
   assert(*m->cols() == *d->rows());       // Check if we can have the produit M*D and D*M^T
   assert(*this->rows() == *m->rows());
+
+  this->FPdecompressL1();
+  m->FPdecompress();
+  d->FPdecompress();
 
   if(!this->isLeaf()) {
     if (!m->isLeaf()) {
@@ -2848,6 +2910,7 @@ template<typename T>
 void HMatrix<T>::ldltDecomposition(hmat_progress_t * progress) {
   DECLARE_CONTEXT;
   assertLower(this);
+  this->FPdecompressL1();
 
   if (isVoid()) {
     // nothing to do
@@ -2893,6 +2956,7 @@ void HMatrix<T>::trsm( char side, char uplo, char trans, char diag,
     Diag unit    = (diag == 'u' || diag == 'U') ? Diag::UNIT : Diag::NONUNIT;
     bool notrans = (trans == 'n') || (trans == 'N');
 
+  B->FPdecompress();
     /* Upper case */
     if ( upper  ) {
 	if ( left ) {
@@ -3024,6 +3088,7 @@ void HMatrix<T>::extractDiagonal(T* diag, int components) const {
 }
 
 template<typename T> typename Types<T>::dp HMatrix<T>::logdet() const {
+  this->FPdecompressL1();
   if(this->isLeaf()) {
     HMAT_ASSERT(this->isFullMatrix() && (this->isTriLower || this->isTriUpper));
     return std::log(this->full()->data.diagonalProduct());
