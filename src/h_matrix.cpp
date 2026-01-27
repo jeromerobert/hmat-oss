@@ -641,6 +641,7 @@ template<typename T> double HMatrix<T>::normSqr() const {
       }
     }
   }
+  this->FPcompressL1();
   return result;
 }
 
@@ -715,6 +716,7 @@ void HMatrix<T>::scale(T alpha) {
       }
     }
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -858,6 +860,7 @@ void HMatrix<T>::gemv(char matTrans, T alpha, const ScalarArray<T>* x, T beta, S
       rk()->gemv(matTrans, alpha, x, 1, y, side);
     }
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -975,6 +978,8 @@ template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
         }
       }
   }
+  this->FPcompressL1();
+  x->FPcompress();
 }
 
 /** @brief AXPY between 'this' an H matrix and a subset of B with B a RkMatrix */
@@ -1034,6 +1039,7 @@ void HMatrix<T>::axpy(T alpha, const RkMatrix<T>* b) {
       delete newRk;
     }
   }
+  this->FPcompressL1();
 }
 
 /** @brief AXPY between 'this' an H matrix and a subset of B with B a FullMatrix */
@@ -1078,6 +1084,7 @@ void HMatrix<T>::axpy(T alpha, const FullMatrix<T>* b) {
     if(bSuperSetThis)
       delete subMat;
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -1122,6 +1129,7 @@ void HMatrix<T>::addRand(double epsilon)
       }
     }
   }
+  this->FPcompressL1();
 }
 
 template<typename T> HMatrix<T> * HMatrix<T>::subset(
@@ -2118,6 +2126,8 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, Side side, bool inverse) 
           if (i!=j && get(i,j)) {
             get(i,j)->multiplyWithDiag(d, side, inverse);
           }
+      this->FPcompressL1();
+      d->FPcompress();
       return;
     }
 
@@ -2145,6 +2155,8 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, Side side, bool inverse) 
   } else {
     // this is a null matrix (either full of Rk) so nothing to do
   }
+  this->FPcompressL1();
+  d->FPcompress();
 }
 
 template<typename T> void HMatrix<T>::transposeMeta(bool temporaryOnly) {
@@ -2442,6 +2454,7 @@ void HMatrix<T>::inverse() {
       this->recursiveInverseNosym();
   }
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -2485,6 +2498,8 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
           delete bSubset;
     }
   }
+  this->FPcompressL1();
+  b->FPcompress();
 }
 
 template<typename T>
@@ -2523,6 +2538,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
       get(i, i)->solveLowerTriangularLeft(&sub[i], algo, diag, uplo);
     }
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -2568,6 +2584,8 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
           delete tmp;
     }
   }
+  this->FPcompressL1();
+  b->FPcompress();
 }
 
 template<typename T>
@@ -2606,6 +2624,7 @@ void HMatrix<T>::solveUpperTriangularRight(ScalarArray<T>* b, Factorization algo
       get(i, i)->solveUpperTriangularRight(&sub[i], algo, diag, uplo);
     }
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -2657,6 +2676,8 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
           delete bSubset;
     }
   }
+  this->FPcompressL1();
+  b->FPcompress();
 }
 
 template<typename T>
@@ -2697,6 +2718,7 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo,
       }
     }
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -2722,6 +2744,7 @@ template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progres
     }
     isTriLower = true;
     isLower = false;
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -2740,6 +2763,7 @@ void HMatrix<T>::luDecomposition(hmat_progress_t * progress) {
   } else {
     this->recursiveLuDecomposition(progress);
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -2853,6 +2877,9 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
       full()->gemm('N', 'T', -1, &mTmp, &mTmpCopy, 1);
     }
   }
+  this->FPcompressL1();
+  m->FPcompress();
+  d->FPcompress();
 }
 
 template<typename T> void assertLdlt(const HMatrix<T> * me) {
@@ -2932,6 +2959,7 @@ void HMatrix<T>::ldltDecomposition(hmat_progress_t * progress) {
   }
   isTriLower = true;
   isLower = false;
+  this->FPcompressL1();
 }
 
 template<typename T>
@@ -3093,12 +3121,14 @@ template<typename T> typename Types<T>::dp HMatrix<T>::logdet() const {
   this->FPdecompressL1();
   if(this->isLeaf()) {
     HMAT_ASSERT(this->isFullMatrix() && (this->isTriLower || this->isTriUpper));
+    this->FPcompressL1();
     return std::log(this->full()->data.diagonalProduct());
   } else {
     T r = 0;
     for (int i=0 ; i<nrChildRow() ; i++) {
       r += get(i,i)->logdet();
     }
+    this->FPcompressL1();
     return r;
   }
 }
