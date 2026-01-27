@@ -663,7 +663,10 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
     xv[i] = static_cast<T>(rand()/(double)RAND_MAX);
   double normx = x->norm();
   if (normx == 0.0)
+  {
+    this->FPcompressL1();
     return approximateLargestEigenvalue(max_iter - 1, epsilon);
+  }
   x->scale(static_cast<T>(1.0/normx));
   int iter = 0;
   double aev = 0.0;
@@ -682,11 +685,15 @@ template<typename T> T HMatrix<T>::approximateLargestEigenvalue(int max_iter, do
     // If x1 is null, restart so that starting point is different.
     // Decrease max_iter to prevent infinite recursion.
     if (normx == 0.0)
+    {
+      this->FPcompressL1();
       return approximateLargestEigenvalue(max_iter - 1, epsilon);
+    }
     x1->scale(static_cast<T>(1.0/normx));
     std::swap(x,x1);
     iter++;
   } while(iter < max_iter && std::abs(aev - aev_p) > epsilon * aev);
+  this->FPcompressL1();
   return ev;
 }
 
@@ -1108,6 +1115,7 @@ void HMatrix<T>::addIdentity(T alpha)
       if(get(i, i) != nullptr)
         get(i,i)->addIdentity(alpha);
   }
+  this->FPcompressL1();
 }
 
 template<typename T>
