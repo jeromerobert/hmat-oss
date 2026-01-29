@@ -28,18 +28,23 @@
 typedef std::complex<double> double_complex;
 typedef std::complex<float> float_complex;
 #define make_complex(realPart, imagPart) \
-    std::complex<double>(realPart, imagPart)
+std::complex<double>(realPart, imagPart)
+#define make_fcomplex(realPart, imagPart) \
+std::complex<double>(realPart, imagPart)
 #else
 #include <complex.h>
 #ifdef _MSC_VER
 typedef _Dcomplex double_complex;
 typedef _Fcomplex float_complex;
 #define make_complex(realPart, imagPart) _Cbuild(realPart, imagPart)
+#define make_fcomplex(realPart, imagPart) _Fbuild(realPart, imagPart)
 #else
 typedef double complex double_complex;
 typedef float complex float_complex;
 #define make_complex(realPart, imagPart) \
     realPart + imagPart * _Complex_I
+#define make_fcomplex(realPart, imagPart) \
+realPart + imagPart * _Complex_I
 #endif
 #endif
 
@@ -387,23 +392,21 @@ int main(int argc, char **argv) {
   //Calcul du résidu
   printf("\nComputing...\n");
   
-  float a = -1;
-
   switch (arithmetic) {
     case 'S':
-    {float alpha = (float) a;
+    {float alpha = (float) -1.;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}      
       break;
     case 'D':
-      {double alpha = (double) a;
+    {double alpha = (double) -1.;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     case 'C':
-      {float_complex alpha = (float_complex) a;
+      {float_complex alpha = make_fcomplex(-1., 0.);
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     case 'Z':
-      {double_complex alpha = (double_complex) a;
+      {double_complex alpha = make_complex(-1, 0.);
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     default:
