@@ -314,7 +314,7 @@ void DefaultEngine<T>::profile(hmat_profile_t &p) const
       temp(times_decomp, times_decomp_mu, times_decomp_stdev, times_decomp_sum);
 
 
-    printf("     - %d full blocks of size %ld : compression ratios = %.2f +/- %.2f\n", it->second, it->first, ratios_mu, ratios_stdev);
+    printf("     - %d full blocks of size %ld : compression ratios = %.2f +/- %.2f\n", it->second, (long int)it->first, ratios_mu, ratios_stdev);
     printf("          Total Compressing Time  : %.3f ms, Total Decompressing Time : %.3f ms\n",times_comp_sum*1e-6,times_decomp_sum*1e-6);
     printf("          Avg.  Compressing Time  : %.3f ms, Avg.  Decompressing Time : %3.f ms\n",times_comp_mu*1e-6, times_decomp_mu*1e-6);
 
@@ -324,7 +324,7 @@ void DefaultEngine<T>::profile(hmat_profile_t &p) const
 
   for(auto it = profile.n_rk_blocs.begin(); it != profile.n_rk_blocs.end(); it++)
   {
-    printf("   # rank = %ld : \n", it->first);
+    printf("   # rank = %ld : \n", (long int)it->first);
     for(auto it_rank = it->second.begin(); it_rank != it->second.end(); it_rank++)
     {
 
@@ -340,7 +340,7 @@ void DefaultEngine<T>::profile(hmat_profile_t &p) const
       double times_decomp_mu, times_decomp_stdev, times_decomp_sum;
       temp(times_decomp, times_decomp_mu, times_decomp_stdev, times_decomp_sum);
 
-      printf("     - %d Rk blocks of size %ld : compression ratios = %.2f +/- %.2f\n", it_rank->second, it_rank->first, ratios_mu, ratios_stdev);
+      printf("     - %d Rk blocks of size %ld : compression ratios = %.2f +/- %.2f\n", it_rank->second, (long int)it_rank->first, ratios_mu, ratios_stdev);
       printf("          Total Compressing Time  : %.3f ms, Total Decompressing Time : %.3f ms\n",times_comp_sum*1e-6,times_decomp_sum*1e-6);
       printf("          Avg.  Compressing Time  : %.3f ms, Avg.  Decompressing Time : %.3f ms\n",times_comp_mu*1e-6, times_decomp_mu*1e-6);
 

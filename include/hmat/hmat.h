@@ -440,7 +440,7 @@ typedef struct
 typedef struct
 {
   //TO DO : uses C Hashtable instead of C++ map for profiling the Matrices;
-  
+  int wip;
 } hmat_profile_t;
 
 typedef struct hmat_matrix_struct hmat_matrix_t;
