@@ -912,7 +912,7 @@ public:
   HMatrix<T>* FPdecompressCopy(HMatrix<T>* result = NULL, bool isRootTree = true) ;
 
   /**
-   * Return true iif the HMatrix is a Leaf and is currently FP compressed
+   * Return true iif the HMatrix is a Leaf and is currently FP compressed or one of its subtrees has at least one FP compressed leaf
    */
   bool isFPcompressed() const;
 

@@ -1452,6 +1452,8 @@ void RkMatrix<T>::multiplyWithDiagOrDiagInv(const HMatrix<T> * d, bool inverse, 
 template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char transHB,
                                               T alpha, const HMatrix<T>* ha, const HMatrix<T>* hb) {
   DECLARE_CONTEXT;
+  ha->FPdecompressL1();
+  hb->FPdecompressL1();                                            
   if (!ha->isLeaf() && !hb->isLeaf()) {
     // Recursion case
     int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
@@ -1512,6 +1514,8 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
       delete rk;
     }
   }
+  ha->FPcompressL1();
+  hb->FPcompressL1();   
 }
 
 template<typename T> void RkMatrix<T>::copy(const RkMatrix<T>* o) {

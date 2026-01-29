@@ -97,7 +97,6 @@ void DefaultEngine<T>::assembly(Assembly<T>& f, SymmetryFlag sym, bool ownAssemb
   } else {
     this->hmat->assemble(f);
   }
-  this->hmat->FPcompress();
   if(ownAssembly)
       delete &f;
 }
