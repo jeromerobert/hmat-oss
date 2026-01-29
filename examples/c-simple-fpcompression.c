@@ -388,6 +388,7 @@ int main(int argc, char **argv) {
 
   
   
+#ifndef _MSC_VER
 
   //Calcul du résidu
   printf("\nComputing...\n");
@@ -406,7 +407,7 @@ int main(int argc, char **argv) {
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     case 'Z':
-      {double_complex alpha = make_complex(-1, 0.);
+      {double_complex alpha = make_complex(-1., 0.);
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     default:
@@ -419,6 +420,8 @@ int main(int argc, char **argv) {
   double normDelta = hmat.norm(hmatrix_c);
   printf("Residu : %.3e\n", normDelta/normM);
   clock_t computing = clock();
+
+#endif
 
   //FINALISATION
   hmat.destroy(hmatrix);
