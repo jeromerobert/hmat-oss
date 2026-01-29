@@ -26,15 +26,18 @@
 #ifdef __cplusplus
 #include <complex>
 typedef std::complex<double> double_complex;
+typedef std::complex<float> float_complex;
 #define make_complex(realPart, imagPart) \
     std::complex<double>(realPart, imagPart)
 #else
 #include <complex.h>
 #ifdef _MSC_VER
 typedef _Dcomplex double_complex;
+typedef _Fcomplex float_complex;
 #define make_complex(realPart, imagPart) _Cbuild(realPart, imagPart)
 #else
 typedef double complex double_complex;
+typedef float complex float_complex;
 #define make_complex(realPart, imagPart) \
     realPart + imagPart * _Complex_I
 #endif
@@ -396,11 +399,11 @@ int main(int argc, char **argv) {
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     case 'C':
-      {float complex alpha = (float complex) a;
+      {float_complex alpha = (float_complex) a;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     case 'Z':
-      {double complex alpha = (double complex) a;
+      {double_complex alpha = (double_complex) a;
       hmat.axpy(&alpha, hmatrix, hmatrix_c);}
       break;
     default:
