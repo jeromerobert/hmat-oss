@@ -419,10 +419,10 @@ int main(int argc, char **argv) {
   double normM = hmat.norm(hmatrix);
   double normDelta = hmat.norm(hmatrix_c);
   printf("Residu : %.3e\n", normDelta/normM);
-  clock_t computing = clock();
 
 #endif
 
+  clock_t computing = clock();
   //FINALISATION
   hmat.destroy(hmatrix);
   hmat.destroy(hmatrix_c);
