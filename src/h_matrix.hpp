@@ -158,6 +158,16 @@ enum class Axis {ROW, COL};
  */
 template<typename T> unsigned char * compatibilityGridForGEMM(const HMatrix<T>* a, bool recurseA, Axis axisA, char transA, const HMatrix<T>* b, bool recurseB, Axis axisB, char transB);
 
+/** Compute the action of recursiveGemm, works under the hypothesis that rowsA==rowsC && colsB==colsC and will preserve this recursion constant
+ \param dig_a : if True recursiveGemm will recurse on the matrix A (a.k.a. a) and call gemm on its children
+ \param dig_b : if True recursiveGemm will recurse on the matrix B (a.k.a. b) and call gemm on its children
+ \param dig_c : if True recursiveGemm will recurse on the matrix C (a.k.a. this) and call gemm on its children
+ \return dig_abc a 3-uplet of bool each set to true if we should recurse on the corresponding matrix
+ dig_abc can be all false, meaning the recursion should end and recursiveGemm must not be called
+ */
+
+template<typename T> std::tuple<bool,bool, bool> computeGemmRecursion(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b, const HMatrix<T>* c);
+
 /*! \brief The HMatrix class, representing a HMatrix.
 
   It is a tree of arity arity(ClusterTree)^2, 4 in most cases.
@@ -185,7 +195,6 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   /// approximate rank of the block, or: UNINITIALIZED_BLOCK=-3 for an uninitialized matrix
   int approximateRank_;
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
-  std::tuple<bool,bool, bool> computeGemmRecursion(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b);
   void recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, bool dig_a, bool dig_b, bool dig_c);
   void leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
   HMatrix<T> * fullRkSubset(const IndexSet* subset, bool col) const;

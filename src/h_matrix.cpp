@@ -1386,24 +1386,17 @@ unsigned char * compatibilityGridForGEMM(const HMatrix<T> *a, bool recurseA, Axi
     return result;
 }
 
-/* Compute the action of recurseForGemm
- * returns a 3-uplet of bool
- *dig_a : if True recursiveGemm will recurse on the matrix A (a.k.a. a) and call gemm on its children
- *dig_b : if True recursiveGemm will recurse on the matrix B (a.k.a. b) and call gemm on its children
- *dig_c : if True recursiveGemm will recurse on the matrix C (a.k.a. this) and call gemm on its children
-
- * induction constant A.rows (resp.B.cols) == C.rows (resp C.cols)
- * We want that to ensure that uncompatibleGemm will make at most one subset on either A or B, and not try funky stuff to write in a subset of C.
- */
 template<typename T>
-std::tuple<bool ,bool , bool> HMatrix<T>::computeGemmRecursion(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b) {
-    HMAT_ASSERT((transA=='N' ? a->rows()->size() : a->cols()->size()) == this->rows()->size());
-    HMAT_ASSERT((transB=='N' ? b->cols()->size() : b->rows()->size()) == this->cols()->size());
+std::tuple<bool ,bool , bool> computeGemmRecursion(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b, const HMatrix<T>* c) {
+    // induction constant A.rows (resp.B.cols) == C.rows (resp C.cols) (assuming transA==transB=='N')
+    // This is so that uncompatibleGemm will make at most one subset on either A or B, and not try to write in a subset of C.
+    HMAT_ASSERT((transA=='N' ? a->rows()->size() : a->cols()->size()) == c->rows()->size());
+    HMAT_ASSERT((transB=='N' ? b->cols()->size() : b->rows()->size()) == c->cols()->size());
     const int row_a = transA=='N' ? a->nrChildRow() : a->nrChildCol();
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
-    const int row_c = this->nrChildRow();
-    const int col_c = this->nrChildCol();
-    bool dig_c = !this->isLeaf() && row_a>=row_c && col_b>=col_c;
+    const int row_c = c->nrChildRow();
+    const int col_c = c->nrChildCol();
+    bool dig_c = !c->isLeaf() && row_a>=row_c && col_b>=col_c;
     bool dig_a = !a->isLeaf() && (row_a==1 || (dig_c && row_a==row_c));
     bool dig_b = !b->isLeaf() && (col_b==1 || (dig_c && col_b==col_c));
     return(std::tuple<bool ,bool , bool>{dig_a, dig_b, dig_c});
@@ -1654,7 +1647,7 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
 
   // Once the scaling is done, beta is reset to 1
   // to avoid an other scaling.
-    std::tuple<bool, bool, bool> dig_abc = this->computeGemmRecursion(transA, transB, alpha, a, b);
+    std::tuple<bool, bool, bool> dig_abc = computeGemmRecursion(transA, transB, a, b, this);
     bool dig_a = std::get<0>(dig_abc);
     bool dig_b = std::get<1>(dig_abc);
     bool dig_c = std::get<2>(dig_abc);
@@ -3268,6 +3261,12 @@ template unsigned char * compatibilityGridForGEMM(const HMatrix<S_t>* a, bool re
 template unsigned char * compatibilityGridForGEMM(const HMatrix<D_t>* a, bool recurseA, Axis axisA, char transA, const HMatrix<D_t>* b, bool recurseB, Axis axisB, char transB);
 template unsigned char * compatibilityGridForGEMM(const HMatrix<C_t>* a, bool recurseA, Axis axisA, char transA, const HMatrix<C_t>* b, bool recurseB, Axis axisB, char transB);
 template unsigned char * compatibilityGridForGEMM(const HMatrix<Z_t>* a, bool recurseA, Axis axisA, char transA, const HMatrix<Z_t>* b, bool recurseB, Axis axisB, char transB);
+
+template std::tuple<bool,bool, bool> computeGemmRecursion(char transA, char transB, const HMatrix<S_t>* a, const HMatrix<S_t>* b, const HMatrix<S_t>* c);
+template std::tuple<bool,bool, bool> computeGemmRecursion(char transA, char transB, const HMatrix<D_t>* a, const HMatrix<D_t>* b, const HMatrix<D_t>* c);
+template std::tuple<bool,bool, bool> computeGemmRecursion(char transA, char transB, const HMatrix<C_t>* a, const HMatrix<C_t>* b, const HMatrix<C_t>* c);
+template std::tuple<bool,bool, bool> computeGemmRecursion(char transA, char transB, const HMatrix<Z_t>* a, const HMatrix<Z_t>* b, const HMatrix<Z_t>* c);
+
 
 }  // end namespace hmat
 
