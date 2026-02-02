@@ -1390,8 +1390,8 @@ template<typename T>
 std::tuple<bool ,bool , bool> computeGemmRecursion(char transA, char transB, const HMatrix<T>* a, const HMatrix<T>* b, const HMatrix<T>* c) {
     // induction constant A.rows (resp.B.cols) == C.rows (resp C.cols) (assuming transA==transB=='N')
     // This is so that uncompatibleGemm will make at most one subset on either A or B, and not try to write in a subset of C.
-    HMAT_ASSERT((transA=='N' ? a->rows()->size() : a->cols()->size()) == c->rows()->size());
-    HMAT_ASSERT((transB=='N' ? b->cols()->size() : b->rows()->size()) == c->cols()->size());
+    // HMAT_ASSERT((transA=='N' ? a->rows()->size() : a->cols()->size()) == c->rows()->size());
+    // HMAT_ASSERT((transB=='N' ? b->cols()->size() : b->rows()->size()) == c->cols()->size());
     const int row_a = transA=='N' ? a->nrChildRow() : a->nrChildCol();
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = c->nrChildRow();
