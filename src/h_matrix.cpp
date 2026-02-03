@@ -1865,19 +1865,6 @@ void HMatrix<T>::FPcompress() const
 }
 
 template <typename T>
-void HMatrix<T>::FPcompressL1() const
-{
-  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
-  {
-    return;
-  }
-   if(this->GetL1Position() == kOnL1)
-  {
-    this->FPcompress();
-  }
-}
-
-template <typename T>
 void HMatrix<T>::FPdecompress() const
 {
   if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
@@ -1914,18 +1901,6 @@ void HMatrix<T>::FPdecompress() const
 
 }
 
-template <typename T>
-void HMatrix<T>::FPdecompressL1() const
-{
-  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
-  {
-    return;
-  }
-  if(this->GetL1Position() == kOnL1)
-  {
-    this->FPdecompress();
-  }
-}
 
 template <typename T>
 HMatrix<T> *HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)

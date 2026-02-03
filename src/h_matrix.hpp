@@ -895,7 +895,16 @@ public:
     /**
    * Apply FP compression to the HMatrix only if at L1 Level
    */
-  void FPcompressL1() const;
+  inline void FPcompressL1() const {
+    if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
+    {
+      return;
+    }
+    if(this->GetL1Position() == kOnL1)
+    {
+      this->FPcompress();
+    }
+  }
 
   /**
    * Decompress the Hmatrix after an FP compression
@@ -905,7 +914,17 @@ public:
   /**
    * Decompress the Hmatrix after an FP compression only if at L1 Level
    */
-  void FPdecompressL1() const;
+  inline void FPdecompressL1() const
+  {
+    if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
+    {
+      return;
+    }
+    if(this->GetL1Position() == kOnL1)
+    {
+      this->FPdecompress();
+    }
+  }
 
 
   /** Decompress the Hmatrix into another Matrix */
