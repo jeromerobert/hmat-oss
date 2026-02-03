@@ -945,11 +945,7 @@ template<typename T> bool listAllRk(const HMatrix<T> * m, vector<const RkMatrix<
  */
 template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
   this->FPdecompressL1();
-  bool x_compressed = x->isFPcompressed();
-  if(x_compressed)
-  {
-    x->FPdecompress();
-  }
+  x->FPdecompressL1();
   if (x->isLeaf()) {
     if (x->isNull()) {
       // nothing to do
@@ -992,9 +988,7 @@ template <typename T> void HMatrix<T>::axpy(T alpha, const HMatrix<T> *x) {
       }
   }
   this->FPcompressL1();
-  if(x_compressed){ //We recompress this block only if it was compressed before use
-    x->FPcompress();
-  }
+  x->FPcompressL1();
 }
 
 /** @brief AXPY between 'this' an H matrix and a subset of B with B a RkMatrix */
@@ -1249,6 +1243,9 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
     HMatrix<T> * vvb = NULL;
     HMatrix<T> * vvc = NULL;
 
+    this->FPdecompressL1();
+    a->FPdecompressL1();
+    b->FPdecompressL1();
     // Create va & vb = the subsets of a & b that match each other for doing the product f(a).f(b)
     // We modify the columns of f(a) and the rows of f(b)
     makeCompatible<T>(transA != 'N', transB == 'N', a, b, va, vb);
@@ -1261,16 +1258,19 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
         delete va;
       if(vb != b)
         delete vb;
-      return;
-    } else {
-      // Create vva & vc = the subsets of va & c (=this) that match each other for doing the sum c+f(a).f(b)
-      // We modify the rows of f(a) and the rows of c
-      makeCompatible<T>(transA == 'N', true, va, this, vva, vc);
 
-      // Create vvb & vvc = the subsets of vb & vc that match each other for doing the sum c+f(a).f(b)
-      // We modify the columns of f(b) and the columns of c
-      makeCompatible<T>(transB != 'N', false, vb, vc, vvb, vvc);
+      this->FPcompressL1();
+      a->FPcompressL1();
+      b->FPcompressL1();
+      return;
     }
+    // Create vva & vc = the subsets of va & c (=this) that match each other for doing the sum c+f(a).f(b)
+    // We modify the rows of f(a) and the rows of c
+    makeCompatible<T>(transA == 'N', true, va, this, vva, vc);
+
+    // Create vvb & vvc = the subsets of vb & vc that match each other for doing the sum c+f(a).f(b)
+    // We modify the columns of f(b) and the columns of c
+    makeCompatible<T>(transB != 'N', false, vb, vc, vvb, vvc);
 
     // Delete the intermediate matrices, except if subset() in makecompatible() has returned the original matrix
     if(va != vva && va != a)
@@ -1293,6 +1293,10 @@ template<typename T> void HMatrix<T>::uncompatibleGemm(char transA, char transB,
         delete vvb;
     if(vvc != this)
         delete vvc;
+
+    this->FPcompressL1();
+    a->FPcompressL1();
+    b->FPcompressL1();
 }
 
 template<typename T>
@@ -1415,6 +1419,9 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     if(isVoid() || a->isVoid())
         return;
 
+    this->FPdecompressL1();
+    a->FPdecompressL1();
+    b->FPdecompressL1();
     // None of the matrices is a leaf
     if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf()) {
         int row_a = transA == 'N' ? a->nrChildRow() : a->nrChildCol();
@@ -1473,6 +1480,10 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     } // if (!this->isLeaf() && !a->isLeaf() && !b->isLeaf())
     else
         uncompatibleGemm(transA, transB, alpha, a, b);
+
+  this->FPcompressL1();
+  a->FPcompressL1();
+  b->FPcompressL1();
 }
 
 /**
@@ -1514,6 +1525,10 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
     assert((transA == 'N' ? *a->rows() : *a->cols()) == *this->rows()); // compatibility of A*B + this : Rows
     assert((transB == 'N' ? *b->cols() : *b->rows()) == *this->cols()); // compatibility of A*B + this : columns
 
+    this->FPdecompressL1();
+    a->FPdecompressL1();
+    b->FPdecompressL1();
+
     // One of the matrices is a leaf
     assert(this->isLeaf() || a->isLeaf() || b->isLeaf());
 
@@ -1524,6 +1539,9 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         if (a->isRkMatrix() || b->isRkMatrix()) {
             if ((a->isRkMatrix() && a->isNull())
                     || (b->isRkMatrix() && b->isNull())) {
+                this->FPcompressL1();
+                a->FPcompressL1();
+                b->FPcompressL1();
                 return;
             }
             RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(lowRankEpsilon(), transA, transB, a, b);
@@ -1539,6 +1557,9 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
                 delete fullMat;
             }
         }
+        this->FPcompressL1();
+        a->FPcompressL1();
+        b->FPcompressL1();
         return;
     }
 
@@ -1563,12 +1584,18 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
             rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
         rk()->gemmRk(lowRankEpsilon(), transA, transB, alpha, a, b);
         rank_ = rk()->rank();
+        this->FPcompressL1();
+        a->FPcompressL1();
+        b->FPcompressL1();
         return;
     }
 
     // a, b are H matrices and 'this' is full
     if ( this->isLeaf() && ((!a->isLeaf() && !b->isLeaf()) || isNull()) ) {
       fullHHGemm(this, transA, transB, alpha, a, b);
+      this->FPcompressL1();
+      a->FPcompressL1();
+      b->FPcompressL1();
       return;
     }
 
@@ -1578,6 +1605,9 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         assert(a->isRkMatrix() || b->isRkMatrix());
         if ((a->isRkMatrix() && a->isNull())
                 || (b->isRkMatrix() && b->isNull())) {
+            this->FPcompressL1();
+            a->FPcompressL1();
+            b->FPcompressL1();
             return;
         }
         RkMatrix<T>* rkMat = HMatrix<T>::multiplyRkMatrix(lowRankEpsilon(), transA, transB, a, b);
@@ -1585,6 +1615,9 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         delete rkMat;
     } else if(a->isLeaf() && b->isLeaf() && isFullMatrix()){
         full()->gemm(transA, transB, alpha, a->full(), b->full(), 1);
+        this->FPcompressL1();
+        a->FPcompressL1();
+        b->FPcompressL1();
         return;
     } else {
       // if a or b is a leaf, it is Full (since Rk have been treated before)
@@ -1602,6 +1635,9 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
         fullMat->scale(alpha);
       }
     }
+    this->FPcompressL1();
+    a->FPcompressL1();
+    b->FPcompressL1();
 }
 
 template<typename T>
@@ -1611,16 +1647,8 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       return;
 
   this->FPdecompressL1();
-  bool a_compressed = a->isFPcompressed();
-  if(a_compressed)
-  {
-    a->FPdecompress();
-  }
-  bool b_compressed = b->isFPcompressed();
-  if(b_compressed)
-  {
-    b->FPdecompress();
-  }
+  a->FPdecompressL1();
+  b->FPdecompressL1();
 
   // This and B are Rk matrices with the same panel 'b' -> the gemm is only applied on the panels 'a'
   if(isRkMatrix() && !isNull() && b->isRkMatrix() && !b->isNull()) {
@@ -1636,14 +1664,9 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       ScalarArray<T> cSubset(rk()->a->rowsSubset( r->offset() -    rows()->offset(), r->size()));
       ScalarArray<T> bSubset(b->rk()->a->rowsSubset( c->offset() - b->rows()->offset(), c->size()));
       a->gemv(transA, alpha, &bSubset, beta, &cSubset);
-      if(a_compressed) //We recompress this block only if it was compressed before use
-      {
-        a->FPcompress();
-      }
-      if(b_compressed) //We recompress this block only if it was compressed before use
-      {
-        b->FPcompress();
-      }
+      this->FPcompressL1();
+      a->FPcompressL1();
+      b->FPcompressL1();
       return;
     }
   }
@@ -1666,14 +1689,9 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       ScalarArray<T> cSubset(rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size()));
       ScalarArray<T> aSubset(a->rk()->b->rowsSubset( r->offset() - a->cols()->offset(), r->size()));
       b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
-      if(a_compressed) //We recompress this block only if it was compressed before use
-      {
-        a->FPcompress();
-      }
-      if(b_compressed) //We recompress this block only if it was compressed before use
-      {
-        b->FPcompress();
-      }
+      this->FPcompressL1();
+      a->FPcompressL1();
+      b->FPcompressL1();
       return;
     }
   }
@@ -1685,28 +1703,19 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       if(!isAssembled() && this->isLeaf())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
 
-      if(a_compressed) //We recompress this block only if it was compressed before use
-      {
-        a->FPcompress();
-      }
-      if(b_compressed) //We recompress this block only if it was compressed before use
-      {
-        b->FPcompress();
-      }
+      this->FPcompressL1();
+      a->FPcompressL1();
+      b->FPcompressL1();
       return;
   }
 
   // Once the scaling is done, beta is reset to 1
   // to avoid an other scaling.
   recursiveGemm(transA, transB, alpha, a, b);
-  if(a_compressed) //We recompress this block only if it was compressed before use
-  {
-    a->FPcompress();
-  }
-  if(b_compressed) //We recompress this block only if it was compressed before use
-  {
-    b->FPcompress();
-  }
+  
+  this->FPcompressL1();
+  a->FPcompressL1();
+  b->FPcompressL1();
 }
 
 template<typename T>
@@ -2184,11 +2193,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, Side side, bool inverse) 
   if (isVoid()) return;
 
   this->FPdecompressL1();
-  bool d_compressed = d->isFPcompressed();
-  if(d_compressed)
-  {
-    d->FPdecompress();
-  }
+  d->FPdecompressL1();
 
   // The symmetric matrix must be taken into account: lower or upper
   if (!this->isLeaf()) {
@@ -2202,9 +2207,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, Side side, bool inverse) 
             get(i,j)->multiplyWithDiag(d, side, inverse);
           }
       this->FPcompressL1();
-      if(d_compressed){ //We recompress this block only if it was compressed before use
-        d->FPcompress();
-      }
+      d->FPcompressL1();
       return;
     }
 
@@ -2233,9 +2236,7 @@ void HMatrix<T>::multiplyWithDiag(const HMatrix<T>* d, Side side, bool inverse) 
     // this is a null matrix (either full of Rk) so nothing to do
   }
   this->FPcompressL1();
-  if(d_compressed){ //We recompress this block only if it was compressed before use
-    d->FPcompress();
-  }
+  d->FPcompressL1();
 }
 
 template<typename T> void HMatrix<T>::transposeMeta(bool temporaryOnly) {
@@ -2541,11 +2542,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
   DECLARE_CONTEXT;
   if (isVoid()) return;
   this->FPdecompressL1();
-  bool b_compressed = b->isFPcompressed();
-  if(b_compressed)
-  {
-    b->FPdecompress();
-  }
+  b->FPdecompressL1();
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveLowerTriangularLeft(b, algo, diag, uplo);
@@ -2582,9 +2579,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
     }
   }
   this->FPcompressL1();
-  if(b_compressed){ //We recompress this block only if it was compressed before use
-    b->FPcompress();
-  }
+  b->FPcompressL1();
 }
 
 template<typename T>
@@ -2636,11 +2631,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   this->FPdecompressL1();
-  bool b_compressed = b->isFPcompressed();
-  if(b_compressed)
-  {
-    b->FPdecompress();
-  }
+  b->FPdecompressL1();
   // The recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularRight(b, algo, diag, uplo);
@@ -2674,9 +2665,7 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
     }
   }
   this->FPcompressL1();
-  if(b_compressed){ //We recompress this block only if it was compressed before use
-    b->FPcompress();
-  }
+  b->FPcompressL1();
 }
 
 template<typename T>
@@ -2731,11 +2720,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   this->FPdecompressL1();
-  bool b_compressed = b->isFPcompressed();
-  if(b_compressed)
-  {
-    b->FPdecompress();
-  }
+  b->FPdecompressL1();
   // At first, the recursion one (simple case)
   if (!this->isLeaf() && !b->isLeaf()) {
     this->recursiveSolveUpperTriangularLeft(b, algo, diag, uplo);
@@ -2772,9 +2757,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
     }
   }
   this->FPcompressL1();
-  if(b_compressed){ //We recompress this block only if it was compressed before use
-    b->FPcompress();
-  }
+  b->FPcompressL1();
 }
 
 template<typename T>
@@ -2889,16 +2872,8 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
   assert(*this->rows() == *m->rows());
 
   this->FPdecompressL1();
-  bool d_compressed = d->isFPcompressed();
-  if(d_compressed)
-  {
-    d->FPdecompress();
-  }
-  bool m_compressed = m->isFPcompressed();
-  if(m_compressed)
-  {
-    m->FPdecompress();
-  }
+  d->FPdecompressL1();
+  m->FPdecompressL1();
 
   if(!this->isLeaf()) {
     if (!m->isLeaf()) {
@@ -2983,12 +2958,8 @@ void HMatrix<T>::mdmtProduct(const HMatrix<T>* m, const HMatrix<T>* d) {
     }
   }
   this->FPcompressL1();
-  if(m_compressed){ //We recompress this block only if it was compressed before use
-    m->FPcompress();
-  }
-  if(d_compressed){ //We recompress this block only if it was compressed before use
-    d->FPcompress();
-  }
+  d->FPcompressL1();
+  m->FPcompressL1();
 }
 
 template<typename T> void assertLdlt(const HMatrix<T> * me) {
