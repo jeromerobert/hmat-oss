@@ -2558,7 +2558,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
+void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows);
@@ -2593,7 +2593,10 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
       get(i, i)->solveLowerTriangularLeft(&sub[i], algo, diag, uplo);
     }
   }
-  this->FPcompressL1();
+  if(FPcompress)
+  {
+    this->FPcompressL1();
+  }
 }
 
 template<typename T>
@@ -2736,7 +2739,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
+void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(rows()->size() == b->rows || uplo == Uplo::UPPER);
@@ -2773,7 +2776,10 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo,
       }
     }
   }
-  this->FPcompressL1();
+  if(FPcompress)
+  {
+    this->FPcompressL1();
+  }
 }
 
 template<typename T>
@@ -3022,9 +3028,9 @@ void HMatrix<T>::solve(ScalarArray<T>* b) const {
   DECLARE_CONTEXT;
   // Solve (LU) X = b
   // First compute L Y = b
-  this->solveLowerTriangularLeft(b, Factorization::LU, Diag::UNIT, Uplo::LOWER);
+  this->solveLowerTriangularLeft(b, Factorization::LU, Diag::UNIT, Uplo::LOWER, false);
   // Then compute U X = Y
-  this->solveUpperTriangularLeft(b, Factorization::LU, Diag::NONUNIT, Uplo::UPPER);
+  this->solveUpperTriangularLeft(b, Factorization::LU, Diag::NONUNIT, Uplo::UPPER, false);
 }
 
 template<typename T>
@@ -3244,13 +3250,13 @@ void HMatrix<T>::solveLdlt(ScalarArray<T>* b) const {
   assertLdlt(this);
   // L*D*L^T * X = B
   // B <- solution of L * Y = B : Y = D*L^T * X
-  this->solveLowerTriangularLeft(b, Factorization::LDLT, Diag::UNIT, Uplo::LOWER);
+  this->solveLowerTriangularLeft(b, Factorization::LDLT, Diag::UNIT, Uplo::LOWER, false);
 
   // B <- D^{-1} Y : solution of D*Y = B : Y = L^T * X
   this->solveDiagonal(b);
 
   // B <- solution of L^T X = B :  the solution X we are looking for is stored in B
-  this->solveUpperTriangularLeft(b, Factorization::LDLT, Diag::UNIT, Uplo::LOWER);
+  this->solveUpperTriangularLeft(b, Factorization::LDLT, Diag::UNIT, Uplo::LOWER, false);
 }
 
 template<typename T>
@@ -3263,10 +3269,10 @@ void HMatrix<T>::solveLlt(ScalarArray<T>* b) const {
   DECLARE_CONTEXT;
   // L*L^T * X = B
   // B <- solution of L * Y = B : Y = L^T * X
-  this->solveLowerTriangularLeft(b, Factorization::LLT, Diag::NONUNIT, Uplo::LOWER);
+  this->solveLowerTriangularLeft(b, Factorization::LLT, Diag::NONUNIT, Uplo::LOWER, false);
 
   // B <- solution of L^T X = B :  the solution X we are looking for is stored in B
-  this->solveUpperTriangularLeft(b, Factorization::LLT, Diag::NONUNIT, Uplo::LOWER);
+  this->solveUpperTriangularLeft(b, Factorization::LLT, Diag::NONUNIT, Uplo::LOWER, false);
 }
 
 template<typename T>

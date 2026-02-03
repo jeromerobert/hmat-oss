@@ -664,7 +664,7 @@ public:
 
     \param b Le vecteur b en entree, et x en sortie.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress = true) const;
   void solveLowerTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const;
   /*! Resolution de X U = B, avec U = this, et X = B.
 
@@ -692,7 +692,7 @@ public:
     \param indice les indices portes par le vecteur
     \param uplo indique le stockage de la matrice U ou L^T
   */
-  void solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress = true) const;
   void solveUpperTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const;
   /*! Solve D x = b, in place with D a diagonal matrix.
 
