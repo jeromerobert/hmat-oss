@@ -372,20 +372,39 @@ namespace hmat {
 
     for (int k=0 ; k<me()->nrChildRow() ; k++) {
       // Hkk <- Lkk * tLkk
+      me()->get(k,k)->FPdecompressL1();
       me()->get(k,k)->lltDecomposition(progress);
       // Solve the rest of column k: solve Lik tLkk = Hik and get Lik
       for (int i=k+1 ; i<me()->nrChildRow() ; i++)
         if (me()->get(i,k))
+        {
+          me()->get(i,k)->FPdecompressL1();
           me()->get(k,k)->solveUpperTriangularRight(me()->get(i,k), Factorization::LLT, Diag::NONUNIT, Uplo::LOWER);
+        }
       // update the rest of the matrix [k+1, .., n]x[k+1, .., n] (below diag)
       for (int i=k+1 ; i<me()->nrChildRow() ; i++) {
         if (!me()->get(i,k))
           continue;
-        for (int j=k+1 ; j<=i ; j++)
+        for (int j=k+1 ; j<=i ; j++) {
           // Hij <- Hij - Lik tLjk
           if (me()->get(i,j) && me()->get(j,k))
-            me()->get(i,j)->gemm('N', 'T', -1, me()->get(i,k), me()->get(j,k), 1);
+          {
+            me()->get(i,j)->FPdecompressL1();
+            me()->get(j,k)->FPdecompressL1();
+            me()->get(i,j)->gemm('N', 'T', -1, me()->get(i,k), me()->get(j,k), 1, MainOp::OTHER, false);
+            me()->get(i,j)->FPcompressL1();
+            //get(j,k) is not recompressed immediatly for optimisation: it is reused in later loops after
+          }
+        }
+        me()->get(i,k)->FPcompressL1();
       }
+      for (int j=k+1 ; j<me()->nrChildRow() ; j++) {
+          if (me()->get(j,k))
+          {
+            me()->get(j,k)->FPcompressL1();
+          }
+        }
+      me()->get(k,k)->FPcompressL1();
     }
   }
 

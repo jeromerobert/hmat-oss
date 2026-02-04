@@ -1641,7 +1641,7 @@ HMatrix<T>::leafGemm(char transA, char transB, T alpha, const HMatrix<T>* a, con
 }
 
 template<typename T>
-void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, MainOp) {
+void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>* b, T beta, MainOp, bool FPrecompress) {
   // Computing a(m,0) * b(0,n) here may give wrong results because of format conversions, exit early
   if(isVoid() || a->isVoid())
       return;
@@ -1664,9 +1664,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       ScalarArray<T> cSubset(rk()->a->rowsSubset( r->offset() -    rows()->offset(), r->size()));
       ScalarArray<T> bSubset(b->rk()->a->rowsSubset( c->offset() - b->rows()->offset(), c->size()));
       a->gemv(transA, alpha, &bSubset, beta, &cSubset);
-      this->FPcompressL1();
-      a->FPcompressL1();
-      b->FPcompressL1();
+      if(FPrecompress)
+      {
+        this->FPcompressL1();
+        a->FPcompressL1();
+        b->FPcompressL1();
+      }
       return;
     }
   }
@@ -1689,9 +1692,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       ScalarArray<T> cSubset(rk()->b->rowsSubset( c->offset() -    cols()->offset(), c->size()));
       ScalarArray<T> aSubset(a->rk()->b->rowsSubset( r->offset() - a->cols()->offset(), r->size()));
       b->gemv(transB == 'N' ? 'T' : 'N', alpha, &aSubset, beta, &cSubset);
-      this->FPcompressL1();
-      a->FPcompressL1();
-      b->FPcompressL1();
+      if(FPrecompress)
+      {
+        this->FPcompressL1();
+        a->FPcompressL1();
+        b->FPcompressL1();
+      }
       return;
     }
   }
@@ -1703,9 +1709,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
       if(!isAssembled() && this->isLeaf())
           rk(new RkMatrix<T>(NULL, rows(), NULL, cols()));
 
-      this->FPcompressL1();
-      a->FPcompressL1();
-      b->FPcompressL1();
+      if(FPrecompress)
+      {
+        this->FPcompressL1();
+        a->FPcompressL1();
+        b->FPcompressL1();
+      }
       return;
   }
 
@@ -1713,9 +1722,12 @@ void HMatrix<T>::gemm(char transA, char transB, T alpha, const HMatrix<T>* a, co
   // to avoid an other scaling.
   recursiveGemm(transA, transB, alpha, a, b);
   
-  this->FPcompressL1();
-  a->FPcompressL1();
-  b->FPcompressL1();
+  if(FPrecompress)
+  {
+    this->FPcompressL1();
+    a->FPcompressL1();
+    b->FPcompressL1();
+  }
 }
 
 template<typename T>
@@ -2558,7 +2570,7 @@ void HMatrix<T>::solveLowerTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
 }
 
 template<typename T>
-void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress) const {
+void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPrecompress) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(cols()->size() == b->rows);
@@ -2593,7 +2605,7 @@ void HMatrix<T>::solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo,
       get(i, i)->solveLowerTriangularLeft(&sub[i], algo, diag, uplo);
     }
   }
-  if(FPcompress)
+  if(FPrecompress)
   {
     this->FPcompressL1();
   }
@@ -2605,7 +2617,7 @@ void HMatrix<T>::solveLowerTriangularLeft(FullMatrix<T>* b, Factorization algo, 
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const {
+void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPrecompress) const {
   DECLARE_CONTEXT;
   if (rows()->size() == 0 || cols()->size() == 0) return;
   this->FPdecompressL1();
@@ -2642,8 +2654,11 @@ void HMatrix<T>::solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Di
           delete tmp;
     }
   }
-  this->FPcompressL1();
-  b->FPcompressL1();
+  if(FPrecompress)
+  {
+    this->FPcompressL1();
+    b->FPcompressL1();
+  }
 }
 
 template<typename T>
@@ -2739,7 +2754,7 @@ void HMatrix<T>::solveUpperTriangularLeft(HMatrix<T>* b, Factorization algo, Dia
 }
 
 template<typename T>
-void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress) const {
+void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPrecompress) const {
   DECLARE_CONTEXT;
   assert(*rows() == *cols());
   assert(rows()->size() == b->rows || uplo == Uplo::UPPER);
@@ -2776,7 +2791,7 @@ void HMatrix<T>::solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo,
       }
     }
   }
-  if(FPcompress)
+  if(FPrecompress)
   {
     this->FPcompressL1();
   }
@@ -2790,22 +2805,28 @@ void HMatrix<T>::solveUpperTriangularLeft(FullMatrix<T>* b, Factorization algo, 
 template<typename T> void HMatrix<T>::lltDecomposition(hmat_progress_t * progress) {
 
     assertLower(this);
-  this->FPdecompressL1();
     if (isVoid()) {
         // nothing to do
     } else if(this->isLeaf()) {
+        this->FPdecompressL1();
         full()->lltDecomposition();
         if(progress != NULL) {
             progress->current= rows()->offset() + rows()->size();
             progress->update(progress);
         }
+        this->FPcompressL1();
     } else {
         HMAT_ASSERT(isLower);
-      this->recursiveLltDecomposition(progress);
+        if(!this->father) {
+          this->FPdecompressL1(); //only if the root of the tree, else it is done within recursiveLltDecomposition
+        }
+        this->recursiveLltDecomposition(progress);
+        if(!this->father) {
+          this->FPcompressL1();
+        }
     }
     isTriLower = true;
     isLower = false;
-  this->FPcompressL1();
 }
 
 template<typename T>

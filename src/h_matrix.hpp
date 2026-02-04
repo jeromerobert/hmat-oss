@@ -462,7 +462,7 @@ public:
     \param b the matrix B
     \param beta beta
    */
-  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, MainOp=MainOp::OTHER);
+  void gemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b, T beta, MainOp=MainOp::OTHER, bool FPrecompress = true);
   /*! \brief this <- this - M * D * M^T, where 'this' is symmetric (Lower stored),
       D diagonal
 
@@ -664,13 +664,13 @@ public:
 
     \param b Le vecteur b en entree, et x en sortie.
    */
-  void solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress = true) const;
+  void solveLowerTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPrecompress = true) const;
   void solveLowerTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const;
   /*! Resolution de X U = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
    */
-  void solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const;
+  void solveUpperTriangularRight(HMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPrecompress = true) const;
   /*! Resolution de U X = B, avec U = this, et X = B.
 
     \param b la matrice B en entree, X en sortie
@@ -692,7 +692,7 @@ public:
     \param indice les indices portes par le vecteur
     \param uplo indique le stockage de la matrice U ou L^T
   */
-  void solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPcompress = true) const;
+  void solveUpperTriangularLeft(ScalarArray<T>* b, Factorization algo, Diag diag, Uplo uplo, bool FPrecompress = true) const;
   void solveUpperTriangularLeft(FullMatrix<T>* b, Factorization algo, Diag diag, Uplo uplo) const;
   /*! Solve D x = b, in place with D a diagonal matrix.
 
