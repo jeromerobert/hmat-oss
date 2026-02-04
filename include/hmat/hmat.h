@@ -447,6 +447,11 @@ typedef struct
 
 typedef struct hmat_matrix_struct hmat_matrix_t;
 
+/*!
+ * Return the depth of an hmatrix
+ */
+HMAT_API int hmat_matrix_depth(const hmat_matrix_t * ptr, hmat_value_t type) ;
+
 /** Allow to implement a progress bar associated to assemble or factorize */
 typedef struct hmat_progress_struct {
     int max;

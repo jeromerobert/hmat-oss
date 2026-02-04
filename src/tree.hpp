@@ -138,6 +138,21 @@ public:
     return result;
   }
 
+  /*! \brief Recursively compute the depth of the subtree rooted at this node.
+
+      \return The maximum depth of the tree (1 if the node is a leaf).
+   */
+  int computeDepth() const {
+    int max_child_depth = 0; // if no children , added depth 0
+    // iterate over all existing children
+    for (int i = 0; i < nrChild(); i++) {
+      if (children[i]) {
+        max_child_depth = std::max(max_child_depth, children[i]->computeDepth()); //  recursive call
+      }
+    }
+    return 1 + max_child_depth; // 1(self)  + max depth found below
+  }
+  
   /*! \brief Return the child of index, or NULL.
    */
   inline TreeNode *getChild(int index) const {
