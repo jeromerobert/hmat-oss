@@ -173,6 +173,44 @@ int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree)
     return ((ClusterTree*)tree)->nodesCount();
 }
 
+int hmat_matrix_depth(const hmat_matrix_t * ptr, hmat_value_t type) {
+  if (!ptr) return 0;
+
+  const hmat::ClusterTree* tree=nullptr;
+  switch (type) {
+  case HMAT_SIMPLE_PRECISION: {
+    const hmat::HMatInterface<hmat::S_t>* iface_s = reinterpret_cast<const hmat::HMatInterface<hmat::S_t>*>(ptr);
+    if (iface_s->engine().hmat)
+      tree = iface_s->engine().hmat->rowsTree();
+  }
+    break;
+  case HMAT_DOUBLE_PRECISION: {
+    const hmat::HMatInterface<hmat::D_t>* iface_d = reinterpret_cast<const hmat::HMatInterface<hmat::D_t>*>(ptr);
+    if (iface_d->engine().hmat)
+      tree = iface_d->engine().hmat->rowsTree();
+  }
+    break;
+  case HMAT_SIMPLE_COMPLEX: {
+    const hmat::HMatInterface<hmat::C_t>* iface_c = reinterpret_cast<const hmat::HMatInterface<hmat::C_t>*>(ptr);
+    if (iface_c->engine().hmat)
+      tree = iface_c->engine().hmat->rowsTree();
+  }
+    break;
+  case HMAT_DOUBLE_COMPLEX: {
+    const hmat::HMatInterface<hmat::Z_t>* iface_z = reinterpret_cast<const hmat::HMatInterface<hmat::Z_t>*>(ptr);
+    if (iface_z->engine().hmat)
+      tree = iface_z->engine().hmat->rowsTree();
+  }
+    break;
+  default: HMAT_ASSERT(false);
+  }
+
+  if (tree)
+    return const_cast<hmat::ClusterTree*>(tree)->computeDepth();
+  return 0;
+}
+
+
 hmat_cluster_tree_t *hmat_cluster_get_son( hmat_cluster_tree_t * tree, int index )
 {
     ClusterTree *son = reinterpret_cast<ClusterTree*>(tree)->getChild(index);
