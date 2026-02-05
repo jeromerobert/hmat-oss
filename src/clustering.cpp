@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <unordered_map>
 
 namespace {
 
@@ -39,6 +40,7 @@ private:
   const int* group_index_;
   const int dimension_;
   const int axis_;
+  std::unordered_map<int, double> group_axis_coordinate_;
 
 public:
   IndicesComparator(int axis, const hmat::ClusterData& data)
@@ -46,7 +48,18 @@ public:
     , group_index_(data.group_index())
     , dimension_(data.coordinates()->dimension())
     , axis_(axis)
-  {}
+  {
+     if (group_index_) {
+       std::unordered_map<int, int> group_counter;
+       for (int i = 0; i < coordinates_->size(); ++i) {
+         group_counter[group_index_[i]]++;
+         group_axis_coordinate_[group_index_[i]] += coordinates_->spanCenter(i, axis_);
+       }
+       for (int i = 0; i < group_axis_coordinate_.size(); ++i) {
+         group_axis_coordinate_[i] /= group_counter[i];
+       }
+     }
+  }
   bool operator() (int i, int j) {
     if (group_index_ == NULL || group_index_[i] == group_index_[j])
       return coordinates_->spanCenter(i, axis_) < coordinates_->spanCenter(j, axis_);
