@@ -1434,7 +1434,7 @@ HMatrix<T>::recursiveGemm(char transA, char transB, T alpha, const HMatrix<T>* a
     //  when blocks are not compatible, and thus there are only 3 real
     //  loops (on i, j, k) and performance penalty should be negligible.
     for (int i = 0; i < effective_row_c; i++) {
-        for (int j = 0; j < col_c; j++) {
+        for (int j = 0; j < effective_col_c; j++) {
             HMatrix<T>* child = !dig_c ? this : get(i, j);
             if (!child) { // symmetric/triangular case or empty block coming from symbolic factorisation of sparse matrices
               continue;
