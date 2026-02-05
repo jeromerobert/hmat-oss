@@ -149,7 +149,7 @@ public:
   of bounding box and divide it according to this axis. The DOFs are
   sorted by the increasing order on this direction, and are divided
   in the median of this axis. This method ensures that the children
-  will have equal number of DOFs, but desn't respect their size criterion.
+  will have equal number of DOFs, but doesn't respect their size criterion.
 
   If optional argument axisIndex is set, cyclic splitting is performed
   instead, and this argument is the first axis index.
