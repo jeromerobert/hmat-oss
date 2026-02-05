@@ -63,7 +63,7 @@ public:
   bool operator() (int i, int j) {
     if (group_index_ == NULL || group_index_[i] == group_index_[j])
       return coordinates_->spanCenter(i, axis_) < coordinates_->spanCenter(j, axis_);
-    return group_index_[i] < group_index_[j];
+    return group_axis_coordinate_[group_index_[i]] < group_axis_coordinate_[group_index_[j]];
   }
 };
 
@@ -94,6 +94,9 @@ const
   IndicesComparator comparator(dim, node.data);
   int* myIndices = node.data.indices() + node.data.offset();
   std::stable_sort(myIndices, myIndices + node.data.size(), comparator);
+  int* myGroupIndex = node.data.group_index();
+  if (myGroupIndex)
+    std::stable_sort(myGroupIndex+node.data.offset(), myGroupIndex + node.data.size(), comparator);
 }
 
 AxisAlignedBoundingBox*
