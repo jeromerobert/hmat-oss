@@ -91,8 +91,9 @@ void
 AxisAlignClusteringAlgorithm::sortByDimension(ClusterTree& node, int dim)
 const
 {
+  IndicesComparator comparator(dim, node.data);
   int* myIndices = node.data.indices() + node.data.offset();
-  std::stable_sort(myIndices, myIndices + node.data.size(), IndicesComparator(dim, node.data));
+  std::stable_sort(myIndices, myIndices + node.data.size(), comparator);
 }
 
 AxisAlignedBoundingBox*
