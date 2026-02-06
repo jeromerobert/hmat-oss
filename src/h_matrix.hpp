@@ -959,7 +959,7 @@ public:
   /**
    * Set the FP compression settings of the HMatrix.
    */
-  void SetFPCompressionSettings(hmat_fp_settings_t* settings, int depth = 0);
+  void SetFPCompressionSettings(hmat_fp_settings_t* settings);
 
   /**
    * Tag a not leaf block as assembled.

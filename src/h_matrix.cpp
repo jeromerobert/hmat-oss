@@ -2037,16 +2037,15 @@ hmat_fp_settings_t HMatrix<T>::GetFPCompressionSettings() const {
 }
 
 template<typename T>
-void HMatrix<T>::SetFPCompressionSettings(hmat_fp_settings_t* settings, int depth){
+void HMatrix<T>::SetFPCompressionSettings(hmat_fp_settings_t* settings){
   
   localSettings.FPSettings = settings;
 
-
-  if(depth == localSettings.FPSettings->L1depth || (this->isLeaf() && depth < localSettings.FPSettings->L1depth) )
+  if(this->depth == localSettings.FPSettings->L1depth || (this->isLeaf() && this->depth < localSettings.FPSettings->L1depth) )
   {
     this->L1position = kOnL1;
   }
-  else if(depth > localSettings.FPSettings->L1depth)
+  else if(this->depth > localSettings.FPSettings->L1depth)
   {
     this->L1position = kBelowL1;
   }
@@ -2062,7 +2061,7 @@ void HMatrix<T>::SetFPCompressionSettings(hmat_fp_settings_t* settings, int dept
   for (int i = 0; i < nrChildRow(); i++) {
     for(int j = 0; j < nrChildCol(); j++) {
       if(get(i,j)) {
-        get(i,j)->SetFPCompressionSettings(settings, depth+1);
+        get(i,j)->SetFPCompressionSettings(settings);
       }
     }
   }
