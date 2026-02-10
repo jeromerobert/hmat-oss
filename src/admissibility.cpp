@@ -45,7 +45,7 @@ AdmissibilityCondition::splitRowsCols(const ClusterTree& rows, const ClusterTree
     // cols are two times larger than rows so we won't subdivide rows
     return std::pair<bool, bool>(false, !cols.isLeaf());
   } else // approximately the same size, we can subdivide both
-    return std::pair<bool, bool>(!rows.isLeaf(), !cols.isLeaf());
+    return std::pair<bool, bool>(!rows.isLeaf() && (ratio_==0. || !cols.isLeaf()), (ratio_ == 0. || !rows.isLeaf()) && !cols.isLeaf());
 }
 
 const AxisAlignedBoundingBox*
