@@ -190,7 +190,8 @@ bool HMatrix<T>::split(AdmissibilityCondition * admissibilityCondition, bool low
   if ((rows_->isLeaf() && cols_->isLeaf()) || stopRecursion || (lowRank && !forceRecursion))
     return false;
   pair<bool, bool> splitRC = admissibilityCondition->splitRowsCols(*rows_, *cols_);
-  assert(splitRC.first || splitRC.second);
+  if (!splitRC.first && !splitRC.second)
+    return(false);
   keepSameRows = !splitRC.first;
   keepSameCols = !splitRC.second;
   isLower = (symFlag == kLowerSymmetric ? true : false);
