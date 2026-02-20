@@ -73,6 +73,7 @@ public:
       \min(diam(\sigma), diam(\tau)) < \eta \cdot d(\sigma, \tau)
       \f]
    */
+  int imposedLeafSize; ///< Imposed leaf size (bool)
   int maxLeafSize; ///< Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix)
   bool coarsening; ///< Coarsen the matrix structure after assembly.
   bool validateNullRowCol; ///< Validate the detection of null rows and columns
@@ -87,6 +88,7 @@ private:
    */
   HMatSettings() : compressionMinLeafSize(100),
                    coarseningEpsilon(1e-4),
+                   imposedLeafSize(0),
                    maxLeafSize(200),
                    coarsening(false),
                    validateNullRowCol(false), validateCompression(false), validateRecompression(false),
