@@ -214,6 +214,8 @@ HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_geometric(void);
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_hybrid(void);
 /* Create a new clustering algorithm by setting the maximum number of degrees of freedom in a leaf */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
+/* Create a new clustering algorithm by imposing the number of degrees of freedom in all leaves */
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_imposed_dof(const hmat_clustering_algorithm_t* algo, int imposed_dof);
 /* Octree / Quadtree clustering */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_octree(int);
 
@@ -1118,6 +1120,8 @@ typedef struct
   int compressionMinLeafSize;
   /*! \brief Tolerance for coarsening */
   double coarseningEpsilon;
+  /*! \brief Imposed size of leaf (boolean) */
+  int imposedLeafSize;
   /*! \brief Maximum size of a leaf in a ClusterTree (and of a non-admissible block in an HMatrix) */
   int maxLeafSize;
   /*! \brief Coarsen the matrix structure after assembly. */

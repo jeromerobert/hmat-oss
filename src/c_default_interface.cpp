@@ -77,6 +77,15 @@ hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_
   return static_cast<hmat_clustering_algorithm_t*>((void*) result);
 }
 
+hmat_clustering_algorithm_t*
+hmat_create_clustering_imposed_dof(const hmat_clustering_algorithm_t* algo, int imposed_dof)
+{
+  ClusteringAlgorithm* result = static_cast<const ClusteringAlgorithm*>((void*) algo)->clone();
+  result->setMaxLeafSize(imposed_dof);
+  result->setImposedLeafSize(true);
+  return static_cast<hmat_clustering_algorithm_t*>((void*) result);
+}
+
 hmat_clustering_algorithm_t* hmat_create_clustering_span(
     const hmat_clustering_algorithm_t* algo, double ratio) {
     SpanClusteringAlgorithm* result = new SpanClusteringAlgorithm(
@@ -295,6 +304,7 @@ void hmat_get_parameters(hmat_settings_t* settings)
     settings->compressionMinLeafSize = settingsCxx.compressionMinLeafSize;
     settings->coarseningEpsilon = settingsCxx.coarseningEpsilon;
     settings->maxLeafSize = settingsCxx.maxLeafSize;
+    settings->imposedLeafSize = settingsCxx.imposedLeafSize;
     settings->coarsening = settingsCxx.coarsening;
     settings->validateNullRowCol = settingsCxx.validateNullRowCol;
     settings->validateCompression = settingsCxx.validateCompression;
@@ -313,6 +323,7 @@ int hmat_set_parameters(hmat_settings_t* settings)
     settingsCxx.compressionMinLeafSize = settings->compressionMinLeafSize;
     settingsCxx.coarseningEpsilon = settings->coarseningEpsilon;
     settingsCxx.maxLeafSize = settings->maxLeafSize;
+    settingsCxx.imposedLeafSize = settings->imposedLeafSize;
     settingsCxx.coarsening = settings->coarsening;
     settingsCxx.validateNullRowCol = settings->validateNullRowCol;
     settingsCxx.validateCompression = settings->validateCompression;

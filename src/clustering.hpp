@@ -69,7 +69,7 @@ class ClusteringAlgorithm
 {
 public:
   /*! \brief Default constructor */
-  ClusteringAlgorithm() : maxLeafSize_(-1), divider_(2) {}
+  ClusteringAlgorithm() : imposedLeafSize_(-1),maxLeafSize_(-1), divider_(2) {}
 
   /*! \brief Virtual constructor */
   virtual ClusteringAlgorithm* clone() const = 0;
@@ -93,11 +93,15 @@ public:
 
   int getMaxLeafSize() const;
   virtual void setMaxLeafSize(int maxLeafSize);
+  // getter & setter for imposed leaf size
+  int getImposedLeafSize() const;
+  virtual void setImposedLeafSize(int);
 
   int getDivider() const;
   virtual void setDivider(int divider) const;
 
 private:
+  int imposedLeafSize_;
   int maxLeafSize_;
 protected:
   /* the number of children created by division at each level (2 by default) */
@@ -202,6 +206,7 @@ class OctreeClusteringAlgorithm : public AxisAlignClusteringAlgorithm
   public:
   explicit OctreeClusteringAlgorithm(int maxdepth): maxdepth_(maxdepth) {
     setMaxLeafSize( 1 ); // maxdepth must be the only stopping criteria
+    setImposedLeafSize(0); // octree is not compatible with imposed leaf size
   }
   ClusteringAlgorithm* clone() const { return new OctreeClusteringAlgorithm(*this); }
   std::string str() const { return "OctreeClusteringAlgorithm"; }
