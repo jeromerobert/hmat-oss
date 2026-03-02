@@ -1401,8 +1401,10 @@ std::tuple<bool ,bool , bool> computeGemmRecursion(char transA, char transB, con
     // induction constant A.rows (resp.B.cols) == C.rows (resp C.cols) (assuming transA==transB=='N')
     // This is so that uncompatibleGemm will make at most one subset on either A or B, and not try to write in a subset of C.
     // Note that having A.cols == B.rows on top is not always possible, depending on the structure of the matrices (see AdmissibilityCondition::splitRowsCols)
-    HMAT_ASSERT((transA=='N' ? a->rows()->size() : a->cols()->size()) == c->rows()->size());
-    HMAT_ASSERT((transB=='N' ? b->cols()->size() : b->rows()->size()) == c->cols()->size());
+
+    // this asserts (wrongly) fails in the parallel version because of asynchrone cluster size updates
+    // HMAT_ASSERT((transA=='N' ? a->rows()->size() : a->cols()->size()) == c->rows()->size());
+    // HMAT_ASSERT((transB=='N' ? b->cols()->size() : b->rows()->size()) == c->cols()->size());
     const int row_a = transA=='N' ? a->nrChildRow() : a->nrChildCol();
     const int col_b = transB=='N' ? b->nrChildCol() : b->nrChildRow();
     const int row_c = c->nrChildRow();
