@@ -602,12 +602,14 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
   if (this->isLeaf()) {
     if (this->isNull()) return;
     FullMatrix<T> *mat = isRkMatrix() ? rk()->eval() : full();
-    const int rowOffset = rows()->offset() - _rows->offset();
-    const int rowCount = rows()->size();
-    const int colOffset = cols()->offset() - _cols->offset();
-    const int colCount = cols()->size();
+    int resRowOffset = max(rows()->offset() - _rows->offset(), 0);
+    int thisRowOffset = max(_rows->offset() - rows()->offset(), 0);
+    int rowCount = min(_rows->size(), rows()->size());
+    int resColOffset = max(cols()->offset() - _cols->offset(), 0);
+    int thisColOffset = max(_cols->offset() - cols()->offset(), 0);
+    int colCount = min(_cols->size(), cols()->size());
     for (int j = 0; j < colCount; j++) {
-      memcpy(&result->get(rowOffset, j + colOffset), &mat->get(0, j), rowCount * sizeof(T));
+      memcpy(&result->get(resRowOffset, j + resColOffset), &mat->get(thisRowOffset, thisColOffset + j), rowCount * sizeof(T));
     }
     if (isRkMatrix()) {
       delete mat;
@@ -615,7 +617,9 @@ void HMatrix<T>::evalPart(FullMatrix<T>* result, const IndexSet* _rows,
   } else {
     for (int i = 0; i < this->nrChild(); i++) {
       if (this->getChild(i)) {
-        this->getChild(i)->evalPart(result, _rows, _cols);
+        HMatrix<T> *child = this->getChild(i);
+        if (child->rows()->intersects(*_rows) && child->cols()->intersects(*_cols))
+          this->getChild(i)->evalPart(result, _rows, _cols);
       }
     }
   }
