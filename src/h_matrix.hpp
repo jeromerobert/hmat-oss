@@ -280,11 +280,13 @@ public:
     this.
    */
   void eval(FullMatrix<T>* result, bool renumber = true) const;
-  /*! \brief Evaluate this as a subblock of the larger matrix result.
+  /*! \brief Evaluate this or subblocks of this as a subblock of the result matrix.
 
-    _rows and _cols are the rows and columns of the result matrix. This has to
-    be a subset of _rows and _cols, and it is put at its place inside the result
-    matrix. This function does not do any reodering.
+    Clusters of the matrix must be subsets of one another, in any order.
+    It can be a different order for rows and cols, so this can have longer rows and result have longer cols.
+
+    _rows and _cols are the rows and columns of the result matrix. This is put at its place inside the result
+    matrix. This function does not do any reordering.
 
     \param result Result matrix, of size (_rows->n, _cols->n)
     \param _rows Rows of the result matrix
