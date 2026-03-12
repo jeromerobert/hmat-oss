@@ -1355,18 +1355,23 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
   DECLARE_CONTEXT;
   if (!ha->isLeaf() && !hb->isLeaf()) {
     // Recursion case
-    int nbRows = transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol() ; /* Row blocks of the product */
-    int nbCols = transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow() ; /* Col blocks of the product */
-    int nbCom  = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B */
+    int nbCom_a = transHA == 'N' ? ha->nrChildCol() : ha->nrChildRow() ; /* Common dimension between A and B seen by A*/
+    int nbCom_b = transHB == 'N' ? hb->nrChildRow() : hb->nrChildCol() ; /* Common dimension between A and B seen by B*/
+    bool dig_a = nbCom_a <= nbCom_b;
+    bool dig_b = nbCom_a >= nbCom_b;
+    int nbRows = dig_a ? (transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol()) : 1 ; /* Row blocks of the product */
+    int nbCols = dig_b ? (transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow()) : 1 ; /* Col blocks of the product */
     int nSubRks = nbRows * nbCols;
     std::vector<RkMatrix<T>*> subRks(nSubRks, nullptr);
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
         int p = i + j * nbRows;
-        for (int k = 0; k < nbCom; k++) {
+        for (int k = 0; k < std::min(nbCom_a, nbCom_b); k++) {
           // C_ij = A_ik * B_kj
-          HMatrix<T>* a_ik = transHA == 'N' ? ha->get(i, k) : ha->get(k, i);
-          HMatrix<T>* b_kj = transHB == 'N' ? hb->get(k, j) : hb->get(j, k);
+          // if the number of children doesn't match, then one matrix doesn't cut the common cluster
+          // in that case, we wait
+          const HMatrix<T>* a_ik = dig_a ? (transHA == 'N' ? ha->get(i, k) : ha->get(k, i)) : ha;
+          const HMatrix<T>* b_kj = dig_b ? (transHB == 'N' ? hb->get(k, j) : hb->get(j, k)) : hb;
           if (a_ik && b_kj) {
             if (subRks[p] == nullptr) {
               const IndexSet* subRows = transHA == 'N' ? a_ik->rows() : a_ik->cols();
