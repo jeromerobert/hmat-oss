@@ -1362,6 +1362,22 @@ template<typename T> void RkMatrix<T>::gemmRk(double epsilon, char transHA, char
     int nbRows = dig_a ? (transHA == 'N' ? ha->nrChildRow() : ha->nrChildCol()) : 1 ; /* Row blocks of the product */
     int nbCols = dig_b ? (transHB == 'N' ? hb->nrChildCol() : hb->nrChildRow()) : 1 ; /* Col blocks of the product */
     int nSubRks = nbRows * nbCols;
+    // If we don't dig the rows and cols clusters, there is no need to make a subRk
+    // e.g.
+    //         (B1)
+    //         (B2)
+    // (A1 A2) (C1)
+    // Note that this should be handled by Hmatrix::gemm
+    if (nSubRks==1){
+      for (int k = 0; k < std::min(nbCom_a, nbCom_b); k++) {
+        const HMatrix<T>* a_k = dig_a ? (transHA == 'N' ? ha->get(0, k) : ha->get(k, 0)) : ha;
+        const HMatrix<T>* b_k = dig_b ? (transHB == 'N' ? hb->get(k, 0) : hb->get(0, k)) : hb;
+        this->gemmRk(epsilon, transHA, transHB, alpha, a_k, b_k);
+      }
+      // no neeed for a truncate here
+      // one is already at the end of the last gemmRk of the loop
+      return;
+    }
     std::vector<RkMatrix<T>*> subRks(nSubRks, nullptr);
     for (int i = 0; i < nbRows; i++) {
       for (int j = 0; j < nbCols; j++) {
