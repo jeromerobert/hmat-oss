@@ -166,6 +166,12 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
 {
   bool x0 = x0_ && current.depth == 0;
   int dim = x0 ? 0 : largestDimension(current, currentAxis);
+  double tol = 1.0; // comportement par defaut
+
+  if (const char* env_p = std::getenv("CLUSTER_TOL")) {
+    tol = std::atof(env_p);
+  }
+
   sortByDimension(current, dim);
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(current);
   current.cache_ = bbox;
@@ -196,17 +202,24 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
       {
         int upper = middleIndex;
         int lower = middleIndex-1;
-        while (upper < current.data.size() && group_index[myIndices[upper]] == group)
+
+        int n = current.data.size();
+
+        int window = static_cast<int>(n * tol);
+        int upper_max = std::min(n, upper + window);
+        int lower_min = std::max(0, lower - window);
+
+        while (upper < upper_max && group_index[myIndices[upper]] == group)
           ++upper;
-        while (lower >= 0 && group_index[myIndices[lower]] == group)
+        while (lower >= lower_min && group_index[myIndices[lower]] == group)
           --lower;
-        if (lower < 0 && upper == current.data.size())
+        if (lower < lower_min && upper == upper_max)
         {
           // All degrees of freedom belong to the same group, this is fine
         }
-        else if (lower < 0)
+        else if (lower < lower_min)
           middleIndex = upper;
-        else if (upper == current.data.size())
+        else if (upper == upper_max)
           middleIndex = lower + 1;
         else if (coord.spanCenter(myIndices[upper], dim) + coord.spanCenter(myIndices[lower], dim) < 2 * middlePosition)
           middleIndex = upper;
@@ -228,6 +241,12 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
                                     int currentAxis) const
 {
   int dim = largestDimension(current, currentAxis);
+  double tol = 1.0; // comportement par défaut
+
+  if (const char* env_p = std::getenv("CLUSTER_TOL")) {
+    tol = std::atof(env_p);
+  }
+
   sortByDimension(current, dim);
   int previousIndex = 0;
   int * myIndices = current.data.indices() + current.data.offset();
@@ -243,17 +262,25 @@ MedianBisectionAlgorithm::partition(ClusterTree& current, std::vector<ClusterTre
       {
         int upper = middleIndex;
         int lower = middleIndex-1;
-        while (upper < current.data.size() && group_index[myIndices[upper]] == group)
+
+        int n = current.data.size();
+
+        int window = static_cast<int>(n * tol);
+        int upper_max = std::min(n, upper + window);
+        int lower_min = std::max(0, lower - window);
+
+
+        while (upper < upper_max && group_index[myIndices[upper]] == group)
           ++upper;
-        while (lower >= 0 && group_index[myIndices[lower]] == group)
+        while (lower >= lower_min && group_index[myIndices[lower]] == group)
           --lower;
-        if (lower < 0 && upper == current.data.size())
+        if (lower < lower_min && upper == upper_max)
         {
           // All degrees of freedom belong to the same group, this is fine
         }
-        else if (lower < 0)
+        else if (lower < lower_min)
           middleIndex = upper;
-        else if (upper == current.data.size())
+        else if (upper == upper_max)
           middleIndex = lower + 1;
         else if (upper + lower < 2 * middleIndex)
           middleIndex = upper;
