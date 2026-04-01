@@ -161,6 +161,11 @@ public:
   /** This <- 0.
    */
   void clear();
+
+  /** Free the memory related to this scalar array. Mimick a "delete this" but without destroying "this".
+  */
+  void freeMemory();
+  
   /** \brief Returns number of allocated zeros
    */
   size_t storedZeros() const;

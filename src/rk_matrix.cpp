@@ -409,12 +409,8 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   {
     delete Sigma; //In that case we do own Sigma
   }
-  //a->clear(); //The memory for the panels a and b is freed. To replace with this->clear() or add clearing of compressors in this-> clear() ?
-  //b->clear();
-  delete a;
-  delete b;
-  this->a = new ScalarArray<T>(0, k);
-  this->b = new ScalarArray<T>(0, k);
+  a->freeMemory(); //The memory for the panels a and b is freed.
+  b->freeMemory();
   
 
   _compressors->compressionRatio = (double)size/(double)size_c;
@@ -452,8 +448,8 @@ float RkMatrix<T>::FPdecompress()
   int nb_blocs = _compressors->nb_blocs;
 
   int offset = 0;
-  this->a = new ScalarArray<T>(m, k);
-  this->b = new ScalarArray<T>(n, k);
+  this->a->resize(k);
+  this->b->resize(k);
   
   for(int p = 0; p < nb_blocs; p++)
   {

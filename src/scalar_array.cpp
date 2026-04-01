@@ -290,6 +290,21 @@ template<typename T> void ScalarArray<T>::clear() {
   setOrtho(1); // we dont use ptr(): buffer filled with 0 is orthogonal
 }
 
+template<typename T> void ScalarArray<T>::freeMemory() {
+  if(ownsMemory && m) {
+    size_t size = ((size_t) rows) * cols * sizeof(T);
+    MemoryInstrumenter::instance().free(size, MemoryInstrumenter::FULL_MATRIX);
+#ifdef HAVE_JEMALLOC
+    je_free(m);
+#else
+    free(m);
+#endif
+    m = nullptr;
+    cols = 0;
+    ownsMemory = true;
+  }
+}
+
 template<typename T> size_t ScalarArray<T>::storedZeros() const {
   size_t result = 0;
   for (int col = 0; col < cols; col++) {

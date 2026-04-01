@@ -374,7 +374,7 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
   _compressor->compressor->compress(tmp, data.rows * data.cols, epsilon);
   _compressor->compressionRatio = _compressor->compressor->get_ratio();
 
-  data.resize(0);
+  data.freeMemory();
 
 
   auto end = std::chrono::high_resolution_clock::now();

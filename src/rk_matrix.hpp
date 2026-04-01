@@ -165,7 +165,15 @@ public:
   RkMatrix& operator=(const RkMatrix& other) = delete;
 
   int rank() const {
+    
+    if(_compressors) //Matrix is FP compressed
+    {
+      return _compressors->n_cols;
+    }
+    else
+    {
       return a ? a->cols : 0;
+    }
   }
 
   /**  Returns a pointer to a new RkMatrix representing a subset of indices.
