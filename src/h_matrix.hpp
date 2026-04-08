@@ -318,8 +318,10 @@ template<typename T> class HMatrix : public Tree<HMatrix<T> >, public RecursionM
   int approximateRank_;
 
   ///FP Compression Info
+public:
   mutable FPCompressionProfile fpProfile_;
   /// Position relative to the L1 cut
+private:
   L1Position L1position;
 
   void uncompatibleGemm(char transA, char transB, T alpha, const HMatrix<T>* a, const HMatrix<T>*b);
