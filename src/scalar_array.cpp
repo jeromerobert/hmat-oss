@@ -184,8 +184,6 @@ ScalarArray<T>::ScalarArray(T* _m, int _rows, int _cols, int _lda)
   is_ortho = (int*)calloc(1, sizeof(int));
 #endif
   assert(lda >= rows);
-
-  _originId = static_cast<const void*>(this);
 }
 
 template<typename T>
@@ -209,8 +207,6 @@ ScalarArray<T>::ScalarArray(int _rows, int _cols, bool initzero)
 #endif
   HMAT_ASSERT_MSG(m, "Trying to allocate %ldb of memory failed (rows=%d cols=%d sizeof(T)=%d)", size, rows, cols, sizeof(T));
   MemoryInstrumenter::instance().alloc(size, MemoryInstrumenter::FULL_MATRIX);
-
-  _originId = static_cast<const void*>(this);
 }
 
 template<typename T> ScalarArray<T>::~ScalarArray() {
@@ -230,26 +226,6 @@ template<typename T> ScalarArray<T>::~ScalarArray() {
     is_ortho = NULL;
   }
 #endif
-}
-
-
-template <typename T>
-const void *ScalarArray<T>::getOriginId()
-{
-    return _originId;
-}
-
-template <typename T>
- void ScalarArray<T>::setOriginId(const void* id)
-{
-    _originId = id;
-}
-
-
-template <typename T>
-void ScalarArray<T>::inheritOriginFrom(const ScalarArray<T> *other)
-{
-  this->_originId = other->_originId;
 }
 
 template<typename T> void ScalarArray<T>::resize(int col_num) {
@@ -414,7 +390,6 @@ template<typename T> ScalarArray<T>* ScalarArray<T>::copy(ScalarArray<T>* result
     }
   }
   result->setOrtho(getOrtho());
-  result->_originId = this->_originId;
   return result;
 }
 

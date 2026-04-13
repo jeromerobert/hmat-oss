@@ -90,7 +90,6 @@ template<typename T> class ScalarArray {
 private:
   /*! True if the matrix owns its memory, ie has to free it upon destruction */
   unsigned char ownsMemory:1;
-  const void* _originId; //If it has been copied from other, _originID= other; else _originID = this.
 protected:
   /// Fortran style pointer (columnwise)
   T* m;
@@ -119,7 +118,7 @@ public:
 #ifdef HMAT_SCALAR_ARRAY_ORTHO
     is_ortho(d.is_ortho),
 #endif
-    ownsFlag(false), rows(d.rows), cols(d.cols), lda(d.lda) {_originId = static_cast<const void*>(this);}
+    ownsFlag(false), rows(d.rows), cols(d.cols), lda(d.lda) {}
   /** \brief Initialize the matrix with existing data.
 
       In this case the matrix doesn't own the data (the memory is not
@@ -148,15 +147,9 @@ public:
 #ifdef HMAT_SCALAR_ARRAY_ORTHO
         is_ortho(d.is_ortho),
 #endif
-        ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda) { _originId = static_cast<const void*>(this);}
+        ownsFlag(false), rows(rowsSize), cols(colsSize), lda(d.lda) {}
 
   ~ScalarArray();
-
-  const void* getOriginId();
-
-  void setOriginId(const void* id);
-
-  void inheritOriginFrom(const ScalarArray<T>* other);
 
   /** This <- 0.
    */
