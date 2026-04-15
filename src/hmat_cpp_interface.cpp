@@ -259,7 +259,7 @@ template <typename T>
 void HMatInterface<T>::ratio(hmat_FPCompressionRatio_t &result) const
 {
     DECLARE_CONTEXT;
-    memset(&result, 0, sizeof(hmat_info_t));
+    memset(&result, 0, sizeof(hmat_FPCompressionRatio_t));
     engine_->ratio(result);
 }
 
