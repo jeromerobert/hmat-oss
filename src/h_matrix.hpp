@@ -135,7 +135,8 @@ struct HMatProfile
    * Enregistre la structure dans un fichier JSON.
    * @param filename Le chemin du fichier (défaut: "profile.json")
    */
-  void dump(const std::string& filename = "profile.json") const {
+  void dump(const std::string& prefix = "profile") const {
+    const std::string filename = prefix + ".json";
         std::ofstream out(filename.c_str());
         if (!out.is_open()) {
             std::cerr << "Error: Could not open " << filename << " for writing." << std::endl;

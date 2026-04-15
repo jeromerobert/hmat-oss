@@ -439,13 +439,6 @@ typedef struct
   int largest_rk_mem_rank;
 } hmat_info_t;
 
-/** Profile of the HMatrix */
-typedef struct
-{
-  //TO DO : uses C Hashtable instead of C++ map for profiling the Matrices;
-  
-} hmat_profile_t;
-
 typedef struct hmat_matrix_struct hmat_matrix_t;
 
 /** Allow to implement a progress bar associated to assemble or factorize */
@@ -982,7 +975,10 @@ typedef struct
      */
     int (*get_info)(hmat_matrix_t *hmatrix, hmat_info_t* info);
 
-    int (*get_profile)(hmat_matrix_t *hmatrix, hmat_profile_t* profile);
+    /*! \brief Dump json informations about FP compression in a HMatrix
+        \param hmatrix A hmatrix
+        \param prefix A string to prefix files output */
+    int (*dump_profile)(hmat_matrix_t *hmatrix, char* prefix);
 
     int (*get_ratio)(hmat_matrix_t *hmatrix, hmat_FPCompressionRatio_t* ratio);
 

@@ -611,11 +611,11 @@ int hmat_dump_info(hmat_matrix_t* holder, char* prefix) {
 }
 
 template<typename T, template <typename> class E>
-int hmat_get_profile(hmat_matrix_t* holder, hmat_profile_t* profile) {
+int hmat_dump_profile(hmat_matrix_t* holder, char* prefix) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
   try {
-      hmat->profile(*profile);
+      hmat->profile(prefix);
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;
@@ -964,7 +964,7 @@ static void createCInterface(hmat_interface_t * i)
     i->internal = NULL;
     i->get_info  = hmat_get_info<T, E>;
     i->dump_info = hmat_dump_info<T, E>;
-    i->get_profile  = hmat_get_profile<T, E>;
+    i->dump_profile  = hmat_dump_profile<T, E>;
     i->get_ratio  = hmat_get_ratio<T, E>;
     i->FPcompress = hmat_FPcompress<T, E>;
     i->FPdecompress = hmat_FPdecompress<T, E>;

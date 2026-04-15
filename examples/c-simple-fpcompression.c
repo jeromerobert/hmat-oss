@@ -193,7 +193,6 @@ int main(int argc, char **argv) {
   hmat_interface_t hmat;
   hmat_value_t scalar_type;
   hmat_info_t mat_info;
-  hmat_profile_t mat_profile;
   hmat_FPCompressionRatio_t mat_ratio;
   hmat_fp_settings_t fp_settings;
   int n;
@@ -358,7 +357,7 @@ int main(int argc, char **argv) {
   printf("- Sizes : \n");
   printf(" # Full Blocs : %fM, Rk Blocs %fM: , Global : %fM\n", 1e-6*mat_ratio.size_Full, 1e-6*mat_ratio.size_Rk, 1e-6*(mat_ratio.size_Full + mat_ratio.size_Rk));
   
-  hmat.get_profile(hmatrix_c, &mat_profile);
+  hmat.dump_profile(hmatrix_c, "profile");
 
   printf("- Compression Ratios : \n");
   printf(" # Full Blocs : %7.3f, Rk Blocs %7.3f: , Global : %7.3f\n", mat_ratio.fullRatio, mat_ratio.rkRatio, mat_ratio.ratio);

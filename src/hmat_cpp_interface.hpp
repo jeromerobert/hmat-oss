@@ -306,10 +306,10 @@ public:
   void info(hmat_info_t &) const;
 
   /**
-   * Fill a hmat_profile_t structure with profile of this matrix.
+   * Dump FP profile of this matrix in a file called prefix.json.
    * @note This is only meaningful once the HMatrix has been assembled.
    */
-  void profile(hmat_profile_t &, const std::string& filename = "profile.json") const;
+  void profile(const std::string& prefix = "profile") const;
 
   void ratio(hmat_FPCompressionRatio_t &result) const;
 

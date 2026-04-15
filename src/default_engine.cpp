@@ -275,13 +275,13 @@ template<typename T> void DefaultEngine<T>::info(hmat_info_t &i) const{
 }
 
 template <typename T>
-void DefaultEngine<T>::profile(hmat_profile_t &p, const std::string& filename) const
+void DefaultEngine<T>::dump_profile(const std::string& prefix) const
 {
   HMatProfile profile;
 
   this->hmat->profile(profile);
 
-  profile.dump();
+  profile.dump(prefix);
 }
 
 template <typename T> void DefaultEngine<T>::ratio(hmat_FPCompressionRatio_t &r) const
