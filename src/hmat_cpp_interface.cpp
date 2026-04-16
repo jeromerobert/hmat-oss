@@ -248,7 +248,7 @@ void HMatInterface<T>::info(hmat_info_t & result) const {
 }
 
 template <typename T>
-void HMatInterface<T>::profile(const std::string& prefix) const
+void HMatInterface<T>::dump_profile(const std::string& prefix) const
 {
   DECLARE_CONTEXT;
   engine_->dump_profile(prefix);

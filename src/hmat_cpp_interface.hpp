@@ -309,7 +309,7 @@ public:
    * Dump FP profile of this matrix in a file called prefix.json.
    * @note This is only meaningful once the HMatrix has been assembled.
    */
-  void profile(const std::string& prefix = "profile") const;
+  void dump_profile(const std::string& prefix = "profile") const;
 
   void ratio(hmat_FPCompressionRatio_t &result) const;
 

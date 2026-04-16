@@ -615,7 +615,7 @@ int hmat_dump_profile(hmat_matrix_t* holder, char* prefix) {
   DECLARE_CONTEXT;
   hmat::HMatInterface<T>* hmat = (hmat::HMatInterface<T>*) holder;
   try {
-      hmat->profile(prefix);
+      hmat->dump_profile(prefix);
   } catch (const std::exception& e) {
       fprintf(stderr, "%s\n", e.what());
       return 1;
