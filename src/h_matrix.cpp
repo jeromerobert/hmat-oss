@@ -1912,8 +1912,6 @@ HMatrix<T> *HMatrix<T>::FPdecompressCopy(HMatrix<T> *result, bool isRootTree)
     result = this->copyStructure();
     result->ownClusterTrees(false, false);
   }
-  hmat_fp_settings_t settings = this->GetFPCompressionSettings();
-  result->SetFPCompressionSettings(&settings);
 
   if (this->isLeaf()) {
     if (isFullMatrix() && full()) {
