@@ -50,11 +50,15 @@ public:
 
     ~SZcompressor();
 
-    void compress(std::vector<T> data, size_t size, double epsilon) override;
+    void compress(T* data, size_t size, double epsilon) override;
 
     std::vector<T> decompress() override;
 
+    void decompress(T* dest) override;
+
     std::vector<T> decompressCopy() override;
+
+    void decompressCopy(T* dest) override;
 
     double get_ratio() override;
 
@@ -87,11 +91,15 @@ public:
 
     ~SZ3compressor();
 
-    void compress(std::vector<T> data, size_t size, double epsilon) override;
+    void compress(T* data, size_t size, double epsilon) override;
 
     std::vector<T> decompress() override;
 
+    void decompress(T* dest) override;
+
     std::vector<T> decompressCopy() override;
+
+    void decompressCopy(T* dest) override;
 
     double get_ratio() override;
 
@@ -125,11 +133,15 @@ public:
 
     ~ZFPcompressor();
 
-    void compress(std::vector<T> data, size_t size, double epsilon) override;
+    void compress(T* data, size_t size, double epsilon) override;
 
     std::vector<T> decompress() override;
 
+    void decompress(T* dest) override;
+
     std::vector<T> decompressCopy() override;
+
+    void decompressCopy(T* dest) override;
 
     double get_ratio() override;
 
@@ -162,11 +174,15 @@ private:
 public:
     Defaultcompressor() {};
 
-    void compress(std::vector<T> data, size_t size, double epsilon) override;
+    void compress(T* data, size_t size, double epsilon) override;
 
     std::vector<T> decompress() override;
 
+    void decompress(T* dest) override;
+
     std::vector<T> decompressCopy() override;
+
+    void decompressCopy(T* dest) override;
 
     double get_ratio() override;
 

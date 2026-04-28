@@ -41,11 +41,15 @@ namespace hmat {
   template<typename T>
   class FPCompressorInterface    {
   public:
-      virtual void compress(std::vector<T> data, size_t size, double epsilon) = 0;
+      virtual void compress(T* data, size_t size, double epsilon) = 0;
   
       virtual std::vector<T> decompress() = 0;
 
+      virtual void decompress(T* dest) = 0;
+
       virtual std::vector<T> decompressCopy() = 0;
+
+      virtual void decompressCopy(T* dest) = 0;
   
       virtual double get_ratio() = 0;
   

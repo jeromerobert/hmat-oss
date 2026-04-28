@@ -390,33 +390,18 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
       _compressors->cols[p] = kpOffset;
 
       {
-        ScalarArray<T>* a_p = new ScalarArray<T>(a->colsSubset(kp, kpOffset));
-
-        std::vector<T> tmp(a_p->ptr(), a_p->ptr() + size_a);
-
-        _compressors->compressors_A[p]->compress(tmp, size_a, delta_A);      
-        
-
+        ScalarArray<T> a_p = a->colsSubset(kp, kpOffset);
+        _compressors->compressors_A[p]->compress(a_p.ptr(), size_a, delta_A);     
         size_c += size_a / _compressors->compressors_A[p]->get_ratio();
-        
-        delete a_p;
       }
       
 
 
       {
-       ScalarArray<T>* b_p = new ScalarArray<T>(b->colsSubset(kp, kpOffset));
-
-        std::vector<T> tmp(b_p->ptr(), b_p->ptr() + size_b);
-
-
-        _compressors->compressors_B[p]->compress(tmp, size_b, delta_B);      
-
+        ScalarArray<T> b_p = b->colsSubset(kp, kpOffset);
+        _compressors->compressors_B[p]->compress(b_p.ptr(), size_b, delta_B);   
         size_c += size_b / _compressors->compressors_B[p]->get_ratio();
-        delete b_p;
       }
-
-      
   }
   
   a->freeMemory(); //The memory for the panels a and b is freed.
@@ -463,20 +448,11 @@ float RkMatrix<T>::FPdecompress()
     if(k_p ==0)
       continue;
 
+    T* dest_A = this->a->ptr() + (offset * m);
+    T* dest_B = this->b->ptr() + (offset * n);
 
-    { //We want to release a_p as soon as possible
-      std::vector<T> data = _compressors->compressors_A[p]->decompress();
-      
-      ScalarArray<T> a_p(data.data(), m, k_p);
-      a->copyMatrixAtOffset(&a_p, 0, offset);    
-    }   
-
-    {//We want to release b_p as soon as possible
-      std::vector<T> data = _compressors->compressors_B[p]->decompress();
-      
-      ScalarArray<T> b_p(data.data(), n, k_p);
-      b->copyMatrixAtOffset(&b_p, 0, offset);
-    }   
+    _compressors->compressors_A[p]->decompress(dest_A);
+    _compressors->compressors_B[p]->decompress(dest_B);
 
     offset+=k_p;
   }
@@ -487,15 +463,14 @@ float RkMatrix<T>::FPdecompress()
   _compressors = nullptr;
 
   return std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-  
 }
 
 template <typename T>
 RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
 {
-  if(result == NULL)
+  if(result == nullptr)
   {
-    result = new RkMatrix<T>(NULL, new IndexSet(*this->rows), NULL, new IndexSet(*this->cols));
+    result = new RkMatrix<T>(nullptr, new IndexSet(*this->rows), nullptr, new IndexSet(*this->cols));
   }
 
 
@@ -510,16 +485,9 @@ RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
   }
    
 //Copying the matrix
-  if(result->a) { delete result->a; result->a = nullptr; }
-  if(result->b) { delete result->b; result->b = nullptr; }
-  if(result->_compressors)
-  {
-    delete result->_compressors;
-    result->_compressors = nullptr;
-  }
-
+  delete result->_compressors;
+  result->_compressors = nullptr;
   
-
  //Decompression
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -528,10 +496,21 @@ RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
   int n = this->cols->size();
   int nb_blocs = _compressors->nb_blocs;
 
-  int offset = 0;
-  result->a = new ScalarArray<T>(m, k);
-  result->b = new ScalarArray<T>(n, k);
+ if (result->a != nullptr && result->a->rows == m) {
+      result->a->resize(k); 
+  } else {
+      delete result->a;
+      result->a = new ScalarArray<T>(m, k);
+  }
 
+  if (result->b != nullptr && result->b->rows == n) {
+      result->b->resize(k); 
+  } else {
+      delete result->b;
+      result->b = new ScalarArray<T>(n, k);
+  }
+
+  int offset = 0;
   
   for(int p = 0; p < nb_blocs; p++)
   {
@@ -541,20 +520,11 @@ RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
       continue;
 
 
-    { //We want to release data as soon as possible
-      std::vector<T> data = _compressors->compressors_A[p]->decompressCopy();
-      
-      ScalarArray<T> a_p(data.data(), m, k_p);
-      result->a->copyMatrixAtOffset(&a_p, 0, offset);    
+    T* dest_A = result->a->ptr() + (offset * m);
+    T* dest_B = result->b->ptr() + (offset * n);
 
-    }   
-
-    {//We want to release data as soon as possible
-      std::vector<T> data = _compressors->compressors_B[p]->decompressCopy();
-      
-      ScalarArray<T> b_p(data.data(), n, k_p);
-      result->b->copyMatrixAtOffset(&b_p, 0, offset);
-    }   
+    _compressors->compressors_A[p]->decompressCopy(dest_A);
+    _compressors->compressors_B[p]->decompressCopy(dest_B);
 
     offset+=k_p;
   }

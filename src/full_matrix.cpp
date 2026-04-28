@@ -360,8 +360,6 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
   {
     return;
   }
-  //printf("Begin Compression of Full block. Parameters : epsilon = %e , method = %d \n\n", epsilon, method);
-
   auto start = std::chrono::high_resolution_clock::now();
 
   _compressor = new FPSimpleCompressor<T>(method);
@@ -369,18 +367,15 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
   _compressor->n_rows = data.rows;
   _compressor->n_cols = data.cols;
 
-  std::vector<T> tmp(data.ptr(), data.ptr()+ _compressor->n_rows*_compressor->n_cols);
-
   double normD = data.norm();
   size_t sizeD = data.rows * data.cols;
 
   double delta = epsilon * normD /sqrt((double)sizeD);
 
-  _compressor->compressor->compress(tmp, sizeD, delta);
+  _compressor->compressor->compress(data.ptr(), sizeD, delta);
   _compressor->compressionRatio = _compressor->compressor->get_ratio();
 
   data.freeMemory();
-
 
   auto end = std::chrono::high_resolution_clock::now();
   _compressor->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
@@ -390,11 +385,8 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
 template <typename T>
 float FullMatrix<T>::FPdecompress()
 {
-  //printf("Begin Decompression of full block !\n");
-
   if(!isFPcompressed())
   {
-     //printf("Compressors not instanciated\n");
     return 0;
   }
   if(!(_compressor->compressor))
@@ -405,13 +397,8 @@ float FullMatrix<T>::FPdecompress()
   auto start = std::chrono::high_resolution_clock::now();
 
   data.resize(_compressor->n_cols);
-  std::vector<T> tmp_out = _compressor->compressor->decompress();
 
-  ScalarArray<T> tmp(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
-
-  data.copyMatrixAtOffset(&tmp, 0, 0);
-
-  
+  _compressor->compressor->decompress(data.ptr());
   auto end = std::chrono::high_resolution_clock::now();
 
   delete _compressor;
@@ -423,7 +410,7 @@ float FullMatrix<T>::FPdecompress()
 template <typename T>
 FullMatrix<T> *FullMatrix<T>::FPdecompressCopy(FullMatrix<T> *result) const
 {
-  if(result == NULL)
+  if(result == nullptr)
     result = new FullMatrix<T>(rows_, cols_, false);
 
   data.copy(&result->data);
@@ -441,7 +428,6 @@ FullMatrix<T> *FullMatrix<T>::FPdecompressCopy(FullMatrix<T> *result) const
 
    if(!isFPcompressed())
   {
-     //printf("Compressors not instanciated\n");
     return result;
   }
   if(!(_compressor->compressor))
@@ -452,20 +438,13 @@ FullMatrix<T> *FullMatrix<T>::FPdecompressCopy(FullMatrix<T> *result) const
   auto start = std::chrono::high_resolution_clock::now();
 
   result->data.resize(_compressor->n_cols);
-  
-  std::vector<T> tmp_out = _compressor->compressor->decompressCopy();
 
-  ScalarArray<T> tmp(tmp_out.data(), _compressor->n_rows, _compressor->n_cols);
-
-  result->data.copyMatrixAtOffset(&tmp, 0, 0);
-
+  _compressor->compressor->decompressCopy(result->data.ptr());
   
   auto end = std::chrono::high_resolution_clock::now();
 
   _compressor->decompressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
   
-
-
   return result;
 }
 

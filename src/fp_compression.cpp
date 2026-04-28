@@ -55,15 +55,23 @@ FPCompressorInterface<T>* initCompressor(hmat_FPcompress_t method)
 
 
 template<typename T>
-void Defaultcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
+void Defaultcompressor<T>::compress(T* data, size_t size, double epsilon)
 {
-    this->_data = data;
+    this->_data = std::vector<T>(data, data + size);
 }
 
 template<typename T>
 std::vector<T> Defaultcompressor<T>::decompress()
 {
-    return _data;
+    std::vector<T> out = _data;
+    this->_data.clear();
+    return out;
+}
+
+template <typename T>
+void Defaultcompressor<T>::decompress(T *dest)
+{
+    decompressCopy(dest);
     this->_data.clear();
 }
 
@@ -71,6 +79,12 @@ template <typename T>
 std::vector<T> Defaultcompressor<T>::decompressCopy()
 {
     return _data;
+}
+
+template <typename T>
+void Defaultcompressor<T>::decompressCopy(T *dest)
+{
+    std::copy(_data.begin(), _data.end(), dest);
 }
 
 template <typename T>
@@ -96,12 +110,12 @@ SZcompressor<T>::~SZcompressor()
 }
 
 template <typename T>
-void SZcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
+void SZcompressor<T>::compress(T* data, size_t size, double epsilon)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     this->_size = size;
-    this->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(data.data(), size, epsilon);
+    this->_compressor = new composyx::SZ_compressor<T, composyx::SZ_CompressionMode::POINTWISE>(data, size, epsilon);
 }
 
 template<typename T>
@@ -116,11 +130,27 @@ std::vector<T> SZcompressor<T>::decompress()
 }
 
 template <typename T>
+void SZcompressor<T>::decompress(T *dest)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    decompressCopy(dest);
+    delete _compressor;
+    _compressor = nullptr;
+}
+
+template <typename T>
 std::vector<T> SZcompressor<T>::decompressCopy()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     return _compressor->decompress();
+}
+
+template <typename T>
+void SZcompressor<T>::decompressCopy(T *dest)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    _compressor->decompress(dest);
 }
 
 template <typename T>
@@ -149,12 +179,12 @@ SZ3compressor<T>::~SZ3compressor()
 }
 
 template <typename T>
-void SZ3compressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
+void SZ3compressor<T>::compress(T* data, size_t size, double epsilon)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     this->_size = size;
-    this->_compressor = new composyx::SZ3_compressor<T, SZ3::EB::EB_REL>(data.data(), size, epsilon);
+    this->_compressor = new composyx::SZ3_compressor<T, SZ3::EB::EB_REL>(data, size, epsilon);
     //this->_compressor->print_config();
 }
 
@@ -170,11 +200,27 @@ std::vector<T> SZ3compressor<T>::decompress()
 }
 
 template <typename T>
+void SZ3compressor<T>::decompress(T *dest)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    decompressCopy(dest);
+    delete _compressor;
+    _compressor = nullptr;
+}
+
+template <typename T>
 std::vector<T> SZ3compressor<T>::decompressCopy()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     return _compressor->decompress();
+}
+
+template <typename T>
+void SZ3compressor<T>::decompressCopy(T *dest)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    _compressor->decompress(dest);
 }
 
 template <typename T>
@@ -203,12 +249,12 @@ ZFPcompressor<T>::~ZFPcompressor()
 }
 
 template <typename T>
-void ZFPcompressor<T>::compress(std::vector<T> data, size_t size, double epsilon)
+void ZFPcompressor<T>::compress(T* data, size_t size, double epsilon)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     this->_size = size;
-    this->_compressor = new composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>(data.data(), size, epsilon);
+    this->_compressor = new composyx::ZFP_compressor<T, composyx::ZFP_CompressionMode::ACCURACY>(data, size, epsilon);
 }
 
 template<typename T>
@@ -223,11 +269,27 @@ std::vector<T> ZFPcompressor<T>::decompress()
 }
 
 template <typename T>
+void ZFPcompressor<T>::decompress(T *dest)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    decompressCopy(dest);
+    delete _compressor;
+    _compressor = nullptr;
+}
+
+template <typename T>
 std::vector<T> ZFPcompressor<T>::decompressCopy()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     return _compressor->decompress();
+}
+
+template <typename T>
+void ZFPcompressor<T>::decompressCopy(T *dest)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    _compressor->decompress(dest);
 }
 
 template <typename T>
