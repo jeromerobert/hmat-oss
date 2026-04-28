@@ -298,19 +298,18 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
 template <typename T>
 void RkMatrix<T>::FPcompress(double epsilon, int slice_param, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
 {
-  if (slice_param == 0) return;
   if(isFPcompressed()) //Already compressed !
   {
     return;
   }
-
-  auto start = std::chrono::high_resolution_clock::now();
 
   int k = this->rank();
   int m = a->rows;
   int n = b->rows;
 
   if(k == 0) return;
+
+  auto start = std::chrono::high_resolution_clock::now();
 
   std::vector<double> norms_A(k);
   std::vector<double> norms_B(k);
@@ -344,19 +343,62 @@ void RkMatrix<T>::FPcompress(double epsilon, int slice_param, hmat_FPcompress_t 
   norm_M = sqrt(norm_M);
 
   int nb_slices = 0;
-  double k0 = 0.0;
-  int cols_per_slice = 0;
+  std::vector<int> slice_widths(k); //maximum number of slices is k
+
 
   if(slice_param > 0)
   {
     nb_slices = std::min(slice_param, k);
-    k0 = (double)k / nb_slices;
+    double mean_width = (double)k / nb_slices;
+
+    for (int p = 0; p < nb_slices; p++)
+    {
+      int kp = std::round(mean_width *p);
+      slice_widths[p] = std::round(mean_width * (p + 1)) - kp;
+    }
+  }
+  else if(slice_param < 0)
+  {
+    int cols_per_slice = -slice_param;
+    nb_slices = (k + cols_per_slice - 1)/cols_per_slice;
+
+    for (int p = 0; p < nb_slices- 1; p++)
+    {
+      slice_widths[p] = cols_per_slice;
+    }
+    slice_widths[nb_slices - 1] = k - (nb_slices-1) * cols_per_slice;
   }
   else
   {
-    cols_per_slice = -slice_param;
-    nb_slices = (k + cols_per_slice - 1)/cols_per_slice;
-    k0 = (double)cols_per_slice;
+    double tau = 3.0;
+    int p = 0;
+    double max = norms_A[0] * norms_B[0];
+    double min = max;
+    int width = 0;
+
+    for(int i = 0; i < k; i++)
+    {
+      double ei = norms_A[i] * norms_B[i];
+      max = std::max(ei, max);
+      min = std::max(std::min(ei, min), 1e-300);
+
+      if(max/min > tau)
+      {
+        //Slice here
+        slice_widths[p] = width;
+        p++;
+        width = 1;
+        max = ei;
+        min = std::max(ei, 1e-300);
+      }
+      else
+      {
+        width++;
+      }
+    }
+    slice_widths[p] = width;
+    nb_slices = p + 1;
+    printf("Smart compression with %d slices (rank %d)\n", nb_slices, k);
   }
 
   
@@ -367,23 +409,14 @@ void RkMatrix<T>::FPcompress(double epsilon, int slice_param, hmat_FPcompress_t 
 
   size_t size = (a->rows*a->cols)+(b->rows*b->cols);
   size_t size_c = 0; 
+
+  int kp = 0; //first index of current slice
   
 
   for(int p = 0; p < nb_slices; p++)
   {
-      int kp, kpOffset;  //first index of current slice, and size of current slice
+      int kpOffset = slice_widths[p];  //size of current slice
 
-      if(slice_param > 0)
-      {
-        kp = std::round(k0 *p);
-        kpOffset = std::round(k0 * (p + 1)) - kp;
-      }
-      else
-      {
-        kp = p * cols_per_slice;
-        kpOffset = std::min(cols_per_slice, k - kp);
-      }
-      
       if(kpOffset <= 0) //In that case 0 columns are selected. Can happen when nb_slices > k
           continue;
 
@@ -426,6 +459,8 @@ void RkMatrix<T>::FPcompress(double epsilon, int slice_param, hmat_FPcompress_t 
         _compressors->compressors_B[p]->compress(b_p.ptr(), size_b, delta_B);   
         size_c += size_b / _compressors->compressors_B[p]->get_ratio();
       }
+
+      kp += kpOffset;
   }
   
   a->freeMemory(); //The memory for the panels a and b is freed.
