@@ -48,12 +48,12 @@ namespace hmat {
   template<typename T>
   FPAdaptiveCompressor<T>::FPAdaptiveCompressor(hmat_FPcompress_t method, int n)
   {
-      nb_blocs = n;
-      cols.resize(nb_blocs);
-      compressors_A.resize(nb_blocs);
-      compressors_B.resize(nb_blocs);
+      nb_slices = n;
+      cols.resize(nb_slices);
+      compressors_A.resize(nb_slices);
+      compressors_B.resize(nb_slices);
 
-      for(int i =0; i < nb_blocs; i++)
+      for(int i =0; i < nb_slices; i++)
       {
         compressors_A[i] = initCompressor<T>(method);
         compressors_B[i] = initCompressor<T>(method);
@@ -68,7 +68,7 @@ namespace hmat {
   template <typename T>
   FPAdaptiveCompressor<T>::~FPAdaptiveCompressor()
   {
-    for(int i =0; i < nb_blocs; i++)
+    for(int i =0; i < nb_slices; i++)
       {
         if(compressors_A[i])
         {
@@ -296,10 +296,9 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
 }
 
 template <typename T>
-void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
+void RkMatrix<T>::FPcompress(double epsilon, int slice_param, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
 {
-  assert(nb_blocs <= this->rank());//We may want to fix nb_blocs to this->rank() in that case in the future; for now, it is simpler to assert nb_blocs <= this->rank().
-
+  if (slice_param == 0) return;
   if(isFPcompressed()) //Already compressed !
   {
     return;
@@ -311,6 +310,8 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   int m = a->rows;
   int n = b->rows;
 
+  if(k == 0) return;
+
   std::vector<double> norms_A(k);
   std::vector<double> norms_B(k);
 
@@ -319,7 +320,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   if(Sigma)
   {
     if(this->rank() != Sigma->rows)
-      throw std::invalid_argument( "Number of Singular Values and rank don't match\n");
+      throw std::invalid_argument( "[RkMatrix::FPcompress()]: Number of Singular Values and rank don't match\n");
 
     //If Singular values are already known, norm_A and norm_B are set with sigma (assuming a and b are balanced)
     for(int i = 0; i < k; i++)
@@ -341,30 +342,53 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
     }
   }
   norm_M = sqrt(norm_M);
+
+  int nb_slices = 0;
+  double k0 = 0.0;
+  int cols_per_slice = 0;
+
+  if(slice_param > 0)
+  {
+    nb_slices = std::min(slice_param, k);
+    k0 = (double)k / nb_slices;
+  }
+  else
+  {
+    cols_per_slice = -slice_param;
+    nb_slices = (k + cols_per_slice - 1)/cols_per_slice;
+    k0 = (double)cols_per_slice;
+  }
+
   
-  _compressors = new FPAdaptiveCompressor<T>(method, nb_blocs);
+  _compressors = new FPAdaptiveCompressor<T>(method, nb_slices);
   _compressors->n_rows_A = m;
   _compressors->n_rows_B = n;
   _compressors->n_cols = k;
 
-
-  double k0 = k/(double)nb_blocs;
-
-
-
   size_t size = (a->rows*a->cols)+(b->rows*b->cols);
   size_t size_c = 0; 
+  
 
-  for(int p = 0; p < nb_blocs; p++)
+  for(int p = 0; p < nb_slices; p++)
   {
-      int kp = round(k0*p);
-      int kpOffset = round(k0 *(p+1)) - kp;
+      int kp, kpOffset;  //first index of current slice, and size of current slice
+
+      if(slice_param > 0)
+      {
+        kp = std::round(k0 *p);
+        kpOffset = std::round(k0 * (p + 1)) - kp;
+      }
+      else
+      {
+        kp = p * cols_per_slice;
+        kpOffset = std::min(cols_per_slice, k - kp);
+      }
+      
+      if(kpOffset <= 0) //In that case 0 columns are selected. Can happen when nb_slices > k
+          continue;
 
       size_t size_a = m * kpOffset;
       size_t size_b = n * kpOffset;
-      
-      if(kpOffset <= 0) //In that case 0 columns are selected. Can happen when nb_blocs > k
-          continue;
 
       double norm_Al = 0;
       double norm_Bl = 0;
@@ -435,13 +459,13 @@ float RkMatrix<T>::FPdecompress()
   int k =this->rank();
   int m = this->rows->size();
   int n = this->cols->size();
-  int nb_blocs = _compressors->nb_blocs;
+  int nb_slices = _compressors->nb_slices;
 
   int offset = 0;
   this->a->resize(k);
   this->b->resize(k);
   
-  for(int p = 0; p < nb_blocs; p++)
+  for(int p = 0; p < nb_slices; p++)
   {
     int k_p = _compressors->cols[p];
 
@@ -494,7 +518,7 @@ RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
   int k = this->rank();
   int m = this->rows->size();
   int n = this->cols->size();
-  int nb_blocs = _compressors->nb_blocs;
+  int nb_slices = _compressors->nb_slices;
 
  if (result->a != nullptr && result->a->rows == m) {
       result->a->resize(k); 
@@ -512,7 +536,7 @@ RkMatrix<T> *RkMatrix<T>::FPdecompressCopy(RkMatrix<T> *result) const
 
   int offset = 0;
   
-  for(int p = 0; p < nb_blocs; p++)
+  for(int p = 0; p < nb_slices; p++)
   {
     int k_p = _compressors->cols[p];
 

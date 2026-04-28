@@ -1809,44 +1809,24 @@ void HMatrix<T>::FPcompress() const
       if(localSettings.FPSettings->compressFull && !full()->isFPcompressed())
       {
         full()->FPcompress(localSettings.FPSettings->epsilonFP, localSettings.FPSettings->compressor);
-
-        this->fpProfile_.lastRatio = full()->_compressor->compressionRatio;
-        this->fpProfile_.compressionTimeTotal += full()->_compressor->compressionTime;
-        this->fpProfile_.nbCompressions += 1;
-
+        if(full()->_compressor)
+        {
+          this->fpProfile_.lastRatio = full()->_compressor->compressionRatio;
+          this->fpProfile_.compressionTimeTotal += full()->_compressor->compressionTime;
+          this->fpProfile_.nbCompressions += 1;
+        }
       }
     } else if (isRkMatrix() && rk()) {
       //Compress RK block
       if(localSettings.FPSettings->compressRk && !rk()->isFPcompressed())
       {
-        int nb_blocs = localSettings.FPSettings->nb_blocs;
-        if(nb_blocs > 0)
+        rk()->FPcompress(localSettings.FPSettings->epsilonFP, localSettings.FPSettings->slice_param, localSettings.FPSettings->compressor);
+        if(rk()->_compressors)
         {
-          int min_size = 2048; //The Minimum block size we want for compression 
-          //Ideal matrix dimensions for ZFP should be multiples of 4x4 (or, if not possible, a multiple of 16.)
-          int total_size = std::min(rows()->size(), cols()->size()) * rk()->rank() * sizeof(T);
-          float bloc_size = total_size / nb_blocs;
-
-          if(bloc_size < min_size)
-          {
-            nb_blocs = std::max((int)round(total_size/min_size), (int)1); //To make sure we compress blocks large enough for the compressors to work properly
-          }
+          this->fpProfile_.lastRatio = rk()->_compressors->compressionRatio;
+          this->fpProfile_.compressionTimeTotal += rk()->_compressors->compressionTime;
+          this->fpProfile_.nbCompressions += 1;
         }
-        else
-        {
-          nb_blocs = rk()->rank();
-        }
-        
-        //printf("\nDims : (%d + %d) x %d; N blocs = %d\n",rows()->size(), cols()->size(), rk()->rank(), nb_blocs);
-        //size_t size = rows()->size() * cols()->size();
-    
-        nb_blocs = std::min(nb_blocs, rk()->rank());
-        
-        rk()->FPcompress(localSettings.FPSettings->epsilonFP, nb_blocs, localSettings.FPSettings->compressor);
-
-        this->fpProfile_.lastRatio = rk()->_compressors->compressionRatio;
-        this->fpProfile_.compressionTimeTotal += rk()->_compressors->compressionTime;
-        this->fpProfile_.nbCompressions += 1;
       }
       
       

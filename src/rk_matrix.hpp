@@ -40,7 +40,7 @@ namespace hmat {
   
 template<typename T>
 struct FPAdaptiveCompressor{
-    int nb_blocs;
+    int nb_slices;
     int n_rows_A;
     int n_rows_B;
     int n_cols;
@@ -59,7 +59,7 @@ struct FPAdaptiveCompressor{
 
     FPAdaptiveCompressor* copy() {
       FPAdaptiveCompressor* newComp = new FPAdaptiveCompressor();
-      newComp->nb_blocs = nb_blocs;
+      newComp->nb_slices = nb_slices;
       newComp->n_rows_A = n_rows_A;
       newComp->n_rows_B = n_rows_B;
       newComp->n_cols = n_cols;
@@ -69,10 +69,10 @@ struct FPAdaptiveCompressor{
       
       newComp->cols = cols;
 
-      newComp->compressors_A.resize(nb_blocs);
-      newComp->compressors_B.resize(nb_blocs);
+      newComp->compressors_A.resize(nb_slices);
+      newComp->compressors_B.resize(nb_slices);
 
-      for(int i =0; i < nb_blocs; i++)
+      for(int i =0; i < nb_slices; i++)
       {
         newComp->compressors_A[i] = compressors_A[i]->copy();
         newComp->compressors_B[i] = compressors_B[i]->copy();
@@ -198,7 +198,7 @@ public:
    */
   
   /** Compress the panels of a RkMatrix using FP Compression.*/
-  void FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, Vector<typename Types<T>::real> *sigma=NULL);
+  void FPcompress(double epsilon, int slice_param, hmat_FPcompress_t method = hmat_FPcompress_t::DEFAULT_COMPRESSOR, Vector<typename Types<T>::real> *sigma=NULL);
 
 /** Decompress the panels of a RkMatrix after FP Compression. Return the decompresion time*/ 
   float FPdecompress();

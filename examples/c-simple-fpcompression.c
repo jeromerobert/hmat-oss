@@ -214,9 +214,9 @@ int main(int argc, char **argv) {
   arithmetic = argv[2][0];
   fp_settings.epsilonFP = atof(argv[3]);
 
-  fp_settings.nb_blocs = 0; //Default value : no compression if <= 0;
+  fp_settings.slice_param = 0; //Default value : no compression if <= 0;
   if (argc == 5 || argc == 6)
-    {fp_settings.nb_blocs = atoi(argv[4]);}
+    {fp_settings.slice_param = atoi(argv[4]);}
 
   if (argc == 6)
   {
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
   fp_settings.compressRk = true;
 
   printf("\n =================== Tests Compression on Cylinder ===================\n");
-  printf("With parameters epsilon = %.2e, n_blocs = %d,\non a problem of size %d with arithmetic %c\n\n", fp_settings.epsilonFP, fp_settings.nb_blocs, n, arithmetic);
+  printf("With parameters epsilon = %.2e, n_blocs = %d,\non a problem of size %d with arithmetic %c\n\n", fp_settings.epsilonFP, fp_settings.slice_param, n, arithmetic);
 
 
   hmat_get_parameters(&settings);
@@ -343,7 +343,7 @@ int main(int argc, char **argv) {
   {
     printf("\nCompressing...\n");
     //Setting compression parameters
-    hmat.SetFPCompressionSettings(hmatrix_c, fp_settings); //Also possible : hmat.SetFPCompressionSettings(hmatrix_c, epsilon, nb_blocs, compressor_type, true, true);
+    hmat.SetFPCompressionSettings(hmatrix_c, fp_settings); //Also possible : hmat.SetFPCompressionSettings(hmatrix_c, epsilon, slice_param, compressor_type, true, true);
     //Applying compression
     hmat.FPcompress(hmatrix_c);
     

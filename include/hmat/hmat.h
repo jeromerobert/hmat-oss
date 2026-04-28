@@ -133,7 +133,7 @@ typedef struct hmat_block_info_struct {
 
 typedef struct hmat_fp_settings_struct {
     hmat_FPcompress_t compressor;
-    int nb_blocs;
+    int slice_param;
     float epsilonFP;
     bool compressFull;
     bool compressRk;
@@ -141,7 +141,7 @@ typedef struct hmat_fp_settings_struct {
 
 } hmat_fp_settings_t;
 
-#define DEFAULT_FP_SETTINGS {.compressor = DEFAULT_COMPRESSOR, .nb_blocs = 4, .epsilonFP = 1e-4, .compressFull = true, .compressRk = true, .L1depth = 0 }
+#define DEFAULT_FP_SETTINGS {.compressor = DEFAULT_COMPRESSOR, .slice_param = 4, .epsilonFP = 1e-4, .compressFull = true, .compressRk = true, .L1depth = 0 }
 
 /*! \brief Prepare block assembly.
  \param row_start starting row
