@@ -371,7 +371,12 @@ void FullMatrix<T>::FPcompress(double epsilon, hmat_FPcompress_t method)
 
   std::vector<T> tmp(data.ptr(), data.ptr()+ _compressor->n_rows*_compressor->n_cols);
 
-  _compressor->compressor->compress(tmp, data.rows * data.cols, epsilon);
+  double normD = data.norm();
+  size_t sizeD = data.rows * data.cols;
+
+  double delta = epsilon * normD /sqrt((double)sizeD);
+
+  _compressor->compressor->compress(tmp, sizeD, delta);
   _compressor->compressionRatio = _compressor->compressor->get_ratio();
 
   data.freeMemory();

@@ -298,8 +298,6 @@ ScalarArray<T> *truncatedAB(ScalarArray<T> *ab, const IndexSet *indexSet,
 template <typename T>
 void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t method, Vector<typename Types<T>::real> *Sigma)
 {
-  //printf("Begin Compression of Rk block. Parameters : epsilon = %e , method = %d, nb_blocs = %d\n\n", epsilon, method, nb_blocs);
-
   assert(nb_blocs <= this->rank());//We may want to fix nb_blocs to this->rank() in that case in the future; for now, it is simpler to assert nb_blocs <= this->rank().
 
   if(isFPcompressed()) //Already compressed !
@@ -312,43 +310,47 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
   int k = this->rank();
   int m = a->rows;
   int n = b->rows;
-  bool isSigma;
+
+  std::vector<double> norms_A(k);
+  std::vector<double> norms_B(k);
+
+  double norm_M = 0.0;
 
   if(Sigma)
   {
-    isSigma = true;
     if(this->rank() != Sigma->rows)
       throw std::invalid_argument( "Number of Singular Values and rank don't match\n");
+
+    //If Singular values are already known, norm_A and norm_B are set with sigma (assuming a and b are balanced)
+    for(int i = 0; i < k; i++)
+    {
+      norms_A[i] = sqrt((*Sigma)[i]);
+      norms_B[i] = sqrt((*Sigma)[i]);
+      norm_M += norms_A[i] * norms_A[i] * norms_B[i] * norms_B[i];
+    }
+    
   }
   else
   {
-    isSigma = false;
-    Sigma = new Vector<typename Types<T>::real>(k);
 
     for(int i = 0; i < k; i++)
     {
-      
-      (*Sigma)[i] = (a->colsSubset(i,1)).norm();
-      (*Sigma)[i] *=  (b->colsSubset(i,1)).norm();
-
-      (*Sigma)[i] = std::sqrt((*Sigma)[i]);
+      norms_A[i] = (a->colsSubset(i,1)).norm();
+      norms_B[i] = (b->colsSubset(i,1)).norm();
+      norm_M += norms_A[i] * norms_A[i] * norms_B[i] * norms_B[i];
     }
   }
+  norm_M = sqrt(norm_M);
   
   _compressors = new FPAdaptiveCompressor<T>(method, nb_blocs);
-
-
   _compressors->n_rows_A = m;
   _compressors->n_rows_B = n;
   _compressors->n_cols = k;
 
 
-  double p_sqrt = sqrt((double)nb_blocs);
   double k0 = k/(double)nb_blocs;
 
-  Vector<typename Types<T>::real> *Sigma_p;
 
-  double sigma_1 = Sigma->maxAbsolute(); 
 
   size_t size = (a->rows*a->cols)+(b->rows*b->cols);
   size_t size_c = 0; 
@@ -364,13 +366,27 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
       if(kpOffset <= 0) //In that case 0 columns are selected. Can happen when nb_blocs > k
           continue;
 
-     
-      Sigma_p = new Vector<typename Types<T>::real>(Sigma->rowsSubset(kp, kpOffset), 0);
+      double norm_Al = 0;
+      double norm_Bl = 0;
+      for (int i = kp; i < kp + kpOffset; i++)
+      {
+        norm_Al += norms_A[i] * norms_A[i];
+        norm_Bl += norms_B[i] * norms_B[i];
+      }
+      norm_Al = std::sqrt(norm_Al);
+      norm_Bl = std::sqrt(norm_Bl);
 
-      double sigma_p = Sigma_p->maxAbsolute();
+      //Safety net
+      if (norm_Al == 0.0) norm_Al = 1.0;
+      if (norm_Bl == 0.0) norm_Bl = 1.0;
 
-      double epsilon_p = epsilon *sigma_1/(p_sqrt * sigma_p);
-      epsilon_p = epsilon_p;
+      double num = 1.732 * epsilon * norm_M;
+      double common_denom = 2.0 * sqrt(k);
+
+      // Computing distincts deltas for A and B
+      double delta_A = num / (common_denom * sqrt(m) * norm_Bl);
+      double delta_B = num / (common_denom * sqrt(n) * norm_Al);
+      
       _compressors->cols[p] = kpOffset;
 
       {
@@ -378,7 +394,7 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
         std::vector<T> tmp(a_p->ptr(), a_p->ptr() + size_a);
 
-        _compressors->compressors_A[p]->compress(tmp, size_a, epsilon_p);      
+        _compressors->compressors_A[p]->compress(tmp, size_a, delta_A);      
         
 
         size_c += size_a / _compressors->compressors_A[p]->get_ratio();
@@ -394,19 +410,15 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
         std::vector<T> tmp(b_p->ptr(), b_p->ptr() + size_b);
 
 
-        _compressors->compressors_B[p]->compress(tmp, size_b, epsilon_p);      
+        _compressors->compressors_B[p]->compress(tmp, size_b, delta_B);      
 
         size_c += size_b / _compressors->compressors_B[p]->get_ratio();
         delete b_p;
       }
 
-      delete Sigma_p;
       
   }
-  if(!isSigma)
-  {
-    delete Sigma; //In that case we do own Sigma
-  }
+  
   a->freeMemory(); //The memory for the panels a and b is freed.
   b->freeMemory();
   
@@ -415,11 +427,6 @@ void RkMatrix<T>::FPcompress(double epsilon, int nb_blocs, hmat_FPcompress_t met
 
   auto end = std::chrono::high_resolution_clock::now();
   _compressors->compressionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-  //printf("Compression Time : %f s\n", decompressionTime*1e-9);
-
-  //printf("Dims : (%d, %d); compression Ratio = %f\n", rows->size(), this->rank(), _compressors->compressionRatio);
- 
-
 }
 
 template <typename T>
