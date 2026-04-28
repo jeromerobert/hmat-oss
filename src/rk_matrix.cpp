@@ -398,7 +398,6 @@ void RkMatrix<T>::FPcompress(double epsilon, int slice_param, hmat_FPcompress_t 
     }
     slice_widths[p] = width;
     nb_slices = p + 1;
-    printf("Smart compression with %d slices (rank %d)\n", nb_slices, k);
   }
 
   
