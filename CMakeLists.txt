@@ -264,6 +264,7 @@ target_link_libraries(hmat
 option(ENABLE_COMPOSYX "Enable composyx" OFF)
 if(ENABLE_COMPOSYX)  
     if ( NOT TARGET COMPOSYX::composyx )
+        enable_language(Fortran) # not great: find_package(composyx) should not validate that the fortran compiler works, it has already been done when building composyx.
         find_package(PkgConfig REQUIRED)
         pkg_search_module(ZSTD REQUIRED IMPORTED_TARGET libzstd)
         find_package(composyx REQUIRED)
