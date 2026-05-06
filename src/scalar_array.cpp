@@ -567,6 +567,7 @@ template<typename T> T ScalarArray<T>::dot_aibj(int i, const ScalarArray<T> &b, 
 
 template<typename T> void ScalarArray<T>::fromFile(const char * filename) {
   FILE * f = fopen(filename, "rb");
+  HMAT_ASSERT_MSG(f != NULL, "Cannot open %s", filename);
   /* Read the header before data : [stype, rows, cols, sieof(T), 0] */
   int code;
   int r = fread(&code, sizeof(int), 1, f);
