@@ -81,7 +81,7 @@ public:
 template<typename T>
 class SZ3compressor : public FPCompressorInterface<T> {
 private:
-    composyx::SZ3_compressor<T, SZ3::EB::EB_REL>* _compressor;
+    composyx::SZ3_compressor<T, SZ3::EB::EB_ABS>* _compressor;
     size_t _size;
 
     mutable std::recursive_mutex _mutex;
