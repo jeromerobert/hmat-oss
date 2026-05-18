@@ -264,20 +264,19 @@ CompressionSVD::compress(const ClusterAssemblyFunction<Z_t>& block) const {
     return doCompressionSVD<Z_t>(block, epsilon_);
 }
 
-template<typename T>
-void acaFull(ScalarArray<T> & m, ScalarArray<T>* & tmpA, ScalarArray<T>* & tmpB, double compressionEpsilon) {
+template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEpsilon) {
   DECLARE_CONTEXT;
   double estimateSquaredNorm = 0;
-  int maxK = min(m.rows, m.cols);
+  int maxK = min(m->rows(), m->cols());
 
-  tmpA = new ScalarArray<T>(m.rows, maxK);
-  tmpB = new ScalarArray<T>(m.cols, maxK);
+  ScalarArray<T> *tmpA = new ScalarArray<T>(m->rows(), maxK);
+  ScalarArray<T> *tmpB = new ScalarArray<T>(m->cols(), maxK);
   int nu;
 
   for (nu = 0; nu < maxK; nu++) {
     int i_nu, j_nu;
-    findMax(m, i_nu, j_nu);
-    const T delta = m.get(i_nu, j_nu);
+    findMax(m->data, i_nu, j_nu);
+    const T delta = m->get(i_nu, j_nu);
     if (squaredNorm(delta) == 0.) {
       break;
     }
@@ -287,15 +286,15 @@ void acaFull(ScalarArray<T> & m, ScalarArray<T>* & tmpA, ScalarArray<T>* & tmpB,
       Vector<T> va_nu(*tmpA, nu);
       Vector<T> vb_nu(*tmpB, nu);
 
-      for (int i = 0; i < m.rows; i++)
-        va_nu[i] = m.get(i, j_nu);
-      for (int j = 0; j < m.cols; j++)
-        vb_nu[j] = m.get(i_nu, j) / delta;
+      for (int i = 0; i < m->rows(); i++)
+        va_nu[i] = m->get(i, j_nu);
+      for (int j = 0; j < m->cols(); j++)
+        vb_nu[j] = m->get(i_nu, j) / delta;
 
       // performs the rank 1 operation m := m - va_nu*vb_nu^T
       // in order to nullify m->get(i_nu, j_nu) (the previous maximum value)
       // as well as the whole row i_nu and column j_nu
-      m.rankOneUpdate(-1, va_nu, vb_nu);
+      m->data.rankOneUpdate(-1, va_nu, vb_nu);
 
       // Update the estimate norm
       // Let S_{k-1} be the previous estimate. We have (for the Frobenius norm):
@@ -331,13 +330,7 @@ void acaFull(ScalarArray<T> & m, ScalarArray<T>* & tmpA, ScalarArray<T>* & tmpB,
     tmpA->resize(nu);
     tmpB->resize(nu);
   }
-}
 
-template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEpsilon) {
-  DECLARE_CONTEXT;
-  ScalarArray<T> * tmpA;
-  ScalarArray<T> * tmpB;
-  acaFull(m->data, tmpA, tmpB, compressionEpsilon);
   auto rows = m->rows_;
   auto cols = m->cols_;
   return new RkMatrix<T>(tmpA, rows, tmpB, cols);
@@ -878,10 +871,6 @@ template RkMatrix<D_t>* acaFull(FullMatrix<D_t>*, double);
 template RkMatrix<C_t>* acaFull(FullMatrix<C_t>*, double);
 template RkMatrix<Z_t>* acaFull(FullMatrix<Z_t>*, double);
 
-template void acaFull(ScalarArray<S_t> &, ScalarArray<S_t>* &, ScalarArray<S_t>* &, double);
-template void acaFull(ScalarArray<D_t> &, ScalarArray<D_t>* &, ScalarArray<D_t>* &, double);
-template void acaFull(ScalarArray<C_t> &, ScalarArray<C_t>* &, ScalarArray<C_t>* &, double);
-template void acaFull(ScalarArray<Z_t> &, ScalarArray<Z_t>* &, ScalarArray<Z_t>* &, double);
 
 template RkMatrix<S_t>* rankRevealingQR(FullMatrix<S_t>* m, double eps);
 template RkMatrix<D_t>* rankRevealingQR(FullMatrix<D_t>* m, double eps);

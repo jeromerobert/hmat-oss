@@ -58,10 +58,6 @@ class IndexSet;
 template<typename T>
 RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double eps);
 
-/** Fast alternative to ScalarArray::truncatedSvdDecomposition based on ACA full */
-template<typename T>
-void acaFull(ScalarArray<T> & m, ScalarArray<T>* & u, ScalarArray<T>* & v, double eps);
-
 /** Fast alternative to truncatedSvd based on ACA full */
 template<typename T>
 RkMatrix<T>* acaFull(FullMatrix<T>* m, double eps);
