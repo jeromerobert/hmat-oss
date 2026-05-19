@@ -257,9 +257,21 @@ void HMatInterface<T>::dump_profile(const std::string& prefix) const
 template <typename T>
 void HMatInterface<T>::ratio(hmat_FPCompressionRatio_t &result) const
 {
-    DECLARE_CONTEXT;
-    memset(&result, 0, sizeof(hmat_FPCompressionRatio_t));
-    engine_->ratio(result);
+  DECLARE_CONTEXT;
+  memset(&result, 0, sizeof(hmat_FPCompressionRatio_t));
+
+  engine_->ratio(result);
+
+  double s_r = result.size_Rk;
+  double s_r_c = result.size_Rk_compressed;
+  double s_f = result.size_Full;
+  double s_f_c = result.size_Full_compressed;
+
+  result.rkRatio = (s_r_c > 0.0) ? (s_r / s_r_c) : 0.0;
+  result.fullRatio = (s_f_c > 0.0) ? (s_f / s_f_c) : 0.0;
+
+  double total_compressed = s_r_c + s_f_c;
+  result.ratio = (total_compressed > 0.0) ? ((s_r + s_f) / total_compressed) : 0.0;
 }
 
 template <typename T>

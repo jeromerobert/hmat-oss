@@ -286,29 +286,7 @@ void DefaultEngine<T>::dump_profile(const std::string& prefix) const
 
 template <typename T> void DefaultEngine<T>::ratio(hmat_FPCompressionRatio_t &r) const
 {
-
-  r.ratio = 0;
-  r.fullRatio = 0;
-  r.rkRatio = 0;
-  r.size_Full = 0;
-  r.size_Rk = 0;
-  r.size_Full_compressed = 0;
-  r.size_Rk_compressed = 0;
-
   this->hmat->FPratio(r);
-
-  if(r.size_Full_compressed>0) 
-    {r.fullRatio = r.size_Full /r.size_Full_compressed;}
-    else{r.fullRatio = 0;}
-
-  if(r.size_Rk_compressed >0 )
-    {r.rkRatio = r.size_Rk/r.size_Rk_compressed;}
-    else{r.rkRatio = 0;}
-
-  if(r.size_Full_compressed + r.size_Rk_compressed>0)
-    {r.ratio = (r.size_Full + r.size_Rk)/(r.size_Full_compressed + r.size_Rk_compressed);}
-    else{r.ratio = 0;}
-
 }
 
 template <typename T>
