@@ -33,31 +33,46 @@ void JSONDumper::dumpSubTree(int _depth) {
     for (int i = 0; i < _depth; i++) {
         prefix += "  ";
     }
-    AxisAlignedBoundingBox rows_bbox(*rows_);
-    AxisAlignedBoundingBox cols_bbox(*cols_);
+
+    // keep track of locally allocated caches
+    bool allocated_rows_cache = false;
+    if (rowsTree_ && !rowsTree_->cache_) {
+      rowsTree_->cache_ = new AxisAlignedBoundingBox(*rowsTree_);
+      allocated_rows_cache = true;
+    }
+    bool allocated_cols_cache = false;
+    if (colsTree_ && !colsTree_->cache_) {
+      colsTree_->cache_ = new AxisAlignedBoundingBox(*colsTree_);
+      allocated_cols_cache = true;
+    }
+
+    // if rowsTree_/colsTree_ are not set, we compute the BB
+    AxisAlignedBoundingBox* rows_bbox_ptr = rowsTree_ ? static_cast<AxisAlignedBoundingBox*>(rowsTree_->cache_) : new AxisAlignedBoundingBox(*rows_);
+    AxisAlignedBoundingBox* cols_bbox_ptr = colsTree_ ? static_cast<AxisAlignedBoundingBox*>(colsTree_->cache_) : new AxisAlignedBoundingBox(*cols_);
+
     const int rows_dimension(rows_->coordinates()->dimension());
     const int cols_dimension(cols_->coordinates()->dimension());
     out_ << prefix << "{\"depth\": " << _depth << "," << endl
       << prefix << " \"rows\": "
       << "{\"offset\": " << rows_->offset() << ", \"n\": " << rows_->size() << ", "
-      << "\"boundingBox\": [[" << rows_bbox.bbMin()[0];
+      << "\"boundingBox\": [[" << rows_bbox_ptr->bbMin()[0];
     for (int dim = 1; dim < rows_dimension; ++dim) {
-        out_ << ", " << rows_bbox.bbMin()[dim];
+        out_ << ", " << rows_bbox_ptr->bbMin()[dim];
     }
-    out_ << "], [" << rows_bbox.bbMax()[0];
+    out_ << "], [" << rows_bbox_ptr->bbMax()[0];
     for (int dim = 1; dim < rows_dimension; ++dim) {
-        out_ << ", " << rows_bbox.bbMax()[dim];
+        out_ << ", " << rows_bbox_ptr->bbMax()[dim];
     }
     out_ << "]]}," << endl
       << prefix << " \"cols\": "
       << "{\"offset\": " << cols_->offset() << ", \"n\": " << cols_->size() << ", "
-      << "\"boundingBox\": [[" << cols_bbox.bbMin()[0];
+      << "\"boundingBox\": [[" << cols_bbox_ptr->bbMin()[0];
     for (int dim = 1; dim < cols_dimension; ++dim) {
-        out_ << ", " << cols_bbox.bbMin()[dim];
+        out_ << ", " << cols_bbox_ptr->bbMin()[dim];
     }
-    out_ << "], [" << cols_bbox.bbMax()[0];
+    out_ << "], [" << cols_bbox_ptr->bbMax()[0];
     for (int dim = 1; dim < cols_dimension; ++dim) {
-        out_ << ", " << cols_bbox.bbMax()[dim];
+        out_ << ", " << cols_bbox_ptr->bbMax()[dim];
     }
     out_ << "]]}";
     const std::string extra_info = nodeInfo_.str();
@@ -70,6 +85,20 @@ void JSONDumper::dumpSubTree(int _depth) {
         out_ << endl << prefix << " ]";
     }
     out_ << "}";
+
+    // clear newly created data
+    if (!rowsTree_) delete rows_bbox_ptr;
+    if (!colsTree_) delete cols_bbox_ptr;
+
+    // clear cache_ if locally created
+    if (allocated_rows_cache) {
+      delete static_cast<AxisAlignedBoundingBox*>(rowsTree_->cache_);
+      rowsTree_->cache_ = nullptr;
+    }
+    if (allocated_cols_cache) {
+      delete static_cast<AxisAlignedBoundingBox*>(colsTree_->cache_);
+      colsTree_->cache_ = nullptr;
+    }
 }
 
 void JSONDumper::nextChild(bool last) {
@@ -136,6 +165,9 @@ template<typename T> void HMatrixJSONDumper<T>::dumpMeta() {
 template<typename T> void HMatrixJSONDumper<T>::update() {
     rows_ = current_->rows();
     cols_ = current_->cols();
+    // Update the tree node pointers
+    rowsTree_ = current_->rowsTree();
+    colsTree_ = current_->colsTree();
     nrChild_ = current_->nrChild();
     if (current_->isFullMatrix()) {
         nodeInfo_ << " \"leaf_type\": \"Full\"";

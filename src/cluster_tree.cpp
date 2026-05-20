@@ -137,21 +137,24 @@ void ClusterData::assertValid() {
 ClusterTree::ClusterTree(const DofData* dofData)
   : Tree<ClusterTree>(NULL)
   , data(dofData)
-  , cache_(NULL)
+  , cache_(NULL),
+    is_octree(false)
 {
 }
 
     ClusterTree::ClusterTree(const DofData* dofData, int offset, int size)
   : Tree<ClusterTree>(NULL)
   , data(dofData, offset, size)
-  , cache_(NULL)
+  , cache_(NULL),
+    is_octree(false)
 {
 }
 
 ClusterTree::ClusterTree(const ClusterTree& other)
   : Tree<ClusterTree>(NULL)
   , data(other.data)
-  , cache_(NULL)
+  , cache_(NULL),
+    is_octree(other.is_octree)
 {
 }
 
@@ -293,6 +296,66 @@ void AxisAlignedBoundingBox::bbMin(const double * bbMin) {
 void AxisAlignedBoundingBox::bbMax(const double * bbMax) {
     for(int i = 0; i < dimension_; ++i)
         bb_[i + dimension_] = bbMax[i];
+}
+
+// HELPER FUNCTION: computes the exact BBox in the case of octree (does not depend only on the local coordinates)
+static void compute_octree_AABB(const ClusterTree* node, double* bbMin, double* bbMax) {
+  int dim = node->data.coordinates()->dimension();
+
+  // If root, compute tight bounding box and expand it to a cube
+  if (node->father == nullptr || node->father == node) {
+    AxisAlignedBoundingBox tight(node->data);
+    double max_ext = 0.0;
+    for (int d = 0; d < dim; ++d) {
+      max_ext = std::max(max_ext, tight.bbMax()[d] - tight.bbMin()[d]);
+    }
+    for (int d = 0; d < dim; ++d) {
+      double center = (tight.bbMax()[d] + tight.bbMin()[d]) / 2.0;
+      bbMin[d] = center - max_ext / 2.0;
+      bbMax[d] = center + max_ext / 2.0;
+    }
+    return;
+  }
+
+  // If not root, get the parent's bbox (with cache_ or recursion)
+  if (node->father->cache_) {
+    AxisAlignedBoundingBox* pbox = static_cast<AxisAlignedBoundingBox*>(node->father->cache_);
+    for (int d = 0; d < dim; ++d) {
+      bbMin[d] = pbox->bbMin()[d];
+      bbMax[d] = pbox->bbMax()[d];
+    }
+  } else // Otherwise, compute parent's cube recursively
+    compute_octree_AABB(node->father, bbMin, bbMax);
+
+  // Deduce the mathematical octant using strictly the first DOF of the node
+  int first_dof = node->data.indices()[node->data.offset()];
+  for (int d = 0; d < dim; ++d) {
+    double center = (bbMin[d] + bbMax[d]) / 2.0;
+    if (node->data.coordinates()->spanCenter(first_dof, d) >= center) {
+      bbMin[d] = center;
+      // bbMax[d] stays the same
+    } else {
+      // bbMin[d] stays the same
+      bbMax[d] = center;
+    }
+  }
+}
+
+AxisAlignedBoundingBox::AxisAlignedBoundingBox(const ClusterTree& tree)
+    : dimension_(tree.data.coordinates()->dimension())
+    , bb_(new double[2 * dimension_])
+{
+  if (tree.is_octree) {
+    // Compute the octree cube on the fly
+    compute_octree_AABB(&tree, bb_, bb_ + dimension_);
+  } else {
+    // Fallback to standard tight bounding box
+    AxisAlignedBoundingBox tight(tree.data);
+    for (unsigned i = 0; i < dimension_; ++i) {
+      bb_[i] = tight.bbMin()[i];
+      bb_[i + dimension_] = tight.bbMax()[i];
+    }
+  }
 }
 
 }  // end namespace hmat

@@ -26,11 +26,13 @@
 namespace hmat {
 
 class ClusterData;
+class ClusterTree;
 template<typename T> class HMatrix;
 
 class JSONDumper {
 protected:
     const ClusterData * rows_, * cols_;
+    const ClusterTree * rowsTree_, * colsTree_;
     std::ostringstream nodeInfo_;
     int nrChild_;
     std::ostream & out_;
@@ -52,7 +54,7 @@ protected:
     /** To call from dumpMeta to dump the points of the matrix */
     void dumpPoints();
 public:
-    JSONDumper(std::ostream & out) : out_(out) {}
+    JSONDumper(std::ostream & out) : rowsTree_(NULL), colsTree_(NULL), out_(out) {}
     void dump();
     virtual ~JSONDumper(){}
 };

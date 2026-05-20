@@ -214,6 +214,8 @@ HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_geometric(void);
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_hybrid(void);
 /* Create a new clustering algorithm by setting the maximum number of degrees of freedom in a leaf */
 HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_max_dof(const hmat_clustering_algorithm_t* algo, int max_dof);
+/* Octree / Quadtree clustering */
+HMAT_API hmat_clustering_algorithm_t* hmat_create_clustering_octree(int);
 
 /**
  * Create a new clustering algorithm which put large span apart and

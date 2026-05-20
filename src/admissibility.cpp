@@ -63,7 +63,7 @@ recursive_compute_bounding_box(const ClusterTree& current)
 {
   if (current.cache_)
     return;
-  current.cache_ = new AxisAlignedBoundingBox(current.data);
+  current.cache_ = new AxisAlignedBoundingBox(current);
   for (int i = 0; i < current.nrChild(); ++i)
   {
     if (current.getChild(i))

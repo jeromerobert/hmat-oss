@@ -190,6 +190,27 @@ private:
   const double thresholdRatio_;
 };
 
+/*! \brief Creating tree by octree/quadtree spatial division.
+ *
+ * Divides the bounding box along all dimensions simultaneously at its geometric center.
+ * This generates up to 2^d children (8 in 3D, 4 in 2D).
+ * It guarantees perfectly regular aspect ratios for the boxes (perfect cubes),
+ * which is optimal for FMM-like admissibility conditions.
+ */
+class OctreeClusteringAlgorithm : public AxisAlignClusteringAlgorithm
+{
+  public:
+  explicit OctreeClusteringAlgorithm(int maxdepth): maxdepth_(maxdepth) {
+    setMaxLeafSize( 1 ); // maxdepth must be the only stopping criteria
+  }
+  ClusteringAlgorithm* clone() const { return new OctreeClusteringAlgorithm(*this); }
+  std::string str() const { return "OctreeClusteringAlgorithm"; }
+
+  int partition(ClusterTree& current, std::vector<ClusterTree*>& children, int currentAxis) const;
+  private:
+    const int maxdepth_;
+};
+
 /**
  * Isolate DoF with large span to a dedicated cluster
  */

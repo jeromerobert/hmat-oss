@@ -70,6 +70,37 @@ public:
     }
 };
 
+/** @brief Compare two DOFs based on their Octant/Quadrant index */
+class OctantComparator {
+  const hmat::DofCoordinates * coordinates_;
+  int dimension_;
+  std::vector<double> center_;
+  public:
+  OctantComparator(const hmat::DofCoordinates* coords, const double* bbMin, const double* bbMax)
+      : coordinates_(coords), dimension_(coords->dimension()), center_(dimension_) {
+    // Compute the geometric center of the parent cube
+    for (int i = 0; i < dimension_; ++i) {
+      center_[i] = (bbMin[i] + bbMax[i]) / 2.0;
+    }
+  }
+
+  // Returns a bitmask representing the child octant (0 to 2^d - 1)
+  int getOctant(int dof) const {
+    int octant = 0;
+    for (int i = 0; i < dimension_; ++i) {
+      if (coordinates_->spanCenter(dof, i) >= center_[i]) {
+        octant |= (1 << i);
+      }
+    }
+    return octant;
+  }
+
+  // Compare function for std::stable_sort
+  bool operator()(int i, int j) const {
+    return getOctant(i) < getOctant(j);
+  }
+};
+
 }
 
 namespace hmat {
@@ -88,7 +119,7 @@ const
 {
     hmat::AxisAlignedBoundingBox* bbox = static_cast<hmat::AxisAlignedBoundingBox*>(node.cache_);
     if (bbox == NULL) {
-        bbox = new hmat::AxisAlignedBoundingBox(node.data);
+        bbox = new hmat::AxisAlignedBoundingBox(node);
         node.cache_ = bbox;
     }
     return bbox;
@@ -168,7 +199,7 @@ GeometricBisectionAlgorithm::partition(ClusterTree& current, std::vector<Cluster
   int dim = x0 ? 0 : largestDimension(current, currentAxis);
   sortByDimension(current, dim);
   AxisAlignedBoundingBox* bbox = getAxisAlignedBoundingbox(current);
-  current.cache_ = bbox;
+  current.cache_ = bbox; // not needed ?
 
   int previousIndex = 0;
   // Loop on 'divider_' = the number of children created
@@ -300,6 +331,45 @@ HybridBisectionAlgorithm::clean(ClusterTree& current) const
 {
   medianAlgorithm_.clean(current);
   geometricAlgorithm_.clean(current);
+}
+
+int
+OctreeClusteringAlgorithm::partition(ClusterTree& current, std::vector<ClusterTree*>& children, int /*currentAxis*/) const
+{
+  current.is_octree = true; // Mark as octree node
+
+  if ( current.depth >= maxdepth_ )
+    return -1 ;
+
+  int dim = current.data.coordinates()->dimension();
+
+  // This automatically generates the perfect cube thanks to the new constructor
+  AxisAlignedBoundingBox bbox(current);
+
+  int n = current.data.size();
+  int* myIndices = current.data.indices() + current.data.offset();
+
+  // Sort the DOFs based strictly on the geometric center of the perfect cube
+  OctantComparator comp(current.data.coordinates(), bbox.bbMin(), bbox.bbMax());
+  std::stable_sort(myIndices, myIndices + n, comp);
+
+  int numChildren = 1 << dim;
+  int previousIndex = 0;
+
+  for (int octant = 0; octant < numChildren; ++octant) {
+    int middleIndex = previousIndex;
+    while (middleIndex < n && comp.getOctant(myIndices[middleIndex]) == octant) {
+      middleIndex++;
+    }
+
+    if (middleIndex > previousIndex) {
+      ClusterTree* child = current.slice(current.data.offset() + previousIndex, middleIndex - previousIndex);
+      child->is_octree = true; // Inherit flag
+      children.push_back(child);
+    }
+    previousIndex = middleIndex;
+  }
+  return -1;
 }
 
 int

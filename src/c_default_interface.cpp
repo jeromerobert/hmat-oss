@@ -53,6 +53,12 @@ hmat_clustering_algorithm_t * hmat_create_clustering_hybrid()
     return (hmat_clustering_algorithm_t*) new HybridBisectionAlgorithm();
 }
 
+// C API wrapper for the Octree algorithm
+hmat_clustering_algorithm_t * hmat_create_clustering_octree(int maxdepth)
+{
+  return (hmat_clustering_algorithm_t*) new OctreeClusteringAlgorithm(maxdepth);
+}
+
 void hmat_delete_clustering(hmat_clustering_algorithm_t* algo)
 {
     delete (ClusteringAlgorithm*) algo;
