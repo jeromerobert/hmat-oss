@@ -551,10 +551,7 @@ void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB)
 
     */
 
-    // truncated SVD of Ra Rb^t (allows failure)
     ScalarArray<T> *u = NULL, *v = NULL;
-
-    Vector<typename Types<T>::real> *sigma = new Vector<typename Types<T>::real>(p);
     int newK;
     // context block to release ra, rb, and r ASAP
     {
@@ -569,7 +566,7 @@ void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB)
         r.gemm('N', 'T', 1, &ra, &rb, 0);
         // truncated SVD of Ra Rb^t (allows failure)
 
-        newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true, sigma); // TODO use something else than SVD ?
+        newK = r.truncatedSvdDecomposition(&u, &v, epsilon, true, nullptr); // TODO use something else than SVD ?
     }
     if (newK == 0)
     {
@@ -585,9 +582,6 @@ void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB)
     ScalarArray<T> *newB = truncatedAB(b, cols, newK, v, useInitPivot, initialPivotB);
     delete b;
     b = newB;
-
-      
-delete sigma;
 }
 
 template<typename T> 
