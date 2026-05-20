@@ -110,6 +110,11 @@ public:
   // A B^t
   ScalarArray<T>* a;
   ScalarArray<T>* b;
+
+  // Row and column pivots used in ACA to compress this block
+  std::vector<int> pivotRows;
+  std::vector<int> pivotCols;
+
   FPAdaptiveCompressor<T>* _compressors;
   /// Control of the approximation. See \a RkApproximationControl for more
   /// details.

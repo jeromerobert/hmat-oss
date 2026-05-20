@@ -52,6 +52,7 @@ namespace {
 struct EnvVarCP {
   /** */
   int logAcaPartialMinSize;
+  int logAcaPivots;
   EnvVarCP() {
 	// Enable ACA partial verbose mode for blocks larger than a given size.
     const char * logAcaStr = getenv("HMAT_LOG_ACA_PARTIAL");
@@ -60,6 +61,8 @@ struct EnvVarCP {
     } else {
       logAcaPartialMinSize = atoi(logAcaStr);
     }
+    // Enable ACA pivots logging (dumped into json files)
+    logAcaPivots = (getenv("HMAT_LOG_ACA_PIVOTS") != nullptr);
   }
 };
 static const EnvVarCP envCP;
@@ -273,12 +276,20 @@ template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEp
   ScalarArray<T> *tmpB = new ScalarArray<T>(m->cols(), maxK);
   int nu;
 
+  // tmp vectors to store pivots
+  std::vector<int> pivRows, pivCols;
+
   for (nu = 0; nu < maxK; nu++) {
     int i_nu, j_nu;
     findMax(m->data, i_nu, j_nu);
     const T delta = m->get(i_nu, j_nu);
     if (squaredNorm(delta) == 0.) {
       break;
+    }
+
+    if (envCP.logAcaPivots) {
+      pivRows.push_back(i_nu);
+      pivCols.push_back(j_nu);
     }
 
     // Creation of the vectors A_i_nu and B_j_nu
@@ -333,7 +344,14 @@ template<typename T> RkMatrix<T>* acaFull(FullMatrix<T>* m, double compressionEp
 
   auto rows = m->rows_;
   auto cols = m->cols_;
-  return new RkMatrix<T>(tmpA, rows, tmpB, cols);
+
+  RkMatrix<T>* rk = new RkMatrix<T>(tmpA, rows, tmpB, cols);
+
+  // copy the pivots in the object
+  rk->pivotRows = pivRows;
+  rk->pivotCols = pivCols;
+
+  return rk;
 }
 
 template<typename T> RkMatrix<typename Types<T>::dp>*
@@ -392,6 +410,8 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
   int row_index = 0;
   int J = 0;
   int k = 0;
+  // tmp vectors to store pivots
+  std::vector<int> pivRows, pivCols;
 
   RandomPivotManager<T> randomPivotManager(block, useRandomPivots ? max(rowCount, colCount) : 0);
   if(verbose)
@@ -411,6 +431,11 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
         maxNorm2 = norm2;
         J = j;
       }
+    }
+
+    if (envCP.logAcaPivots) {
+      pivRows.push_back(row_index);
+      pivCols.push_back(J);
     }
 
     Pivot<dp_t > randomOrDefaultPivot = randomPivotManager.GetPivot();
@@ -499,7 +524,12 @@ doCompressionAcaPartial(const ClusterAssemblyFunction<T>& block, double compress
     return new RkMatrix<dp_t>(NULL, block.rows, NULL, block.cols);
   }
 
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols);
+  RkMatrix<dp_t>* rk = new RkMatrix<dp_t>(newA, block.rows, newB, block.cols);
+
+  rk->pivotRows = pivRows;
+  rk->pivotCols = pivCols;
+
+  return rk;
 }
 
 RkMatrix<Types<S_t>::dp>*
@@ -537,6 +567,7 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
   Vector<dp_t> bRef(colCount), aRef(rowCount);
   vector<bool> rowFree(rowCount, true), colFree(colCount, true);
   vector<Vector<dp_t>*> aCols, bCols;
+  std::vector<int> pivRows, pivCols;
 
   if (block.info.is_guaranteed_null_row) {
     for(int i = 0; i < rowCount; ++i)
@@ -595,6 +626,11 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
 
     rowFree[i_star] = false;
     colFree[j_star] = false;
+
+    if (envCP.logAcaPivots) {
+      pivRows.push_back(i_star);
+      pivCols.push_back(j_star);
+    }
 
     aCols.push_back(aVec);
     bCols.push_back(bVec);
@@ -679,7 +715,12 @@ doCompressionAcaPlus(const ClusterAssemblyFunction<T>& block, double compression
     delete bCols[i];
     bCols[i] = NULL;
   }
-  return new RkMatrix<dp_t>(newA, block.rows, newB, block.cols);
+  RkMatrix<dp_t>* rk = new RkMatrix<dp_t>(newA, block.rows, newB, block.cols);
+
+  rk->pivotRows = pivRows;
+  rk->pivotCols = pivCols;
+
+  return rk;
 }
 
 RkMatrix<Types<S_t>::dp>*

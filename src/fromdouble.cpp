@@ -92,6 +92,8 @@ template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* 
                                         rk->cols);
   rk->a = NULL; // because rk->a and rk->b have allready been deleted in fromDoubleScalarArray
   rk->b = NULL;
+  result->pivotRows = rk->pivotRows;
+  result->pivotCols = rk->pivotCols;
   delete rk;
   return result;
 }

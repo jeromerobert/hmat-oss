@@ -175,6 +175,21 @@ template<typename T> void HMatrixJSONDumper<T>::update() {
         nodeInfo_ << " \"leaf_type\": \"Rk\", \"k\": " << current_->rank() << ",";
         nodeInfo_ << " \"epsilon\": " << current_->lowRankEpsilon() << ",";
         nodeInfo_ << " \"approxK\": " << current_->approximateRank();
+
+        // Dump the ACA pivot lists if they are populated
+        const auto* rk = current_->rk();
+        if (rk && !rk->pivotRows.empty()) {
+          nodeInfo_ << ", \"pivotRows\": [";
+          for (size_t i = 0; i < rk->pivotRows.size(); ++i) {
+            nodeInfo_ << rk->pivotRows[i] << (i + 1 < rk->pivotRows.size() ? ", " : "");
+          }
+          nodeInfo_ << "], \"pivotCols\": [";
+          for (size_t i = 0; i < rk->pivotCols.size(); ++i) {
+            nodeInfo_ << rk->pivotCols[i] << (i + 1 < rk->pivotCols.size() ? ", " : "");
+          }
+          nodeInfo_ << "]";
+        }
+
     }
 }
 
