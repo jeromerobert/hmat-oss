@@ -279,13 +279,15 @@ if(ENABLE_COMPOSYX)
     endif()
 
     if(composyx_FOUND)
-        target_link_libraries(hmat PRIVATE COMPOSYX::composyx)
+        target_link_libraries(hmat PUBLIC COMPOSYX::composyx)
         target_compile_features(hmat PRIVATE cxx_std_20) ## needed for composyx<=1.4.2
         set(composyx_FOUND ${composyx_FOUND} PARENT_SCOPE)
         set(ZFP_FOUND ${ZFP_FOUND} PARENT_SCOPE)
         set(SZ_FOUND ${SZ_FOUND} PARENT_SCOPE)
         set(SZ3_FOUND ${SZ3_FOUND} PARENT_SCOPE)
     endif()
+    get_directory_property(cibles_importees IMPORTED_TARGETS)
+    message(STATUS "Imported targets after COMPOSYX : ${cibles_importees}")
 endif()
 
 # ========================

@@ -53,6 +53,11 @@ if(NOT TARGET HMAT::hmat)
             IMPORTED_LOCATION "@JEMALLOC_LIBRARIES@")
     endif()
 
+    if(@ENABLE_COMPOSYX@)
+        include(CMakeFindDependencyMacro)
+        find_dependency(composyx)
+    endif()
+    
     # Deprecated variable, it will be removed later.
     set(HMAT_LIBRARIES HMAT::hmat)
 endif()
