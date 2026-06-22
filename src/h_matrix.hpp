@@ -919,10 +919,7 @@ public:
    */
   inline void FPdecompressL1() const
   {
-    if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
-    {
-      return;
-    }
+    
     if(this->GetL1Position() == kOnL1)
     {
       this->FPdecompress();

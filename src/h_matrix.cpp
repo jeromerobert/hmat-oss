@@ -1848,10 +1848,7 @@ void HMatrix<T>::FPcompress() const
 template <typename T>
 void HMatrix<T>::FPdecompress() const
 {
-  if(!(localSettings.FPSettings->compressFull || localSettings.FPSettings->compressRk))
-  {
-    return;
-  }
+  
   if (this->isLeaf()) {
     if (isFullMatrix() && full()) {
       //Uncompress Full block if compressed
