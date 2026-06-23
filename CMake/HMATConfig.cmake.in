@@ -54,8 +54,7 @@ if(NOT TARGET HMAT::hmat)
     endif()
 
     if(@ENABLE_COMPOSYX@)
-        include(CMakeFindDependencyMacro)
-        find_dependency(composyx)
+        include(@COMPOSYX_CONFIG_FILE@)
     endif()
     
     # Deprecated variable, it will be removed later.
