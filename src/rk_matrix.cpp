@@ -303,6 +303,10 @@ void RkMatrix<T>::FPcompress(double epsilon, int slice_param, hmat_FPcompress_t 
     return;
   }
 
+  if (this->a == NULL || this->b == NULL) { //Empty block, nothing to compress
+        return; 
+    }
+
   int k = this->rank();
   int m = a->rows;
   int n = b->rows;
