@@ -558,6 +558,9 @@ public:
   }
 
   void addIdentity(T alpha);
+
+  /*! \brief Print the array data to the standard output */
+  void print(int depth = 0, const char* name = "ScalarArray") const;
 };
 
   /*! \brief Templated Vector class = a ScalarArray with 1 column

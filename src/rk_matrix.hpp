@@ -337,7 +337,8 @@ public:
   void writeArray(hmat_iostream writeFunc, void * userData) const;
 
 
-
+  /*! \brief Print the low-rank panels and rank to standard output */
+  void print(int depth = 0) const;
 
 };
 

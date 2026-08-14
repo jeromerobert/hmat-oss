@@ -1454,6 +1454,28 @@ template<typename T> void RkMatrix<T>::writeArray(hmat_iostream writeFunc, void 
   b->writeArray(writeFunc, userData);
 }
 
+template<typename T>
+void RkMatrix<T>::print(int depth) const {
+  std::string ind(depth * 2, ' ');
+  std::cout << ind << "[RkMatrix Block] "
+            << "Rows: " << rows->offset() << " to " << (rows->offset() + rows->size() - 1) << ", "
+            << "Cols: " << cols->offset() << " to " << (cols->offset() + cols->size() - 1) << "\n";
+
+  std::cout << ind << "  Rank: " << rank() << "\n";
+
+  if (a) {
+    a->print(depth + 1, "Panel A");
+  } else {
+    std::cout << ind << "  Panel A is NULL\n";
+  }
+
+  if (b) {
+    b->print(depth + 1, "Panel B");
+  } else {
+    std::cout << ind << "  Panel B is NULL\n";
+  }
+}
+
 template <typename T>
 bool (*RkMatrix<T>::formatedAddPartsHook)(RkMatrix<T> *me, double epsilon, const T *alpha,
                                                const RkMatrix<T> *const *parts,

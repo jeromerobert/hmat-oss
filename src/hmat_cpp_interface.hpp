@@ -393,6 +393,14 @@ public:
   void progress(hmat_progress_t * progress) {
       engine_->progress(progress);
   }
+
+  /** Print the entire matrix recursively */
+  void print() const {
+    if (engine_->hmat) {
+      engine_->hmat->print(0);
+    }
+  }
+
 private:
   /// Disallow the copy
   HMatInterface(const HMatInterface<T>& o);

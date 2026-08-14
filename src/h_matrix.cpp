@@ -3158,6 +3158,46 @@ template<typename T> std::string HMatrix<T>::toString() const {
 }
 
 template<typename T>
+void HMatrix<T>::print(int depth) const {
+  std::string ind(depth * 2, ' ');
+
+  std::cout << ind << "========================================\n";
+  std::cout << ind << "HMatrix Node - "
+            << "Rows: " << rows()->offset() << " to " << (rows()->offset() + rows()->size() - 1) << ", "
+            << "Cols: " << cols()->offset() << " to " << (cols()->offset() + cols()->size() - 1) << "\n";
+
+  if (this->isLeaf()) {
+    if (isNull()) {
+      std::cout << ind << "  Type: NULL Block\n";
+    } else if (isRkMatrix()) {
+      std::cout << ind << "  Type: RkMatrix Leaf\n";
+      if (rk()) {
+        rk()->print(depth + 1);
+      }
+    } else if (isFullMatrix()) {
+      std::cout << ind << "  Type: FullMatrix Leaf\n";
+      if (full()) {
+        full()->print(depth + 1);
+      }
+    }
+  } else {
+    std::cout << ind << "  Type: Hierarchical Node (Children: " << this->nrChild() << ")\n";
+    for (int i = 0; i < nrChildRow(); ++i) {
+      for (int j = 0; j < nrChildCol(); ++j) {
+        const HMatrix<T>* child = get(i, j);
+        if (child) {
+          std::cout << ind << "  Child (" << i << ", " << j << "):\n";
+          child->print(depth + 1);
+        } else {
+          std::cout << ind << "  Child (" << i << ", " << j << "): NULL\n";
+        }
+      }
+    }
+  }
+  std::cout << ind << "========================================\n";
+}
+
+template<typename T>
 HMatrix<T> * HMatrix<T>::unmarshall(const MatrixSettings * settings, int rank, int approxRank, char bitfield, double epsilon) {
   //TODO : Handle FPSettings
     HMatrix<T> * m = new HMatrix<T>(settings);

@@ -423,6 +423,31 @@ template<typename T> std::string FullMatrix<T>::description() const {
     return convert.str();
 }
 
+template<typename T>
+void FullMatrix<T>::print(int depth) const {
+  std::string ind(depth * 2, ' ');
+  std::cout << ind << "[FullMatrix Block] "
+            << "Rows: " << rows_->offset() << " to " << (rows_->offset() + rows_->size() - 1) << ", "
+            << "Cols: " << cols_->offset() << " to " << (cols_->offset() + cols_->size() - 1) << "\n";
+
+  std::cout << ind << "  Flags - TriUpper: " << (isTriUpper() ? "true" : "false")
+            << ", TriLower: " << (isTriLower() ? "true" : "false") << "\n";
+
+  data.print(depth + 1, "Data");
+
+  if (pivots) {
+    std::cout << ind << "  Pivots: ";
+    for (int i = 0; i < rows(); ++i) {
+      std::cout << pivots[i] << " ";
+    }
+    std::cout << "\n";
+  }
+
+  if (diagonal) {
+    diagonal->print(depth + 1, "Diagonal");
+  }
+}
+
 // the classes declaration
 template class FullMatrix<S_t>;
 template class FullMatrix<D_t>;

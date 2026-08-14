@@ -348,6 +348,18 @@ void hmat_delete_leaf_procedure(hmat_leaf_procedure_t* proc) {
     delete proc;
 }
 
+void hmat_print_matrix(hmat_matrix_t* matrix, hmat_value_t type) {
+  if (matrix) {
+    switch (type) {
+    case HMAT_SIMPLE_PRECISION: reinterpret_cast<hmat::HMatInterface<hmat::S_t>*>(matrix)->print(); break;
+    case HMAT_DOUBLE_PRECISION: reinterpret_cast<hmat::HMatInterface<hmat::D_t>*>(matrix)->print(); break;
+    case HMAT_SIMPLE_COMPLEX: reinterpret_cast<hmat::HMatInterface<hmat::C_t>*>(matrix)->print(); break;
+    case HMAT_DOUBLE_COMPLEX: reinterpret_cast<hmat::HMatInterface<hmat::Z_t>*>(matrix)->print(); break;
+    default: HMAT_ASSERT(false);
+    }
+  }
+}
+
 hmat_compression_algorithm_t* hmat_create_compression_svd(double epsilon) {
     return static_cast<hmat_compression_algorithm_t*>((void*) new hmat::CompressionSVD(epsilon));
 }

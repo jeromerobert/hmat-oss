@@ -323,6 +323,9 @@ public:
   /*! \brief Return a short string describing the content of this FullMatrix for debug (like: "FullMatrix [320, 452]x[760, 890] norm=22.34758")
     */
   std::string description() const;
+
+  /*! \brief Print the FullMatrix data, flags, and factorizations to standard output */
+  void print(int depth = 0) const;
 };
 
 

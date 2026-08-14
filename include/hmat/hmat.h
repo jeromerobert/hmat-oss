@@ -714,6 +714,9 @@ typedef struct
 /* Delete a leaf procedure */
 HMAT_API void hmat_delete_leaf_procedure(hmat_leaf_procedure_t* proc);
 
+/* Print an h-matrix on screen (only for smlall matrices...) */
+HMAT_API void hmat_print_matrix(hmat_matrix_t* matrix, hmat_value_t type);
+
 typedef struct
 {
     /*! Create an empty (not assembled) HMatrix from 2 \a ClusterTree instances

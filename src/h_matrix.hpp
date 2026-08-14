@@ -838,6 +838,9 @@ public:
       convert << "uninitialized";
     return convert.str();
   }
+
+  /*! \brief Recursively print the H-matrix tree structure and all block data */
+  void print(int depth = 0) const;
 };
 
 }  // end namespace hmat

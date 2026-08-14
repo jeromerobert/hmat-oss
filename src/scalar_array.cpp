@@ -1486,6 +1486,26 @@ template<typename T> void ScalarArray<T>::addIdentity(T alpha) {
   }
 }
 
+
+template<typename T>
+void ScalarArray<T>::print(int depth, const char* name) const {
+  std::string ind(depth * 2, ' ');
+  std::cout << ind << "--- " << name << " (" << rows << " x " << cols << ") ---\n";
+
+  if (isZero()) {
+    std::cout << ind << "  [All Zeros]\n";
+    return;
+  }
+
+  for (int i = 0; i < rows; ++i) {
+    std::cout << ind << "  ";
+    for (int j = 0; j < cols; ++j) {
+      std::cout << get(i, j) << " ";
+    }
+    std::cout << "\n";
+  }
+}
+
 template<typename T> typename Types<T>::dp ScalarArray<T>::diagonalProduct() const {
   assert(rows == cols);
   typename Types<T>::dp r = get(0,0);
