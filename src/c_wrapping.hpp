@@ -553,6 +553,7 @@ int solve_mat(hmat_matrix_t* holder, hmat_matrix_t* hmatB) {
 
 template<typename T, template <typename> class E>
 int solve_systems(hmat_matrix_t* holder, void* b, int nrhs) {
+  DECLARE_CONTEXT;
   struct hmat_solve_context_t ctx;
   hmat_solve_context_init(&ctx);
   ctx.values = b;
@@ -792,6 +793,7 @@ int extract_diagonal_block(hmat_matrix_t* holder, int components, void* diag)
 template<typename T, template <typename> class E>
 int solve_lower_triangular(hmat_matrix_t* holder, int transpose, void* b, int nrhs)
 {
+  DECLARE_CONTEXT;
   struct hmat_solve_context_t ctx;
   hmat_solve_context_init(&ctx);
   ctx.values = b;

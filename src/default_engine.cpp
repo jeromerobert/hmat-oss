@@ -216,6 +216,7 @@ void DefaultEngine<T>::solve(ScalarArray<T>& b, Factorization algo) const {
 
 template<typename T>
 void DefaultEngine<T>::solve(IEngine<T>& b, Factorization f) const {
+  DECLARE_CONTEXT;
   if(f == Factorization::HODLR) {
     this->hodlr.solve(this->hmat, b.hmat);
   }
@@ -225,6 +226,7 @@ void DefaultEngine<T>::solve(IEngine<T>& b, Factorization f) const {
 
 template<typename T>
 void DefaultEngine<T>::solveLower(ScalarArray<T>& b, Factorization algo, bool transpose) const {
+  DECLARE_CONTEXT;
   HMAT_ASSERT_MSG(algo != Factorization::HODLR, "solver lower not supported for non-symetric HODLR.");
   if(algo == Factorization::HODLRSYM) {
     if(transpose)
