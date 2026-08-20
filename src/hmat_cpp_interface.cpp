@@ -31,6 +31,10 @@
 
 #include <cstring>
 #include <fstream>
+#include <numeric>   
+#include <algorithm> 
+#include <vector>    
+#include <iostream>  
 
 namespace hmat {
 
@@ -330,7 +334,6 @@ template class HMatInterface<S_t>;
 template class HMatInterface<D_t>;
 template class HMatInterface<C_t>;
 template class HMatInterface<Z_t>;
-
 
 } // end namespace hmat
 

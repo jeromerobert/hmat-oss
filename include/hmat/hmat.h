@@ -449,6 +449,11 @@ typedef struct
 
 typedef struct hmat_matrix_struct hmat_matrix_t;
 
+/**
+ * @brief Useful for validating memory alignment and balancing after an imposed partitioning.
+ */
+HMAT_API void hmat_verify_leaf_sizes(const hmat_cluster_tree_t* tree_ptr) ;
+
 /*!
  * Return the depth of an hmatrix
  */

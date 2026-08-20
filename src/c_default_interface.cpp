@@ -182,6 +182,51 @@ int hmat_tree_nodes_count(const hmat_cluster_tree_t * tree)
     return ((ClusterTree*)tree)->nodesCount();
 }
 
+/**
+ * @brief Recursively traverses the cluster tree to collect the size of each leaf node.
+ */
+static void collect_leaf_sizes(const hmat::ClusterTree* node, std::vector<int>& sizes) {
+  if (node->isLeaf()) {
+    sizes.push_back(node->data.size());
+  } else {
+    for (int i = 0; i < node->nrChild(); ++i) {
+      collect_leaf_sizes(dynamic_cast<hmat::ClusterTree*>(node->getChild(i)), sizes);
+    }
+  }
+}
+
+void hmat_verify_leaf_sizes(const hmat_cluster_tree_t* tree_ptr) {
+  // Cast
+  const hmat::ClusterTree* tree = reinterpret_cast<const hmat::ClusterTree*>(tree_ptr);
+
+  std::vector<int> sizes;
+  collect_leaf_sizes(tree, sizes);
+
+  if (sizes.empty()) {
+    printf(" Arbre vide !\n");
+    return;
+  }
+
+  int min_s = *std::min_element(sizes.begin(), sizes.end());
+  int max_s = *std::max_element(sizes.begin(), sizes.end());
+  printf("\n========================================\n");
+  printf("       VERIFICATION DES FEUILLES        \n");
+  printf("========================================\n");
+  printf("Nombre total de feuilles : %lu\n", sizes.size());
+  printf("Taille MIN               : %d\n", min_s);
+  printf("Taille MAX               : %d\n", max_s);
+  printf("Tailles trouvees : ");
+  std::sort(sizes.begin(), sizes.end());
+  int current = -1;
+  for(int s : sizes) {
+    if(s != current) {
+      printf("%d ", s);
+      current = s;
+    }
+  }
+  printf("\n========================================\n\n");
+}
+
 int hmat_matrix_depth(const hmat_matrix_t * ptr, hmat_value_t type) {
   if (!ptr) return 0;
 
