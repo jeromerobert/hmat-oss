@@ -41,10 +41,10 @@ static struct mallinfo2 global_mallinfo;
 #else
 static struct mallinfo global_mallinfo;
 #endif
-#endif
 static int mallinfo_counter;
-static int write_counter;
 static int mallinfo_sampling;
+#endif
+static int write_counter;
 static int write_sampling;
 // -1 unsigned is the max value for size_t
 static size_t jemalloc_heapdump_trigger = (size_t)-1;
@@ -76,8 +76,10 @@ static size_t get_res_mem(void *)
 MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
     char * ws = getenv("HMAT_MEMINSTR_WS");
     write_sampling = ws ? atoi(ws) : 1;
+#if defined(__GLIBC__) && !defined(HAVE_JEMALLOC)
     char * mi = getenv("HMAT_MEMINSTR_MI");
     mallinfo_sampling = mi ? atoi(mi) : 100;
+#endif
     char * ht = getenv("HMAT_HEAPDUMP");
     jemalloc_heapdump_trigger = ht ? atol(ht) : jemalloc_heapdump_trigger;
     addType("Time", false);
@@ -113,7 +115,9 @@ MemoryInstrumenter::MemoryInstrumenter(): enabled_(false) {
 }
 
 void MemoryInstrumenter::setFile(const std::string & filename) {
+#if defined(__GLIBC__) && !defined(HAVE_JEMALLOC)
     mallinfo_counter = 0;
+#endif
 #ifdef HMAT_MEM_INSTR
     filename_ = filename;
     output_ = fopen(filename.c_str(), "w+");
