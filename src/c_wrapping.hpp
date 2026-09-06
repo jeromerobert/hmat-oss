@@ -148,14 +148,14 @@ int factorize_generic(hmat_matrix_t* holder, hmat_factorization_context_t * ctx)
     return 0;
 }
 
-template<typename T, template <typename> class E>
-int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
-  DECLARE_CONTEXT;
-    hmat_factorization_context_t ctx;
-    hmat_factorization_context_init(&ctx);
-    ctx.factorization = t;
-    return factorize_generic<T, E>(holder, &ctx);
-}
+// template<typename T, template <typename> class E>
+// int factor(hmat_matrix_t* holder, hmat_factorization_t t) {
+//   DECLARE_CONTEXT;
+//     hmat_factorization_context_t ctx;
+//     hmat_factorization_context_init(&ctx);
+//     ctx.factorization = t;
+//     return factorize_generic<T, E>(holder, &ctx);
+// }
 
 template<typename T, template <typename> class E>
 int finalize() {
