@@ -115,6 +115,9 @@ public:
   std::vector<int> pivotRows;
   std::vector<int> pivotCols;
 
+  // Singular values computed by SVD when compressing this block
+  std::vector<typename Types<T>::real> singularValues;
+
   FPAdaptiveCompressor<T>* _compressors;
   /// Control of the approximation. See \a RkApproximationControl for more
   /// details.

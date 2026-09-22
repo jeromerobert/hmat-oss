@@ -509,6 +509,7 @@ void RkMatrix<T>::truncate(double epsilon, int initialPivotA, int initialPivotB)
         RkMatrix<T> *rk = truncatedSvd(tmp, epsilon); // TODO compress with something else than SVD (rank() can still be quite large) ?
         rk->pivotRows = pivotRows;
         rk->pivotCols = pivotCols;
+        rk->singularValues = singularValues;
         delete tmp;
         // "Move" rk into this, and delete the old "this".
         swap(*rk);
@@ -756,6 +757,7 @@ template<typename T> void RkMatrix<T>::swap(RkMatrix<T>& other)
   std::swap(b, other.b);
   std::swap(pivotRows, other.pivotRows);
   std::swap(pivotCols, other.pivotCols);
+  std::swap(singularValues, other.singularValues);
 }
 
 template<typename T> void RkMatrix<T>::axpy(double epsilon, T alpha, const FullMatrix<T>* mat) {
@@ -1423,6 +1425,7 @@ template<typename T> void RkMatrix<T>::copy(const RkMatrix<T>* o) {
   b = (o->b ? o->b->copy() : NULL);
   pivotRows = o->pivotRows;
   pivotCols = o->pivotCols;
+  singularValues = o->singularValues;
 }
 
 template<typename T> RkMatrix<T>* RkMatrix<T>::copy() const {
