@@ -94,7 +94,7 @@ template<typename T> RkMatrix<T>* fromDoubleRk(RkMatrix<typename Types<T>::dp>* 
   rk->b = NULL;
   result->pivotRows = rk->pivotRows;
   result->pivotCols = rk->pivotCols;
-  delete rk;
+  result->singularValues.assign(rk->singularValues.begin(), rk->singularValues.end());  delete rk;
   return result;
 }
 

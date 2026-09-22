@@ -189,7 +189,14 @@ template<typename T> void HMatrixJSONDumper<T>::update() {
           }
           nodeInfo_ << "]";
         }
-
+        // Dump the singular values if they are populated
+        if (rk && !rk->singularValues.empty()) {
+          nodeInfo_ << ", \"singularValues\": [";
+          for (size_t i = 0; i < rk->singularValues.size(); ++i) {
+            nodeInfo_ << rk->singularValues[i] << (i + 1 < rk->singularValues.size() ? ", " : "");
+          }
+          nodeInfo_ << "]";
+        }
     }
 }
 

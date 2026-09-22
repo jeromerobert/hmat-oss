@@ -53,6 +53,7 @@ struct EnvVarCP {
   /** */
   int logAcaPartialMinSize;
   int logAcaPivots;
+  bool logSingularValues;
   EnvVarCP() {
 	// Enable ACA partial verbose mode for blocks larger than a given size.
     const char * logAcaStr = getenv("HMAT_LOG_ACA_PARTIAL");
@@ -63,6 +64,8 @@ struct EnvVarCP {
     }
     // Enable ACA pivots logging (dumped into json files)
     logAcaPivots = (getenv("HMAT_LOG_ACA_PIVOTS") != nullptr);
+    // Enable singular values logging (dumped into json files)
+    logSingularValues = getenv("HMAT_LOG_SVD") != nullptr;
   }
 };
 static const EnvVarCP envCP;
@@ -231,11 +234,18 @@ RkMatrix<T>* truncatedSvd(FullMatrix<T>* m, double epsilon) {
   // bigger than the minimum dimension of the matrix. However this is not
   // necessary here, since k < min (n, p) for M matrix (nxp).
   ScalarArray<T> *u = NULL, *v = NULL;
+  Vector<typename Types<T>::real>* sigma = NULL;
 
   // TODO compress with something else than SVD
-  m->data.truncatedSvdDecomposition(&u, &v, epsilon);
+  m->data.truncatedSvdDecomposition(&u, &v, epsilon, false, envCP.logSingularValues ? &sigma : NULL);
 
-  return new RkMatrix<T>(u, m->rows_, v, m->cols_);
+  RkMatrix<T>* newRk = new RkMatrix<T>(u, m->rows_, v, m->cols_);
+
+  if (envCP.logSingularValues)
+    for (int i = 0; i < sigma->rows; i++)
+      newRk->singularValues.push_back((*sigma)[i]);
+
+  return newRk;
 }
 
 
@@ -246,6 +256,7 @@ doCompressionSVD(const ClusterAssemblyFunction<T>& block, double compressionEpsi
   typedef typename Types<T>::dp dp_t;
   FullMatrix<dp_t>* m = block.assemble();
   RkMatrix<dp_t>* result = truncatedSvd(m, compressionEpsilon);
+
   delete m;
   return result;
 }

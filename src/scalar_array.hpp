@@ -403,9 +403,10 @@ public:
       \param v
       \param epsilon the accuracy of the approximation
       \param workAroundFailures: handles the failures in lapack SVD (defaut is false)
+      \param sigma the singular values (before truncation)
       \return the rank of the approximation
    */
-  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false, Vector<typename Types<T>::real> *sigma_out = NULL) const;
+  int truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures=false, Vector<typename Types<T>::real> **sigma = NULL) const;
 
   /*! \brief Orthogonalization between columns of 'this'
 
@@ -610,6 +611,8 @@ public:
     inline const T& operator[] (std::size_t i) const {
       return this->get(i);
     }
+    /** Renvoie une copie de ce vecteur. */
+    Vector<T>* copy(Vector<T>* result = NULL) const;
   private:
     /// Disallow the copy
     Vector(const Vector<T>& o);

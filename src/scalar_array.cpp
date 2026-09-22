@@ -924,11 +924,15 @@ void ScalarArray<T>::inverse() {
   delete[] ipiv;
 }
 
-template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures, Vector<typename Types<T>::real> *sigma_out) const {
+template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T>** u, ScalarArray<T>** v, double epsilon, bool workAroundFailures, Vector<typename Types<T>::real> **sigma_out) const {
   Vector<typename Types<T>::real>* sigma = NULL;
 
   svdDecomposition(u, &sigma, v, workAroundFailures);
   sigmaPrinter.print(*sigma);
+
+  if(sigma_out)
+    *sigma_out = sigma->copy();
+
   // Control of the approximation
   int newK = findK(*sigma, epsilon);
 
@@ -952,15 +956,8 @@ template<typename T> int ScalarArray<T>::truncatedSvdDecomposition(ScalarArray<T
   // Apply sigma 'symmetrically' on u and v
   (*u)->multiplyWithDiag(sigma);
   (*v)->multiplyWithDiag(sigma);
-  if(sigma_out)
-  {
-    //printf("\nsqrt(Sigma_0) = %f, (MID)\n", (*sigma)[0]);
-    *sigma_out = *sigma;
-  }
-  else{
 
   delete sigma;
-  }
 
   return newK;
 }
@@ -1573,6 +1570,17 @@ int Vector<T>::absoluteMaxIndex(int startIndex) const
 {
     assert(this->cols == 1);
     return startIndex + proxy_cblas::i_amax(this->rows - startIndex, this->const_ptr() + startIndex, 1);
+}
+
+template<typename T>
+Vector<T>* Vector<T>::copy(Vector<T>* result) const {
+  if(result == NULL)
+    result = new Vector<T>(this->rows, false);
+
+  // Appel à la méthode copy de la classe parente pour effectuer la copie mémoire
+  ScalarArray<T>::copy(result);
+
+  return result;
 }
 
 // the classes declaration
