@@ -42,6 +42,20 @@ void openblas_set_num_threads(int);
 
 namespace hmat {
 
+int DisableThreadingInBlock::getBlasNumThreads() {
+  // Cette variable statique locale ne sera initialisée que lors
+  // du TOUT PREMIER appel à cette fonction.
+  static int val = []() {
+    const char* env_val = std::getenv("HMAT_BLAS_NUM_THREADS");
+    if (env_val != nullptr && std::stoi(env_val) > 0) {
+      return std::stoi(env_val);
+    }
+    return 1; // Valeur par défaut
+  }();
+
+  return val;
+}
+
 DisableThreadingInBlock::DisableThreadingInBlock()
   : mklNumThreads(1)
   , ompNumThreads(1)
@@ -49,15 +63,15 @@ DisableThreadingInBlock::DisableThreadingInBlock()
 {
 #if defined(HAVE_MKL_H)
     mklNumThreads = mkl_get_max_threads();
-    mkl_set_num_threads(1);
+  mkl_set_num_threads(getBlasNumThreads());
 #endif
 #ifdef _OPENMP
     ompNumThreads = omp_get_max_threads();
-    omp_set_num_threads(1);
+  omp_set_num_threads(getBlasNumThreads());
 #endif
 #ifdef OPENBLAS_DISABLE_THREADS
     openblasNumThreads = goto_get_num_procs();
-    openblas_set_num_threads(1);
+  openblas_set_num_threads(getBlasNumThreads());
 #endif
     // Silence compiler warnings about unused private members
     (void) mklNumThreads;
