@@ -31,6 +31,10 @@
  */
 #pragma once
 
+#include <cstdlib>
+#include <string>
+#include <iostream>
+
 namespace hmat {
 
 class DisableThreadingInBlock {
@@ -38,6 +42,8 @@ private:
   int mklNumThreads;
   int ompNumThreads;
   int openblasNumThreads;
+  /*! \brief Number of blas threads to use within elementary tasks */
+  static int getBlasNumThreads();
 public:
   DisableThreadingInBlock();
   ~DisableThreadingInBlock();
