@@ -10,7 +10,7 @@ and LLt solver, and a few other things.
 This repository contains the **HMat-OSS** (Hierarchical Matrix open source software) library, initially developed by Airbus. It is an advanced and optimized C++ sequential implementation of **Hierarchical Matrices** (H-Matrices). It is released under the terms of GPL v2 license.
 
 ### Installation with PIXI
-With [pixi](https://pixi.prefix.dev), install the required packages with `pixi add clang cmake liblapacke openblas openmpi` and then compile with `cmake -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/ -L$CONDA_PREFIX/lib"`
+With [pixi](https://pixi.prefix.dev), install the required packages with `pixi add clang cmake openblas clangxx` and then compile with `cmake -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/ -L$CONDA_PREFIX/lib"`
 
 
 ### **1. Main Objective of the Library**
