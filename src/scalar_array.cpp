@@ -798,7 +798,7 @@ void ScalarArray<T>::lltDecomposition() {
     // (There is no L.Lt factorisation for complex matrices in lapack)
     int info = proxy_lapack::potrf('L', rows, m, lda);
     if(info > 0)
-      assertPositive(get(info, info), info, "potrf");
+      assertPositive(get(info-1, info-1), info-1, "potrf");
     if(info < 0)
       throw LapackException("potrf", info);
   } else {
