@@ -31,6 +31,7 @@
 #include <vector>
 #include <cfloat>
 #include <cstring>
+#include <cstdlib>
 #include <limits>
 #include "cluster_tree.hpp"
 #include "assembly.hpp"
@@ -865,8 +866,8 @@ void rankRevealingQR(ScalarArray<T> &t , ScalarArray<T> * &a , ScalarArray<T> * 
     memcpy(&(v_k[k+1]), &(t.get(k+1,k)), (nb_row-k-1)*sizeof(T));
     a->reflect(v_k, tau[k], transA);
   }
-  delete tau;
-  delete sigma;  
+  free(tau);
+  free(sigma);  
 }
 template <typename T>
 RkMatrix <T>* rankRevealingQR(FullMatrix<T> *m , double epsilon)

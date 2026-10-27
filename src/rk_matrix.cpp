@@ -24,6 +24,7 @@
 #include "h_matrix.hpp"
 #include "cluster_tree.hpp"
 #include <cstring> // memcpy
+#include <cstdlib>
 #include <cfloat> // DBL_MAX
 #include "data_types.hpp"
 #include "lapack_operations.hpp"
@@ -610,8 +611,8 @@ void RkMatrix<T>::truncateAlter(double epsilon)
     memcpy(&R_a.get(0,sigma_a[j]), &a->get(0,j), sizeof(T)*std::min(j+1,rank_a));
     memcpy(&R_b.get(0,sigma_b[j]), &b->get(0,j), sizeof(T)*std::min(j+1,rank_b));
   }
-  delete sigma_a;
-  delete sigma_b;
+  free(sigma_a);
+  free(sigma_b);
   coef.gemm('N', 'T', 1 , &R_a , &R_b , 0);
   FullMatrix<T> midMat(&coef ,&row_ ,&col_);
   RkMatrix<T> *RkMid=rankRevealingQR(&midMat , epsilon);
@@ -636,8 +637,8 @@ void RkMatrix<T>::truncateAlter(double epsilon)
     memcpy(&(v_k[k+1]), &(b->get(k+1,k)), (b->rows-k-1)*sizeof(T));
     newB->reflect(v_k, tau_b[k], transA);
   }
-  delete tau_a;
-  delete tau_b;
+  free(tau_a);
+  free(tau_b);
   delete a;
   a=newA;
   delete b;

@@ -1199,7 +1199,7 @@ template <typename T> void ScalarArray<T>::cpqrDecomposition(int * &sigma, doubl
   double normSqr=0;
   int iter=0;
   int min_dim=std::min(cols , rows);
-  sigma=(int*)malloc(min_dim*sizeof(int));
+  sigma=(int*)malloc(cols*sizeof(int));
   tau=(double*)malloc(min_dim*sizeof(double));
   //sigma will be modifief each iteration to keep track of the columns transpositions
   for (int i =0 ; i < cols ; i++)
@@ -1266,7 +1266,7 @@ template <typename T> void ScalarArray<T>::cpqrDecomposition(int * &sigma, doubl
     {
       normSqrCol[i+iter]-=std::pow(std::abs(remainder.get(0 , i)),2);
       normSqr-=std::pow(std::abs(remainder.get(0 , i)),2);
-      if(normSqrCol[i]>max_norm)
+      if(normSqrCol[i+iter]>max_norm)
       {
         max_norm=normSqrCol[i+iter];
         pivot=i+iter;
